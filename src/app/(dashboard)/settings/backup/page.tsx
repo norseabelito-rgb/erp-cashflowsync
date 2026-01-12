@@ -45,7 +45,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 interface BackupFile {
   id: string;
@@ -96,14 +96,14 @@ export default function BackupListPage() {
     },
     onSuccess: (data) => {
       if (data.success) {
-        toast.success(data.message || "Backup creat cu succes");
+        toast({ title: "Succes", description: data.message || "Backup creat cu succes" });
         queryClient.invalidateQueries({ queryKey: ["backups"] });
       } else {
-        toast.error(data.error || "Eroare la creare backup");
+        toast({ title: "Eroare", description: data.error || "Eroare la creare backup", variant: "destructive" });
       }
     },
     onError: () => {
-      toast.error("Eroare la creare backup");
+      toast({ title: "Eroare", description: "Eroare la creare backup", variant: "destructive" });
     },
   });
 
@@ -119,15 +119,15 @@ export default function BackupListPage() {
     },
     onSuccess: (data) => {
       if (data.success) {
-        toast.success(data.message || "Restore efectuat cu succes");
+        toast({ title: "Succes", description: data.message || "Restore efectuat cu succes" });
         setRestoreDialogOpen(false);
         setSelectedBackup(null);
       } else {
-        toast.error(data.error || "Eroare la restore");
+        toast({ title: "Eroare", description: data.error || "Eroare la restore", variant: "destructive" });
       }
     },
     onError: () => {
-      toast.error("Eroare la restore");
+      toast({ title: "Eroare", description: "Eroare la restore", variant: "destructive" });
     },
   });
 
