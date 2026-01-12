@@ -32,40 +32,47 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    // Adaugă informații despre roluri și grupuri
-    const invitationsWithDetails = await Promise.all(
-      invitations.map(async (inv) => {
-        const roles = inv.roleIds.length > 0 
-          ? await prisma.role.findMany({
-              where: { id: { in: inv.roleIds } },
-              select: { id: true, name: true, color: true },
-            })
-          : [];
+    // Colectăm toate ID-urile necesare pentru batch queries (evită N+1)
+    const allRoleIds = [...new Set(invitations.flatMap(inv => inv.roleIds))];
+    const allGroupIds = [...new Set(invitations.flatMap(inv => inv.groupIds))];
+    const allStoreIds = [...new Set(invitations.flatMap(inv => inv.storeIds))];
 
-        const groups = inv.groupIds.length > 0
-          ? await prisma.group.findMany({
-              where: { id: { in: inv.groupIds } },
-              select: { id: true, name: true, color: true },
-            })
-          : [];
+    // Batch queries - 3 query-uri în loc de 3*N
+    const [allRoles, allGroups, allStores] = await Promise.all([
+      allRoleIds.length > 0
+        ? prisma.role.findMany({
+            where: { id: { in: allRoleIds } },
+            select: { id: true, name: true, color: true },
+          })
+        : [],
+      allGroupIds.length > 0
+        ? prisma.group.findMany({
+            where: { id: { in: allGroupIds } },
+            select: { id: true, name: true, color: true },
+          })
+        : [],
+      allStoreIds.length > 0
+        ? prisma.store.findMany({
+            where: { id: { in: allStoreIds } },
+            select: { id: true, name: true },
+          })
+        : [],
+    ]);
 
-        const stores = inv.storeIds.length > 0
-          ? await prisma.store.findMany({
-              where: { id: { in: inv.storeIds } },
-              select: { id: true, name: true },
-            })
-          : [];
+    // Creăm maps pentru lookup rapid
+    const rolesMap = new Map(allRoles.map(r => [r.id, r]));
+    const groupsMap = new Map(allGroups.map(g => [g.id, g]));
+    const storesMap = new Map(allStores.map(s => [s.id, s]));
 
-        return {
-          ...inv,
-          roles,
-          groups,
-          stores,
-          isExpired: new Date() > inv.expiresAt,
-          isAccepted: !!inv.acceptedAt,
-        };
-      })
-    );
+    // Mapăm invitațiile cu detaliile lor
+    const invitationsWithDetails = invitations.map(inv => ({
+      ...inv,
+      roles: inv.roleIds.map(id => rolesMap.get(id)).filter(Boolean),
+      groups: inv.groupIds.map(id => groupsMap.get(id)).filter(Boolean),
+      stores: inv.storeIds.map(id => storesMap.get(id)).filter(Boolean),
+      isExpired: new Date() > inv.expiresAt,
+      isAccepted: !!inv.acceptedAt,
+    }));
 
     return NextResponse.json(invitationsWithDetails);
   } catch (error: any) {

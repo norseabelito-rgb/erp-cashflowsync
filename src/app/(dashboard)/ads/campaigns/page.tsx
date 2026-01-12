@@ -270,6 +270,7 @@ export default function CampaignsPage() {
                 </p>
               </div>
             ) : (
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -405,6 +406,7 @@ export default function CampaignsPage() {
                   })}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
 

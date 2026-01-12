@@ -1,9 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { hasPermission } from "@/lib/permissions";
+
+export const dynamic = 'force-dynamic';
 
 // GET - Lista canalelor
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canView = await hasPermission(session.user.id, "products.view");
+    if (!canView) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
     const channels = await prisma.channel.findMany({
       orderBy: { createdAt: "asc" },
       include: {
@@ -35,6 +50,16 @@ export async function GET() {
 // Creează automat canale pentru Store-urile care nu au încă
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canEdit = await hasPermission(session.user.id, "products.edit");
+    if (!canEdit) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
     const body = await request.json();
     const { action } = body;
 
@@ -119,6 +144,16 @@ export async function POST(request: NextRequest) {
 // PUT - Actualizează canal
 export async function PUT(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canEdit = await hasPermission(session.user.id, "products.edit");
+    if (!canEdit) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
     const body = await request.json();
     const { id, name, isActive, settings } = body;
 
@@ -164,6 +199,16 @@ export async function PUT(request: NextRequest) {
 // DELETE - Șterge canal (doar cele non-Shopify)
 export async function DELETE(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canEdit = await hasPermission(session.user.id, "products.edit");
+    if (!canEdit) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 

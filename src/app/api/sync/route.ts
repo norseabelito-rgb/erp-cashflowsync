@@ -1,10 +1,25 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { syncAllStoresOrders } from "@/lib/shopify";
 import { syncInvoicesFromSmartBill } from "@/lib/smartbill";
 import { syncAWBsFromFanCourier } from "@/lib/fancourier";
+import { hasPermission } from "@/lib/permissions";
+
+export const dynamic = 'force-dynamic';
 
 export async function POST() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canSync = await hasPermission(session.user.id, "sync.run");
+    if (!canSync) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
     console.log("\n" + "=".repeat(70));
     console.log("🔄 SINCRONIZARE COMPLETĂ - START");
     console.log("=".repeat(70));

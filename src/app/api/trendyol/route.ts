@@ -1,10 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { TrendyolClient, flattenCategories, generateBarcode, translateTurkishToRomanian } from "@/lib/trendyol";
+import { hasPermission } from "@/lib/permissions";
+
+export const dynamic = 'force-dynamic';
 
 // GET - Obține status conexiune și date cache
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canView = await hasPermission(session.user.id, "trendyol.view");
+    if (!canView) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
 
@@ -332,6 +347,16 @@ export async function GET(request: NextRequest) {
 // POST - Operații care modifică date
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canManage = await hasPermission(session.user.id, "trendyol.manage");
+    if (!canManage) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
     const body = await request.json();
     const { action } = body;
 

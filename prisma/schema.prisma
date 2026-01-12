@@ -413,6 +413,7 @@ model Order {
   @@index([status])
   @@index([storeId])
   @@index([createdAt])
+  @@index([storeId, status, createdAt]) // Composite index pentru filtrare frecventă
   @@map("orders")
 }
 
