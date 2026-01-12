@@ -672,7 +672,13 @@ model Settings {
   aiDailyAnalysisEnabled  Boolean  @default(false)  // Activează analiza zilnică automată
   aiDailyAnalysisTime     String   @default("08:00")  // Ora analizei zilnice (HH:mm)
   aiLastAnalysisAt        DateTime?  // Ultima analiză AI
-  
+
+  // Backup
+  backupFolderUrl         String?  // URL folder Google Drive pentru backup-uri
+  backupAutoEnabled       Boolean  @default(false)  // Activează backup automat
+  backupAutoTime          String   @default("03:00")  // Ora backup-ului automat (HH:mm)
+  backupLastAt            DateTime?  // Ultimul backup
+
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   

@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  Save, Eye, EyeOff, CheckCircle2, AlertCircle, RefreshCw, 
+import {
+  Save, Eye, EyeOff, CheckCircle2, AlertCircle, RefreshCw,
   Store, Calculator, Truck, Plus, Trash2, Copy,
   Download, Apple, Monitor, Package, FolderOpen, Wifi, WifiOff,
-  ShoppingBag, Search, ExternalLink, Sparkles, Brain, Clock, Zap
+  ShoppingBag, Search, ExternalLink, Sparkles, Brain, Clock, Zap,
+  HardDrive, Upload, Database
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,6 +94,11 @@ interface Settings {
   aiDailyAnalysisEnabled: boolean;
   aiDailyAnalysisTime: string;
   aiLastAnalysisAt: string | null;
+  // Backup
+  backupFolderUrl: string;
+  backupAutoEnabled: boolean;
+  backupAutoTime: string;
+  backupLastAt: string | null;
 }
 
 interface SmartBillData {
@@ -170,6 +176,11 @@ export default function SettingsPage() {
     aiDailyAnalysisEnabled: false,
     aiDailyAnalysisTime: "08:00",
     aiLastAnalysisAt: null,
+    // Backup
+    backupFolderUrl: "",
+    backupAutoEnabled: false,
+    backupAutoTime: "03:00",
+    backupLastAt: null,
   });
 
   // Fetch settings
@@ -231,6 +242,11 @@ export default function SettingsPage() {
         aiDailyAnalysisEnabled: settingsData.settings.aiDailyAnalysisEnabled || false,
         aiDailyAnalysisTime: settingsData.settings.aiDailyAnalysisTime || "08:00",
         aiLastAnalysisAt: settingsData.settings.aiLastAnalysisAt || null,
+        // Backup
+        backupFolderUrl: settingsData.settings.backupFolderUrl || "",
+        backupAutoEnabled: settingsData.settings.backupAutoEnabled || false,
+        backupAutoTime: settingsData.settings.backupAutoTime || "03:00",
+        backupLastAt: settingsData.settings.backupLastAt || null,
       });
     }
   }, [settingsData]);
@@ -448,7 +464,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 lg:w-[900px]">
+        <TabsList className="grid w-full grid-cols-4 md:grid-cols-7 lg:w-[1050px]">
           <TabsTrigger value="stores" className="gap-2">
             <Store className="h-4 w-4" />
             <span className="hidden sm:inline">Magazine</span>
@@ -472,6 +488,10 @@ export default function SettingsPage() {
           <TabsTrigger value="ai" className="gap-2">
             <Sparkles className="h-4 w-4" />
             <span className="hidden sm:inline">AI</span>
+          </TabsTrigger>
+          <TabsTrigger value="backup" className="gap-2">
+            <Database className="h-4 w-4" />
+            <span className="hidden sm:inline">Backup</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1670,6 +1690,131 @@ export default function SettingsPage() {
             <Button onClick={() => saveMutation.mutate(settings)} disabled={saveMutation.isPending}>
               <Save className="h-4 w-4 mr-2" />
               {saveMutation.isPending ? "Se salvează..." : "Salvează Setări AI"}
+            </Button>
+          </div>
+        </TabsContent>
+
+        {/* TAB: Backup */}
+        <TabsContent value="backup" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Backup & Restore
+              </CardTitle>
+              <CardDescription>
+                Configurează backup-ul automat al bazei de date în Google Drive
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Folder Google Drive */}
+              <div className="grid gap-2">
+                <Label htmlFor="backupFolderUrl">Folder Google Drive pentru backup</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="backupFolderUrl"
+                    placeholder="https://drive.google.com/drive/folders/... sau ID-ul folderului"
+                    value={settings.backupFolderUrl}
+                    onChange={(e) => setSettings({ ...settings, backupFolderUrl: e.target.value })}
+                    className="flex-1"
+                  />
+                  {settings.backupFolderUrl && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => window.open(settings.backupFolderUrl.startsWith("http") ? settings.backupFolderUrl : `https://drive.google.com/drive/folders/${settings.backupFolderUrl}`, "_blank")}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Asigură-te că Service Account-ul Google Drive are acces de scriere la acest folder.
+                  Folosește același Service Account ca pentru imaginile produselor.
+                </p>
+              </div>
+
+              {/* Backup automat */}
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-0.5">
+                  <Label className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Backup automat zilnic
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Creează automat un backup zilnic al bazei de date
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.backupAutoEnabled}
+                  onCheckedChange={(checked) => setSettings({ ...settings, backupAutoEnabled: checked })}
+                />
+              </div>
+
+              {/* Ora backup */}
+              {settings.backupAutoEnabled && (
+                <div className="grid gap-2">
+                  <Label htmlFor="backupAutoTime">Ora backup-ului automat</Label>
+                  <Input
+                    id="backupAutoTime"
+                    type="time"
+                    value={settings.backupAutoTime}
+                    onChange={(e) => setSettings({ ...settings, backupAutoTime: e.target.value })}
+                    className="w-32"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Backup-ul se va rula zilnic la ora specificată (timezone: Europe/Bucharest)
+                  </p>
+                </div>
+              )}
+
+              {/* Ultimul backup */}
+              {settings.backupLastAt && (
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <span>Ultimul backup: {formatDate(settings.backupLastAt)}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Acțiuni */}
+              <div className="flex flex-wrap gap-3 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => window.location.href = "/settings/backup"}
+                >
+                  <HardDrive className="h-4 w-4 mr-2" />
+                  Listă backup-uri
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch("/api/backup", { method: "POST" });
+                      const data = await res.json();
+                      if (data.success) {
+                        toast({ title: "Succes", description: "Backup creat cu succes" });
+                        queryClient.invalidateQueries({ queryKey: ["settings"] });
+                      } else {
+                        toast({ title: "Eroare", description: data.error, variant: "destructive" });
+                      }
+                    } catch (error) {
+                      toast({ title: "Eroare", description: "Nu s-a putut crea backup-ul", variant: "destructive" });
+                    }
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Creează backup acum
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end">
+            <Button onClick={() => saveMutation.mutate(settings)} disabled={saveMutation.isPending}>
+              <Save className="h-4 w-4 mr-2" />
+              {saveMutation.isPending ? "Se salvează..." : "Salvează Setări Backup"}
             </Button>
           </div>
         </TabsContent>
