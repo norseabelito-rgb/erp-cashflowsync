@@ -45,6 +45,7 @@ import {
   FileBarChart,
   Wrench,
   ArrowDownUp,
+  Link2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -98,6 +99,7 @@ const navigation: NavItem[] = [
     permissions: ["products.view", "categories.view"],
     children: [
       { name: "Produse", href: "/products", icon: Package, permissions: ["products.view"] },
+      { name: "Mapare Inventar", href: "/products/inventory-mapping", icon: Link2, permissions: ["products.edit"] },
       { name: "Categorii", href: "/categories", icon: FolderTree, permissions: ["categories.view"] },
     ],
   },
