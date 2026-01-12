@@ -32,6 +32,7 @@ import {
   Printer,
   AlertTriangle,
   Beaker,
+  ChefHat,
   PackageCheck,
   Megaphone,
   BarChart3,
@@ -93,7 +94,7 @@ const navigation: NavItem[] = [
     permissions: ["products.view", "categories.view", "inventory.view"],
     children: [
       { name: "Produse", href: "/products", icon: Package, permissions: ["products.view"] },
-      { name: "Rețete", href: "/products/recipes", icon: Beaker, permissions: ["products.edit"] },
+      { name: "Rețetar", href: "/inventory/recipes", icon: ChefHat, permissions: ["inventory.view"] },
       { name: "Categorii", href: "/categories", icon: FolderTree, permissions: ["categories.view"] },
       { name: "Inventar", href: "/inventory", icon: Warehouse, permissions: ["inventory.view"] },
     ],

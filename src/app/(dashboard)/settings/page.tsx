@@ -1221,7 +1221,12 @@ export default function SettingsPage() {
                     checked={settings.smartbillUseStock}
                     onCheckedChange={(checked) => setSettings({ ...settings, smartbillUseStock: checked })}
                   />
-                  <Label>Descărcare automată din stoc la emiterea facturii</Label>
+                  <div>
+                    <Label>Descărcare stoc SmartBill (gestiune externă)</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Dezactivați pentru a folosi doar inventarul local. Stocul local se descarcă automat.
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>

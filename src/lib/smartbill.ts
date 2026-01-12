@@ -870,18 +870,26 @@ export async function issueInvoiceForOrder(orderId: string): Promise<{
     // 🔥 PROCESARE STOC - Scădem stocul produselor vândute
     try {
       const { processStockForOrder, calculateOrderCost, updateDailySales } = await import("./stock");
-      
+      const { processInventoryStockForOrder } = await import("./inventory-stock");
+
       // Obținem factura creată pentru a avea ID-ul
       const invoice = await prisma.invoice.findUnique({
         where: { orderId: order.id },
       });
 
       if (invoice) {
-        // Procesăm descărcarea stocului
+        // Procesăm descărcarea stocului din vechiul sistem (Product)
         const stockResult = await processStockForOrder(order.id, invoice.id);
-        
+
         if (stockResult.errors.length > 0) {
-          console.warn("⚠️ Avertismente la procesarea stocului:", stockResult.errors);
+          console.warn("⚠️ Avertismente la procesarea stocului (Product):", stockResult.errors);
+        }
+
+        // Procesăm descărcarea stocului din noul sistem (InventoryItem)
+        const inventoryResult = await processInventoryStockForOrder(order.id, invoice.id);
+
+        if (inventoryResult.errors.length > 0) {
+          console.warn("⚠️ Avertismente la procesarea stocului (Inventory):", inventoryResult.errors);
         }
 
         // Calculăm costul și actualizăm statisticile zilnice
@@ -896,6 +904,7 @@ export async function issueInvoiceForOrder(orderId: string): Promise<{
         });
 
         console.log(`✅ Stoc procesat și statistici actualizate pentru comanda ${order.shopifyOrderNumber}`);
+        console.log(`   Product: ${stockResult.processed} mișcări, Inventory: ${inventoryResult.processed} articole`);
       }
     } catch (stockError: any) {
       // Nu oprim emiterea facturii dacă stocul nu poate fi procesat
