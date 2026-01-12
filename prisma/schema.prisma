@@ -1141,7 +1141,11 @@ model MasterProduct {
   trendyolError         String?   // Mesajul de eroare (dacă rejected)
   trendyolAttributes    Json?     @default("[]")  // Atributele produsului pentru Trendyol
   trendyolLastSyncedAt  DateTime?
-  
+
+  // Mapare la articol inventar local
+  inventoryItemId       String?
+  inventoryItem         InventoryItem? @relation("InventoryMapping", fields: [inventoryItemId], references: [id])
+
   // Status
   isActive          Boolean   @default(true)
   
@@ -1164,6 +1168,7 @@ model MasterProduct {
   @@index([categoryId])
   @@index([trendyolBarcode])
   @@index([isComposite])
+  @@index([inventoryItemId])
   @@map("master_products")
 }
 
@@ -2462,10 +2467,276 @@ model TrendyolCampaignProduct {
   localSku              String?
   masterProductId       String?
   masterProduct         MasterProduct? @relation(fields: [masterProductId], references: [id])
-  
+
   createdAt             DateTime @default(now())
-  
+
   @@unique([campaignId, trendyolProductId])
   @@index([barcode])
   @@map("trendyol_campaign_products")
+}
+
+// ==========================================
+// INVENTORY SYSTEM - NEW
+// ==========================================
+
+// Articole în inventar (gestiunea locală independentă de SmartBill)
+model InventoryItem {
+  id                String   @id @default(cuid())
+  sku               String   @unique
+  name              String
+  description       String?
+
+  // Stoc actual
+  currentStock      Decimal  @db.Decimal(10, 3) @default(0)
+  minStock          Decimal? @db.Decimal(10, 3)  // Alertă când scade sub acest nivel
+
+  // Unitate de măsură principală
+  unit              String   @default("buc")  // buc, kg, g, ml, L, m, etc.
+
+  // Cantitate per bax/cutie (opțional)
+  unitsPerBox       Int?     // ex: 12 buc/cutie
+  boxUnit           String?  // ex: "cutie", "bax", "palet"
+
+  // Costuri
+  costPrice         Decimal? @db.Decimal(10, 2)
+
+  // Tip articol
+  isComposite       Boolean  @default(false)  // Produs compus (NU are stoc propriu)
+
+  // Tracking loturi (opțional pentru viitor)
+  trackLots         Boolean  @default(false)
+
+  // Status
+  isActive          Boolean  @default(true)
+
+  // Relații
+  supplierId        String?
+  supplier          Supplier? @relation(fields: [supplierId], references: [id])
+
+  // Componente rețetă (dacă e compus)
+  recipeComponents  InventoryRecipeComponent[] @relation("CompositeItem")
+  // Unde e folosit ca ingredient
+  usedInRecipes     InventoryRecipeComponent[] @relation("ComponentItem")
+
+  // Mișcări stoc
+  stockMovements    InventoryStockMovement[]
+
+  // Produse mapate
+  mappedProducts    MasterProduct[] @relation("InventoryMapping")
+
+  // Linii recepție marfă
+  receiptItems      GoodsReceiptItem[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([sku])
+  @@index([name])
+  @@index([isComposite])
+  @@index([supplierId])
+  @@map("inventory_items")
+}
+
+// Rețetă pentru articole compuse
+model InventoryRecipeComponent {
+  id                String   @id @default(cuid())
+
+  // Articolul compus (părintele)
+  compositeItemId   String
+  compositeItem     InventoryItem @relation("CompositeItem", fields: [compositeItemId], references: [id], onDelete: Cascade)
+
+  // Articolul component (ingredientul)
+  componentItemId   String
+  componentItem     InventoryItem @relation("ComponentItem", fields: [componentItemId], references: [id], onDelete: Cascade)
+
+  // Cantitatea necesară din component pentru 1 unitate de compus
+  quantity          Decimal  @db.Decimal(10, 3)
+  unit              String?  // Unitatea pentru această cantitate (poate diferi de cea principală)
+
+  // Ordine afișare
+  sortOrder         Int      @default(0)
+
+  createdAt         DateTime @default(now())
+
+  @@unique([compositeItemId, componentItemId])
+  @@index([compositeItemId])
+  @@index([componentItemId])
+  @@map("inventory_recipe_components")
+}
+
+// Tip mișcare stoc inventar
+enum InventoryMovementType {
+  RECEIPT         // Intrare din recepție marfă
+  SALE            // Ieșire din vânzare/factură
+  ADJUSTMENT_PLUS // Ajustare pozitivă (inventar)
+  ADJUSTMENT_MINUS// Ajustare negativă (pierderi, etc.)
+  RECIPE_OUT      // Ieșire pentru producție compus
+  RETURN          // Retur de la client
+  TRANSFER        // Transfer între locații (viitor)
+}
+
+// Mișcări stoc inventar
+model InventoryStockMovement {
+  id                String   @id @default(cuid())
+
+  itemId            String
+  item              InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  type              InventoryMovementType
+  quantity          Decimal  @db.Decimal(10, 3)  // Pozitiv pentru intrări, negativ pentru ieșiri
+
+  previousStock     Decimal  @db.Decimal(10, 3)
+  newStock          Decimal  @db.Decimal(10, 3)
+
+  // Referințe opționale
+  orderId           String?           // ID comandă
+  orderNumber       String?           // Număr comandă (cached)
+  invoiceId         String?           // ID factură
+  invoiceNumber     String?           // Număr factură (cached)
+  receiptId         String?           // ID recepție marfă
+  lotNumber         String?           // Număr lot (dacă se folosește tracking)
+
+  // Detalii
+  reason            String?           // Motiv (pentru ajustări)
+  notes             String?
+
+  // Cine a făcut mișcarea
+  userId            String?
+  userName          String?           // Cached pentru afișare
+
+  createdAt         DateTime @default(now())
+
+  @@index([itemId])
+  @@index([type])
+  @@index([orderId])
+  @@index([invoiceId])
+  @@index([receiptId])
+  @@index([createdAt])
+  @@map("inventory_stock_movements")
+}
+
+// Furnizori
+model Supplier {
+  id                String   @id @default(cuid())
+  name              String   @unique
+  code              String?  @unique  // Cod intern furnizor
+
+  // Contact
+  contactPerson     String?
+  email             String?
+  phone             String?
+
+  // Adresă
+  address           String?
+  city              String?
+  county            String?
+  postalCode        String?
+  country           String   @default("România")
+
+  // Fiscal
+  cif               String?  // CIF/CUI
+  regCom            String?  // Nr. Reg. Com.
+  bankAccount       String?  // IBAN
+  bankName          String?
+
+  // Note
+  notes             String?  @db.Text
+
+  // Status
+  isActive          Boolean  @default(true)
+
+  // Relații
+  items             InventoryItem[]
+  receipts          GoodsReceipt[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([name])
+  @@index([cif])
+  @@map("suppliers")
+}
+
+// Status recepție marfă
+enum GoodsReceiptStatus {
+  DRAFT           // Ciornă, poate fi modificată
+  COMPLETED       // Finalizată, a actualizat stocul
+  CANCELLED       // Anulată
+}
+
+// Recepție marfă (NIR)
+model GoodsReceipt {
+  id                String   @id @default(cuid())
+
+  // Număr document
+  receiptNumber     String   @unique  // Număr NIR auto-generat
+
+  // Furnizor
+  supplierId        String?
+  supplier          Supplier? @relation(fields: [supplierId], references: [id])
+
+  // Document furnizor
+  documentNumber    String?  // Număr factură furnizor
+  documentDate      DateTime? // Data facturii furnizor
+
+  // Status
+  status            GoodsReceiptStatus @default(DRAFT)
+
+  // Totale
+  totalItems        Int      @default(0)  // Număr articole diferite
+  totalQuantity     Decimal  @db.Decimal(10, 3) @default(0)  // Total cantitate
+  totalValue        Decimal  @db.Decimal(12, 2) @default(0)  // Valoare totală
+
+  // Note
+  notes             String?  @db.Text
+
+  // Cine a creat/finalizat
+  createdBy         String?
+  createdByName     String?
+  completedBy       String?
+  completedByName   String?
+  completedAt       DateTime?
+
+  // Linii
+  items             GoodsReceiptItem[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([status])
+  @@index([supplierId])
+  @@index([documentNumber])
+  @@index([createdAt])
+  @@map("goods_receipts")
+}
+
+// Linii recepție marfă
+model GoodsReceiptItem {
+  id                String   @id @default(cuid())
+
+  receiptId         String
+  receipt           GoodsReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  // Articol
+  itemId            String
+  item              InventoryItem @relation(fields: [itemId], references: [id])
+
+  // Cantitate și valoare
+  quantity          Decimal  @db.Decimal(10, 3)
+  unitCost          Decimal? @db.Decimal(10, 2)  // Preț unitar
+  totalCost         Decimal? @db.Decimal(12, 2)  // Total linie
+
+  // Lot (opțional)
+  lotNumber         String?
+  expiryDate        DateTime?  // Data expirare (pentru viitor)
+
+  // Note linie
+  notes             String?
+
+  createdAt         DateTime @default(now())
+
+  @@unique([receiptId, itemId, lotNumber])
+  @@index([receiptId])
+  @@index([itemId])
+  @@map("goods_receipt_items")
 }
