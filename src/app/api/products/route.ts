@@ -182,6 +182,7 @@ export async function POST(request: NextRequest) {
       driveFolderUrl,
       channelIds, // Array de channel IDs unde să fie publicat
       stock, // Stocul din inventar
+      inventoryItemId, // ID articol inventar local
     } = body;
 
     // Validări
@@ -230,6 +231,7 @@ export async function POST(request: NextRequest) {
         categoryId: categoryId || null,
         driveFolderUrl: driveFolderUrl?.trim() || null,
         stock: stock || 0,
+        inventoryItemId: inventoryItemId || null,
         // Creează asocierile cu canalele
         channels: channelIds?.length > 0 ? {
           create: channelIds.map((channelId: string) => ({
@@ -244,6 +246,13 @@ export async function POST(request: NextRequest) {
         channels: {
           include: {
             channel: true
+          }
+        },
+        inventoryItem: {
+          select: {
+            id: true,
+            sku: true,
+            name: true,
           }
         }
       }
