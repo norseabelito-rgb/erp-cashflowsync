@@ -5,3 +5,4 @@ node_modules
 *.sql
 *.dump
 .DS_Store
+next-env.d.ts
