@@ -1,0 +1,2470 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// AUTENTIFICARE (NextAuth.js)
+// ==========================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // Hash-ul parolei pentru autentificare cu email/parolă
+  isSuperAdmin  Boolean   @default(false)  // Acces complet, nu poate fi modificat din UI
+  isActive      Boolean   @default(true)   // Pentru dezactivare fără ștergere
+  preferences   Json?     // Preferințele utilizatorului (JSON)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // NextAuth
+  accounts      Account[]
+  sessions      Session[]
+  
+  // RBAC
+  roles         UserRoleAssignment[]   // Rolurile asignate direct
+  groups        UserGroupMembership[]  // Grupurile din care face parte
+  storeAccess   UserStoreAccess[]      // Store-urile la care are acces
+  
+  // Audit
+  auditLogs     AuditLog[]             // Acțiuni făcute de user
+  invitationsSent Invitation[] @relation("InvitedBy")
+  
+  // Notificări
+  notifications Notification[]
+  
+  @@map("users")
+}
+
+// Notificări pentru utilizatori
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type      String   // "new_user", "invitation_accepted", "picking_list_created", "picking_list_completed", etc.
+  title     String
+  message   String
+  data      Json?    // Date adiționale (linkuri, ID-uri, etc.)
+  read      Boolean  @default(false)
+  
+  // Atașamente (ex: PDF picking list finalizat)
+  attachmentData     Bytes?   // Datele fișierului atașat
+  attachmentName     String?  // Numele fișierului (ex: "picking-PL-ABC123.pdf")
+  attachmentMimeType String?  // MIME type (ex: "application/pdf")
+  
+  // Link direct (alternativă la atașament)
+  actionUrl String?  // URL pentru acțiune directă (ex: /picking/[id])
+  
+  createdAt DateTime @default(now())
+  
+  @@index([userId, read])
+  @@index([type])
+  @@map("notifications")
+}
+
+// ELIMINĂM vechiul enum UserRole - nu mai e necesar
+// enum UserRole { ADMIN, MANAGER, USER }
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ==========================================
+// RBAC - Role Based Access Control
+// ==========================================
+
+// Permisiuni granulare (ex: "orders.view", "orders.create")
+model Permission {
+  id          String   @id @default(cuid())
+  code        String   @unique  // "orders.view", "products.edit"
+  name        String            // "Vizualizare comenzi"
+  description String?
+  category    String            // "orders", "products", "settings"
+  sortOrder   Int      @default(0)
+  
+  roles       RolePermission[]
+  
+  @@map("permissions")
+}
+
+// Roluri (ex: "Manager Depozit", "Operator Comenzi")
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  color       String?  // Pentru badge-uri în UI (ex: "#22c55e")
+  isSystem    Boolean  @default(false)  // Roluri default care nu pot fi șterse
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  permissions RolePermission[]
+  users       UserRoleAssignment[]
+  groups      GroupRoleAssignment[]
+  
+  @@map("roles")
+}
+
+// Legătură Role <-> Permission (many-to-many)
+model RolePermission {
+  id           String   @id @default(cuid())
+  roleId       String
+  permissionId String
+  
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// Legătură User <-> Role (many-to-many)
+model UserRoleAssignment {
+  id          String   @id @default(cuid())
+  userId      String
+  roleId      String
+  assignedAt  DateTime @default(now())
+  assignedBy  String?  // ID-ul userului care a făcut asignarea
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, roleId])
+  @@map("user_role_assignments")
+}
+
+// Grupuri de utilizatori
+model Group {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  color       String?  // Pentru badge-uri în UI
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  members     UserGroupMembership[]
+  roles       GroupRoleAssignment[]
+  
+  @@map("groups")
+}
+
+// Legătură User <-> Group (many-to-many)
+model UserGroupMembership {
+  id        String   @id @default(cuid())
+  userId    String
+  groupId   String
+  joinedAt  DateTime @default(now())
+  addedBy   String?  // ID-ul userului care l-a adăugat
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, groupId])
+  @@map("user_group_memberships")
+}
+
+// Legătură Group <-> Role (grupul moștenește roluri)
+model GroupRoleAssignment {
+  id        String   @id @default(cuid())
+  groupId   String
+  roleId    String
+  assignedAt DateTime @default(now())
+  assignedBy String?
+  
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  
+  @@unique([groupId, roleId])
+  @@map("group_role_assignments")
+}
+
+// Acces per Store (restricție pe magazin)
+model UserStoreAccess {
+  id        String   @id @default(cuid())
+  userId    String
+  storeId   String
+  grantedAt DateTime @default(now())
+  grantedBy String?
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, storeId])
+  @@map("user_store_access")
+}
+
+// Invitații pentru utilizatori noi
+model Invitation {
+  id          String   @id @default(cuid())
+  email       String
+  token       String   @unique @default(cuid())
+  roleIds     String[] // ID-urile rolurilor care vor fi asignate
+  groupIds    String[] // ID-urile grupurilor în care va fi adăugat
+  storeIds    String[] // ID-urile store-urilor la care va avea acces
+  
+  invitedById String
+  invitedBy   User     @relation("InvitedBy", fields: [invitedById], references: [id])
+  
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("invitations")
+}
+
+// Audit Log pentru tracking modificări
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?  // Poate fi null pentru acțiuni de sistem
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  action      String   // "user.create", "role.update", "permission.grant"
+  entityType  String   // "User", "Role", "Order"
+  entityId    String?  // ID-ul entității afectate
+  
+  oldValue    Json?    // Valoarea veche (pentru modificări)
+  newValue    Json?    // Valoarea nouă
+  metadata    Json?    // Date adiționale (IP, user agent, etc.)
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ==========================================
+// BUSINESS MODELS
+// ==========================================
+
+// Magazinele Shopify
+model Store {
+  id               String   @id @default(cuid())
+  name             String
+  shopifyDomain    String   @unique // exemplu: my-store.myshopify.com
+  accessToken      String   // Shopify Admin API access token
+  webhookSecret    String?  // Pentru verificarea webhook-urilor
+  isActive         Boolean  @default(true)
+  
+  // Facturare
+  invoiceSeriesId  String?  // Seria de facturare asociată
+  invoiceSeries    InvoiceSeries? @relation(fields: [invoiceSeriesId], references: [id])
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  orders           Order[]
+  channel          Channel?  // Canalul PIM asociat
+  userAccess       UserStoreAccess[]  // Utilizatorii cu acces la acest store
+  
+  @@map("stores")
+}
+
+// Serii de facturare SmartBill
+model InvoiceSeries {
+  id          String   @id @default(cuid())
+  name        String   @unique  // Numele seriei în SmartBill (ex: "CFG", "TRD")
+  type        String   @default("f")  // f = factură, p = proformă, c = chitanță
+  nextNumber  String?  // Următorul număr (din SmartBill)
+  isDefault   Boolean  @default(false)  // Seria default pentru marketplace-uri fără serie setată
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  stores      Store[]  // Store-urile care folosesc această serie
+  
+  @@map("invoice_series")
+}
+
+// Status-urile unei comenzi în sistemul nostru
+enum OrderStatus {
+  PENDING           // Comandă nouă, nevalidată
+  VALIDATED         // Validări trecute
+  VALIDATION_FAILED // Validări eșuate
+  INVOICE_PENDING   // Așteaptă factură
+  INVOICE_ERROR     // Eroare la emiterea facturii
+  INVOICED          // Factură emisă
+  PICKING           // În proces de picking
+  PACKED            // Împachetat, gata de expediere
+  AWB_PENDING       // Așteaptă AWB
+  AWB_ERROR         // Eroare la emiterea AWB
+  SHIPPED           // AWB emis, în curs de livrare
+  DELIVERED         // Livrat
+  RETURNED          // Returnat
+  CANCELLED         // Anulat
+}
+
+// Status-urile pentru validare
+enum ValidationStatus {
+  PENDING
+  PASSED
+  FAILED
+}
+
+// Comenzile sincronizate din Shopify
+model Order {
+  id                  String           @id @default(cuid())
+  shopifyOrderId      String           // ID-ul comenzii în Shopify
+  shopifyOrderNumber  String           // Numărul vizibil al comenzii (#1001, etc.)
+  storeId             String
+  store               Store            @relation(fields: [storeId], references: [id])
+  
+  // Date client
+  customerEmail       String?
+  customerPhone       String?
+  customerFirstName   String?
+  customerLastName    String?
+  
+  // Adresa de livrare
+  shippingAddress1    String?
+  shippingAddress2    String?
+  shippingCity        String?
+  shippingProvince    String?
+  shippingCountry     String?
+  shippingZip         String?
+  
+  // Valori financiare
+  totalPrice          Decimal          @db.Decimal(10, 2)
+  subtotalPrice       Decimal          @db.Decimal(10, 2)
+  totalShipping       Decimal          @db.Decimal(10, 2)
+  totalTax            Decimal          @db.Decimal(10, 2)
+  currency            String           @default("RON")
+  
+  // Status-uri
+  status              OrderStatus      @default(PENDING)
+  financialStatus     String?          // paid, pending, refunded, etc. din Shopify
+  fulfillmentStatus   String?          // fulfilled, partial, null din Shopify
+  
+  // Validări
+  phoneValidation     ValidationStatus @default(PENDING)
+  phoneValidationMsg  String?
+  addressValidation   ValidationStatus @default(PENDING)
+  addressValidationMsg String?
+  
+  // Date Shopify
+  shopifyCreatedAt    DateTime
+  shopifyUpdatedAt    DateTime
+  rawData             Json?            // Date complete din Shopify pentru referință
+  
+  // Timestamps sistem
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  
+  // Relații
+  invoice             Invoice?
+  awb                 AWB?
+  lineItems           LineItem[]
+  processingErrors    ProcessingError[]
+  trendyolOrder       TrendyolOrder?
+  
+  @@unique([shopifyOrderId, storeId])
+  @@index([status])
+  @@index([storeId])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+// Produsele din comandă
+model LineItem {
+  id              String   @id @default(cuid())
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  shopifyLineItemId String
+  title           String
+  variantTitle    String?
+  sku             String?
+  quantity        Int
+  price           Decimal  @db.Decimal(10, 2)
+  
+  // Câmpuri adiționale pentru picking și identificare
+  barcode         String?          // Codul de bare al produsului (EAN-13, UPC, etc.)
+  imageUrl        String?          // URL imagine produs pentru identificare vizuală
+  weight          Decimal?         @db.Decimal(8, 3)  // Greutatea în kg
+  location        String?          // Locația în depozit (ex: "A-12-3", "Raft B, Poziția 5")
+  
+  // Legătură cu catalogul PIM (opțional, pentru produse cunoscute)
+  masterProductId String?
+  masterProduct   MasterProduct?   @relation(fields: [masterProductId], references: [id], onDelete: SetNull)
+  
+  @@index([sku])
+  @@index([barcode])
+  @@index([orderId])
+  @@map("line_items")
+}
+
+// Facturile emise prin SmartBill
+model Invoice {
+  id                String   @id @default(cuid())
+  orderId           String   @unique
+  order             Order    @relation(fields: [orderId], references: [id])
+  
+  smartbillNumber   String?  // Numărul facturii în SmartBill
+  smartbillSeries   String?  // Seria facturii
+  smartbillId       String?  // ID-ul intern SmartBill
+  
+  status            String   @default("pending") // pending, issued, cancelled, error
+  errorMessage      String?  // Mesajul de eroare de la SmartBill
+  
+  // Date factură
+  dueDate           DateTime? // Data scadenței
+  
+  // Status plată
+  paymentStatus     String   @default("unpaid") // unpaid, partial, paid
+  paidAmount        Decimal  @db.Decimal(10, 2) @default(0)
+  paidAt            DateTime?
+  
+  // Anulare/Stornare
+  cancelledAt       DateTime?
+  cancelReason      String?
+  stornoNumber      String?  // Numărul facturii de stornare
+  stornoSeries      String?
+  
+  pdfUrl            String?  // URL-ul PDF-ului facturii
+  pdfData           Bytes?   // PDF-ul facturii stocat local
+  
+  issuedAt          DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("invoices")
+}
+
+// AWB-urile create prin FanCourier
+model AWB {
+  id                String     @id @default(cuid())
+  orderId           String     @unique
+  order             Order      @relation(fields: [orderId], references: [id])
+  
+  awbNumber         String?    // Numărul AWB-ului
+  
+  // Setări AWB
+  serviceType       String     @default("Standard") // Standard, Express, etc.
+  paymentType       String     @default("destinatar") // destinatar (ramburs), expeditor
+  weight            Decimal    @db.Decimal(5, 2) @default(1)
+  packages          Int        @default(1)
+  declaredValue     Decimal?   @db.Decimal(10, 2)
+  cashOnDelivery    Decimal?   @db.Decimal(10, 2) // Suma ramburs
+  observations      String?
+  
+  // Status curent
+  currentStatus     String     @default("pending") // pending, created, in_transit, delivered, returned
+  currentStatusDate DateTime?
+  
+  // Erori
+  errorMessage      String?
+  
+  // Status FanCourier detaliat (cod + descriere)
+  fanCourierStatusCode   String?   // Codul statusului (C0, S2, H4, etc.)
+  fanCourierStatusName   String?   // Denumirea statusului
+  fanCourierStatusDesc   String?   // Descrierea detaliată
+  
+  // Predare curier (handover intern)
+  handedOverAt      DateTime?      // Când a fost scanat la predare
+  handedOverBy      String?        // User ID care a scanat
+  handedOverByName  String?        // Numele utilizatorului (cached)
+  handedOverNote    String?        // Notă (ex: "Marcat automat pe baza C0")
+  notHandedOver     Boolean   @default(false)  // Marcat ca NEPREDAT
+  notHandedOverAt   DateTime?      // Când a fost marcat NEPREDAT
+  
+  // Flag pentru alertă C0 fără scanare
+  hasC0WithoutScan  Boolean   @default(false)  // C0 primit dar nescanat intern
+  c0ReceivedAt      DateTime?      // Când s-a primit C0 de la FanCourier
+  
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  
+  // Istoric statusuri
+  statusHistory     AWBStatusHistory[]
+  
+  // Relație cu PickingList
+  pickingListAWBs   PickingListAWB[]
+  
+  // Relație cu HandoverSession
+  handoverSessionId String?
+  handoverSession   HandoverSession? @relation(fields: [handoverSessionId], references: [id])
+  
+  @@index([currentStatus])
+  @@index([createdAt])
+  @@index([awbNumber])
+  @@index([handedOverAt])
+  @@index([notHandedOver])
+  @@index([hasC0WithoutScan])
+  @@map("awbs")
+}
+
+// Istoricul statusurilor AWB
+model AWBStatusHistory {
+  id          String   @id @default(cuid())
+  awbId       String
+  awb         AWB      @relation(fields: [awbId], references: [id], onDelete: Cascade)
+  
+  status      String
+  statusDate  DateTime
+  location    String?
+  description String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([awbId, statusDate])
+  @@map("awb_status_history")
+}
+
+// Sesiune de predare curier (HandoverSession)
+model HandoverSession {
+  id                  String    @id @default(cuid())
+  date                DateTime  @db.Date  // Data predării (unic per zi)
+  
+  // Status sesiune
+  status              HandoverSessionStatus  @default(OPEN)
+  
+  // Finalizare
+  closedAt            DateTime?
+  closedBy            String?
+  closedByName        String?
+  closeType           String?   // "auto" sau "manual"
+  
+  // Redeschidere
+  reopenedAt          DateTime?
+  reopenedBy          String?
+  reopenedByName      String?
+  
+  // Statistici (calculate la finalizare)
+  totalIssued         Int       @default(0)   // Total AWB emise în ziua respectivă
+  totalHandedOver     Int       @default(0)   // Total predate (scanate)
+  totalNotHandedOver  Int       @default(0)   // Total nepredate
+  totalFromPrevDays   Int       @default(0)   // Predate din zile anterioare
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  // Relație cu AWB-uri
+  awbs                AWB[]
+  
+  @@unique([date])
+  @@index([status])
+  @@map("handover_sessions")
+}
+
+// Status sesiune predare
+enum HandoverSessionStatus {
+  OPEN      // Predare în curs
+  CLOSED    // Finalizat
+}
+
+// Setări globale ale aplicației
+model Settings {
+  id                    String   @id @default("default")
+  
+  // SmartBill
+  smartbillEmail        String?
+  smartbillToken        String?
+  smartbillCompanyCif   String?
+  smartbillSeriesName   String?
+  smartbillWarehouseName String?  // Numele gestiunii pentru descărcare stoc
+  smartbillUseStock     Boolean  @default(false)  // Activează descărcarea din stoc
+  smartbillTaxName      String?  // Numele cotei TVA (ex: "Normala", "19%", "TVA 19")
+  smartbillTaxPercent   Int      @default(21)  // Procentul TVA default (21% din 2024)
+  smartbillDueDays      Int      @default(0)   // Zile scadență (0 = fără scadență)
+  
+  // SmartBill - Cache auto-fetch (serializat JSON)
+  smartbillSeriesCache  String?  @db.Text  // JSON cu seriile disponibile
+  smartbillTaxesCache   String?  @db.Text  // JSON cu cotele TVA disponibile
+  smartbillWarehousesCache String? @db.Text  // JSON cu gestiunile disponibile
+  smartbillCacheUpdated DateTime?          // Ultima actualizare cache
+  
+  // FanCourier
+  fancourierClientId    String?
+  fancourierUsername    String?
+  fancourierPassword    String?
+  
+  // Setări default AWB
+  defaultWeight         Decimal  @db.Decimal(5, 2) @default(1)
+  defaultServiceType    String   @default("Standard")
+  defaultPaymentType    String   @default("destinatar")
+  defaultPackages       Int      @default(1)
+  
+  // Sender info pentru FanCourier
+  senderName            String?
+  senderPhone           String?
+  senderEmail           String?
+  senderCounty          String?
+  senderCity            String?
+  senderStreet          String?
+  senderNumber          String?
+  senderPostalCode      String?
+  
+  // PIM - Google Drive
+  googleDriveFolderUrl    String?  // URL-ul folderului părinte din Google Drive
+  googleDriveCredentials  String?  @db.Text  // JSON cu Service Account credentials
+  googleDriveLastSync     DateTime?  // Ultima sincronizare imagini
+  
+  // Trendyol Marketplace
+  trendyolSupplierId      String?  // Supplier ID (Satıcı ID)
+  trendyolApiKey          String?  // API Key
+  trendyolApiSecret       String?  // API Secret
+  trendyolIsTestMode      Boolean  @default(false)  // Test mode (stage API)
+  trendyolDefaultBrandId  Int?     // Brand ID default pentru produse
+  trendyolCurrencyRate    Decimal? @db.Decimal(10, 4)  // Curs RON -> EUR (ex: 5.0)
+  trendyolStoreFrontCode  String?  // Codul țării: RO, DE, BG, etc.
+  trendyolInvoiceSeries   String?  // Seria de facturare pentru comenzi Trendyol
+  
+  // Handover (Predare Curier)
+  handoverAutoCloseTime   String   @default("20:00")   // Ora finalizării automate (HH:mm)
+  handoverTimezone        String   @default("Europe/Bucharest")  // Timezone
+  
+  // AI Insights
+  aiApiKey                String?  @db.Text  // Anthropic API Key (encrypted)
+  aiModel                 String   @default("claude-sonnet-4-20250514")  // Model AI folosit
+  aiDailyAnalysisEnabled  Boolean  @default(false)  // Activează analiza zilnică automată
+  aiDailyAnalysisTime     String   @default("08:00")  // Ora analizei zilnice (HH:mm)
+  aiLastAnalysisAt        DateTime?  // Ultima analiză AI
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@map("settings")
+}
+
+// Produsele din inventar
+model Product {
+  id              String   @id @default(cuid())
+  sku             String   @unique  // SKU unic pentru fiecare produs
+  name            String
+  description     String?
+  
+  // Preț
+  price           Decimal  @db.Decimal(10, 2) @default(0)
+  costPrice       Decimal  @db.Decimal(10, 2) @default(0)  // Preț de achiziție
+  
+  // Stoc
+  stockQuantity   Int      @default(0)  // Cantitatea în stoc
+  lowStockAlert   Int      @default(5)  // Alertă stoc minim
+  
+  // Tip produs
+  isComposite     Boolean  @default(false)  // Produs compus (kit/bundle)
+  isActive        Boolean  @default(true)
+  
+  // Categorii și organizare
+  category        String?
+  supplier        String?
+  barcode         String?
+  
+  // Unitate de măsură
+  unit            String   @default("buc")
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relații
+  components      ProductComponent[] @relation("CompositeProduct")  // Componente ale acestui produs
+  usedIn          ProductComponent[] @relation("ComponentProduct")  // Produse în care e folosit
+  stockMovements  StockMovement[]
+  
+  @@index([sku])
+  @@index([name])
+  @@index([isComposite])
+  @@map("products")
+}
+
+// Componentele unui produs compus (rețetă)
+model ProductComponent {
+  id                String   @id @default(cuid())
+  
+  compositeProductId String  // Produsul compus (kit-ul)
+  compositeProduct   Product @relation("CompositeProduct", fields: [compositeProductId], references: [id], onDelete: Cascade)
+  
+  componentProductId String  // Produsul component
+  componentProduct   Product @relation("ComponentProduct", fields: [componentProductId], references: [id], onDelete: Cascade)
+  
+  quantity          Int      @default(1)  // Câte bucăți din component intră în kit
+  
+  createdAt         DateTime @default(now())
+  
+  @@unique([compositeProductId, componentProductId])
+  @@map("product_components")
+}
+
+// Tipuri de mișcări de stoc
+enum StockMovementType {
+  IN              // Intrare în stoc (achiziție)
+  OUT             // Ieșire din stoc (vânzare)
+  ADJUSTMENT      // Ajustare manuală
+  RETURN          // Retur de la client
+  TRANSFER        // Transfer între locații
+}
+
+// Mișcări de stoc
+model StockMovement {
+  id              String            @id @default(cuid())
+  productId       String
+  product         Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  type            StockMovementType
+  quantity        Int               // Pozitiv pentru intrări, negativ pentru ieșiri
+  previousStock   Int               // Stocul înainte de mișcare
+  newStock        Int               // Stocul după mișcare
+  
+  // Referințe
+  orderId         String?           // ID comandă (pentru vânzări)
+  invoiceId       String?           // ID factură
+  reference       String?           // Referință externă (nr. NIR, etc.)
+  
+  notes           String?
+  
+  createdAt       DateTime          @default(now())
+  createdBy       String?           // Utilizatorul care a făcut mișcarea
+  
+  @@index([productId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("stock_movements")
+}
+
+// Tipuri de sincronizare
+enum SyncType {
+  MANUAL          // Sincronizare manuală (buton)
+  AUTOMATIC       // Sincronizare automată (cron)
+  SINGLE_ORDER    // Sincronizare pentru o singură comandă
+}
+
+// Status sincronizare
+enum SyncStatus {
+  RUNNING         // În curs
+  COMPLETED       // Finalizat cu succes
+  COMPLETED_WITH_ERRORS  // Finalizat cu erori
+  FAILED          // Eșuat complet
+}
+
+// Nivel log
+enum LogLevel {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  DEBUG
+}
+
+// Sesiuni de sincronizare
+model SyncLog {
+  id              String      @id @default(cuid())
+  
+  type            SyncType    @default(MANUAL)
+  status          SyncStatus  @default(RUNNING)
+  
+  // Statistici
+  ordersProcessed Int         @default(0)
+  awbsUpdated     Int         @default(0)
+  invoicesChecked Int         @default(0)
+  errorsCount     Int         @default(0)
+  
+  // Timing
+  startedAt       DateTime    @default(now())
+  completedAt     DateTime?
+  durationMs      Int?        // Durata în milisecunde
+  
+  // Sumarul final
+  summary         String?     @db.Text
+  
+  // Relații
+  entries         SyncLogEntry[]
+  
+  @@index([startedAt])
+  @@index([type])
+  @@index([status])
+  @@map("sync_logs")
+}
+
+// Intrări individuale în log
+model SyncLogEntry {
+  id              String      @id @default(cuid())
+  syncLogId       String
+  syncLog         SyncLog     @relation(fields: [syncLogId], references: [id], onDelete: Cascade)
+  
+  level           LogLevel    @default(INFO)
+  
+  // Context
+  orderId         String?     // ID-ul comenzii (dacă e relevant)
+  orderNumber     String?     // Numărul comenzii pentru afișare
+  awbNumber       String?     // Numărul AWB (dacă e relevant)
+  invoiceNumber   String?     // Numărul facturii (dacă e relevant)
+  
+  // Mesaj
+  action          String      // Ce acțiune s-a făcut: "AWB_STATUS_CHECK", "INVOICE_STATUS_CHECK", etc.
+  message         String      @db.Text  // Mesajul detaliat
+  details         Json?       // Date adiționale (request/response, etc.)
+  
+  // Timing
+  timestamp       DateTime    @default(now())
+  
+  @@index([syncLogId])
+  @@index([level])
+  @@index([orderId])
+  @@index([timestamp])
+  @@map("sync_log_entries")
+}
+
+// Vânzări zilnice (agregat pentru dashboard)
+model DailySales {
+  id              String   @id @default(cuid())
+  date            DateTime @db.Date @unique  // Data (fără oră)
+  
+  // Totaluri
+  totalSales      Decimal  @db.Decimal(12, 2) @default(0)  // Total vânzări
+  totalOrders     Int      @default(0)                      // Număr comenzi
+  totalInvoices   Int      @default(0)                      // Număr facturi emise
+  totalItems      Int      @default(0)                      // Număr produse vândute
+  
+  // Costuri și profit
+  totalCost       Decimal  @db.Decimal(12, 2) @default(0)  // Cost total produse
+  totalProfit     Decimal  @db.Decimal(12, 2) @default(0)  // Profit brut
+  
+  // AWB-uri
+  totalAWBs       Int      @default(0)
+  totalDelivered  Int      @default(0)
+  totalReturned   Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([date])
+  @@map("daily_sales")
+}
+
+// Tipuri de entități pentru ActivityLog
+enum EntityType {
+  ORDER
+  INVOICE
+  AWB
+  PRODUCT
+  STOCK
+  SETTINGS
+  SYNC
+}
+
+// Tipuri de acțiuni pentru ActivityLog
+enum ActionType {
+  CREATE
+  UPDATE
+  DELETE
+  CANCEL
+  SYNC
+  SYNC_SMARTBILL
+  SYNC_FANCOURIER
+  ISSUE_INVOICE
+  CANCEL_INVOICE
+  CREATE_AWB
+  DELETE_AWB
+  UPDATE_AWB_STATUS
+  AWB_DELIVERED
+  AWB_RETURNED
+  AWB_CANCELLED
+  AWB_DELETED
+  STOCK_IN
+  STOCK_OUT
+  STOCK_ADJUST
+  STOCK_SYNC
+  PAYMENT_RECEIVED
+  STATUS_CHANGE
+  VALIDATION
+  ERROR
+}
+
+// Log de activitate pentru istoric
+model ActivityLog {
+  id              String      @id @default(cuid())
+  
+  // Ce entitate a fost afectată
+  entityType      EntityType
+  entityId        String?     // ID-ul entității (orderId, invoiceId, etc.)
+  
+  // Ce s-a întâmplat
+  action          ActionType
+  description     String      @db.Text  // Descriere human-readable
+  
+  // Detalii adiționale
+  details         Json?       // Date suplimentare (before/after, etc.)
+  
+  // Context
+  orderId         String?     // Pentru navigare rapidă la comandă
+  orderNumber     String?     // Numărul comenzii pentru afișare
+  
+  // Referințe la entități specifice
+  invoiceNumber   String?
+  invoiceSeries   String?
+  awbNumber       String?
+  productSku      String?
+  
+  // Rezultat
+  success         Boolean     @default(true)
+  errorMessage    String?     @db.Text
+  
+  // Metadata
+  source          String?     // "manual", "auto", "sync", "webhook"
+  ipAddress       String?
+  userAgent       String?
+  
+  createdAt       DateTime    @default(now())
+  
+  @@index([entityType])
+  @@index([entityId])
+  @@index([orderId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+// Imprimante configurate
+model Printer {
+  id              String    @id @default(cuid())
+  name            String    // Nume afișat (ex: "CFS TSC", "Zebra Depozit")
+  appToken        String    @unique @default(cuid()) // Token pentru aplicația desktop
+  printerToken    String    @unique @default(cuid()) // Token pentru imprimanta specifică
+  
+  // Setări printare
+  paperSize       String    @default("A6") // A4, A6, 10x15, etc.
+  orientation     String    @default("portrait") // portrait, landscape
+  copies          Int       @default(1)
+  autoPrint       Boolean   @default(true) // Print automat la emitere AWB
+  outputFormat    String    @default("PDF") // PDF sau ZPL (pentru imprimante termice Zebra)
+  
+  // Status conexiune
+  isConnected     Boolean   @default(false)
+  lastSeenAt      DateTime?
+  lastError       String?
+  
+  // Metadata
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  printJobs       PrintJob[]
+  
+  @@map("printers")
+}
+
+// Starea joburilor de printare
+enum PrintJobStatus {
+  PENDING     // În așteptare
+  PRINTING    // În curs de printare
+  COMPLETED   // Finalizat
+  FAILED      // Eșuat
+  CANCELLED   // Anulat
+}
+
+// Joburi de printare
+model PrintJob {
+  id              String          @id @default(cuid())
+  printerId       String
+  printer         Printer         @relation(fields: [printerId], references: [id], onDelete: Cascade)
+  
+  // Ce printăm
+  documentType    String          // "awb", "invoice", "label"
+  documentId      String          // ID-ul AWB-ului sau facturii
+  documentNumber  String?         // Numărul AWB sau facturii
+  
+  // Referință comandă
+  orderId         String?
+  orderNumber     String?
+  
+  // Status
+  status          PrintJobStatus  @default(PENDING)
+  attempts        Int             @default(0)
+  maxAttempts     Int             @default(3)
+  
+  // Rezultat
+  completedAt     DateTime?
+  errorMessage    String?
+  
+  // Metadata
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  @@index([printerId])
+  @@index([status])
+  @@index([documentType])
+  @@index([createdAt])
+  @@map("print_jobs")
+}
+
+// ==========================================
+// PIM - Product Information Management
+// ==========================================
+
+// Tipuri de canale de distribuție
+enum ChannelType {
+  SHOPIFY
+  EMAG
+  TEMU
+  TRENDYOL
+}
+
+// Canale de distribuție (Magazine Shopify + alte marketplace-uri)
+model Channel {
+  id            String      @id @default(cuid())
+  name          String      // Nume afișat (ex: "Shopify Principal", "eMAG RO")
+  type          ChannelType
+  
+  // Legătură cu Store pentru Shopify
+  storeId       String?     @unique
+  store         Store?      @relation(fields: [storeId], references: [id])
+  
+  // Configurări specifice canalului
+  isActive      Boolean     @default(true)
+  settings      Json?       // Setări specifice per canal (API keys pentru eMAG, etc.)
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  products      MasterProductChannel[]
+  
+  @@map("channels")
+}
+
+// Categorii de produse
+model Category {
+  id                    String    @id @default(cuid())
+  name                  String    @unique
+  description           String?
+  
+  // ID-urile Collections din Shopify (per Store)
+  // Format: { "storeId1": "collectionId1", "storeId2": "collectionId2" }
+  shopifyCollectionIds  Json?     @default("{}")
+  
+  // Trendyol Mapping
+  trendyolCategoryId    Int?      // ID-ul categoriei în Trendyol
+  trendyolCategoryName  String?   // Numele complet (ex: "Giyim > Kadın > Elbise")
+  trendyolAttributes    Json?     @default("[]")  // Atributele obligatorii pentru categorie
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  products              MasterProduct[]
+  
+  @@map("categories")
+}
+
+// Produs Master pentru PIM
+model MasterProduct {
+  id                String    @id @default(cuid())
+  sku               String    @unique  // SKU unic, imutabil
+  barcode           String?   @unique  // Cod de bare general (EAN-13, UPC, etc.)
+  
+  // Informații produs
+  title             String
+  description       String?   @db.Text  // Rich text (HTML)
+  price             Decimal   @db.Decimal(10, 2)
+  compareAtPrice    Decimal?  @db.Decimal(10, 2)
+  tags              String[]  // Array de tag-uri
+  weight            Decimal?  @db.Decimal(8, 3)  // Greutatea în kg
+  
+  // Locație depozit
+  warehouseLocation String?   // Locația în depozit (ex: "A-12-3")
+  
+  // Categorie
+  categoryId        String?
+  category          Category? @relation(fields: [categoryId], references: [id])
+  
+  // Stoc (din SmartBill - read only în context PIM)
+  stock             Int       @default(0)
+  stockLastSyncedAt DateTime?
+  
+  // Produs compus (cu rețetă)
+  isComposite       Boolean   @default(false)  // True dacă e produs compus
+  recipeAsParent    ProductRecipe[] @relation("RecipeParent")   // Rețetele în care e părinte
+  recipeAsComponent ProductRecipe[] @relation("RecipeComponent") // Rețetele în care e component
+  
+  // Google Drive
+  driveFolderUrl    String?   // URL-ul folderului din Drive
+  imagesLastSyncedAt DateTime?
+  
+  // Trendyol Integration
+  trendyolBarcode       String?   // Barcode unic pentru Trendyol (EAN-13)
+  trendyolBrandId       Int?      // ID-ul brandului în Trendyol
+  trendyolBrandName     String?   // Numele brandului
+  trendyolProductId     String?   // ID-ul produsului în Trendyol (după aprobare)
+  trendyolStatus        String?   // pending, approved, rejected
+  trendyolBatchId       String?   // ID-ul ultimului batch request
+  trendyolError         String?   // Mesajul de eroare (dacă rejected)
+  trendyolAttributes    Json?     @default("[]")  // Atributele produsului pentru Trendyol
+  trendyolLastSyncedAt  DateTime?
+  
+  // Status
+  isActive          Boolean   @default(true)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  images            MasterProductImage[]
+  channels          MasterProductChannel[]
+  lineItems         LineItem[]  // Relație inversă cu LineItems din comenzi
+  adsCampaigns      AdsCampaignProduct[]  // Relație cu campaniile ads
+  
+  // Trendyol relations
+  trendyolOrderItems      TrendyolOrderItem[]
+  trendyolProductMappings TrendyolProductMapping[]
+  trendyolProducts        TrendyolProduct[]
+  trendyolCampaignProducts TrendyolCampaignProduct[]
+  
+  @@index([sku])
+  @@index([barcode])
+  @@index([categoryId])
+  @@index([trendyolBarcode])
+  @@index([isComposite])
+  @@map("master_products")
+}
+
+// Rețete pentru produse compuse
+model ProductRecipe {
+  id              String        @id @default(cuid())
+  
+  // Produsul părinte (produsul compus)
+  parentProductId String
+  parentProduct   MasterProduct @relation("RecipeParent", fields: [parentProductId], references: [id], onDelete: Cascade)
+  
+  // Produsul component
+  componentProductId String
+  componentProduct   MasterProduct @relation("RecipeComponent", fields: [componentProductId], references: [id], onDelete: Cascade)
+  
+  // Cantitatea necesară din component pentru a face 1 bucată din părinte
+  quantity        Decimal       @db.Decimal(10, 3)
+  
+  // Unitatea de măsură (opțional, pentru afișare)
+  unit            String?       @default("buc")
+  
+  // Ordine afișare
+  sortOrder       Int           @default(0)
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@unique([parentProductId, componentProductId])
+  @@index([parentProductId])
+  @@index([componentProductId])
+  @@map("product_recipes")
+}
+
+// Imagini produs (sincronizate din Google Drive)
+model MasterProductImage {
+  id            String         @id @default(cuid())
+  productId     String
+  product       MasterProduct  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  // Informații imagine
+  url           String   // URL din Google Drive
+  filename      String
+  position      Int      @default(0)  // Ordinea imaginilor (0 = principală)
+  
+  // Hash pentru detectare modificări
+  driveFileId   String?
+  driveModified DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@unique([productId, position])
+  @@index([productId])
+  @@map("master_product_images")
+}
+
+// Relația Produs-Canal (cu override-uri)
+model MasterProductChannel {
+  id              String         @id @default(cuid())
+  productId       String
+  product         MasterProduct  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  channelId       String
+  channel         Channel        @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  
+  // Status pe canal
+  isPublished     Boolean   @default(false)  // Dacă e publicat pe canal
+  isActive        Boolean   @default(true)   // Dacă primește update-uri
+  
+  // ID extern (ex: Shopify Product ID)
+  externalId      String?
+  
+  // Override-uri - JSON cu câmpurile modificate
+  // Ex: { "title": "Titlu diferit", "price": 89.00 }
+  overrides       Json?     @default("{}")
+  
+  // Tracking sincronizare
+  lastSyncedAt    DateTime?
+  syncTag         String?   // Tag-ul de sync (ex: "erp-sync: 03 Ianuarie 2025")
+  syncError       String?
+  
+  // Detectare modificări externe (din Shopify Admin)
+  externalOverrides Json?   @default("{}")  // Override-uri detectate din Shopify
+  hasExternalChanges Boolean @default(false)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([productId, channelId])
+  @@index([productId])
+  @@index([channelId])
+  @@index([externalId])
+  @@map("master_product_channels")
+}
+
+// ==========================================
+// PICKING SYSTEM
+// ==========================================
+
+// Status-urile unui PickingList
+enum PickingListStatus {
+  PENDING       // Creat, neînceput
+  IN_PROGRESS   // Picker-ul lucrează
+  COMPLETED     // Toate produsele scanate
+  CANCELLED     // Anulat
+}
+
+// Lista de picking centralizată
+model PickingList {
+  id              String              @id @default(cuid())
+  
+  // Identificare
+  code            String              @unique @default(cuid())  // Cod unic pentru identificare rapidă
+  name            String?             // Nume opțional (ex: "Picking 03 Ian - Lot 1")
+  
+  // Responsabili
+  createdBy       String?             // Cine a creat lista (user ID)
+  createdByName   String?             // Numele celui care a creat (cached)
+  startedBy       String?             // Cine a preluat/început picking-ul (user ID)
+  startedByName   String?             // Numele celui care a preluat (cached)
+  completedBy     String?             // Cine a finalizat picking-ul (user ID)
+  completedByName String?             // Numele celui care a finalizat (cached)
+  assignedTo      String?             // Picker-ul asignat (deprecated, folosim startedBy)
+  
+  // Status
+  status          PickingListStatus   @default(PENDING)
+  startedAt       DateTime?           // Când a fost preluat picking-ul
+  completedAt     DateTime?           // Când s-a finalizat
+  
+  // Statistici (calculate)
+  totalItems      Int                 @default(0)  // Total produse unice
+  totalQuantity   Int                 @default(0)  // Total cantitate
+  pickedQuantity  Int                 @default(0)  // Cantitate scanată
+  
+  // PDF finalizat
+  pdfData         Bytes?              // PDF-ul generat la finalizare
+  pdfGeneratedAt  DateTime?           // Când a fost generat PDF-ul
+  
+  // Metadata
+  notes           String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  // Relații
+  items           PickingListItem[]
+  awbs            PickingListAWB[]
+  logs            PickingLog[]
+  
+  @@index([status])
+  @@index([createdAt])
+  @@index([startedBy])
+  @@map("picking_lists")
+}
+
+// Itemii din picking list (produse agregate)
+model PickingListItem {
+  id              String       @id @default(cuid())
+  pickingListId   String
+  pickingList     PickingList  @relation(fields: [pickingListId], references: [id], onDelete: Cascade)
+  
+  // Identificare produs
+  sku             String              // SKU-ul produsului
+  barcode         String?             // Codul de bare (pentru scanare)
+  title           String              // Numele produsului
+  variantTitle    String?             // Varianta (mărime, culoare, etc.)
+  imageUrl        String?             // URL imagine pentru identificare vizuală
+  
+  // Rețetă - pentru componente ale unui produs
+  isRecipeParent  Boolean    @default(false)  // True dacă acest produs are rețetă
+  parentItemId    String?                      // ID-ul itemului părinte (dacă e componentă)
+  parentItem      PickingListItem? @relation("RecipeComponents", fields: [parentItemId], references: [id], onDelete: Cascade)
+  components      PickingListItem[] @relation("RecipeComponents")
+  recipeLevel     Int        @default(0)       // Nivelul în ierarhia rețetei (0 = top level)
+  
+  // Locație depozit
+  location        String?             // Locația în depozit (ex: "A-12-3")
+  
+  // Cantități
+  quantityRequired Int                // Câte trebuie luate în total
+  quantityPicked   Int       @default(0)  // Câte au fost scanate/confirmate
+  
+  // Status per item
+  isComplete      Boolean    @default(false)  // True când quantityPicked >= quantityRequired
+  pickedAt        DateTime?           // Când s-a finalizat acest item
+  pickedBy        String?             // Cine a scanat (user ID)
+  pickedByName    String?             // Numele celui care a scanat (cached)
+  
+  // Referință la MasterProduct (opțional)
+  masterProductId String?
+  
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  
+  @@unique([pickingListId, sku, variantTitle, parentItemId])
+  @@index([pickingListId])
+  @@index([sku])
+  @@index([barcode])
+  @@index([parentItemId])
+  @@map("picking_list_items")
+}
+
+// Legătura între PickingList și AWB-uri
+model PickingListAWB {
+  id              String       @id @default(cuid())
+  pickingListId   String
+  pickingList     PickingList  @relation(fields: [pickingListId], references: [id], onDelete: Cascade)
+  awbId           String       @unique  // Un AWB poate fi doar într-un singur picking list
+  awb             AWB          @relation(fields: [awbId], references: [id], onDelete: Cascade)
+  
+  // Status procesare
+  isPrinted       Boolean      @default(false)   // AWB-ul a fost printat
+  printedAt       DateTime?
+  isPacked        Boolean      @default(false)   // Coletul a fost împachetat
+  packedAt        DateTime?
+  
+  createdAt       DateTime     @default(now())
+  
+  @@unique([pickingListId, awbId])
+  @@index([pickingListId])
+  @@index([awbId])
+  @@map("picking_list_awbs")
+}
+
+// ==========================================
+// LOG-URI PICKING
+// ==========================================
+
+// Tipuri de acțiuni în log-ul de picking
+enum PickingLogAction {
+  ITEM_PICKED       // Produs marcat ca preluat
+  ITEM_UNDO         // Undo pe un produs
+  SURPLUS_ATTEMPT   // Încercare de scanare surplus
+  LIST_STARTED      // Picking list preluat
+  LIST_COMPLETED    // Picking list finalizat
+  LIST_SAVED        // Progres salvat temporar
+  QUANTITY_CHANGED  // Cantitate modificată
+}
+
+// Log-uri pentru picking (audit trail)
+model PickingLog {
+  id              String           @id @default(cuid())
+  pickingListId   String
+  pickingList     PickingList      @relation(fields: [pickingListId], references: [id], onDelete: Cascade)
+  
+  // Ce s-a întâmplat
+  action          PickingLogAction
+  
+  // Cine a făcut acțiunea
+  userId          String?
+  userName        String?
+  
+  // Detalii despre acțiune
+  itemId          String?          // ID-ul itemului afectat (dacă e cazul)
+  itemSku         String?          // SKU-ul itemului
+  itemTitle       String?          // Titlul itemului
+  
+  // Cantități (pentru ITEM_PICKED, SURPLUS_ATTEMPT)
+  quantityBefore  Int?             // Cantitatea înainte de acțiune
+  quantityAfter   Int?             // Cantitatea după acțiune
+  quantityAttempted Int?           // Cantitatea încercată (pentru surplus)
+  
+  // Mesaj/notă
+  message         String?
+  
+  // Metadata
+  metadata        Json?            // Date adiționale
+  createdAt       DateTime         @default(now())
+  
+  @@index([pickingListId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("picking_logs")
+}
+
+// ==========================================
+// ERORI PROCESARE COMENZI
+// ==========================================
+
+// Tipuri de erori la procesare
+enum ProcessingErrorType {
+  INVOICE         // Eroare la emitere factură
+  AWB             // Eroare la emitere AWB
+  PICKING_LIST    // Eroare la creare picking list
+}
+
+// Status erori
+enum ProcessingErrorStatus {
+  PENDING         // În așteptare retry
+  RETRYING        // Se încearcă din nou
+  RESOLVED        // Rezolvat cu succes
+  FAILED          // Eșuat definitiv (după mai multe încercări)
+  SKIPPED         // Sărit manual de utilizator
+}
+
+// Erori la procesare comenzi (pentru retry)
+model ProcessingError {
+  id              String                 @id @default(cuid())
+  
+  // Comanda afectată
+  orderId         String
+  order           Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderNumber     String?                // Numărul comenzii (cached)
+  
+  // Tipul erorii
+  type            ProcessingErrorType
+  
+  // Status
+  status          ProcessingErrorStatus  @default(PENDING)
+  
+  // Detalii eroare
+  errorMessage    String
+  errorDetails    Json?                  // Stack trace sau alte detalii
+  
+  // Retry info
+  retryCount      Int                    @default(0)
+  maxRetries      Int                    @default(3)
+  lastRetryAt     DateTime?
+  nextRetryAt     DateTime?
+  
+  // Rezolvare
+  resolvedAt      DateTime?
+  resolvedBy      String?                // User ID care a rezolvat
+  resolvedByName  String?                // Numele celui care a rezolvat
+  resolution      String?                // Cum s-a rezolvat (success, skipped, manual)
+  
+  // Picking list asociat (dacă AWB-ul se adaugă ulterior)
+  pickingListId   String?
+  
+  // Batch de procesare (pentru a grupa erorile din aceeași sesiune)
+  batchId         String?
+  
+  // Metadata
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  
+  @@index([orderId])
+  @@index([status])
+  @@index([type])
+  @@index([batchId])
+  @@index([createdAt])
+  @@map("processing_errors")
+}
+
+// ==========================================
+// ADS MODULE - Advertising Overview
+// ==========================================
+
+// Setări pentru platformele de advertising
+// Un singur rând per platformă
+model AdsSettings {
+  id              String      @id @default(cuid())
+  platform        AdsPlatform @unique
+  
+  // OAuth App Credentials
+  appId           String?     // App ID / Client ID
+  appSecret       String?     // App Secret / Client Secret (encrypted)
+  redirectUri     String?     // OAuth Redirect URI
+  
+  // Additional settings
+  isConfigured    Boolean     @default(false)
+  testMode        Boolean     @default(false)
+  
+  // Notes
+  notes           String?     @db.Text
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@map("ads_settings")
+}
+
+// Aplicații OAuth pentru conectare (permite multiple per platformă)
+model AdsApp {
+  id              String      @id @default(cuid())
+  platform        AdsPlatform
+  name            String      // Nume descriptiv: "Business Manager Principal", "BM Client X"
+  
+  // OAuth App Credentials
+  appId           String      // App ID / Client ID
+  appSecret       String      // App Secret / Client Secret
+  redirectUri     String      // OAuth Redirect URI
+  
+  isActive        Boolean     @default(true)
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // Conturile conectate prin această aplicație
+  accounts        AdsAccount[]
+  
+  @@index([platform])
+  @@map("ads_apps")
+}
+
+// Platforme suportate
+enum AdsPlatform {
+  META
+  TIKTOK
+  GOOGLE
+}
+
+// Status cont ads
+enum AdsAccountStatus {
+  ACTIVE
+  PAUSED
+  ERROR
+  DISCONNECTED
+  PENDING_AUTH
+}
+
+// Conturi de advertising conectate
+model AdsAccount {
+  id              String           @id @default(cuid())
+  platform        AdsPlatform
+  externalId      String           // ID-ul contului în platformă
+  name            String
+  currency        String           @default("RON")
+  timezone        String           @default("Europe/Bucharest")
+  
+  // Business Manager/Center info
+  businessId      String?          // Meta Business ID sau TikTok BC ID
+  businessName    String?
+  
+  // Aplicația OAuth folosită pentru conectare
+  appId           String?          // Referință la AdsApp
+  app             AdsApp?          @relation(fields: [appId], references: [id])
+  
+  // OAuth tokens (stored encrypted in practice)
+  accessToken     String           @db.Text
+  refreshToken    String?          @db.Text
+  tokenExpiresAt  DateTime?
+  tokenScope      String?          // Scopes autorizate
+  
+  // Status
+  status          AdsAccountStatus @default(ACTIVE)
+  lastSyncAt      DateTime?
+  lastSyncError   String?
+  syncInProgress  Boolean          @default(false)
+  
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  campaigns       AdsCampaign[]
+  pixels          AdsPixel[]
+  syncJobs        AdsSyncJob[]
+  
+  @@unique([platform, externalId])
+  @@index([status])
+  @@index([appId])
+  @@map("ads_accounts")
+}
+
+// Job pentru tracking sincronizare cu progress și resume
+model AdsSyncJob {
+  id              String     @id @default(cuid())
+  accountId       String
+  account         AdsAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  
+  status          String     @default("pending") // pending, running, paused, completed, failed
+  
+  // Progress tracking
+  totalCampaigns     Int     @default(0)
+  syncedCampaigns    Int     @default(0)
+  totalAdSets        Int     @default(0)
+  syncedAdSets       Int     @default(0)
+  totalAds           Int     @default(0)
+  syncedAds          Int     @default(0)
+  
+  // Current position (pentru resume)
+  currentPhase       String?  // campaigns, adsets, ads, dailystats
+  currentCampaignIdx Int      @default(0)
+  currentAdSetIdx    Int      @default(0)
+  campaignsList      Json?    // Lista de campaign IDs pentru resume
+  
+  // Error handling
+  errorMessage      String?
+  errorCode         String?  // RATE_LIMIT, AUTH_ERROR, TIMEOUT, etc.
+  retryAt           DateTime?
+  retryCount        Int      @default(0)
+  maxRetries        Int      @default(3)
+  
+  // Timestamps
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([accountId, status])
+  @@index([status, retryAt])
+  @@map("ads_sync_jobs")
+}
+
+// Pixels pentru tracking
+model AdsPixel {
+  id              String      @id @default(cuid())
+  accountId       String
+  account         AdsAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  
+  platform        AdsPlatform
+  externalId      String      // Pixel ID
+  name            String
+  
+  // Validare
+  isInstalled     Boolean     @default(false)
+  lastEventAt     DateTime?   // Ultimul event primit
+  eventsTracked   Json?       // ["Purchase", "AddToCart", "ViewContent"]
+  
+  // Status verificare
+  lastCheckedAt   DateTime?
+  checkStatus     String?     // OK, WARNING, ERROR
+  checkMessage    String?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@unique([platform, externalId])
+  @@map("ads_pixels")
+}
+
+// Status campanie
+enum AdsCampaignStatus {
+  ACTIVE
+  PAUSED
+  DELETED
+  ARCHIVED
+  PENDING
+  IN_REVIEW
+}
+
+// Campanii (normalizate din toate platformele)
+model AdsCampaign {
+  id              String             @id @default(cuid())
+  accountId       String
+  account         AdsAccount         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  
+  externalId      String             // ID din Meta/TikTok
+  name            String
+  
+  // Parsed din naming convention
+  // Format: [OBIECTIV]_[TIP]_[COD]_[AUDIENTA]_[DATA]
+  parsedObjective String?            // CONV, TRAFFIC, AWARE, CATALOG
+  parsedType      String?            // SKU, CAT, ALL
+  parsedCodes     Json?              // ["PAT001", "PAT002"]
+  parsedAudience  String?            // BROAD, LOOKALIKE, RETARGET, CUSTOM
+  namingValid     Boolean            @default(false) // Dacă respectă convenția
+  
+  // Status
+  status          AdsCampaignStatus  @default(ACTIVE)
+  effectiveStatus String?            // Status real (poate fi afectat de cont/ad set)
+  
+  // Obiectiv (din API)
+  objective       String?            // CONVERSIONS, TRAFFIC, REACH, etc.
+  
+  // Budget
+  dailyBudget     Decimal?           @db.Decimal(12, 2)
+  lifetimeBudget  Decimal?           @db.Decimal(12, 2)
+  budgetRemaining Decimal?           @db.Decimal(12, 2)
+  
+  // KPIs agregate (updated la sync)
+  spend           Decimal            @default(0) @db.Decimal(12, 2)
+  impressions     BigInt             @default(0)
+  reach           BigInt             @default(0)
+  clicks          BigInt             @default(0)
+  conversions     Int                @default(0)
+  revenue         Decimal            @default(0) @db.Decimal(12, 2)
+  
+  // KPIs calculate
+  ctr             Decimal?           @db.Decimal(8, 4)  // Click-through rate %
+  cpc             Decimal?           @db.Decimal(10, 2) // Cost per click
+  cpm             Decimal?           @db.Decimal(10, 2) // Cost per 1000 impressions
+  cpa             Decimal?           @db.Decimal(10, 2) // Cost per acquisition
+  roas            Decimal?           @db.Decimal(8, 2)  // Return on ad spend
+  frequency       Decimal?           @db.Decimal(6, 2)  // Avg times shown per user
+  
+  // Date range
+  startDate       DateTime?
+  endDate         DateTime?
+  
+  // Auto-rollback setting
+  autoRollback    Boolean            @default(false)
+  rollbackAfterH  Int?               // Ore după care verifică rollback
+  
+  // Sync - light sync (doar campanie + insights)
+  lastSyncAt      DateTime?
+  
+  // Sync - detail sync (ad sets + ads) - LAZY LOADING
+  lastDetailSyncAt      DateTime?    // Când s-au sincronizat ad sets/ads
+  detailSyncInProgress  Boolean      @default(false)
+  
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  
+  adSets          AdsAdSet[]
+  dailyStats      AdsDailyStats[]
+  productMappings AdsCampaignProduct[]
+  alerts          AdsAlert[]
+  
+  @@unique([accountId, externalId])
+  @@index([status])
+  @@index([parsedType, parsedCodes])
+  @@map("ads_campaigns")
+}
+
+// Ad Sets (Meta) / Ad Groups (TikTok)
+model AdsAdSet {
+  id              String           @id @default(cuid())
+  campaignId      String
+  campaign        AdsCampaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  externalId      String
+  name            String
+  
+  status          AdsCampaignStatus @default(ACTIVE)
+  effectiveStatus String?
+  
+  // Targeting (summary)
+  targetingAge    String?          // "25-45"
+  targetingGender String?          // "ALL", "MALE", "FEMALE"
+  targetingGeo    Json?            // ["RO", "MD"]
+  targetingCustom Json?            // Custom audiences info
+  
+  // Placement
+  placements      Json?            // ["FEED", "STORIES", "REELS"]
+  
+  // Budget (dacă nu e CBO - Campaign Budget Optimization)
+  dailyBudget     Decimal?         @db.Decimal(12, 2)
+  lifetimeBudget  Decimal?         @db.Decimal(12, 2)
+  
+  // Bid
+  bidStrategy     String?          // LOWEST_COST, COST_CAP, etc.
+  bidAmount       Decimal?         @db.Decimal(10, 2)
+  
+  // KPIs
+  spend           Decimal          @default(0) @db.Decimal(12, 2)
+  impressions     BigInt           @default(0)
+  clicks          BigInt           @default(0)
+  conversions     Int              @default(0)
+  revenue         Decimal          @default(0) @db.Decimal(12, 2)
+  
+  // KPIs calculate
+  ctr             Decimal?         @db.Decimal(8, 4)
+  cpc             Decimal?         @db.Decimal(10, 2)
+  cpm             Decimal?         @db.Decimal(10, 2)
+  cpa             Decimal?         @db.Decimal(10, 2)
+  roas            Decimal?         @db.Decimal(8, 2)
+  
+  lastSyncAt      DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  ads             AdsAd[]
+  
+  @@unique([campaignId, externalId])
+  @@index([status])
+  @@map("ads_adsets")
+}
+
+// Ads (Creatives)
+model AdsAd {
+  id              String           @id @default(cuid())
+  adSetId         String
+  adSet           AdsAdSet         @relation(fields: [adSetId], references: [id], onDelete: Cascade)
+  
+  externalId      String
+  name            String
+  
+  status          AdsCampaignStatus @default(ACTIVE)
+  effectiveStatus String?
+  
+  // Creative info
+  creativeType    String?          // IMAGE, VIDEO, CAROUSEL, COLLECTION
+  thumbnailUrl    String?
+  previewUrl      String?          // Link pentru preview extern
+  headline        String?
+  description     String?
+  callToAction    String?          // SHOP_NOW, LEARN_MORE, etc.
+  destinationUrl  String?
+  
+  // KPIs
+  spend           Decimal          @default(0) @db.Decimal(12, 2)
+  impressions     BigInt           @default(0)
+  clicks          BigInt           @default(0)
+  conversions     Int              @default(0)
+  revenue         Decimal          @default(0) @db.Decimal(12, 2)
+  
+  // KPIs calculate
+  ctr             Decimal?         @db.Decimal(8, 4)
+  cpc             Decimal?         @db.Decimal(10, 2)
+  cpa             Decimal?         @db.Decimal(10, 2)
+  roas            Decimal?         @db.Decimal(8, 2)
+  
+  lastSyncAt      DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  @@unique([adSetId, externalId])
+  @@index([status])
+  @@map("ads_ads")
+}
+
+// Statistici zilnice per campanie
+model AdsDailyStats {
+  id              String      @id @default(cuid())
+  campaignId      String
+  campaign        AdsCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  date            DateTime    @db.Date
+  
+  spend           Decimal     @default(0) @db.Decimal(12, 2)
+  impressions     BigInt      @default(0)
+  reach           BigInt      @default(0)
+  clicks          BigInt      @default(0)
+  conversions     Int         @default(0)
+  revenue         Decimal     @default(0) @db.Decimal(12, 2)
+  
+  // KPIs calculate
+  ctr             Decimal?    @db.Decimal(8, 4)
+  cpc             Decimal?    @db.Decimal(10, 2)
+  cpm             Decimal?    @db.Decimal(10, 2)
+  cpa             Decimal?    @db.Decimal(10, 2)
+  roas            Decimal?    @db.Decimal(8, 2)
+  
+  createdAt       DateTime    @default(now())
+  
+  @@unique([campaignId, date])
+  @@index([date])
+  @@map("ads_daily_stats")
+}
+
+// Mapping source type
+enum AdsMappingSource {
+  AUTO_NAME    // Din naming convention
+  MANUAL       // Setat manual
+  CATALOG      // Din catalog de produse
+}
+
+// Legătura Campanie <-> Produs/SKU
+model AdsCampaignProduct {
+  id              String           @id @default(cuid())
+  campaignId      String
+  campaign        AdsCampaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  // Legătură cu produsul
+  sku             String?
+  masterProductId String?
+  masterProduct   MasterProduct?   @relation(fields: [masterProductId], references: [id])
+  categoryId      String?
+  
+  // Cum s-a făcut legătura
+  mappingSource   AdsMappingSource @default(AUTO_NAME)
+  confidence      Decimal?         @db.Decimal(3, 2) // 0.00-1.00 pentru auto
+  
+  // KPIs alocate (proporțional dacă sunt mai multe produse în campanie)
+  allocatedSpend  Decimal          @default(0) @db.Decimal(12, 2)
+  allocatedRev    Decimal          @default(0) @db.Decimal(12, 2)
+  allocatedConv   Int              @default(0)
+  
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  @@unique([campaignId, sku])
+  @@index([sku])
+  @@index([masterProductId])
+  @@map("ads_campaign_products")
+}
+
+// Scope pentru regulă de alertă
+enum AdsAlertScope {
+  ALL          // Toate campaniile
+  PLATFORM     // O platformă specifică
+  SKU          // Un SKU specific
+  CAMPAIGNS    // Campanii selectate manual
+}
+
+// Acțiune pentru alertă
+enum AdsAlertAction {
+  NOTIFY        // Doar notificare
+  PAUSE         // Pauză campanie
+  REDUCE_BUDGET // Reduce bugetul
+}
+
+// Status alertă
+enum AdsAlertStatus {
+  NEW
+  SEEN
+  RESOLVED
+  DISMISSED
+}
+
+// Reguli pentru alerte automate
+model AdsAlertRule {
+  id              String         @id @default(cuid())
+  name            String
+  description     String?
+  isActive        Boolean        @default(true)
+  
+  // Scope - la ce campanii se aplică
+  scopeType       AdsAlertScope  @default(ALL)
+  scopePlatform   AdsPlatform?   // Dacă scopeType = PLATFORM
+  scopeSku        String?        // Dacă scopeType = SKU
+  scopeCampaigns  Json?          // Dacă scopeType = CAMPAIGNS (array de IDs)
+  
+  // Condiții (JSON array)
+  // [{metric: "CPA", operator: ">", value: 50, timeframe: "24h"}]
+  conditions      Json
+  conditionLogic  String         @default("AND") // AND sau OR
+  
+  // Acțiune
+  action          AdsAlertAction @default(NOTIFY)
+  reducePct       Int?           // % reducere buget (dacă action = REDUCE_BUDGET)
+  
+  // Auto-rollback
+  autoRollback    Boolean        @default(false) // Restaurează automat după X ore
+  rollbackAfterH  Int?           // După câte ore să facă rollback
+  
+  // Notificări
+  notifyEmail     Boolean        @default(true)
+  notifyInApp     Boolean        @default(true)
+  emailTo         String?        // Email specific (altfel all admins)
+  
+  // Cooldown - nu declanșa din nou pentru aceeași campanie
+  cooldownHours   Int            @default(24)
+  
+  // Stats
+  lastCheckedAt   DateTime?
+  triggerCount    Int            @default(0)
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  alerts          AdsAlert[]
+  
+  @@map("ads_alert_rules")
+}
+
+// Alerte generate
+model AdsAlert {
+  id              String         @id @default(cuid())
+  ruleId          String
+  rule            AdsAlertRule   @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  
+  campaignId      String
+  campaign        AdsCampaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  // Snapshot valori la momentul alertei
+  metricSnapshot  Json           // {CPA: 52.3, spend: 150, conversions: 3}
+  conditionsMet   Json           // Care condiții s-au îndeplinit
+  
+  // Acțiune luată
+  actionTaken     String         // NOTIFIED, PAUSED, BUDGET_REDUCED, ROLLBACK
+  previousState   Json?          // {status: "ACTIVE", budget: 100}
+  
+  // Rollback tracking
+  rollbackEligible Boolean       @default(false)
+  rollbackAt       DateTime?     // Când să verifice rollback
+  rolledBack       Boolean       @default(false)
+  rollbackResult   String?       // SUCCESS, FAILED, SKIPPED
+  
+  // Status alertă
+  status          AdsAlertStatus @default(NEW)
+  seenAt          DateTime?
+  seenBy          String?
+  resolvedAt      DateTime?
+  resolvedBy      String?
+  resolution      String?        // Notă despre cum s-a rezolvat
+  
+  createdAt       DateTime       @default(now())
+  
+  @@index([status])
+  @@index([campaignId])
+  @@index([createdAt])
+  @@map("ads_alerts")
+}
+
+// Librărie de creative-uri
+model AdsCreative {
+  id              String      @id @default(cuid())
+  
+  name            String
+  type            String      // IMAGE, VIDEO
+  
+  // Fișier sursă (Google Drive)
+  driveFileId     String?
+  driveUrl        String?
+  fileName        String?
+  
+  // Metadata
+  width           Int?
+  height          Int?
+  duration        Int?        // Secunde pentru video
+  fileSize        Int?        // Bytes
+  mimeType        String?
+  
+  // Upload status per platformă
+  metaMediaId     String?     // ID după upload în Meta
+  metaUploadedAt  DateTime?
+  tiktokMediaId   String?     // ID după upload în TikTok
+  tiktokUploadedAt DateTime?
+  
+  // Tags pentru organizare
+  tags            Json?       // ["promo", "2024", "paturi"]
+  
+  // Usage tracking
+  usedInAds       Json?       // Array de ad IDs
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@index([type])
+  @@map("ads_creatives")
+}
+
+// Configurare Webhook-uri pentru Meta Ads
+model AdsWebhookConfig {
+  id              String      @id @default(cuid())
+  platform        AdsPlatform @unique
+  
+  // Webhook credentials (generate automat)
+  verifyToken     String      // Token pentru verificare de la Meta
+  appSecret       String?     // App Secret pentru validare signature (opțional, poate fi din AdsApp)
+  
+  // Subscriptions active
+  subscriptions   Json?       // ["ad_account", "campaign_status_changes", "ads_insights"]
+  
+  // Status
+  isActive        Boolean     @default(true)
+  isVerified      Boolean     @default(false) // A fost verificat de Meta
+  lastEventAt     DateTime?   // Ultimul event primit
+  eventsReceived  Int         @default(0)
+  
+  // Logging
+  lastError       String?
+  lastErrorAt     DateTime?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@map("ads_webhook_configs")
+}
+
+// Evenimente primite prin webhook (pentru audit/debug)
+model AdsWebhookEvent {
+  id              String      @id @default(cuid())
+  platform        AdsPlatform
+  
+  // Event info
+  eventType       String      // campaign_status_changes, ad_account, etc.
+  objectId        String?     // ID-ul obiectului afectat
+  payload         Json        // Raw payload de la Meta
+  
+  // Processing
+  processed       Boolean     @default(false)
+  processedAt     DateTime?
+  processError    String?
+  
+  receivedAt      DateTime    @default(now())
+  
+  @@index([platform, eventType])
+  @@index([receivedAt])
+  @@map("ads_webhook_events")
+}
+
+// ==================== AI INSIGHTS ====================
+
+enum AIInsightType {
+  PRODUCT_PRICE       // Sugestie modificare preț produs
+  PRODUCT_STOCK       // Sugestie legată de stoc
+  AD_BUDGET           // Sugestie modificare buget campanie
+  AD_STATUS           // Sugestie pornire/oprire campanie
+  AD_BID              // Sugestie modificare bid
+  AD_TARGETING        // Sugestie legată de targeting
+  GENERAL             // Insight general
+}
+
+enum AIInsightStatus {
+  PENDING             // Așteaptă decizia utilizatorului
+  APPLIED             // A fost aplicat
+  DISMISSED           // A fost respins
+  EXPIRED             // A expirat (nu mai e relevant)
+}
+
+model AIInsight {
+  id              String          @id @default(cuid())
+  
+  type            AIInsightType   // Tipul insight-ului
+  targetType      String          // "product", "campaign", "adset", "ad"
+  targetId        String?         // ID-ul obiectului țintă
+  targetName      String?         // Numele pentru display
+  
+  // Valori
+  currentValue    String          // Valoarea curentă (JSON sau string)
+  suggestedValue  String          // Valoarea sugerată de AI
+  
+  // Explicație
+  title           String          // Titlu scurt
+  reasoning       String          @db.Text  // Explicația AI
+  
+  // Metrici
+  confidence      Decimal         @db.Decimal(5, 2)  // Încredere 0-100%
+  estimatedImpact String?         // Impactul estimat (ex: "+15% ROAS")
+  
+  // Status
+  status          AIInsightStatus @default(PENDING)
+  statusChangedAt DateTime?
+  statusChangedBy String?         // userId care a luat decizia
+  
+  // Metadate
+  analysisContext Json?           // Context folosit pentru analiză
+  
+  createdAt       DateTime        @default(now())
+  expiresAt       DateTime?       // Când devine irelevant
+  
+  // Relații
+  actions         AIActionLog[]
+  
+  @@index([type, status])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("ai_insights")
+}
+
+model AIActionLog {
+  id              String      @id @default(cuid())
+  insightId       String
+  insight         AIInsight   @relation(fields: [insightId], references: [id], onDelete: Cascade)
+  
+  // Acțiunea
+  action          String      // "apply", "dismiss", "modify"
+  
+  // Valori
+  previousValue   String      // Valoarea înainte
+  newValue        String      // Valoarea după
+  
+  // Rezultat
+  success         Boolean     @default(true)
+  errorMessage    String?
+  
+  // Cine și când
+  performedBy     String      // userId
+  performedAt     DateTime    @default(now())
+  
+  // Outcome tracking (pentru learning)
+  outcomeTracked  Boolean     @default(false)
+  outcomeDate     DateTime?
+  outcomeMetrics  Json?       // Metrici după aplicare
+  outcomeNotes    String?
+  
+  @@index([insightId])
+  @@index([performedAt])
+  @@map("ai_action_logs")
+}
+
+// Analiza AI programată
+model AIAnalysisRun {
+  id              String      @id @default(cuid())
+  
+  type            String      // "daily", "on_demand", "product", "ads"
+  status          String      // "running", "completed", "failed"
+  
+  // Rezultate
+  insightsGenerated Int       @default(0)
+  tokensUsed      Int         @default(0)
+  costEstimate    Decimal?    @db.Decimal(10, 4)  // Cost estimat în USD
+  
+  // Timing
+  startedAt       DateTime    @default(now())
+  completedAt     DateTime?
+  duration        Int?        // Durată în secunde
+  
+  // Erori
+  errorMessage    String?     @db.Text
+  
+  // Context
+  triggeredBy     String?     // userId sau "system" pentru cron
+  
+  @@index([type, status])
+  @@index([startedAt])
+  @@map("ai_analysis_runs")
+}
+
+// ==========================================
+// TRENDYOL INTEGRATION
+// ==========================================
+
+// Comenzi Trendyol
+model TrendyolOrder {
+  id                    String   @id @default(cuid())
+  trendyolOrderId       String   @unique
+  trendyolOrderNumber   String
+  orderDate             DateTime
+  status                String   // Created, Picking, Invoiced, Shipped, Delivered, Cancelled, UnDelivered, Returned
+  
+  // Customer info
+  customerName          String
+  customerEmail         String?
+  customerPhone         String?
+  customerAddress       String   @db.Text
+  customerCity          String
+  customerDistrict      String?
+  customerPostalCode    String?
+  
+  // Shipping
+  cargoProviderName     String?
+  cargoTrackingNumber   String?
+  cargoTrackingLink     String?
+  
+  // Financial
+  totalPrice            Decimal  @db.Decimal(10, 2)
+  currency              String   @default("TRY")
+  
+  // Shipment info from Trendyol
+  shipmentPackageId     String?
+  
+  // Legătură cu Order local (pentru procesare internă)
+  orderId               String?  @unique
+  order                 Order?   @relation(fields: [orderId], references: [id])
+  
+  // Line items
+  lineItems             TrendyolOrderItem[]
+  
+  // Timestamps
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  lastSyncedAt          DateTime?
+  
+  @@index([status])
+  @@index([orderDate])
+  @@index([trendyolOrderNumber])
+  @@map("trendyol_orders")
+}
+
+// Produse din comenzile Trendyol
+model TrendyolOrderItem {
+  id                    String   @id @default(cuid())
+  trendyolOrderId       String
+  order                 TrendyolOrder @relation(fields: [trendyolOrderId], references: [id], onDelete: Cascade)
+  
+  // Trendyol product info
+  trendyolProductId     String
+  barcode               String
+  title                 String
+  quantity              Int
+  price                 Decimal  @db.Decimal(10, 2)
+  
+  // Variant info
+  merchantSku           String?
+  productColor          String?
+  productSize           String?
+  
+  // Mapare la produs local
+  localSku              String?
+  masterProductId       String?
+  masterProduct         MasterProduct? @relation(fields: [masterProductId], references: [id])
+  
+  // Status mapare
+  isMapped              Boolean  @default(false)
+  
+  @@index([trendyolOrderId])
+  @@index([barcode])
+  @@index([localSku])
+  @@map("trendyol_order_items")
+}
+
+// Mapare produse Trendyol -> SKU local
+model TrendyolProductMapping {
+  id                    String   @id @default(cuid())
+  
+  // Trendyol product identifiers
+  trendyolProductId     String   @unique
+  barcode               String
+  trendyolTitle         String
+  merchantSku           String?
+  
+  // Local mapping
+  localSku              String
+  masterProductId       String?
+  masterProduct         MasterProduct? @relation(fields: [masterProductId], references: [id])
+  
+  // Mapping method
+  isAutoMapped          Boolean  @default(false)  // true = mapare automată, false = manuală
+  mappedBy              String?  // userId care a făcut maparea manuală
+  
+  // Timestamps
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@index([barcode])
+  @@index([localSku])
+  @@map("trendyol_product_mappings")
+}
+
+// Produse în Trendyol (sincronizate)
+model TrendyolProduct {
+  id                    String   @id @default(cuid())
+  
+  // Trendyol identifiers
+  trendyolProductId     String   @unique
+  barcode               String
+  title                 String
+  merchantSku           String?
+  
+  // Product details
+  brandName             String?
+  categoryName          String?
+  listPrice             Decimal? @db.Decimal(10, 2)
+  salePrice             Decimal? @db.Decimal(10, 2)
+  quantity              Int      @default(0)
+  
+  // Status
+  onSale                Boolean  @default(false)
+  approved              Boolean  @default(false)
+  archived              Boolean  @default(false)
+  locked                Boolean  @default(false)
+  
+  // Images
+  images                Json?    // Array of image URLs
+  
+  // Mapare locală
+  localSku              String?
+  masterProductId       String?
+  masterProduct         MasterProduct? @relation(fields: [masterProductId], references: [id])
+  
+  // Campaigns
+  campaigns             TrendyolCampaignProduct[]
+  
+  // Timestamps
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  lastSyncedAt          DateTime?
+  
+  @@index([barcode])
+  @@index([localSku])
+  @@index([onSale])
+  @@map("trendyol_products")
+}
+
+// Campanii Trendyol
+model TrendyolCampaign {
+  id                    String   @id @default(cuid())
+  trendyolCampaignId    String   @unique
+  
+  name                  String
+  description           String?  @db.Text
+  type                  String   // DISCOUNT, FLASH_SALE, FEATURED, PROMOTION
+  
+  // Discount info
+  discountType          String?  // PERCENTAGE, FIXED_AMOUNT
+  discountValue         Decimal? @db.Decimal(10, 2)
+  
+  // Dates
+  startDate             DateTime
+  endDate               DateTime
+  
+  // Status
+  status                String   // ACTIVE, UPCOMING, ENDED, CANCELLED
+  
+  // Products
+  products              TrendyolCampaignProduct[]
+  
+  // Performance
+  totalRevenue          Decimal  @default(0) @db.Decimal(12, 2)
+  totalUnitsSold        Int      @default(0)
+  
+  // Timestamps
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  lastSyncedAt          DateTime?
+  
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("trendyol_campaigns")
+}
+
+// Produse în campanii Trendyol
+model TrendyolCampaignProduct {
+  id                    String   @id @default(cuid())
+  
+  campaignId            String
+  campaign              TrendyolCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  trendyolProductId     String
+  product               TrendyolProduct @relation(fields: [trendyolProductId], references: [id])
+  
+  barcode               String
+  
+  // Campaign-specific pricing
+  campaignPrice         Decimal? @db.Decimal(10, 2)
+  originalPrice         Decimal? @db.Decimal(10, 2)
+  discountPercentage    Decimal? @db.Decimal(5, 2)
+  
+  // Performance în campanie
+  unitsSold             Int      @default(0)
+  revenue               Decimal  @default(0) @db.Decimal(10, 2)
+  
+  // Mapare locală
+  localSku              String?
+  masterProductId       String?
+  masterProduct         MasterProduct? @relation(fields: [masterProductId], references: [id])
+  
+  createdAt             DateTime @default(now())
+  
+  @@unique([campaignId, trendyolProductId])
+  @@index([barcode])
+  @@map("trendyol_campaign_products")
+}
