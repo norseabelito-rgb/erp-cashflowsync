@@ -112,12 +112,12 @@ async function restoreDatabase(tables: Record<string, any[]>, currentUserId: str
     // 1. Clear dependent tables first (in reverse dependency order)
     await tx.goodsReceiptItem.deleteMany({});
     await tx.goodsReceipt.deleteMany({});
-    await tx.stockMovement.deleteMany({});
-    await tx.recipeComponent.deleteMany({});
-    await tx.orderItem.deleteMany({});
-    await tx.storeProduct.deleteMany({});
-    await tx.productImage.deleteMany({});
-    await tx.awbEntry.deleteMany({});
+    await tx.inventoryStockMovement.deleteMany({});
+    await tx.inventoryRecipeComponent.deleteMany({});
+    await tx.lineItem.deleteMany({});
+    await tx.masterProductChannel.deleteMany({});
+    await tx.masterProductImage.deleteMany({});
+    await tx.aWB.deleteMany({});
     await tx.invoice.deleteMany({});
     await tx.order.deleteMany({});
     await tx.masterProduct.deleteMany({});
@@ -125,7 +125,7 @@ async function restoreDatabase(tables: Record<string, any[]>, currentUserId: str
     await tx.supplier.deleteMany({});
     await tx.store.deleteMany({});
     await tx.invitation.deleteMany({});
-    await tx.userRole.deleteMany({});
+    await tx.userRoleAssignment.deleteMany({});
     await tx.rolePermission.deleteMany({});
 
     // Don't delete users, roles, permissions, settings - we'll update them instead
@@ -177,9 +177,9 @@ async function restoreDatabase(tables: Record<string, any[]>, currentUserId: str
       }
     }
 
-    if (tables.userRoles?.length > 0) {
-      for (const ur of tables.userRoles) {
-        await tx.userRole.create({ data: ur });
+    if (tables.userRoleAssignments?.length > 0) {
+      for (const ur of tables.userRoleAssignments) {
+        await tx.userRoleAssignment.create({ data: ur });
       }
     }
 
@@ -208,15 +208,15 @@ async function restoreDatabase(tables: Record<string, any[]>, currentUserId: str
       }
     }
 
-    if (tables.recipeComponents?.length > 0) {
-      for (const comp of tables.recipeComponents) {
-        await tx.recipeComponent.create({ data: comp });
+    if (tables.inventoryRecipeComponents?.length > 0) {
+      for (const comp of tables.inventoryRecipeComponents) {
+        await tx.inventoryRecipeComponent.create({ data: comp });
       }
     }
 
-    if (tables.stockMovements?.length > 0) {
-      for (const movement of tables.stockMovements) {
-        await tx.stockMovement.create({ data: movement });
+    if (tables.inventoryStockMovements?.length > 0) {
+      for (const movement of tables.inventoryStockMovements) {
+        await tx.inventoryStockMovement.create({ data: movement });
       }
     }
 
@@ -226,15 +226,15 @@ async function restoreDatabase(tables: Record<string, any[]>, currentUserId: str
       }
     }
 
-    if (tables.productImages?.length > 0) {
-      for (const image of tables.productImages) {
-        await tx.productImage.create({ data: image });
+    if (tables.masterProductImages?.length > 0) {
+      for (const image of tables.masterProductImages) {
+        await tx.masterProductImage.create({ data: image });
       }
     }
 
-    if (tables.storeProducts?.length > 0) {
-      for (const sp of tables.storeProducts) {
-        await tx.storeProduct.create({ data: sp });
+    if (tables.masterProductChannels?.length > 0) {
+      for (const sp of tables.masterProductChannels) {
+        await tx.masterProductChannel.create({ data: sp });
       }
     }
 
@@ -244,9 +244,9 @@ async function restoreDatabase(tables: Record<string, any[]>, currentUserId: str
       }
     }
 
-    if (tables.orderItems?.length > 0) {
-      for (const item of tables.orderItems) {
-        await tx.orderItem.create({ data: item });
+    if (tables.lineItems?.length > 0) {
+      for (const item of tables.lineItems) {
+        await tx.lineItem.create({ data: item });
       }
     }
 
@@ -256,9 +256,9 @@ async function restoreDatabase(tables: Record<string, any[]>, currentUserId: str
       }
     }
 
-    if (tables.awbEntries?.length > 0) {
-      for (const awb of tables.awbEntries) {
-        await tx.awbEntry.create({ data: awb });
+    if (tables.awbs?.length > 0) {
+      for (const awb of tables.awbs) {
+        await tx.aWB.create({ data: awb });
       }
     }
 
