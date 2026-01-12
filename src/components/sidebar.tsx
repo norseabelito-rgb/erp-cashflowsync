@@ -41,6 +41,10 @@ import {
   BookOpen,
   Menu,
   X,
+  Building2,
+  FileBarChart,
+  Wrench,
+  ArrowDownUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -91,12 +95,24 @@ const navigation: NavItem[] = [
   {
     name: "Produse",
     icon: Package,
-    permissions: ["products.view", "categories.view", "inventory.view"],
+    permissions: ["products.view", "categories.view"],
     children: [
       { name: "Produse", href: "/products", icon: Package, permissions: ["products.view"] },
-      { name: "Rețetar", href: "/inventory/recipes", icon: ChefHat, permissions: ["inventory.view"] },
       { name: "Categorii", href: "/categories", icon: FolderTree, permissions: ["categories.view"] },
-      { name: "Inventar", href: "/inventory", icon: Warehouse, permissions: ["inventory.view"] },
+    ],
+  },
+  {
+    name: "Inventar",
+    icon: Warehouse,
+    permissions: ["inventory.view"],
+    children: [
+      { name: "Articole", href: "/inventory", icon: Package, permissions: ["inventory.view"] },
+      { name: "Rețetar", href: "/inventory/recipes", icon: ChefHat, permissions: ["inventory.view"] },
+      { name: "Furnizori", href: "/inventory/suppliers", icon: Building2, permissions: ["inventory.view"] },
+      { name: "Recepții", href: "/inventory/receipts", icon: ClipboardList, permissions: ["inventory.view"] },
+      { name: "Mișcări stoc", href: "/inventory/movements", icon: ArrowDownUp, permissions: ["inventory.view"] },
+      { name: "Ajustări", href: "/inventory/movements/adjustments", icon: Wrench, permissions: ["inventory.edit"] },
+      { name: "Raport stoc", href: "/inventory/reports/stock", icon: FileBarChart, permissions: ["inventory.view"] },
     ],
   },
   {
