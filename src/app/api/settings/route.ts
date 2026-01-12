@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { hasPermission } from "@/lib/permissions";
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canView = await hasPermission(session.user.id, "settings.view");
+    if (!canView) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
     let settings = await prisma.settings.findUnique({
       where: { id: "default" },
     });
@@ -64,6 +79,16 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canEdit = await hasPermission(session.user.id, "settings.edit");
+    if (!canEdit) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
     const body = await request.json();
 
     // Curățăm câmpurile care nu trebuie actualizate dacă sunt mascate

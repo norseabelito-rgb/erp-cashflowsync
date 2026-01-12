@@ -1,9 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { hasPermission } from "@/lib/permissions";
+
+export const dynamic = 'force-dynamic';
 
 // GET - Lista categoriilor
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canView = await hasPermission(session.user.id, "products.view");
+    if (!canView) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
     const categories = await prisma.category.findMany({
       orderBy: { name: "asc" },
       include: {
@@ -26,6 +41,16 @@ export async function GET() {
 // POST - Crează categorie nouă
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canEdit = await hasPermission(session.user.id, "products.edit");
+    if (!canEdit) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
     const body = await request.json();
     const { name, description } = body;
 
@@ -72,6 +97,16 @@ export async function POST(request: NextRequest) {
 // PUT - Actualizează categorie
 export async function PUT(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canEdit = await hasPermission(session.user.id, "products.edit");
+    if (!canEdit) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
     const body = await request.json();
     const { id, name, description } = body;
 
@@ -129,6 +164,16 @@ export async function PUT(request: NextRequest) {
 // DELETE - Șterge categorie
 export async function DELETE(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canEdit = await hasPermission(session.user.id, "products.edit");
+    if (!canEdit) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 

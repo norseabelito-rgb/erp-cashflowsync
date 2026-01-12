@@ -371,7 +371,7 @@ export default function ProductEditPage() {
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label>Preț (RON) *</Label>
                       <Input
@@ -445,7 +445,7 @@ export default function ProductEditPage() {
                 </CardHeader>
                 <CardContent>
                   {product.images?.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                       {product.images.map((img, idx) => (
                         <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden border">
                           <img src={getDriveImageUrl(img.url)} alt="" className="object-cover w-full h-full" />
@@ -577,7 +577,7 @@ export default function ProductEditPage() {
               {availableChannels.length === 0 ? (
                 <p className="text-muted-foreground">Pe toate canalele</p>
               ) : (
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {availableChannels.map((ch) => {
                     const isLoading = addingChannelId === ch.id;
                     return (

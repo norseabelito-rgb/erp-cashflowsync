@@ -647,59 +647,66 @@ export default function SettingsPage() {
               </div>
 
               <div className="flex gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      // Mai întâi salvăm setările curente pentru a folosi noile credențiale
-                      const saveRes = await fetch("/api/settings", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(settings),
-                      });
-                      
-                      if (!saveRes.ok) {
-                        toast({
-                          title: "Eroare",
-                          description: "Nu s-au putut salva setările",
-                          variant: "destructive",
-                        });
-                        return;
-                      }
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          // Mai întâi salvăm setările curente pentru a folosi noile credențiale
+                          const saveRes = await fetch("/api/settings", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(settings),
+                          });
 
-                      // Apoi testăm conexiunea
-                      const res = await fetch("/api/trendyol?action=test");
-                      const data = await res.json();
-                      if (data.success) {
-                        const sfCode = data.data?.storeFrontCode;
-                        // Actualizează storeFrontCode-ul în state
-                        if (sfCode && sfCode !== settings.trendyolStoreFrontCode) {
-                          setSettings(prev => ({ ...prev, trendyolStoreFrontCode: sfCode }));
+                          if (!saveRes.ok) {
+                            toast({
+                              title: "Eroare",
+                              description: "Nu s-au putut salva setările",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+
+                          // Apoi testăm conexiunea
+                          const res = await fetch("/api/trendyol?action=test");
+                          const data = await res.json();
+                          if (data.success) {
+                            const sfCode = data.data?.storeFrontCode;
+                            // Actualizează storeFrontCode-ul în state
+                            if (sfCode && sfCode !== settings.trendyolStoreFrontCode) {
+                              setSettings(prev => ({ ...prev, trendyolStoreFrontCode: sfCode }));
+                            }
+                            toast({
+                              title: "✅ Conexiune reușită & Setări salvate",
+                              description: `Conectat la Trendyol. ${data.data?.productCount || 0} produse în cont${sfCode ? ` (${sfCode})` : ''}.`,
+                            });
+                          } else {
+                            toast({
+                              title: "❌ Eroare conexiune",
+                              description: data.error || "Nu s-a putut conecta la Trendyol",
+                              variant: "destructive",
+                            });
+                          }
+                        } catch (error: any) {
+                          toast({
+                            title: "Eroare",
+                            description: error.message,
+                            variant: "destructive",
+                          });
                         }
-                        toast({
-                          title: "✅ Conexiune reușită & Setări salvate",
-                          description: `Conectat la Trendyol. ${data.data?.productCount || 0} produse în cont${sfCode ? ` (${sfCode})` : ''}.`,
-                        });
-                      } else {
-                        toast({
-                          title: "❌ Eroare conexiune",
-                          description: data.error || "Nu s-a putut conecta la Trendyol",
-                          variant: "destructive",
-                        });
-                      }
-                    } catch (error: any) {
-                      toast({
-                        title: "Eroare",
-                        description: error.message,
-                        variant: "destructive",
-                      });
-                    }
-                  }}
-                  disabled={!settings.trendyolSupplierId || !settings.trendyolApiKey || !settings.trendyolApiSecret}
-                >
-                  <Wifi className="h-4 w-4 mr-2" />
-                  Testează conexiunea
-                </Button>
+                      }}
+                      disabled={!settings.trendyolSupplierId || !settings.trendyolApiKey || !settings.trendyolApiSecret}
+                    >
+                      <Wifi className="h-4 w-4 mr-2" />
+                      Testează conexiunea
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p>Verifică dacă credențialele Trendyol sunt valide și poți accesa API-ul pentru produse și comenzi.</p>
+                  </TooltipContent>
+                </Tooltip>
                 <Button
                   variant="outline"
                   onClick={() => window.open("https://partner.trendyol.com", "_blank")}
@@ -885,72 +892,86 @@ export default function SettingsPage() {
               </div>
 
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      const res = await fetch("/api/products/sync-images");
-                      const data = await res.json();
-                      if (data.success) {
-                        toast({
-                          title: "✅ Conexiune reușită",
-                          description: `Găsite ${data.stats?.totalFolders || 0} foldere, ${data.stats?.matchedProducts || 0} potrivite cu produse`,
-                        });
-                      } else {
-                        toast({
-                          title: "❌ Eroare",
-                          description: data.error,
-                          variant: "destructive",
-                        });
-                      }
-                    } catch (error: any) {
-                      toast({
-                        title: "Eroare",
-                        description: error.message,
-                        variant: "destructive",
-                      });
-                    }
-                  }}
-                  disabled={!settings.googleDriveFolderUrl || !settings.googleDriveCredentials}
-                >
-                  <Wifi className="h-4 w-4 mr-2" />
-                  Testează conexiunea
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      const res = await fetch("/api/products/sync-images", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ dryRun: false }),
-                      });
-                      const data = await res.json();
-                      if (data.success) {
-                        toast({
-                          title: "✅ Sincronizare completă",
-                          description: `${data.stats?.imagesAdded || 0} imagini adăugate, ${data.stats?.imagesUpdated || 0} actualizate`,
-                        });
-                      } else {
-                        toast({
-                          title: "❌ Eroare",
-                          description: data.error,
-                          variant: "destructive",
-                        });
-                      }
-                    } catch (error: any) {
-                      toast({
-                        title: "Eroare",
-                        description: error.message,
-                        variant: "destructive",
-                      });
-                    }
-                  }}
-                  disabled={!settings.googleDriveFolderUrl || !settings.googleDriveCredentials}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Sincronizează acum
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch("/api/products/sync-images");
+                          const data = await res.json();
+                          if (data.success) {
+                            toast({
+                              title: "✅ Conexiune reușită",
+                              description: `Găsite ${data.stats?.totalFolders || 0} foldere, ${data.stats?.matchedProducts || 0} potrivite cu produse`,
+                            });
+                          } else {
+                            toast({
+                              title: "❌ Eroare",
+                              description: data.error,
+                              variant: "destructive",
+                            });
+                          }
+                        } catch (error: any) {
+                          toast({
+                            title: "Eroare",
+                            description: error.message,
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      disabled={!settings.googleDriveFolderUrl || !settings.googleDriveCredentials}
+                    >
+                      <Wifi className="h-4 w-4 mr-2" />
+                      Testează conexiunea
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p>Verifică dacă credențialele Google Drive sunt valide și folder-ul este accesibil.</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch("/api/products/sync-images", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ dryRun: false }),
+                          });
+                          const data = await res.json();
+                          if (data.success) {
+                            toast({
+                              title: "✅ Sincronizare completă",
+                              description: `${data.stats?.imagesAdded || 0} imagini adăugate, ${data.stats?.imagesUpdated || 0} actualizate`,
+                            });
+                          } else {
+                            toast({
+                              title: "❌ Eroare",
+                              description: data.error,
+                              variant: "destructive",
+                            });
+                          }
+                        } catch (error: any) {
+                          toast({
+                            title: "Eroare",
+                            description: error.message,
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      disabled={!settings.googleDriveFolderUrl || !settings.googleDriveCredentials}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Sincronizează acum
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p>Sincronizează imaginile din Google Drive cu produsele. Folderele sunt potrivite cu SKU-ul produselor.</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </CardContent>
           </Card>

@@ -1,9 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { EntityType, ActionType } from "@prisma/client";
+import { hasPermission } from "@/lib/permissions";
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canView = await hasPermission(session.user.id, "activity.view");
+    if (!canView) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     
     const page = parseInt(searchParams.get("page") || "1");
@@ -89,6 +104,16 @@ export async function GET(request: NextRequest) {
 // Obține statistici pentru dashboard
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canView = await hasPermission(session.user.id, "activity.view");
+    if (!canView) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
     const body = await request.json();
     const { type } = body;
 

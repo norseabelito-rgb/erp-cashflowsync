@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { hasPermission } from "@/lib/permissions";
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canView = await hasPermission(session.user.id, "awb.track");
+    if (!canView) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get("status");
     const search = searchParams.get("search");

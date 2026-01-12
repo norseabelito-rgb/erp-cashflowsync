@@ -63,17 +63,22 @@ export async function POST(request: NextRequest) {
     let invoicesIssued = 0;
     let awbsCreated = 0;
 
+    // Batch load - încărcăm toate comenzile într-un singur query
+    const orders = await prisma.order.findMany({
+      where: { id: { in: orderIds } },
+      include: {
+        store: true,
+        invoice: true,
+        awb: true,
+        lineItems: true,
+      },
+    });
+
+    // Creăm un map pentru lookup rapid
+    const ordersMap = new Map(orders.map(o => [o.id, o]));
+
     for (const orderId of orderIds) {
-      // Obține comanda cu toate relațiile
-      const order = await prisma.order.findUnique({
-        where: { id: orderId },
-        include: {
-          store: true,
-          invoice: true,
-          awb: true,
-          lineItems: true,
-        },
-      });
+      const order = ordersMap.get(orderId);
 
       if (!order) {
         results.push({

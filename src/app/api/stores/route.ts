@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { hasPermission } from "@/lib/permissions";
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canView = await hasPermission(session.user.id, "stores.view");
+    if (!canView) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
     const stores = await prisma.store.findMany({
       include: {
         _count: {
@@ -31,9 +46,17 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  console.log("\n========== CREATE STORE START ==========");
-  
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canManage = await hasPermission(session.user.id, "stores.manage");
+    if (!canManage) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
     const body = await request.json();
     const { name, shopifyDomain, accessToken } = body;
     
