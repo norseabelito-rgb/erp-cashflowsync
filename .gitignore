@@ -6,3 +6,10 @@ node_modules
 *.dump
 .DS_Store
 next-env.d.ts
+
+# TypeScript build cache
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# Coverage
+coverage/
