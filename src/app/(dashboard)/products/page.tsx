@@ -111,13 +111,15 @@ interface Category {
   _count?: { products: number };
 }
 
-interface InventoryProduct {
+interface InventoryItem {
   id: string;
   sku: string;
   name: string;
-  price: number;
-  stockQuantity: number;
   description?: string;
+  currentStock: number;
+  costPrice?: number;
+  unit: string;
+  isComposite: boolean;
 }
 
 export default function ProductsPage() {
@@ -150,6 +152,7 @@ export default function ProductsPage() {
     categoryId: "",
     channelIds: [] as string[],
     stock: 0,
+    inventoryItemId: "",
   });
 
   // Fetch products
@@ -186,14 +189,14 @@ export default function ProductsPage() {
     },
   });
 
-  // Fetch inventory products (pentru dropdown SKU)
+  // Fetch inventory items (pentru dropdown SKU)
   const { data: inventoryData } = useQuery({
-    queryKey: ["inventory", skuSearch],
+    queryKey: ["inventory-items", skuSearch],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (skuSearch) params.set("search", skuSearch);
-      params.set("excludeUsed", "true");
-      const res = await fetch(`/api/inventory?${params}`);
+      params.set("isActive", "true");
+      const res = await fetch(`/api/inventory-items?${params}`);
       return res.json();
     },
     enabled: createDialogOpen, // Doar când dialogul e deschis
@@ -363,6 +366,7 @@ export default function ProductsPage() {
       categoryId: "",
       channelIds: [],
       stock: 0,
+      inventoryItemId: "",
     });
     setSkuSearch("");
   };
@@ -378,6 +382,7 @@ export default function ProductsPage() {
       categoryId: newProduct.categoryId || undefined,
       channelIds: newProduct.channelIds,
       stock: newProduct.stock || 0,
+      inventoryItemId: newProduct.inventoryItemId || undefined,
     });
   };
 
@@ -429,14 +434,11 @@ export default function ProductsPage() {
   const products: Product[] = productsData?.products || [];
   const channels: Channel[] = productsData?.channels || channelsData?.channels || [];
   const categories: Category[] = categoriesData?.categories || [];
-  const inventoryProducts: InventoryProduct[] = inventoryData?.products || [];
+  const inventoryItems: InventoryItem[] = inventoryData?.data?.items || [];
   const pagination = productsData?.pagination;
 
-  // Filtrează SKU-urile care există deja în MasterProduct (case-insensitive)
-  const existingSkus = new Set(products.map(p => p.sku.toLowerCase()));
-  const availableInventoryProducts = inventoryProducts.filter(
-    inv => !existingSkus.has(inv.sku.toLowerCase())
-  );
+  // Filtrează articolele care nu sunt deja mapate la un produs
+  const availableInventoryItems = inventoryItems;
 
   return (
     <TooltipProvider>
@@ -492,6 +494,12 @@ export default function ProductsPage() {
                 <p>Trimite toate produsele cu canale Shopify active către Shopify. Creează produse noi și actualizează cele existente (titlu, preț, descriere, imagini).</p>
               </TooltipContent>
             </Tooltip>
+            <Link href="/products/inventory-mapping">
+              <Button variant="outline" size="sm" className="md:size-default">
+                <Package className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Mapare Inventar</span>
+              </Button>
+            </Link>
             <Button size="sm" className="md:size-default" onClick={() => setCreateDialogOpen(true)}>
               <Plus className="h-4 w-4 md:mr-2" />
               <span className="hidden md:inline">Produs Nou</span>
@@ -816,7 +824,7 @@ export default function ProductsPage() {
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
               <div className="grid gap-2">
-                <Label>Produs din Inventar *</Label>
+                <Label>Articol din Inventar *</Label>
                 <div className="flex gap-2">
                   <Input
                     placeholder="Caută SKU sau nume..."
@@ -826,42 +834,43 @@ export default function ProductsPage() {
                   />
                 </div>
                 <Select
-                  value={newProduct.sku}
-                  onValueChange={(sku) => {
-                    const inventoryProduct = inventoryProducts.find(p => p.sku === sku);
-                    if (inventoryProduct) {
+                  value={newProduct.inventoryItemId}
+                  onValueChange={(id) => {
+                    const inventoryItem = inventoryItems.find(item => item.id === id);
+                    if (inventoryItem) {
                       setNewProduct({
                         ...newProduct,
-                        sku: inventoryProduct.sku,
-                        title: inventoryProduct.name,
-                        description: inventoryProduct.description || "",
-                        price: String(inventoryProduct.price),
-                        stock: inventoryProduct.stockQuantity,
+                        inventoryItemId: inventoryItem.id,
+                        sku: inventoryItem.sku,
+                        title: inventoryItem.name,
+                        description: inventoryItem.description || "",
+                        price: inventoryItem.costPrice ? String(inventoryItem.costPrice) : "",
+                        stock: Number(inventoryItem.currentStock),
                       });
                     }
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selectează produsul din listă" />
+                    <SelectValue placeholder="Selectează articolul din inventar" />
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
-                    {availableInventoryProducts.length === 0 ? (
+                    {availableInventoryItems.length === 0 ? (
                       <div className="p-4 text-center text-muted-foreground text-sm">
-                        {skuSearch ? "Niciun produs găsit sau toate sunt deja adăugate" : "Nu există produse disponibile în inventar (sau toate sunt deja adăugate)"}
+                        {skuSearch ? "Niciun articol găsit" : "Nu există articole disponibile în inventar"}
                       </div>
                     ) : (
-                      availableInventoryProducts.map((inv) => (
-                        <SelectItem key={inv.sku} value={inv.sku}>
+                      availableInventoryItems.map((inv) => (
+                        <SelectItem key={inv.id} value={inv.id}>
                           <span className="font-mono text-xs bg-muted px-1 rounded mr-2">{inv.sku}</span>
                           {inv.name}
-                          <span className="text-muted-foreground ml-2">({inv.stockQuantity} buc)</span>
+                          <span className="text-muted-foreground ml-2">({Number(inv.currentStock)} {inv.unit})</span>
                         </SelectItem>
                       ))
                     )}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Produsele sunt preluate din inventarul SmartBill. Scrie în căutare pentru a filtra.
+                  Selectează un articol din inventarul local pentru a crea produsul.
                 </p>
               </div>
 

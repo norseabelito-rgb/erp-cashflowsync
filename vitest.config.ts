@@ -9,6 +9,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     include: ['**/*.{test,spec}.{ts,tsx}'],
+    exclude: ['node_modules', 'src/tests/**'], // src/tests contains integration tests that need real DB
     coverage: {
       reporter: ['text', 'json', 'html'],
       exclude: [
