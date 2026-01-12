@@ -176,7 +176,7 @@ async function getStats(storeId?: string | null) {
 
   // Generăm array complet pentru ultimele 7 zile (inclusiv zilele fără vânzări)
   const salesByDate = new Map<string, { sales: number; orders: number }>();
-  salesLast7DaysRaw.forEach(row => {
+  salesLast7DaysRaw.forEach((row: { date: Date; totalSales: number; orderCount: bigint }) => {
     // Folosim UTC pentru consistență
     const d = new Date(row.date);
     const dateKey = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
@@ -257,7 +257,7 @@ async function getStats(storeId?: string | null) {
     // AI
     pendingInsights,
     // Pentru filtru
-    stores: storeStats.map(s => ({
+    stores: storeStats.map((s: typeof storeStats[number]) => ({
       id: s.id,
       name: s.name,
       ordersCount: s._count.orders,
@@ -531,7 +531,7 @@ export default async function DashboardPage({
               </div>
             ) : (
               <div className="space-y-4">
-                {stats.recentOrders.map((order) => (
+                {stats.recentOrders.map((order: typeof stats.recentOrders[number]) => (
                   <div
                     key={order.id}
                     className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
@@ -587,7 +587,7 @@ export default async function DashboardPage({
               </div>
             ) : (
               <div className="space-y-3">
-                {stats.lowStockProducts.map((product) => (
+                {stats.lowStockProducts.map((product: typeof stats.lowStockProducts[number]) => (
                   <div
                     key={product.id}
                     className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
@@ -637,7 +637,7 @@ export default async function DashboardPage({
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {stats.storeStats.map((store) => (
+              {stats.storeStats.map((store: typeof stats.storeStats[number]) => (
                 <div
                   key={store.id}
                   className="flex items-center justify-between p-4 rounded-lg bg-muted/50"
