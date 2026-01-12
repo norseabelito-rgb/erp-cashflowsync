@@ -985,7 +985,7 @@ export default function ProductsPage() {
               </Button>
               <Button
                 onClick={handleCreateProduct}
-                disabled={!newProduct.sku || !newProduct.title || !newProduct.price || createProductMutation.isPending}
+                disabled={!newProduct.inventoryItemId || !newProduct.sku || !newProduct.title || !newProduct.price || createProductMutation.isPending}
               >
                 {createProductMutation.isPending ? "Se creează..." : "Creează Produs"}
               </Button>
