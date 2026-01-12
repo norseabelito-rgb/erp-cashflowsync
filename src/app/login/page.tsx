@@ -2,7 +2,7 @@
 
 import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { DollarSign, Loader2, AlertCircle, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 
-export default function LoginPage() {
+function LoginForm() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -49,7 +49,6 @@ export default function LoginPage() {
     console.log("🔄 Session status:", status, "Session:", session ? "exists" : "null");
     if (status === "authenticated" && session) {
       console.log("✅ Session detected, redirecting to dashboard...");
-      // Force hard refresh to ensure middleware picks up the session
       window.location.href = callbackUrl;
     }
   }, [session, status, callbackUrl]);
@@ -94,7 +93,6 @@ export default function LoginPage() {
         setError(result.error);
       } else if (result?.ok) {
         console.log("✅ SignIn OK, redirecting to:", callbackUrl);
-        // Force a hard navigation instead of client-side routing
         window.location.href = callbackUrl;
       } else {
         console.log("⚠️ SignIn returned unexpected result:", result);
@@ -296,5 +294,17 @@ export default function LoginPage() {
         © {new Date().getFullYear()} Cash Flow Grup. Toate drepturile rezervate.
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
