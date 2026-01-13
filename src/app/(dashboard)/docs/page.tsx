@@ -45,6 +45,7 @@ import {
   Target,
   Eye,
   Pencil,
+    Minus,
   Trash2,
   Plus,
   Download,
@@ -2092,7 +2093,7 @@ erDiagram
             </CardContent>
           </Card>
         </div>
-      </SubSection>
+      </SubSection
 
       <SectionTitle icon={<Boxes className="h-6 w-6" />}>Gestionarea Stocului</SectionTitle>
 
