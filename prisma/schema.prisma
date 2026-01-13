@@ -43,7 +43,10 @@ model User {
   
   // Notificări
   notifications Notification[]
-  
+
+  // Comentarii AWB
+  awbComments   AWBComment[]
+
   @@map("users")
 }
 
@@ -538,13 +541,16 @@ model AWB {
   
   // Istoric statusuri
   statusHistory     AWBStatusHistory[]
-  
+
   // Relație cu PickingList
   pickingListAWBs   PickingListAWB[]
-  
+
   // Relație cu HandoverSession
   handoverSessionId String?
   handoverSession   HandoverSession? @relation(fields: [handoverSessionId], references: [id])
+
+  // Comentarii
+  comments          AWBComment[]
   
   @@index([currentStatus])
   @@index([createdAt])
@@ -2754,4 +2760,40 @@ model GoodsReceiptItem {
   @@index([receiptId])
   @@index([itemId])
   @@map("goods_receipt_items")
+}
+
+// ============================================
+// COMENTARII AWB
+// ============================================
+
+// Comentariu pe AWB - sistem de note cu imagini atașate
+model AWBComment {
+  id        String   @id @default(cuid())
+  awbId     String
+  awb       AWB      @relation(fields: [awbId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  content   String   @db.Text   // Textul comentariului
+  images    AWBCommentImage[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([awbId, createdAt])
+  @@index([userId])
+  @@map("awb_comments")
+}
+
+// Imagine atașată la un comentariu AWB
+model AWBCommentImage {
+  id          String      @id @default(cuid())
+  commentId   String?     // Opțional - imaginile sunt uploadate înainte de creare comentariu
+  comment     AWBComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  filename    String      // Numele original al fișierului
+  storagePath String      // Calea în storage (local sau cloud)
+  mimeType    String      // image/jpeg, image/png, etc.
+  size        Int         // Dimensiune în bytes
+  createdAt   DateTime    @default(now())
+
+  @@index([commentId])
+  @@map("awb_comment_images")
 }
