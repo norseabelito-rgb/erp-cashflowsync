@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 import { createMetaCampaign, META_OBJECTIVES } from "@/lib/meta-ads";
 import { createTikTokCampaign, TIKTOK_OBJECTIVES } from "@/lib/tiktok-ads";
-import { AdsPlatform } from "@prisma/client";
+import { AdsPlatform } from "@/types/prisma-enums";
 
 // GET - Obține datele necesare pentru creare campanie
 export async function GET(request: NextRequest) {

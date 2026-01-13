@@ -17,6 +17,10 @@ import {
   ArrowUpDown,
   ChevronDown,
   Eye,
+  Download,
+  FileUp,
+  FileSpreadsheet,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +63,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 
@@ -107,6 +112,10 @@ export default function InventoryPage() {
   const [filterStock, setFilterStock] = useState<string>("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importMode, setImportMode] = useState<"upsert" | "create" | "update" | "stock_only">("upsert");
+  const [isExporting, setIsExporting] = useState(false);
 
   // Fetch inventory items
   const { data, isLoading, refetch } = useQuery({
@@ -149,6 +158,65 @@ export default function InventoryPage() {
       }
     },
   });
+
+  // Import inventory mutation
+  const importMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const res = await fetch("/api/inventory-items/import", {
+        method: "POST",
+        body: formData,
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: ["inventory-items"] });
+        setImportDialogOpen(false);
+        setImportFile(null);
+        toast({
+          title: "Import finalizat",
+          description: data.message,
+        });
+      } else {
+        toast({ title: "Eroare", description: data.error, variant: "destructive" });
+      }
+    },
+    onError: (error: any) => {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const res = await fetch("/api/inventory-items/export");
+      if (!res.ok) throw new Error("Export failed");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `inventar_${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({ title: "Export finalizat", description: "Fișierul CSV a fost descărcat" });
+    } catch (error: any) {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImport = () => {
+    if (!importFile) return;
+    const formData = new FormData();
+    formData.append("file", importFile);
+    formData.append("mode", importMode);
+    importMutation.mutate(formData);
+  };
 
   const items: InventoryItem[] = data?.data?.items || [];
   const stats = data?.data?.stats || {
@@ -206,6 +274,31 @@ export default function InventoryPage() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Reîncarcă
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Import/Export
+                <ChevronDown className="h-4 w-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Acțiuni CSV</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
+                <FileUp className="h-4 w-4 mr-2" />
+                Import din CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExport} disabled={isExporting}>
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                Export în CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button onClick={() => router.push("/inventory/new")}>
             <Plus className="h-4 w-4 mr-2" />
             Articol nou
@@ -450,6 +543,68 @@ export default function InventoryPage() {
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending ? "Se șterge..." : "Șterge"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Dialog */}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Import inventar din CSV</DialogTitle>
+            <DialogDescription>
+              Încarcă un fișier CSV cu articole de inventar. Formatul acceptat:
+              SKU, Nume, Descriere, Stoc, Stoc minim, Unitate, Buc/Bax, Unitate bax, Preț cost, Furnizor, Compus, Activ
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="importFile">Fișier CSV</Label>
+              <Input
+                id="importFile"
+                type="file"
+                accept=".csv"
+                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="importMode">Mod import</Label>
+              <Select value={importMode} onValueChange={(v) => setImportMode(v as typeof importMode)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="upsert">Creare + Actualizare (după SKU)</SelectItem>
+                  <SelectItem value="create">Doar creare (omite existente)</SelectItem>
+                  <SelectItem value="update">Doar actualizare (omite noi)</SelectItem>
+                  <SelectItem value="stock_only">Doar actualizare stoc</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {importMode === "upsert" && "Articolele noi vor fi create, cele existente vor fi actualizate."}
+                {importMode === "create" && "Doar articolele cu SKU inexistent vor fi create."}
+                {importMode === "update" && "Doar articolele existente vor fi actualizate."}
+                {importMode === "stock_only" && "Actualizează doar stocul curent, restul câmpurilor sunt ignorate."}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportDialogOpen(false)}>
+              Anulează
+            </Button>
+            <Button onClick={handleImport} disabled={!importFile || importMutation.isPending}>
+              {importMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Se importă...
+                </>
+              ) : (
+                <>
+                  <FileUp className="h-4 w-4 mr-2" />
+                  Importă
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

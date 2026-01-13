@@ -474,7 +474,7 @@ export default function OrdersPage() {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       
       // Construim mesajul de rezultat
-      const messages = [];
+      const messages: string[] = [];
       messages.push(`${data.synced || 0} comenzi sincronizate din Shopify`);
       
       // Verificăm rezultatele sincronizării bilaterale

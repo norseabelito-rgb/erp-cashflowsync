@@ -13,7 +13,7 @@
  */
 
 import { prisma } from "@/lib/db";
-import { AdsPlatform, AdsAccountStatus, AdsCampaignStatus } from "@prisma/client";
+import { AdsPlatform, AdsAccountStatus, AdsCampaignStatus } from "@/types/prisma-enums";
 import { getMetaAdsConfig, AdsConfig } from "@/lib/ads-config";
 
 // ==================== CONFIGURARE ====================

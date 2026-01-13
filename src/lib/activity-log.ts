@@ -1,5 +1,5 @@
 import prisma from "./db";
-import { EntityType, ActionType } from "@prisma/client";
+import { EntityType, ActionType } from "@/types/prisma-enums";
 
 interface LogActivityParams {
   entityType: EntityType;
@@ -139,9 +139,9 @@ export async function logInvoiceIssued(params: {
   dueDate?: Date;
 }) {
   return logActivity({
-    entityType: "INVOICE",
+    entityType: EntityType.INVOICE,
     entityId: params.orderId,
-    action: "ISSUE_INVOICE",
+    action: ActionType.ISSUE_INVOICE,
     description: `Factură ${params.invoiceSeries}${params.invoiceNumber} emisă pentru comanda #${params.orderNumber} (${params.total} RON)${params.dueDate ? ` - Scadență: ${params.dueDate.toLocaleDateString("ro-RO")}` : ""}`,
     orderId: params.orderId,
     orderNumber: params.orderNumber,
@@ -168,9 +168,9 @@ export async function logInvoiceCancelled(params: {
   reason?: string;
 }) {
   return logActivity({
-    entityType: "INVOICE",
+    entityType: EntityType.INVOICE,
     entityId: params.orderId,
-    action: "CANCEL_INVOICE",
+    action: ActionType.CANCEL_INVOICE,
     description: `Factură ${params.invoiceSeries}${params.invoiceNumber} anulată pentru comanda #${params.orderNumber}${params.stornoNumber ? ` (stornare: ${params.stornoSeries}${params.stornoNumber})` : ""}${params.reason ? ` - Motiv: ${params.reason}` : ""}`,
     orderId: params.orderId,
     orderNumber: params.orderNumber,
@@ -195,9 +195,9 @@ export async function logAWBCreated(params: {
   courier: string;
 }) {
   return logActivity({
-    entityType: "AWB",
+    entityType: EntityType.AWB,
     entityId: params.orderId,
-    action: "CREATE_AWB",
+    action: ActionType.CREATE_AWB,
     description: `AWB ${params.awbNumber} creat pentru comanda #${params.orderNumber} (${params.courier})`,
     orderId: params.orderId,
     orderNumber: params.orderNumber,
@@ -218,9 +218,9 @@ export async function logAWBStatusUpdate(params: {
   statusText?: string;
 }) {
   return logActivity({
-    entityType: "AWB",
+    entityType: EntityType.AWB,
     entityId: params.orderId,
-    action: "UPDATE_AWB_STATUS",
+    action: ActionType.UPDATE_AWB_STATUS,
     description: `Status AWB ${params.awbNumber} actualizat: ${params.oldStatus} → ${params.newStatus}${params.statusText ? ` (${params.statusText})` : ""}`,
     orderId: params.orderId,
     orderNumber: params.orderNumber,
@@ -261,7 +261,7 @@ export async function logStockMovement(params: {
   };
 
   return logActivity({
-    entityType: "STOCK",
+    entityType: EntityType.STOCK,
     entityId: params.productSku,
     action: actionMap[params.type],
     description: `${typeText[params.type]} pentru ${params.productName}: ${params.oldQuantity} → ${params.newQuantity} (${params.type === "OUT" ? "-" : "+"}${Math.abs(params.quantity)})${params.reason ? ` - ${params.reason}` : ""}`,
@@ -294,8 +294,8 @@ export async function logStockSync(params: {
     : "ERP → SmartBill";
 
   return logActivity({
-    entityType: "STOCK",
-    action: "STOCK_SYNC",
+    entityType: EntityType.STOCK,
+    action: ActionType.STOCK_SYNC,
     description: params.success 
       ? `Sincronizare stocuri ${directionText}: ${params.productsUpdated} produse actualizate`
       : `Sincronizare stocuri ${directionText} eșuată: ${params.errorMessage}`,
@@ -322,9 +322,9 @@ export async function logPaymentReceived(params: {
   method?: string;
 }) {
   return logActivity({
-    entityType: "INVOICE",
+    entityType: EntityType.INVOICE,
     entityId: params.orderId,
-    action: "PAYMENT_RECEIVED",
+    action: ActionType.PAYMENT_RECEIVED,
     description: `Plată ${params.amount} RON primită pentru factura ${params.invoiceSeries}${params.invoiceNumber} (comanda #${params.orderNumber})${params.method ? ` - ${params.method}` : ""}`,
     orderId: params.orderId,
     orderNumber: params.orderNumber,

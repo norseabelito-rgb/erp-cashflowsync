@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { syncMetaAccountLight, syncMetaAccount } from "@/lib/meta-ads";
 import { syncTikTokAccount } from "@/lib/tiktok-ads";
-import { AdsAccountStatus } from "@prisma/client";
+import { AdsAccountStatus } from "@/types/prisma-enums";
 
 const CRON_SECRET = process.env.CRON_SECRET;
 

@@ -1,0 +1,227 @@
+// Prisma enums - manually defined to fix type errors when Prisma client
+// is not properly generated (e.g., in offline environments)
+// These should match the enums defined in prisma/schema.prisma
+
+export enum OrderStatus {
+  PENDING = "PENDING",
+  VALIDATED = "VALIDATED",
+  VALIDATION_FAILED = "VALIDATION_FAILED",
+  INVOICE_PENDING = "INVOICE_PENDING",
+  INVOICE_ERROR = "INVOICE_ERROR",
+  INVOICED = "INVOICED",
+  PICKING = "PICKING",
+  PACKED = "PACKED",
+  AWB_PENDING = "AWB_PENDING",
+  AWB_ERROR = "AWB_ERROR",
+  SHIPPED = "SHIPPED",
+  DELIVERED = "DELIVERED",
+  CANCELLED = "CANCELLED",
+  RETURNED = "RETURNED",
+}
+
+export enum ValidationStatus {
+  PENDING = "PENDING",
+  PASSED = "PASSED",
+  FAILED = "FAILED",
+}
+
+export enum HandoverSessionStatus {
+  OPEN = "OPEN",
+  CLOSED = "CLOSED",
+}
+
+export enum StockMovementType {
+  IN = "IN",
+  OUT = "OUT",
+  ADJUSTMENT = "ADJUSTMENT",
+  RETURN = "RETURN",
+  TRANSFER = "TRANSFER",
+}
+
+export enum SyncType {
+  MANUAL = "MANUAL",
+  AUTOMATIC = "AUTOMATIC",
+  SINGLE_ORDER = "SINGLE_ORDER",
+}
+
+export enum SyncStatus {
+  RUNNING = "RUNNING",
+  COMPLETED = "COMPLETED",
+  COMPLETED_WITH_ERRORS = "COMPLETED_WITH_ERRORS",
+  FAILED = "FAILED",
+}
+
+export enum LogLevel {
+  INFO = "INFO",
+  SUCCESS = "SUCCESS",
+  WARNING = "WARNING",
+  ERROR = "ERROR",
+  DEBUG = "DEBUG",
+}
+
+export enum EntityType {
+  ORDER = "ORDER",
+  INVOICE = "INVOICE",
+  AWB = "AWB",
+  PRODUCT = "PRODUCT",
+  STOCK = "STOCK",
+  SETTINGS = "SETTINGS",
+  SYNC = "SYNC",
+}
+
+export enum ActionType {
+  CREATE = "CREATE",
+  UPDATE = "UPDATE",
+  DELETE = "DELETE",
+  CANCEL = "CANCEL",
+  SYNC = "SYNC",
+  SYNC_SMARTBILL = "SYNC_SMARTBILL",
+  SYNC_FANCOURIER = "SYNC_FANCOURIER",
+  ISSUE_INVOICE = "ISSUE_INVOICE",
+  CANCEL_INVOICE = "CANCEL_INVOICE",
+  PAYMENT_RECEIVED = "PAYMENT_RECEIVED",
+  CREATE_AWB = "CREATE_AWB",
+  DELETE_AWB = "DELETE_AWB",
+  UPDATE_AWB_STATUS = "UPDATE_AWB_STATUS",
+  AWB_DELIVERED = "AWB_DELIVERED",
+  AWB_RETURNED = "AWB_RETURNED",
+  AWB_CANCELLED = "AWB_CANCELLED",
+  AWB_DELETED = "AWB_DELETED",
+  STOCK_IN = "STOCK_IN",
+  STOCK_OUT = "STOCK_OUT",
+  STOCK_ADJUST = "STOCK_ADJUST",
+  STOCK_SYNC = "STOCK_SYNC",
+  STOCK_UPDATE = "STOCK_UPDATE",
+  PRICE_UPDATE = "PRICE_UPDATE",
+  EXPORT = "EXPORT",
+  IMPORT = "IMPORT",
+  ERROR = "ERROR",
+}
+
+export enum PrintJobStatus {
+  PENDING = "PENDING",
+  PRINTING = "PRINTING",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
+  CANCELLED = "CANCELLED",
+}
+
+export enum ChannelType {
+  SHOPIFY = "SHOPIFY",
+  EMAG = "EMAG",
+  TEMU = "TEMU",
+  TRENDYOL = "TRENDYOL",
+}
+
+export enum PickingListStatus {
+  PENDING = "PENDING",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+}
+
+export enum PickingLogAction {
+  ITEM_PICKED = "ITEM_PICKED",
+  ITEM_UNDO = "ITEM_UNDO",
+  SURPLUS_ATTEMPT = "SURPLUS_ATTEMPT",
+  LIST_STARTED = "LIST_STARTED",
+  LIST_COMPLETED = "LIST_COMPLETED",
+  LIST_SAVED = "LIST_SAVED",
+  QUANTITY_CHANGED = "QUANTITY_CHANGED",
+}
+
+export enum ProcessingErrorType {
+  INVOICE = "INVOICE",
+  AWB = "AWB",
+  PICKING_LIST = "PICKING_LIST",
+}
+
+export enum ProcessingErrorStatus {
+  PENDING = "PENDING",
+  RETRYING = "RETRYING",
+  RESOLVED = "RESOLVED",
+  FAILED = "FAILED",
+  SKIPPED = "SKIPPED",
+}
+
+export enum AdsPlatform {
+  META = "META",
+  TIKTOK = "TIKTOK",
+  GOOGLE = "GOOGLE",
+}
+
+export enum AdsAccountStatus {
+  ACTIVE = "ACTIVE",
+  PAUSED = "PAUSED",
+  ERROR = "ERROR",
+  DISCONNECTED = "DISCONNECTED",
+  PENDING_AUTH = "PENDING_AUTH",
+}
+
+export enum AdsCampaignStatus {
+  ACTIVE = "ACTIVE",
+  PAUSED = "PAUSED",
+  DELETED = "DELETED",
+  ARCHIVED = "ARCHIVED",
+  PENDING = "PENDING",
+  IN_REVIEW = "IN_REVIEW",
+}
+
+export enum AdsMappingSource {
+  AUTO_NAME = "AUTO_NAME",
+  MANUAL = "MANUAL",
+  CATALOG = "CATALOG",
+}
+
+export enum AdsAlertScope {
+  ALL = "ALL",
+  PLATFORM = "PLATFORM",
+  SKU = "SKU",
+  CAMPAIGNS = "CAMPAIGNS",
+}
+
+export enum AdsAlertAction {
+  NOTIFY = "NOTIFY",
+  PAUSE = "PAUSE",
+  REDUCE_BUDGET = "REDUCE_BUDGET",
+}
+
+export enum AdsAlertStatus {
+  NEW = "NEW",
+  SEEN = "SEEN",
+  RESOLVED = "RESOLVED",
+  DISMISSED = "DISMISSED",
+}
+
+export enum AIInsightType {
+  PRODUCT_PRICE = "PRODUCT_PRICE",
+  PRODUCT_STOCK = "PRODUCT_STOCK",
+  AD_BUDGET = "AD_BUDGET",
+  AD_STATUS = "AD_STATUS",
+  AD_BID = "AD_BID",
+  AD_TARGETING = "AD_TARGETING",
+  GENERAL = "GENERAL",
+}
+
+export enum AIInsightStatus {
+  PENDING = "PENDING",
+  APPLIED = "APPLIED",
+  DISMISSED = "DISMISSED",
+  EXPIRED = "EXPIRED",
+}
+
+export enum InventoryMovementType {
+  RECEIPT = "RECEIPT",
+  SALE = "SALE",
+  ADJUSTMENT_PLUS = "ADJUSTMENT_PLUS",
+  ADJUSTMENT_MINUS = "ADJUSTMENT_MINUS",
+  RECIPE_OUT = "RECIPE_OUT",
+  RETURN = "RETURN",
+  TRANSFER = "TRANSFER",
+}
+
+export enum GoodsReceiptStatus {
+  DRAFT = "DRAFT",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+}

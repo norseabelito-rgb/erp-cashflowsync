@@ -6,7 +6,7 @@ import { getMetaOAuthUrl, getMetaOAuthUrlWithApp } from "@/lib/meta-ads";
 import { getTikTokOAuthUrl, getTikTokOAuthUrlWithApp } from "@/lib/tiktok-ads";
 import { isPlatformConfigured } from "@/lib/ads-config";
 import { prisma } from "@/lib/db";
-import { AdsPlatform } from "@prisma/client";
+import { AdsPlatform } from "@/types/prisma-enums";
 import crypto from "crypto";
 import { 
   cleanupExpiredStates, 
