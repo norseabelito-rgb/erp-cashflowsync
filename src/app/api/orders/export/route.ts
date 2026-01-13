@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus } from "@/types/prisma-enums";
 
 // GET /api/orders/export - Export orders to CSV
 export async function GET(request: NextRequest) {

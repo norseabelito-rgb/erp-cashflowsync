@@ -5,6 +5,7 @@ import prisma from "@/lib/db";
 import { createFanCourierClient } from "@/lib/fancourier";
 import { logActivity } from "@/lib/activity-log";
 import { hasPermission } from "@/lib/permissions";
+import { EntityType, ActionType } from "@/types/prisma-enums";
 
 // GET - Obține detalii AWB
 export async function GET(
@@ -168,9 +169,9 @@ export async function DELETE(
 
     // Loghează activitatea
     await logActivity({
-      entityType: "AWB",
+      entityType: EntityType.AWB,
       entityId: awb.id,
-      action: "DELETE_AWB",
+      action: ActionType.DELETE_AWB,
       description: `AWB ${awb.awbNumber} șters pentru comanda #${awb.order.shopifyOrderNumber}${fanCourierDeleted ? " (șters și din FanCourier)" : ""}`,
       orderId: awb.orderId,
       orderNumber: awb.order.shopifyOrderNumber,

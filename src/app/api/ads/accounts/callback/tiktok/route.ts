@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { exchangeTikTokCode, exchangeTikTokCodeWithApp, getTikTokAdvertisers } from "@/lib/tiktok-ads";
-import { AdsAccountStatus } from "@prisma/client";
+import { AdsAccountStatus } from "@/types/prisma-enums";
 import { getPendingState, removePendingState } from "@/lib/ads-oauth-state";
 
 // Helper to get proper base URL

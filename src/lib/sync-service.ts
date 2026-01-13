@@ -1,5 +1,5 @@
 import prisma from "./db";
-import { SyncType, SyncStatus, LogLevel } from "@prisma/client";
+import { SyncType, SyncStatus, LogLevel } from "@/types/prisma-enums";
 import { FanCourierClient } from "./fancourier";
 
 // Tipuri pentru logging
@@ -14,17 +14,17 @@ interface SyncContext {
 /**
  * Creează o nouă sesiune de sincronizare
  */
-export async function createSyncSession(type: SyncType = "MANUAL"): Promise<string> {
+export async function createSyncSession(type: SyncType = SyncType.MANUAL): Promise<string> {
   const syncLog = await prisma.syncLog.create({
     data: {
       type,
-      status: "RUNNING",
+      status: SyncStatus.RUNNING,
       startedAt: new Date(),
     },
   });
-  
+
   await addLogEntry(syncLog.id, {
-    level: "INFO",
+    level: LogLevel.INFO,
     action: "SYNC_STARTED",
     message: `🚀 Sesiune de sincronizare ${type} începută`,
     details: { type, startTime: new Date().toISOString() },
@@ -84,9 +84,9 @@ export async function completeSyncSession(
   const completedAt = new Date();
   const durationMs = startedAt ? completedAt.getTime() - startedAt.startedAt.getTime() : 0;
   
-  const status: SyncStatus = stats.errorsCount > 0 
-    ? (stats.ordersProcessed > 0 ? "COMPLETED_WITH_ERRORS" : "FAILED")
-    : "COMPLETED";
+  const status: SyncStatus = stats.errorsCount > 0
+    ? (stats.ordersProcessed > 0 ? SyncStatus.COMPLETED_WITH_ERRORS : SyncStatus.FAILED)
+    : SyncStatus.COMPLETED;
   
   const summary = `
 📊 REZUMAT SINCRONIZARE:
@@ -100,7 +100,7 @@ ${stats.errorsCount > 0 ? `❌ Erori: ${stats.errorsCount}` : '✨ Fără erori'
   `.trim();
   
   await addLogEntry(syncLogId, {
-    level: stats.errorsCount > 0 ? "WARNING" : "SUCCESS",
+    level: stats.errorsCount > 0 ? LogLevel.WARNING : LogLevel.SUCCESS,
     action: "SYNC_COMPLETED",
     message: summary,
     details: { ...stats, durationMs, status },

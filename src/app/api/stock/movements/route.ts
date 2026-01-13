@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { StockMovementType } from "@prisma/client";
+import { StockMovementType } from "@/types/prisma-enums";
 
 // GET - Lista mișcări de stoc
 export async function GET(request: NextRequest) {

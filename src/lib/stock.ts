@@ -1,5 +1,5 @@
 import prisma from "./db";
-import { StockMovementType } from "@prisma/client";
+import { StockMovementType } from "@/types/prisma-enums";
 
 /**
  * Găsește un produs după SKU

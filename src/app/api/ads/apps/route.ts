@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
-import { AdsPlatform } from "@prisma/client";
+import { AdsPlatform } from "@/types/prisma-enums";
 
 // GET - Lista aplicațiilor configurate
 export async function GET(request: NextRequest) {

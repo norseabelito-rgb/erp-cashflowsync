@@ -6,7 +6,7 @@
  */
 
 import { prisma } from "@/lib/db";
-import { AdsPlatform } from "@prisma/client";
+import { AdsPlatform } from "@/types/prisma-enums";
 
 export interface AdsConfig {
   appId: string;

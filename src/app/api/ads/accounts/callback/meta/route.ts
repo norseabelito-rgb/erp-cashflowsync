@@ -6,7 +6,7 @@ import {
   extendMetaToken, 
   getMetaAdAccounts,
 } from "@/lib/meta-ads";
-import { AdsAccountStatus } from "@prisma/client";
+import { AdsAccountStatus } from "@/types/prisma-enums";
 import { getPendingState, removePendingState } from "@/lib/ads-oauth-state";
 
 // Helper to get proper base URL

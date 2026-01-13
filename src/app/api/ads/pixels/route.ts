@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
-import { AdsPlatform } from "@prisma/client";
+import { AdsPlatform } from "@/types/prisma-enums";
 import { getMetaPixels } from "@/lib/meta-ads";
 
 const META_API_BASE = "https://graph.facebook.com/v21.0";

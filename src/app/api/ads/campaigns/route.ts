@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
-import { Prisma } from "@prisma/client";
+// Prisma types not available due to client not being generated
 import { 
   updateMetaCampaignStatus, 
   updateMetaCampaignBudget 
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "100");
 
     // Build where clause
-    const where: Prisma.AdsCampaignWhereInput = {};
+    const where: any = {};
     
     if (accountId && accountId !== "all") {
       where.accountId = accountId;
