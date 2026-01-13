@@ -24,6 +24,8 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Download,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -271,6 +273,7 @@ export default function OrdersPage() {
   // State pentru erori de procesare
   const [processErrors, setProcessErrors] = useState<ProcessError[]>([]);
   const [errorsDialogOpen, setErrorsDialogOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: ordersData, isLoading: ordersLoading } = useQuery({
     queryKey: ["orders", statusFilter, storeFilter, searchQuery, startDate, endDate, page, limit],
@@ -603,6 +606,36 @@ export default function OrdersPage() {
     });
   };
 
+  const handleExportOrders = async () => {
+    try {
+      setIsExporting(true);
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      if (storeFilter !== "all") params.set("storeId", storeFilter);
+      if (startDate) params.set("startDate", startDate);
+      if (endDate) params.set("endDate", endDate);
+
+      const res = await fetch(`/api/orders/export?${params}`);
+      if (!res.ok) throw new Error("Export failed");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `comenzi_${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({ title: "Export finalizat", description: "Fișierul CSV a fost descărcat" });
+    } catch (error: any) {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const getValidationIcon = (status: string) => {
     if (status === "PASSED") return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
     if (status === "FAILED") return <XCircle className="h-4 w-4 text-red-500" />;
@@ -617,17 +650,40 @@ export default function OrdersPage() {
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Comenzi</h1>
           <p className="text-muted-foreground mt-1 text-sm md:text-base">Gestionează comenzile din toate magazinele</p>
         </div>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button onClick={() => syncMutation.mutate()} loading={syncMutation.isPending} size="sm" className="md:size-default">
-              <RefreshCw className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Sincronizare</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="max-w-xs">
-            <p>Sincronizează comenzile noi din toate magazinele Shopify. Actualizează statusurile și validează adresele.</p>
-          </TooltipContent>
-        </Tooltip>
+        <div className="flex items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                onClick={handleExportOrders}
+                disabled={isExporting}
+                size="sm"
+                className="md:size-default"
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 md:mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 md:mr-2" />
+                )}
+                <span className="hidden md:inline">Export CSV</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs">
+              <p>Exportă comenzile filtrate într-un fișier CSV. Respectă filtrele active (status, magazin, dată).</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button onClick={() => syncMutation.mutate()} loading={syncMutation.isPending} size="sm" className="md:size-default">
+                <RefreshCw className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Sincronizare</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs">
+              <p>Sincronizează comenzile noi din toate magazinele Shopify. Actualizează statusurile și validează adresele.</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
       </div>
 
       <Card className="mb-4 md:mb-6">
