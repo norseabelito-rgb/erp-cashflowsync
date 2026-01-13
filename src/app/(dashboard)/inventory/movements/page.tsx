@@ -183,12 +183,13 @@ export default function StockMovementsPage() {
       <PageHeader
         title="Mișcări Stoc"
         description="Vizualizează toate mișcările de stoc"
-      >
-        <Button variant="outline" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Reîncarcă
-        </Button>
-      </PageHeader>
+        actions={
+          <Button variant="outline" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Reîncarcă
+          </Button>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

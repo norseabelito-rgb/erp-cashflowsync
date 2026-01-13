@@ -140,16 +140,19 @@ export default function RecipesPage() {
       <PageHeader
         title="Rețetar"
         description="Gestionează rețetele pentru produse compuse"
-      >
-        <Button variant="outline" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Reîncarcă
-        </Button>
-        <Button variant="outline" onClick={() => router.push("/inventory")}>
-          <Package className="h-4 w-4 mr-2" />
-          Inventar
-        </Button>
-      </PageHeader>
+        actions={
+          <>
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Reîncarcă
+            </Button>
+            <Button variant="outline" onClick={() => router.push("/inventory")}>
+              <Package className="h-4 w-4 mr-2" />
+              Inventar
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

@@ -189,16 +189,19 @@ export default function GoodsReceiptsPage() {
       <PageHeader
         title="Recepții"
         description="Gestionează recepțiile de marfă"
-      >
-        <Button variant="outline" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Reîncarcă
-        </Button>
-        <Button onClick={() => router.push("/inventory/receipts/new")}>
-          <Plus className="h-4 w-4 mr-2" />
-          Recepție nouă
-        </Button>
-      </PageHeader>
+        actions={
+          <>
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Reîncarcă
+            </Button>
+            <Button onClick={() => router.push("/inventory/receipts/new")}>
+              <Plus className="h-4 w-4 mr-2" />
+              Recepție nouă
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

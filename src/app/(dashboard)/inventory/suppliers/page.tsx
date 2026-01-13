@@ -204,16 +204,19 @@ export default function SuppliersPage() {
       <PageHeader
         title="Furnizori"
         description="Gestionează furnizorii de materiale"
-      >
-        <Button variant="outline" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Reîncarcă
-        </Button>
-        <Button onClick={handleNew}>
-          <Plus className="h-4 w-4 mr-2" />
-          Furnizor nou
-        </Button>
-      </PageHeader>
+        actions={
+          <>
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Reîncarcă
+            </Button>
+            <Button onClick={handleNew}>
+              <Plus className="h-4 w-4 mr-2" />
+              Furnizor nou
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
