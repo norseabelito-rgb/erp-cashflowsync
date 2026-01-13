@@ -1287,19 +1287,19 @@ function OverviewContent() {
         title="Lifecycle-ul unei Comenzi"
         chart={`
 flowchart LR
-    subgraph SURSE["📦 Surse Comenzi"]
+    subgraph SURSE["Surse Comenzi"]
         S1[Shopify]
         S2[Trendyol]
     end
 
-    subgraph ERP["🔄 Procesare ERP"]
+    subgraph ERP["Procesare ERP"]
         P1[Validare]
         P2[Picking List]
         P3[Facturare]
         P4[AWB]
     end
 
-    subgraph EXTERNE["🌐 Servicii Externe"]
+    subgraph EXTERNE["Servicii Externe"]
         E1[SmartBill]
         E2[FanCourier]
     end
@@ -1430,7 +1430,7 @@ function ArchitectureContent() {
         title="Organizarea Fișierelor"
         chart={`
 flowchart TB
-    subgraph ROOT["📁 erp-cashflowsync/"]
+    subgraph ROOT["erp-cashflowsync/"]
         subgraph SRC["src/"]
             subgraph APP["app/"]
                 DASH["(dashboard)/"]
@@ -1933,27 +1933,27 @@ flowchart TB
         title="Dependențe între Module"
         chart={`
 flowchart LR
-    subgraph ORDER["📦 Comandă"]
+    subgraph ORDER["Comandă"]
         O[Order]
         LI[LineItems]
     end
 
-    subgraph PRODUCTS["🏷️ Produse"]
+    subgraph PRODUCTS["Produse"]
         MP[MasterProduct]
         INV[InventoryItem]
     end
 
-    subgraph FINANCE["💰 Financiar"]
+    subgraph FINANCE["Financiar"]
         INV2[Invoice]
         IS[InvoiceSeries]
     end
 
-    subgraph SHIPPING["🚚 Livrare"]
+    subgraph SHIPPING["Livrare"]
         AWB[AWB]
         HS[HandoverSession]
     end
 
-    subgraph PICKING["📋 Picking"]
+    subgraph PICKING["Picking"]
         PL[PickingList]
         PLI[PickingListItem]
     end
@@ -2109,7 +2109,7 @@ flowchart TB
         RET[Retur client]
     end
 
-    subgraph STOCK["📦 Stoc Curent"]
+    subgraph STOCK["Stoc Curent"]
         INV[InventoryItem.currentStock]
     end
 
@@ -2128,7 +2128,7 @@ flowchart TB
     INV --> |-qty| AM
     INV --> |-qty| TO
 
-    subgraph LOG["📋 Audit"]
+    subgraph LOG["Audit"]
         SM[StockMovement]
         ISM[InventoryStockMovement]
     end
@@ -2174,13 +2174,13 @@ flowchart LR
         P[Preț: 5000 RON]
     end
 
-    subgraph COMPONENTS["📦 Componente"]
+    subgraph COMPONENTS["Componente"]
         C1["PAT-001 x1"]
         C2["NOPTIERA-001 x2"]
         C3["DULAP-001 x1"]
     end
 
-    subgraph STOCK["📊 Impact Stoc"]
+    subgraph STOCK["Impact Stoc"]
         S1["PAT: -1"]
         S2["NOPTIERĂ: -2"]
         S3["DULAP: -1"]
@@ -2286,7 +2286,7 @@ flowchart LR
         title="Sincronizare Produse cu Canale"
         chart={`
 flowchart TB
-    subgraph MASTER["🏷️ MasterProduct"]
+    subgraph MASTER["MasterProduct"]
         MP[SKU: PAT-001<br/>Preț: 2500 RON<br/>Stoc: 15]
     end
 
@@ -2646,7 +2646,7 @@ flowchart TB
         O3[Comandă 3]
     end
 
-    subgraph PICKING["📋 Picking List"]
+    subgraph PICKING["Picking List"]
         PL[Lista Picking<br/>Status: IN_PROGRESS]
         PLI1["PAT-001 x3<br/>(1+1+1)"]
         PLI2["SALTEA-002 x2<br/>(1+1)"]
@@ -2659,7 +2659,7 @@ flowchart TB
         A3[Ajustare cantitate]
     end
 
-    subgraph OUTPUT["📦 Rezultat"]
+    subgraph OUTPUT["Rezultat"]
         R1[Colet 1 pregătit]
         R2[Colet 2 pregătit]
         R3[Colet 3 pregătit]
@@ -2706,7 +2706,7 @@ flowchart TB
         title="Fluxul de Predare"
         chart={`
 flowchart LR
-    subgraph SESSION["📋 Sesiune Predare"]
+    subgraph SESSION["Sesiune Predare"]
         S[HandoverSession<br/>Status: OPEN]
     end
 
@@ -2973,7 +2973,7 @@ flowchart TB
         C[Verificare Reguli]
     end
 
-    subgraph RULES["📋 Reguli Alerte"]
+    subgraph RULES["Reguli Alerte"]
         R1["CPA > 50 RON"]
         R2["ROAS < 2.0"]
         R3["CTR < 0.5%"]
