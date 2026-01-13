@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Use resumable upload for large files
+    // supportsAllDrives is required for Service Accounts uploading to Shared Drives
     const driveFile = await drive.files.create({
       requestBody: fileMetadata,
       media: {
@@ -100,6 +101,7 @@ export async function POST(request: NextRequest) {
         body: require("stream").Readable.from([fileContent]),
       },
       fields: "id, name, size, createdTime, webViewLink",
+      supportsAllDrives: true,
     });
 
     // Update last backup time
@@ -178,11 +180,14 @@ export async function GET(request: NextRequest) {
     const drive = google.drive({ version: "v3", auth });
 
     // List backup files
+    // supportsAllDrives and includeItemsFromAllDrives required for Shared Drives
     const response = await drive.files.list({
       q: `'${folderId}' in parents and name contains 'backup-' and mimeType = 'application/json' and trashed = false`,
       fields: "files(id, name, size, createdTime, webViewLink)",
       orderBy: "createdTime desc",
       pageSize: 50,
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
     });
 
     const backups = (response.data.files || []).map((file) => ({

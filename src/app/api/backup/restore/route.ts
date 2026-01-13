@@ -58,8 +58,9 @@ export async function POST(request: NextRequest) {
     const drive = google.drive({ version: "v3", auth });
 
     // Download backup file
+    // supportsAllDrives required for files in Shared Drives
     const response = await drive.files.get(
-      { fileId: backupId, alt: "media" },
+      { fileId: backupId, alt: "media", supportsAllDrives: true },
       { responseType: "text" }
     );
 
