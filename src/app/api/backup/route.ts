@@ -251,26 +251,52 @@ async function exportDatabase() {
     prisma.settings.findMany({
       select: {
         id: true,
-        shopifyDomain: true,
-        shopifyApiVersion: true,
-        smartbillApiUrl: true,
+        // SmartBill (non-sensitive)
         smartbillEmail: true,
-        smartbillCompanyVatCode: true,
-        smartbillCompanyName: true,
+        smartbillCompanyCif: true,
         smartbillSeriesName: true,
         smartbillWarehouseName: true,
+        smartbillUseStock: true,
+        smartbillTaxName: true,
+        smartbillTaxPercent: true,
+        smartbillDueDays: true,
+        // AWB defaults
+        defaultWeight: true,
+        defaultServiceType: true,
+        defaultPaymentType: true,
+        defaultPackages: true,
+        // Sender info
+        senderName: true,
+        senderPhone: true,
+        senderEmail: true,
+        senderCounty: true,
+        senderCity: true,
+        senderStreet: true,
+        senderNumber: true,
+        senderPostalCode: true,
+        // Trendyol (non-sensitive)
         trendyolSupplierId: true,
-        trendyolApiBaseUrl: true,
-        googleDriveFolderId: true,
-        defaultDeliveryDays: true,
-        defaultShippingCost: true,
+        trendyolIsTestMode: true,
+        trendyolDefaultBrandId: true,
+        trendyolCurrencyRate: true,
+        trendyolStoreFrontCode: true,
+        trendyolInvoiceSeries: true,
+        // Handover
+        handoverAutoCloseTime: true,
+        handoverTimezone: true,
+        // AI (non-sensitive)
+        aiModel: true,
+        aiDailyAnalysisEnabled: true,
+        aiDailyAnalysisTime: true,
+        // Backup (non-sensitive)
         backupFolderUrl: true,
         backupAutoEnabled: true,
         backupAutoTime: true,
         backupLastAt: true,
         createdAt: true,
         updatedAt: true,
-        // Exclude sensitive keys/tokens
+        // Exclude: smartbillToken, fancourierPassword, googleDriveCredentials,
+        // trendyolApiKey, trendyolApiSecret, aiApiKey
       },
     }),
     prisma.store.findMany(),
