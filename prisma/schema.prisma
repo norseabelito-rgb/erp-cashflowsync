@@ -315,7 +315,7 @@ model Store {
 model InvoiceSeries {
   id            String   @id @default(cuid())
   name          String   @unique  // Numele complet afișat (ex: "Serie Shopify RO", "Trendyol TR")
-  prefix        String             // Prefixul seriei (ex: "CFG", "TRD", "FA")
+  prefix        String   @default("")  // Prefixul seriei (ex: "CFG", "TRD", "FA")
   description   String?            // Descriere opțională
 
   type          String   @default("f")  // f = factură, p = proformă, c = chitanță
