@@ -125,13 +125,21 @@ export async function GET(request: NextRequest) {
       where: { isActive: true, isComposite: true },
     });
 
-    const lowStockCount = await prisma.$queryRaw<{ count: bigint }[]>`
-      SELECT COUNT(*) as count FROM inventory_items
-      WHERE is_active = true
-        AND is_composite = false
-        AND min_stock IS NOT NULL
-        AND current_stock <= min_stock
-    `;
+    // Get all non-composite items with minStock set and count those with low stock
+    const itemsForLowStock = await prisma.inventoryItem.findMany({
+      where: {
+        isActive: true,
+        isComposite: false,
+        minStock: { not: null },
+      },
+      select: {
+        currentStock: true,
+        minStock: true,
+      },
+    });
+    const lowStockCount = itemsForLowStock.filter(
+      (item) => item.minStock !== null && Number(item.currentStock) <= Number(item.minStock)
+    ).length;
 
     return NextResponse.json({
       success: true,
@@ -147,7 +155,7 @@ export async function GET(request: NextRequest) {
           totalItems: stats._count,
           compositeItems: compositeCount,
           individualItems: stats._count - compositeCount,
-          lowStockItems: Number(lowStockCount[0]?.count || 0),
+          lowStockItems: lowStockCount,
         },
       },
     });
