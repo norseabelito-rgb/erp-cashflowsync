@@ -10,21 +10,24 @@ import {
   Plus,
   Layers,
   AlertTriangle,
-  Filter,
   MoreHorizontal,
   Pencil,
   Trash2,
-  ArrowUpDown,
   ChevronDown,
   Eye,
   Download,
   FileUp,
   FileSpreadsheet,
   Loader2,
+  CheckCircle2,
+  XCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -38,7 +41,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Select,
@@ -63,7 +65,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
@@ -103,6 +116,13 @@ interface InventoryItem {
   };
 }
 
+interface ImportResult {
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: Array<{ row: number; sku: string; error: string }>;
+}
+
 export default function InventoryPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -111,22 +131,30 @@ export default function InventoryPage() {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStock, setFilterStock] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState<number>(50);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importResultsDialogOpen, setImportResultsDialogOpen] = useState(false);
+  const [importResults, setImportResults] = useState<ImportResult | null>(null);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importMode, setImportMode] = useState<"upsert" | "create" | "update" | "stock_only">("upsert");
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 
   // Fetch inventory items
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["inventory-items", search, filterType, filterStock],
+    queryKey: ["inventory-items", search, filterType, filterStock, page, limit],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
       if (filterType !== "all") params.set("isComposite", filterType === "composite" ? "true" : "false");
       if (filterStock === "low") params.set("lowStock", "true");
       if (filterStock === "active") params.set("isActive", "true");
+      params.set("page", page.toString());
+      params.set("limit", limit.toString());
 
       const res = await fetch(`/api/inventory-items?${params}`);
       return res.json();
@@ -160,6 +188,35 @@ export default function InventoryPage() {
     },
   });
 
+  // Bulk delete mutation
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const res = await fetch("/api/inventory-items/bulk-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: ["inventory-items"] });
+        toast({
+          title: "Succes",
+          description: data.message,
+        });
+        setBulkDeleteDialogOpen(false);
+        setSelectedItems(new Set());
+      } else {
+        toast({
+          title: "Eroare",
+          description: data.error,
+          variant: "destructive",
+        });
+      }
+    },
+  });
+
   // Import inventory mutation
   const importMutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -174,15 +231,13 @@ export default function InventoryPage() {
         queryClient.invalidateQueries({ queryKey: ["inventory-items"] });
         setImportDialogOpen(false);
         setImportFile(null);
-        toast({
-          title: "Import finalizat",
-          description: data.message,
-        });
+        setImportResults(data.results);
+        setImportResultsDialogOpen(true);
       } else {
         toast({ title: "Eroare", description: data.error, variant: "destructive" });
       }
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Eroare", description: error.message, variant: "destructive" });
     },
   });
@@ -204,8 +259,8 @@ export default function InventoryPage() {
       document.body.removeChild(a);
 
       toast({ title: "Export finalizat", description: "Fișierul CSV a fost descărcat" });
-    } catch (error: any) {
-      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Eroare", description: error instanceof Error ? error.message : "Eroare", variant: "destructive" });
     } finally {
       setIsExporting(false);
     }
@@ -220,6 +275,7 @@ export default function InventoryPage() {
   };
 
   const items: InventoryItem[] = data?.data?.items || [];
+  const pagination = data?.data?.pagination || { page: 1, limit: 50, total: 0, totalPages: 1 };
   const stats = data?.data?.stats || {
     totalItems: 0,
     compositeItems: 0,
@@ -240,6 +296,30 @@ export default function InventoryPage() {
   const confirmDelete = () => {
     if (itemToDelete) {
       deleteMutation.mutate(itemToDelete.id);
+    }
+  };
+
+  const handleSelectItem = (itemId: string, checked: boolean) => {
+    const newSelected = new Set(selectedItems);
+    if (checked) {
+      newSelected.add(itemId);
+    } else {
+      newSelected.delete(itemId);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedItems(new Set(items.map(item => item.id)));
+    } else {
+      setSelectedItems(new Set());
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedItems.size > 0) {
+      bulkDeleteMutation.mutate(Array.from(selectedItems));
     }
   };
 
@@ -348,7 +428,7 @@ export default function InventoryPage() {
         </Card>
       </div>
 
-      {/* Filters */}
+      {/* Filters and Bulk Actions */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -356,10 +436,10 @@ export default function InventoryPage() {
             placeholder="Caută după SKU sau nume..."
             className="pl-10"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
-        <Select value={filterType} onValueChange={setFilterType}>
+        <Select value={filterType} onValueChange={(v) => { setFilterType(v); setPage(1); }}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Tip articol" />
           </SelectTrigger>
@@ -369,7 +449,7 @@ export default function InventoryPage() {
             <SelectItem value="composite">Compuse</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={filterStock} onValueChange={setFilterStock}>
+        <Select value={filterStock} onValueChange={(v) => { setFilterStock(v); setPage(1); }}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Status stoc" />
           </SelectTrigger>
@@ -379,6 +459,37 @@ export default function InventoryPage() {
             <SelectItem value="active">Doar active</SelectItem>
           </SelectContent>
         </Select>
+        {selectedItems.size > 0 && (
+          <Button
+            variant="destructive"
+            onClick={() => setBulkDeleteDialogOpen(true)}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Șterge {selectedItems.size} selectate
+          </Button>
+        )}
+      </div>
+
+      {/* Pagination Controls - Top */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Afișează:</span>
+          <Select value={limit.toString()} onValueChange={(v) => { setLimit(parseInt(v)); setPage(1); }}>
+            <SelectTrigger className="w-[100px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="25">25</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+              <SelectItem value="250">250</SelectItem>
+              <SelectItem value="10000">Toate</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          Total: {pagination.total} articole
+        </div>
       </div>
 
       {/* Table */}
@@ -386,6 +497,12 @@ export default function InventoryPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
+              <TableHead className="w-[50px]">
+                <Checkbox
+                  checked={items.length > 0 && selectedItems.size === items.length}
+                  onCheckedChange={handleSelectAll}
+                />
+              </TableHead>
               <TableHead>SKU</TableHead>
               <TableHead>Nume</TableHead>
               <TableHead>Tip</TableHead>
@@ -399,14 +516,14 @@ export default function InventoryPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
+                <TableCell colSpan={9} className="text-center py-8">
                   <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
                   Se încarcă...
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
+                <TableCell colSpan={9} className="text-center py-8">
                   <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                   <p className="text-muted-foreground mb-2">
                     {search ? "Niciun articol găsit" : "Nu există articole în inventar"}
@@ -426,6 +543,12 @@ export default function InventoryPage() {
                   className="cursor-pointer hover:bg-muted/50"
                   onClick={() => handleRowClick(item)}
                 >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedItems.has(item.id)}
+                      onCheckedChange={(checked) => handleSelectItem(item.id, checked as boolean)}
+                    />
+                  </TableCell>
                   <TableCell className="font-mono text-sm font-medium">
                     {item.sku}
                   </TableCell>
@@ -506,10 +629,32 @@ export default function InventoryPage() {
         </Table>
       </div>
 
-      {/* Footer info */}
-      {items.length > 0 && (
-        <div className="mt-4 text-sm text-muted-foreground text-center">
-          {items.length} articole afișate
+      {/* Pagination Controls - Bottom */}
+      {pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <div className="text-sm text-muted-foreground">
+            Pagina {pagination.page} din {pagination.totalPages}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+              disabled={page === pagination.totalPages}
+            >
+              Următor
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
 
@@ -545,6 +690,35 @@ export default function InventoryPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmare ștergere în masă</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ești sigur că vrei să ștergi {selectedItems.size} articole selectate?
+              Această acțiune nu poate fi anulată.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anulează</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {bulkDeleteMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Se șterge...
+                </>
+              ) : (
+                <>Șterge {selectedItems.size} articole</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Import Dialog */}
       <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
@@ -621,6 +795,102 @@ export default function InventoryPage() {
                   Importă
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Results Dialog */}
+      <Dialog open={importResultsDialogOpen} onOpenChange={setImportResultsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Rezultate Import</DialogTitle>
+            <DialogDescription>
+              Rezumatul importului din Excel
+            </DialogDescription>
+          </DialogHeader>
+          {importResults && (
+            <div className="space-y-4">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <span className="font-medium text-green-700 dark:text-green-300">Create</span>
+                  </div>
+                  <div className="text-2xl font-bold text-green-700 dark:text-green-300 mt-1">
+                    {importResults.created}
+                  </div>
+                </div>
+                <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className="h-5 w-5 text-blue-600" />
+                    <span className="font-medium text-blue-700 dark:text-blue-300">Actualizate</span>
+                  </div>
+                  <div className="text-2xl font-bold text-blue-700 dark:text-blue-300 mt-1">
+                    {importResults.updated}
+                  </div>
+                </div>
+                <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-lg border border-orange-200 dark:border-orange-800">
+                  <div className="flex items-center gap-2">
+                    <XCircle className="h-5 w-5 text-orange-600" />
+                    <span className="font-medium text-orange-700 dark:text-orange-300">Omise</span>
+                  </div>
+                  <div className="text-2xl font-bold text-orange-700 dark:text-orange-300 mt-1">
+                    {importResults.skipped}
+                  </div>
+                </div>
+              </div>
+
+              {/* Errors List */}
+              {importResults.errors.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-medium text-destructive">
+                    Erori ({importResults.errors.length}):
+                  </h4>
+                  <ScrollArea className="h-[300px] border rounded-lg">
+                    <div className="p-4 space-y-2">
+                      {importResults.errors.map((error, index) => (
+                        <div
+                          key={index}
+                          className="p-3 bg-destructive/10 rounded-lg border border-destructive/20"
+                        >
+                          <div className="flex items-start gap-3">
+                            <XCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge variant="outline" className="font-mono text-xs">
+                                  Rând {error.row}
+                                </Badge>
+                                {error.sku && (
+                                  <Badge variant="secondary" className="font-mono text-xs">
+                                    SKU: {error.sku}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-destructive mt-1">{error.error}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+
+              {importResults.errors.length === 0 && (
+                <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800 text-center">
+                  <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                  <p className="text-green-700 dark:text-green-300 font-medium">
+                    Importul s-a finalizat fără erori!
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setImportResultsDialogOpen(false)}>
+              Închide
             </Button>
           </DialogFooter>
         </DialogContent>
