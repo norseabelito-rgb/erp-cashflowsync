@@ -265,41 +265,44 @@ export default function InventoryPage() {
       <PageHeader
         title="Articole Inventar"
         description="Gestionează articolele din inventar"
-      >
-        <Button variant="outline" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Reîncarcă
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              Import/Export
-              <ChevronDown className="h-4 w-4 ml-2" />
+        actions={
+          <>
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Reîncarcă
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Acțiuni CSV</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
-              <FileUp className="h-4 w-4 mr-2" />
-              Import din CSV
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleExport} disabled={isExporting}>
-              {isExporting ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4 mr-2" />
-              )}
-              Export în CSV
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Button onClick={() => router.push("/inventory/new")}>
-          <Plus className="h-4 w-4 mr-2" />
-          Articol nou
-        </Button>
-      </PageHeader>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Import/Export
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Acțiuni CSV</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
+                  <FileUp className="h-4 w-4 mr-2" />
+                  Import din CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExport} disabled={isExporting}>
+                  {isExporting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  Export în CSV
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button onClick={() => router.push("/inventory/new")}>
+              <Plus className="h-4 w-4 mr-2" />
+              Articol nou
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
