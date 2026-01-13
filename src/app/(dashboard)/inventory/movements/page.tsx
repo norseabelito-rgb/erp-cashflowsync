@@ -154,8 +154,8 @@ export default function StockMovementsPage() {
   };
 
   const handleClearFilters = () => {
-    setItemId("");
-    setType("");
+    setItemId("all");
+    setType("all");
     setStartDate("");
     setEndDate("");
     setPage(1);
