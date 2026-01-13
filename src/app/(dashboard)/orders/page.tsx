@@ -40,6 +40,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -118,6 +124,29 @@ interface ProcessError {
   awbSuccess?: boolean;
   awbNumber?: string;
   awbError?: string;
+}
+
+// Interface pentru erori persistente din DB
+interface DBProcessingError {
+  id: string;
+  orderId: string;
+  type: "INVOICE" | "AWB";
+  status: "PENDING" | "RETRYING" | "RESOLVED" | "FAILED" | "SKIPPED";
+  errorMessage: string | null;
+  retryCount: number;
+  maxRetries: number;
+  createdAt: string;
+  lastRetryAt: string | null;
+  resolvedAt: string | null;
+  resolvedByName: string | null;
+  resolution: string | null;
+  order: {
+    id: string;
+    shopifyOrderNumber: string;
+    customerFirstName: string | null;
+    customerLastName: string | null;
+    store: { name: string };
+  };
 }
 
 const statusConfig: Record<string, { label: string; variant: "default" | "success" | "warning" | "destructive" | "info" | "neutral" }> = {
@@ -270,10 +299,16 @@ export default function OrdersPage() {
     createPickingList: true, // Crează automat picking list
   });
 
-  // State pentru erori de procesare
+  // State pentru erori de procesare (in-session)
   const [processErrors, setProcessErrors] = useState<ProcessError[]>([]);
   const [errorsDialogOpen, setErrorsDialogOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  // State pentru tab-ul activ și erori persistente
+  const [activeTab, setActiveTab] = useState<string>("all");
+  const [dbErrorStatusFilter, setDbErrorStatusFilter] = useState<string>("all");
+  const [dbErrorTypeFilter, setDbErrorTypeFilter] = useState<string>("all");
+  const [selectedDbErrors, setSelectedDbErrors] = useState<string[]>([]);
 
   const { data: ordersData, isLoading: ordersLoading } = useQuery({
     queryKey: ["orders", statusFilter, storeFilter, searchQuery, startDate, endDate, page, limit],
@@ -297,6 +332,20 @@ export default function OrdersPage() {
       const res = await fetch("/api/stores");
       return res.json();
     },
+  });
+
+  // Query pentru erori persistente din DB
+  const { data: dbErrorsData, isLoading: dbErrorsLoading, refetch: refetchDbErrors } = useQuery({
+    queryKey: ["processing-errors", dbErrorStatusFilter, dbErrorTypeFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (dbErrorStatusFilter !== "all") params.set("status", dbErrorStatusFilter);
+      if (dbErrorTypeFilter !== "all") params.set("type", dbErrorTypeFilter);
+      params.set("limit", "100");
+      const res = await fetch(`/api/processing-errors?${params}`);
+      return res.json();
+    },
+    enabled: activeTab === "errors", // Doar când tab-ul erori e activ
   });
 
   const invoiceMutation = useMutation({
@@ -550,9 +599,88 @@ export default function OrdersPage() {
     },
   });
 
+  // Mutații pentru retry și skip erori persistente
+  const retryDbErrorMutation = useMutation({
+    mutationFn: async (errorId: string) => {
+      const res = await fetch("/api/processing-errors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ errorId, action: "retry" }),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast({ title: "Succes", description: data.message || "Procesarea a reușit" });
+      } else {
+        toast({
+          title: "Eroare",
+          description: data.error || "Procesarea a eșuat",
+          variant: "destructive"
+        });
+      }
+      refetchDbErrors();
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const skipDbErrorMutation = useMutation({
+    mutationFn: async (errorId: string) => {
+      const res = await fetch("/api/processing-errors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ errorId, action: "skip" }),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast({ title: "Succes", description: "Eroarea a fost sărită" });
+      } else {
+        toast({ title: "Eroare", description: data.error, variant: "destructive" });
+      }
+      refetchDbErrors();
+    },
+    onError: (error: any) => {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Bulk retry pentru erori selectate
+  const handleBulkRetryDbErrors = async () => {
+    if (selectedDbErrors.length === 0) {
+      toast({ title: "Selectează erori", description: "Selectează cel puțin o eroare", variant: "destructive" });
+      return;
+    }
+
+    for (const errorId of selectedDbErrors) {
+      await retryDbErrorMutation.mutateAsync(errorId).catch(() => {});
+    }
+    setSelectedDbErrors([]);
+  };
+
+  // Bulk skip pentru erori selectate
+  const handleBulkSkipDbErrors = async () => {
+    if (selectedDbErrors.length === 0) {
+      toast({ title: "Selectează erori", description: "Selectează cel puțin o eroare", variant: "destructive" });
+      return;
+    }
+
+    for (const errorId of selectedDbErrors) {
+      await skipDbErrorMutation.mutateAsync(errorId).catch(() => {});
+    }
+    setSelectedDbErrors([]);
+  };
+
   const orders: Order[] = ordersData?.orders || [];
   const stores: Store[] = storesData?.stores || [];
+  const dbErrors: DBProcessingError[] = dbErrorsData?.errors || [];
+  const dbErrorStats = dbErrorsData?.stats || { pending: 0, retrying: 0, failed: 0, resolved: 0, skipped: 0, total: 0 };
   const allSelected = orders.length > 0 && selectedOrders.length === orders.length;
+  const allDbErrorsSelected = dbErrors.length > 0 && selectedDbErrors.length === dbErrors.filter(e => e.status !== "RESOLVED" && e.status !== "SKIPPED").length;
 
   const handleSelectAll = () => {
     setSelectedOrders(allSelected ? [] : orders.map((o) => o.id));
@@ -807,7 +935,7 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Buton pentru a vedea erorile de procesare */}
+      {/* Buton pentru a vedea erorile de procesare (in-session) */}
       {processErrors.length > 0 && (
         <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -817,17 +945,17 @@ export default function OrdersPage() {
             </span>
           </div>
           <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              variant="outline" 
+            <Button
+              size="sm"
+              variant="outline"
               onClick={() => setErrorsDialogOpen(true)}
               className="border-red-300 text-red-700 hover:bg-red-100"
             >
               <Eye className="h-4 w-4 mr-2" />
               Vezi erori
             </Button>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               onClick={() => processAllMutation.mutate(processErrors.map(e => e.orderId))}
               disabled={processAllMutation.isPending}
               className="bg-red-600 hover:bg-red-700"
@@ -835,9 +963,9 @@ export default function OrdersPage() {
               <RefreshCw className={cn("h-4 w-4 mr-2", processAllMutation.isPending && "animate-spin")} />
               Reîncearcă toate
             </Button>
-            <Button 
-              size="sm" 
-              variant="ghost" 
+            <Button
+              size="sm"
+              variant="ghost"
               onClick={() => setProcessErrors([])}
               className="text-red-600 hover:text-red-700"
             >
@@ -847,7 +975,21 @@ export default function OrdersPage() {
         </div>
       )}
 
-      <Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="all">Toate comenzile</TabsTrigger>
+          <TabsTrigger value="errors" className="relative">
+            Erori de procesare
+            {(dbErrorStats.pending + dbErrorStats.retrying + dbErrorStats.failed) > 0 && (
+              <Badge variant="destructive" className="ml-2 h-5 min-w-5 px-1.5">
+                {dbErrorStats.pending + dbErrorStats.retrying + dbErrorStats.failed}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="all" className="space-y-4">
+          <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -1030,6 +1172,251 @@ export default function OrdersPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        {/* Tab Erori de Procesare */}
+        <TabsContent value="errors" className="space-y-4">
+          {/* Statistici erori */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <Card className="p-4">
+              <div className="text-2xl font-bold text-amber-600">{dbErrorStats.pending}</div>
+              <div className="text-sm text-muted-foreground">În așteptare</div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-2xl font-bold text-blue-600">{dbErrorStats.retrying}</div>
+              <div className="text-sm text-muted-foreground">Se reîncearcă</div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-2xl font-bold text-red-600">{dbErrorStats.failed}</div>
+              <div className="text-sm text-muted-foreground">Eșuate</div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-2xl font-bold text-emerald-600">{dbErrorStats.resolved}</div>
+              <div className="text-sm text-muted-foreground">Rezolvate</div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-2xl font-bold text-gray-600">{dbErrorStats.skipped}</div>
+              <div className="text-sm text-muted-foreground">Sărite</div>
+            </Card>
+          </div>
+
+          {/* Filtre și acțiuni bulk */}
+          <Card className="p-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <Select value={dbErrorStatusFilter} onValueChange={setDbErrorStatusFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Status eroare" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate statusurile</SelectItem>
+                  <SelectItem value="PENDING">În așteptare</SelectItem>
+                  <SelectItem value="RETRYING">Se reîncearcă</SelectItem>
+                  <SelectItem value="FAILED">Eșuate</SelectItem>
+                  <SelectItem value="RESOLVED">Rezolvate</SelectItem>
+                  <SelectItem value="SKIPPED">Sărite</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={dbErrorTypeFilter} onValueChange={setDbErrorTypeFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Tip eroare" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate tipurile</SelectItem>
+                  <SelectItem value="INVOICE">Factură</SelectItem>
+                  <SelectItem value="AWB">AWB</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {selectedDbErrors.length > 0 && (
+                <div className="flex items-center gap-2 ml-auto">
+                  <span className="text-sm text-muted-foreground">{selectedDbErrors.length} selectate</span>
+                  <Button
+                    size="sm"
+                    onClick={handleBulkRetryDbErrors}
+                    disabled={retryDbErrorMutation.isPending}
+                  >
+                    <RefreshCw className={cn("h-4 w-4 mr-2", retryDbErrorMutation.isPending && "animate-spin")} />
+                    Reîncearcă
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleBulkSkipDbErrors}
+                    disabled={skipDbErrorMutation.isPending}
+                  >
+                    <Ban className="h-4 w-4 mr-2" />
+                    Sari peste
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* Tabel erori */}
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="p-4 text-left">
+                        <Checkbox
+                          checked={allDbErrorsSelected}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedDbErrors(dbErrors.filter(e => e.status !== "RESOLVED" && e.status !== "SKIPPED").map(e => e.id));
+                            } else {
+                              setSelectedDbErrors([]);
+                            }
+                          }}
+                        />
+                      </th>
+                      <th className="p-4 text-left text-sm font-medium">Comandă</th>
+                      <th className="p-4 text-left text-sm font-medium">Tip</th>
+                      <th className="p-4 text-left text-sm font-medium">Eroare</th>
+                      <th className="p-4 text-left text-sm font-medium">Status</th>
+                      <th className="p-4 text-left text-sm font-medium">Încercări</th>
+                      <th className="p-4 text-left text-sm font-medium">Data</th>
+                      <th className="p-4 text-left text-sm font-medium">Acțiuni</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dbErrorsLoading ? (
+                      <tr>
+                        <td colSpan={8} className="p-8 text-center">
+                          <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
+                          <p className="text-muted-foreground">Se încarcă...</p>
+                        </td>
+                      </tr>
+                    ) : dbErrors.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="p-8 text-center">
+                          <CheckCircle2 className="h-12 w-12 mx-auto mb-3 text-emerald-500 opacity-50" />
+                          <p className="text-muted-foreground">Nu există erori de procesare</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      dbErrors.map((error) => (
+                        <tr
+                          key={error.id}
+                          className={cn(
+                            "border-b hover:bg-muted/50 transition-colors",
+                            selectedDbErrors.includes(error.id) && "bg-primary/5"
+                          )}
+                        >
+                          <td className="p-4">
+                            {error.status !== "RESOLVED" && error.status !== "SKIPPED" && (
+                              <Checkbox
+                                checked={selectedDbErrors.includes(error.id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedDbErrors([...selectedDbErrors, error.id]);
+                                  } else {
+                                    setSelectedDbErrors(selectedDbErrors.filter(id => id !== error.id));
+                                  }
+                                }}
+                              />
+                            )}
+                          </td>
+                          <td className="p-4">
+                            <div className="font-medium">{error.order.shopifyOrderNumber}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {error.order.customerFirstName} {error.order.customerLastName}
+                            </div>
+                            <Badge variant="outline" className="text-xs mt-1">{error.order.store.name}</Badge>
+                          </td>
+                          <td className="p-4">
+                            <Badge variant={error.type === "INVOICE" ? "default" : "info"} className="gap-1">
+                              {error.type === "INVOICE" ? <FileText className="h-3 w-3" /> : <Truck className="h-3 w-3" />}
+                              {error.type === "INVOICE" ? "Factură" : "AWB"}
+                            </Badge>
+                          </td>
+                          <td className="p-4 max-w-xs">
+                            <p className="text-sm text-red-600 line-clamp-2" title={error.errorMessage || ""}>
+                              {error.errorMessage || "Eroare necunoscută"}
+                            </p>
+                          </td>
+                          <td className="p-4">
+                            <Badge
+                              variant={
+                                error.status === "PENDING" ? "warning" :
+                                error.status === "RETRYING" ? "info" :
+                                error.status === "FAILED" ? "destructive" :
+                                error.status === "RESOLVED" ? "success" :
+                                "neutral"
+                              }
+                            >
+                              {error.status === "PENDING" && "În așteptare"}
+                              {error.status === "RETRYING" && "Se reîncearcă"}
+                              {error.status === "FAILED" && "Eșuat"}
+                              {error.status === "RESOLVED" && "Rezolvat"}
+                              {error.status === "SKIPPED" && "Sărit"}
+                            </Badge>
+                          </td>
+                          <td className="p-4">
+                            <span className="text-sm">{error.retryCount} / {error.maxRetries}</span>
+                          </td>
+                          <td className="p-4">
+                            <div className="text-sm">{formatDate(error.createdAt)}</div>
+                            {error.lastRetryAt && (
+                              <div className="text-xs text-muted-foreground">
+                                Ultima încercare: {formatDate(error.lastRetryAt)}
+                              </div>
+                            )}
+                            {error.resolvedAt && (
+                              <div className="text-xs text-emerald-600">
+                                Rezolvat: {formatDate(error.resolvedAt)}
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-4">
+                            {error.status !== "RESOLVED" && error.status !== "SKIPPED" && (
+                              <div className="flex items-center gap-2">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => retryDbErrorMutation.mutate(error.id)}
+                                      disabled={retryDbErrorMutation.isPending}
+                                    >
+                                      <RefreshCw className={cn("h-4 w-4", retryDbErrorMutation.isPending && "animate-spin")} />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Reîncearcă</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => skipDbErrorMutation.mutate(error.id)}
+                                      disabled={skipDbErrorMutation.isPending}
+                                    >
+                                      <Ban className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Sari peste</TooltipContent>
+                                </Tooltip>
+                              </div>
+                            )}
+                            {error.status === "RESOLVED" && error.resolvedByName && (
+                              <span className="text-xs text-muted-foreground">
+                                de {error.resolvedByName}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={awbModalOpen} onOpenChange={setAwbModalOpen}>
         <DialogContent className="max-w-md">
