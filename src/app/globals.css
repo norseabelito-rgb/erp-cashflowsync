@@ -28,6 +28,48 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.625rem;
+
+    /* Status Colors - semantic tokens for consistent status indication */
+    --status-success: 142 76% 36%;
+    --status-success-foreground: 0 0% 100%;
+    --status-warning: 38 92% 50%;
+    --status-warning-foreground: 0 0% 100%;
+    --status-error: 0 84% 60%;
+    --status-error-foreground: 0 0% 100%;
+    --status-info: 217 91% 60%;
+    --status-info-foreground: 0 0% 100%;
+    --status-neutral: 220 9% 46%;
+    --status-neutral-foreground: 0 0% 100%;
+
+    /* Surface Hierarchy - Modern Minimal layering */
+    --surface-0: var(--background);
+    --surface-1: 0 0% 100%;
+    --surface-2: 220 14% 96%;
+    --surface-3: 220 13% 91%;
+
+    /* Spacing Scale (4px base unit) */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+    --space-16: 4rem;
+
+    /* Modern Minimal Shadows */
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-focus: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
+
+    /* Animation Timing */
+    --duration-fast: 150ms;
+    --duration-normal: 200ms;
+    --duration-slow: 300ms;
   }
 
   .dark {
@@ -54,6 +96,18 @@
     --border: 216 34% 17%;
     --input: 216 34% 17%;
     --ring: 210 100% 52%;
+
+    /* Status Colors - Dark mode adjustments */
+    --status-success: 142 69% 45%;
+    --status-warning: 38 92% 55%;
+    --status-error: 0 72% 55%;
+    --status-info: 217 91% 65%;
+    --status-neutral: 220 9% 56%;
+
+    /* Surface Hierarchy - Dark mode */
+    --surface-1: 224 71% 6%;
+    --surface-2: 224 71% 10%;
+    --surface-3: 224 71% 14%;
   }
 }
 
@@ -88,23 +142,23 @@
   }
   
   .status-pending {
-    @apply bg-yellow-500/10 text-yellow-500 border border-yellow-500/20;
+    @apply bg-status-warning/10 text-status-warning border border-status-warning/20;
   }
-  
+
   .status-success {
-    @apply bg-emerald-500/10 text-emerald-500 border border-emerald-500/20;
+    @apply bg-status-success/10 text-status-success border border-status-success/20;
   }
-  
+
   .status-error {
-    @apply bg-red-500/10 text-red-500 border border-red-500/20;
+    @apply bg-status-error/10 text-status-error border border-status-error/20;
   }
-  
+
   .status-info {
-    @apply bg-blue-500/10 text-blue-500 border border-blue-500/20;
+    @apply bg-status-info/10 text-status-info border border-status-info/20;
   }
-  
+
   .status-neutral {
-    @apply bg-zinc-500/10 text-zinc-400 border border-zinc-500/20;
+    @apply bg-status-neutral/10 text-status-neutral border border-status-neutral/20;
   }
   
   .glow {

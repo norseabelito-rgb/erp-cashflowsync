@@ -74,6 +74,9 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import { RequirePermission, usePermissions } from "@/hooks/use-permissions";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { FILTER_BAR } from "@/lib/design-system";
 
 interface Order {
   id: string;
@@ -180,7 +183,7 @@ function getAWBStatusInfo(awb: Order['awb']): {
 } {
   if (!awb || !awb.awbNumber) {
     if (awb?.errorMessage) {
-      return { variant: "destructive", icon: AlertCircle, label: "Eroare", className: "bg-red-100 text-red-700 border-red-200" };
+      return { variant: "destructive", icon: AlertCircle, label: "Eroare", className: "bg-status-error/10 text-status-error border-status-error/20" };
     }
     return { variant: "outline", icon: Package, label: "Fără AWB" };
   }
@@ -189,88 +192,88 @@ function getAWBStatusInfo(awb: Order['awb']): {
 
   // Șters
   if (status.includes("șters") || status.includes("sters") || status.includes("deleted")) {
-    return { 
-      variant: "outline", 
-      icon: Trash2, 
-      label: awb.awbNumber, 
-      className: "bg-gray-100 text-gray-500 border-gray-300 line-through opacity-70",
+    return {
+      variant: "outline",
+      icon: Trash2,
+      label: awb.awbNumber,
+      className: "bg-status-neutral/10 text-status-neutral border-status-neutral/20 line-through opacity-70",
       isDeleted: true,
     };
   }
 
   // Anulat
   if (status.includes("anulat") || status.includes("cancelled") || status.includes("canceled")) {
-    return { 
-      variant: "destructive", 
-      icon: Ban, 
-      label: awb.awbNumber, 
-      className: "bg-red-100 text-red-700 border-red-200 line-through",
+    return {
+      variant: "destructive",
+      icon: Ban,
+      label: awb.awbNumber,
+      className: "bg-status-error/10 text-status-error border-status-error/20 line-through",
       isCancelled: true,
     };
   }
 
   // Returnat/Refuzat
   if (status.includes("retur") || status.includes("refuz") || status.includes("return")) {
-    return { 
-      variant: "default", 
-      icon: RotateCcw, 
-      label: awb.awbNumber, 
-      className: "bg-orange-100 text-orange-700 border-orange-200",
+    return {
+      variant: "default",
+      icon: RotateCcw,
+      label: awb.awbNumber,
+      className: "bg-status-warning/10 text-status-warning border-status-warning/20",
       isReturned: true,
     };
   }
 
   // Livrat
   if (status.includes("livrat") || status.includes("delivered")) {
-    return { 
-      variant: "success", 
-      icon: CheckCircle2, 
-      label: awb.awbNumber, 
-      className: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    return {
+      variant: "success",
+      icon: CheckCircle2,
+      label: awb.awbNumber,
+      className: "bg-status-success/10 text-status-success border-status-success/20",
       isDelivered: true,
     };
   }
 
   // În tranzit/livrare
-  if (status.includes("tranzit") || status.includes("transit") || status.includes("livrare") || 
+  if (status.includes("tranzit") || status.includes("transit") || status.includes("livrare") ||
       status.includes("preluat") || status.includes("ridicat") || status.includes("sortare") ||
       status.includes("depozit") || status.includes("expedit")) {
-    return { 
-      variant: "info", 
-      icon: Truck, 
-      label: awb.awbNumber, 
-      className: "bg-blue-100 text-blue-700 border-blue-200",
+    return {
+      variant: "info",
+      icon: Truck,
+      label: awb.awbNumber,
+      className: "bg-status-info/10 text-status-info border-status-info/20",
     };
   }
 
   // În așteptare
   if (status.includes("așteptare") || status.includes("asteptare") || status.includes("pending") ||
       status.includes("avizat") || status.includes("contact") || status.includes("reprogramat")) {
-    return { 
-      variant: "default", 
-      icon: Clock, 
-      label: awb.awbNumber, 
-      className: "bg-amber-100 text-amber-700 border-amber-200",
+    return {
+      variant: "default",
+      icon: Clock,
+      label: awb.awbNumber,
+      className: "bg-status-warning/10 text-status-warning border-status-warning/20",
     };
   }
 
   // Eroare în status
   if (status.includes("eroare") || status.includes("error") || status.includes("greșit") ||
       status.includes("incomplet") || status.includes("nu raspunde") || awb.errorMessage) {
-    return { 
-      variant: "destructive", 
-      icon: AlertCircle, 
-      label: awb.awbNumber, 
-      className: "bg-red-100 text-red-700 border-red-200",
+    return {
+      variant: "destructive",
+      icon: AlertCircle,
+      label: awb.awbNumber,
+      className: "bg-status-error/10 text-status-error border-status-error/20",
     };
   }
 
   // Default - AWB creat dar fără status special
-  return { 
-    variant: "info", 
-    icon: Package, 
-    label: awb.awbNumber, 
-    className: "bg-blue-50 text-blue-700 border-blue-200",
+  return {
+    variant: "info",
+    icon: Package,
+    label: awb.awbNumber,
+    className: "bg-status-info/10 text-status-info border-status-info/20",
   };
 }
 
@@ -897,46 +900,46 @@ export default function OrdersPage() {
   return (
     <TooltipProvider>
     <div className="p-4 md:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Comenzi</h1>
-          <p className="text-muted-foreground mt-1 text-sm md:text-base">Gestionează comenzile din toate magazinele</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                onClick={handleExportOrders}
-                disabled={isExporting}
-                size="sm"
-                className="md:size-default"
-              >
-                {isExporting ? (
-                  <Loader2 className="h-4 w-4 md:mr-2 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4 md:mr-2" />
-                )}
-                <span className="hidden md:inline">Export CSV</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-xs">
-              <p>Exportă comenzile filtrate într-un fișier CSV. Respectă filtrele active (status, magazin, dată).</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button onClick={() => syncMutation.mutate()} loading={syncMutation.isPending} size="sm" className="md:size-default">
-                <RefreshCw className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">Sincronizare</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-xs">
-              <p>Sincronizează comenzile noi din toate magazinele Shopify. Actualizează statusurile și validează adresele.</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      </div>
+      <PageHeader
+        title="Comenzi"
+        description="Gestionează comenzile din toate magazinele"
+        actions={
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={handleExportOrders}
+                  disabled={isExporting}
+                  size="sm"
+                  className="md:size-default"
+                >
+                  {isExporting ? (
+                    <Loader2 className="h-4 w-4 md:mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 md:mr-2" />
+                  )}
+                  <span className="hidden md:inline">Export CSV</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs">
+                <p>Exportă comenzile filtrate într-un fișier CSV. Respectă filtrele active (status, magazin, dată).</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={() => syncMutation.mutate()} loading={syncMutation.isPending} size="sm" className="md:size-default">
+                  <RefreshCw className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Sincronizare</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs">
+                <p>Sincronizează comenzile noi din toate magazinele Shopify. Actualizează statusurile și validează adresele.</p>
+              </TooltipContent>
+            </Tooltip>
+          </>
+        }
+      />
 
       <Card className="mb-4 md:mb-6">
         <CardContent className="pt-4 md:pt-6">
@@ -1036,11 +1039,11 @@ export default function OrdersPage() {
               </Button>
             </RequirePermission>
             <RequirePermission permission="orders.process">
-              <Button 
-                size="sm" 
-                onClick={() => processAllMutation.mutate(selectedOrders)} 
+              <Button
+                size="sm"
+                onClick={() => processAllMutation.mutate(selectedOrders)}
                 disabled={processAllMutation.isPending}
-                className="bg-emerald-600 hover:bg-emerald-700"
+                variant="success"
               >
                 {processAllMutation.isPending ? (
                   <>
@@ -1061,10 +1064,10 @@ export default function OrdersPage() {
 
       {/* Buton pentru a vedea erorile de procesare (in-session) */}
       {processErrors.length > 0 && (
-        <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 flex items-center justify-between">
+        <div className="mb-4 p-4 rounded-lg bg-status-error/10 border border-status-error/20 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-red-500" />
-            <span className="text-sm font-medium text-red-700">
+            <AlertTriangle className="h-5 w-5 text-status-error" />
+            <span className="text-sm font-medium text-status-error">
               {processErrors.length} comenzi cu erori la procesare
             </span>
           </div>
@@ -1073,7 +1076,7 @@ export default function OrdersPage() {
               size="sm"
               variant="outline"
               onClick={() => setErrorsDialogOpen(true)}
-              className="border-red-300 text-red-700 hover:bg-red-100"
+              className="border-status-error/30 text-status-error hover:bg-status-error/10"
             >
               <Eye className="h-4 w-4 mr-2" />
               Vezi erori
@@ -1082,7 +1085,7 @@ export default function OrdersPage() {
               size="sm"
               onClick={() => processAllMutation.mutate(processErrors.map(e => e.orderId))}
               disabled={processAllMutation.isPending}
-              className="bg-red-600 hover:bg-red-700"
+              variant="destructive"
             >
               <RefreshCw className={cn("h-4 w-4 mr-2", processAllMutation.isPending && "animate-spin")} />
               Reîncearcă toate
@@ -1091,7 +1094,7 @@ export default function OrdersPage() {
               size="sm"
               variant="ghost"
               onClick={() => setProcessErrors([])}
-              className="text-red-600 hover:text-red-700"
+              className="text-status-error hover:text-status-error/80"
             >
               <X className="h-4 w-4" />
             </Button>

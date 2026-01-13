@@ -19,6 +19,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatusBadge } from "@/components/ui/status-badge";
 import prisma from "@/lib/db";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import Link from "next/link";
@@ -287,16 +290,16 @@ function StatCard({
 }) {
   const variantStyles = {
     default: "from-primary/10 to-primary/5 border-primary/20",
-    success: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
-    warning: "from-amber-500/10 to-amber-500/5 border-amber-500/20",
-    error: "from-red-500/10 to-red-500/5 border-red-500/20",
+    success: "from-status-success/10 to-status-success/5 border-status-success/20",
+    warning: "from-status-warning/10 to-status-warning/5 border-status-warning/20",
+    error: "from-status-error/10 to-status-error/5 border-status-error/20",
   };
 
   const iconStyles = {
     default: "text-primary",
-    success: "text-emerald-500",
-    warning: "text-amber-500",
-    error: "text-red-500",
+    success: "text-status-success",
+    warning: "text-status-warning",
+    error: "text-status-error",
   };
 
   const content = (
@@ -320,13 +323,13 @@ function StatCard({
         {trend !== undefined && (
           <div className="flex items-center gap-1 mt-2">
             {trend >= 0 ? (
-              <TrendingUp className="h-3 w-3 text-emerald-500" />
+              <TrendingUp className="h-3 w-3 text-status-success" />
             ) : (
-              <TrendingDown className="h-3 w-3 text-red-500" />
+              <TrendingDown className="h-3 w-3 text-status-error" />
             )}
             <span className={cn(
               "text-xs",
-              trend >= 0 ? "text-emerald-500" : "text-red-500"
+              trend >= 0 ? "text-status-success" : "text-status-error"
             )}>
               {trend >= 0 ? "+" : ""}{trend.toFixed(1)}%
             </span>
@@ -377,25 +380,23 @@ export default async function DashboardPage({
   return (
     <div className="p-4 md:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1 text-sm md:text-base">
-            Bine ai venit! Iată o privire de ansamblu asupra afacerii tale.
-          </p>
-        </div>
-        {stats.pendingInsights > 0 && (
-          <Link href="/dashboard#ai-insights">
-            <Badge 
-              variant="secondary" 
-              className="bg-purple-500/10 text-purple-500 border-purple-500/20 cursor-pointer hover:bg-purple-500/20"
-            >
-              <Sparkles className="h-3 w-3 mr-1" />
-              {stats.pendingInsights} recomandări AI
-            </Badge>
-          </Link>
-        )}
-      </div>
+      <PageHeader
+        title="Dashboard"
+        description="Bine ai venit! Iată o privire de ansamblu asupra afacerii tale."
+        badge={
+          stats.pendingInsights > 0 ? (
+            <Link href="/dashboard#ai-insights">
+              <Badge
+                variant="secondary"
+                className="bg-primary/10 text-primary border-primary/20 cursor-pointer hover:bg-primary/20"
+              >
+                <Sparkles className="h-3 w-3 mr-1" />
+                {stats.pendingInsights} recomandări AI
+              </Badge>
+            </Link>
+          ) : undefined
+        }
+      />
 
       {/* Vânzări de azi - Row Principal */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -457,28 +458,28 @@ export default async function DashboardPage({
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
               <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-emerald-500" />
+                <DollarSign className="h-4 w-4 text-status-success" />
                 <span className="text-sm">Cheltuieli Ads</span>
               </div>
               <span className="font-semibold">{formatCurrency(stats.adsSpend)}</span>
             </div>
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
               <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-blue-500" />
+                <TrendingUp className="h-4 w-4 text-status-info" />
                 <span className="text-sm">Venituri Ads</span>
               </div>
               <span className="font-semibold">{formatCurrency(stats.adsRevenue)}</span>
             </div>
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
               <div className="flex items-center gap-2">
-                <Package className="h-4 w-4 text-purple-500" />
+                <Package className="h-4 w-4 text-primary" />
                 <span className="text-sm">Total Produse</span>
               </div>
               <span className="font-semibold">{stats.totalProducts}</span>
             </div>
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                <AlertTriangle className="h-4 w-4 text-status-warning" />
                 <span className="text-sm">Stoc Scăzut</span>
               </div>
               <Badge variant={stats.lowStockCount > 0 ? "warning" : "success"}>
@@ -487,7 +488,7 @@ export default async function DashboardPage({
             </div>
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-red-500" />
+                <AlertTriangle className="h-4 w-4 text-status-error" />
                 <span className="text-sm">Erori Validare</span>
               </div>
               <Badge variant={stats.validationFailed > 0 ? "destructive" : "success"}>
@@ -522,13 +523,13 @@ export default async function DashboardPage({
           </CardHeader>
           <CardContent>
             {stats.recentOrders.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <ShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>Nu există comenzi încă.</p>
-                <p className="text-sm">
-                  Adaugă un magazin pentru a începe sincronizarea.
-                </p>
-              </div>
+              <EmptyState
+                icon={ShoppingCart}
+                title="Nu există comenzi încă"
+                description="Adaugă un magazin pentru a începe sincronizarea."
+                action={{ label: "Adaugă Magazin", href: "/stores" }}
+                size="sm"
+              />
             ) : (
               <div className="space-y-4">
                 {stats.recentOrders.map((order: typeof stats.recentOrders[number]) => (
@@ -568,7 +569,7 @@ export default async function DashboardPage({
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                <AlertTriangle className="h-4 w-4 text-status-warning" />
                 Stoc Scăzut
               </span>
               <Link
@@ -581,10 +582,12 @@ export default async function DashboardPage({
           </CardHeader>
           <CardContent>
             {stats.lowStockProducts.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <CheckCircle2 className="h-12 w-12 mx-auto mb-3 opacity-50 text-emerald-500" />
-                <p>Toate produsele au stoc suficient!</p>
-              </div>
+              <EmptyState
+                icon={CheckCircle2}
+                title="Toate produsele au stoc suficient!"
+                size="sm"
+                className="text-status-success"
+              />
             ) : (
               <div className="space-y-3">
                 {stats.lowStockProducts.map((product: typeof stats.lowStockProducts[number]) => (
@@ -625,16 +628,13 @@ export default async function DashboardPage({
         </CardHeader>
         <CardContent>
           {stats.storeStats.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>Nu ai magazine configurate.</p>
-              <Link
-                href="/stores"
-                className="text-primary hover:underline text-sm"
-              >
-                Adaugă primul magazin →
-              </Link>
-            </div>
+            <EmptyState
+              icon={Package}
+              title="Nu ai magazine configurate"
+              description="Conectează primul tău magazin Shopify pentru a începe."
+              action={{ label: "Adaugă Magazin", href: "/stores" }}
+              size="sm"
+            />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {stats.storeStats.map((store: typeof stats.storeStats[number]) => (

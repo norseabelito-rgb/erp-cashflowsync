@@ -83,6 +83,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, getDriveImageUrl } from "@/lib/utils";
 import { SyncOverlay, useSyncOverlay } from "@/components/ui/sync-overlay";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import Link from "next/link";
 
 interface Channel {
@@ -529,86 +531,84 @@ export default function ProductsPage() {
     <TooltipProvider>
       <div className="p-4 md:p-6 lg:p-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Produse</h1>
-            <p className="text-muted-foreground mt-1 text-sm md:text-base">
-              Gestionează produsele și sincronizarea pe canale
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="md:size-default"
-                  onClick={() => syncStockMutation.mutate()}
-                  disabled={syncStockMutation.isPending}
-                >
-                  {syncStockMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 md:mr-2 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4 md:mr-2" />
-                  )}
-                  <span className="hidden md:inline">Sync Stocuri</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-xs">
-                <p>Sincronizează stocurile din SmartBill pentru toate produsele. Actualizează cantitățile disponibile pe baza inventarului real.</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  className="md:size-default"
-                  onClick={() => syncShopifyMutation.mutate()}
-                  disabled={syncShopifyMutation.isPending}
-                >
-                  {syncShopifyMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 md:mr-2 animate-spin" />
-                  ) : (
-                    <Upload className="h-4 w-4 md:mr-2" />
-                  )}
-                  <span className="hidden md:inline">Sync Shopify</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-xs">
-                <p>Trimite toate produsele cu canale Shopify active către Shopify. Creează produse noi și actualizează cele existente (titlu, preț, descriere, imagini).</p>
-              </TooltipContent>
-            </Tooltip>
-            <Link href="/products/inventory-mapping">
-              <Button variant="outline" size="sm" className="md:size-default">
-                <Package className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">Mapare Inventar</span>
-              </Button>
-            </Link>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+        <PageHeader
+          title="Produse"
+          description="Gestionează produsele și sincronizarea pe canale"
+          actions={
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="md:size-default"
+                    onClick={() => syncStockMutation.mutate()}
+                    disabled={syncStockMutation.isPending}
+                  >
+                    {syncStockMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 md:mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 md:mr-2" />
+                    )}
+                    <span className="hidden md:inline">Sync Stocuri</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p>Sincronizează stocurile din SmartBill pentru toate produsele. Actualizează cantitățile disponibile pe baza inventarului real.</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="md:size-default"
+                    onClick={() => syncShopifyMutation.mutate()}
+                    disabled={syncShopifyMutation.isPending}
+                  >
+                    {syncShopifyMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 md:mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 md:mr-2" />
+                    )}
+                    <span className="hidden md:inline">Sync Shopify</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p>Trimite toate produsele cu canale Shopify active către Shopify. Creează produse noi și actualizează cele existente (titlu, preț, descriere, imagini).</p>
+                </TooltipContent>
+              </Tooltip>
+              <Link href="/products/inventory-mapping">
                 <Button variant="outline" size="sm" className="md:size-default">
-                  <FileSpreadsheet className="h-4 w-4 md:mr-2" />
-                  <span className="hidden md:inline">Import/Export</span>
+                  <Package className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Mapare Inventar</span>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleExport} disabled={isExporting}>
-                  <Download className="h-4 w-4 mr-2" />
-                  {isExporting ? "Se exportă..." : "Export CSV"}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
-                  <FileUp className="h-4 w-4 mr-2" />
-                  Import CSV
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button size="sm" className="md:size-default" onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Produs Nou</span>
-            </Button>
-          </div>
-        </div>
+              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="md:size-default">
+                    <FileSpreadsheet className="h-4 w-4 md:mr-2" />
+                    <span className="hidden md:inline">Import/Export</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExport} disabled={isExporting}>
+                    <Download className="h-4 w-4 mr-2" />
+                    {isExporting ? "Se exportă..." : "Export CSV"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
+                    <FileUp className="h-4 w-4 mr-2" />
+                    Import CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button size="sm" className="md:size-default" onClick={() => setCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Produs Nou</span>
+              </Button>
+            </>
+          }
+        />
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4 mb-4 md:mb-6">

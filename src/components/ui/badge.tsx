@@ -12,16 +12,24 @@ const badgeVariants = cva(
         secondary:
           "border-transparent bg-secondary text-secondary-foreground",
         destructive:
-          "border-transparent bg-destructive/10 text-destructive border-destructive/20",
+          "border-transparent bg-status-error/10 text-status-error border-status-error/20",
         outline: "text-foreground",
+        // Semantic status variants using design tokens
         success:
-          "border-transparent bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+          "border-transparent bg-status-success/10 text-status-success border-status-success/20",
         warning:
-          "border-transparent bg-amber-500/10 text-amber-500 border-amber-500/20",
+          "border-transparent bg-status-warning/10 text-status-warning border-status-warning/20",
         info:
-          "border-transparent bg-blue-500/10 text-blue-500 border-blue-500/20",
+          "border-transparent bg-status-info/10 text-status-info border-status-info/20",
         neutral:
-          "border-transparent bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+          "border-transparent bg-status-neutral/10 text-status-neutral border-status-neutral/20",
+        // Additional status variants
+        pending:
+          "border-transparent bg-status-warning/10 text-status-warning border-status-warning/20",
+        error:
+          "border-transparent bg-status-error/10 text-status-error border-status-error/20",
+        processing:
+          "border-transparent bg-status-info/10 text-status-info border-status-info/20",
       },
     },
     defaultVariants: {
