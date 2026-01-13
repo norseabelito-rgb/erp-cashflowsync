@@ -270,28 +270,3 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-
-// POST /api/invoice-series/next-number - Obține și incrementează numărul curent
-export async function getNextNumber(seriesId: string): Promise<{ prefix: string; number: number; formatted: string } | null> {
-  const series = await prisma.invoiceSeries.findUnique({
-    where: { id: seriesId },
-  });
-
-  if (!series || !series.isActive) {
-    return null;
-  }
-
-  const currentNumber = series.currentNumber;
-
-  // Incrementează numărul pentru următoarea factură
-  await prisma.invoiceSeries.update({
-    where: { id: seriesId },
-    data: { currentNumber: currentNumber + 1 },
-  });
-
-  return {
-    prefix: series.prefix,
-    number: currentNumber,
-    formatted: `${series.prefix}${currentNumber.toString().padStart(6, "0")}`,
-  };
-}
