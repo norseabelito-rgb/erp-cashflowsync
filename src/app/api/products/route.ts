@@ -94,31 +94,31 @@ export async function GET(request: NextRequest) {
       prisma.masterProduct.count({ where })
     ]);
 
-    // Lookup stocuri din tabelul Product (inventar) după SKU (case-insensitive)
-    // Prisma nu suportă mode: "insensitive" cu "in", deci facem OR pentru fiecare SKU
+    // Lookup stocuri din InventoryItem după SKU (case-insensitive)
     const skus = products.map(p => p.sku);
-    
-    const inventoryProducts = await prisma.product.findMany({
-      where: { 
+
+    const inventoryItems = await prisma.inventoryItem.findMany({
+      where: {
         OR: skus.map(sku => ({
           sku: { equals: sku, mode: "insensitive" as const }
-        }))
+        })),
+        isActive: true,
       },
-      select: { sku: true, stockQuantity: true },
+      select: { sku: true, currentStock: true },
     });
-    
+
     // Map cu lowercase keys pentru lookup case-insensitive
     const stockBySku = new Map<string, number>();
-    for (const inv of inventoryProducts) {
-      stockBySku.set(inv.sku.toLowerCase(), inv.stockQuantity);
+    for (const inv of inventoryItems) {
+      stockBySku.set(inv.sku.toLowerCase(), Number(inv.currentStock));
     }
 
-    // Adaugă stocul real la fiecare produs (lookup case-insensitive)
+    // Adaugă stocul real la fiecare produs din inventar
     const productsWithStock = products.map(p => {
       const foundStock = stockBySku.get(p.sku.toLowerCase());
       return {
         ...p,
-        stock: foundStock ?? p.stock,
+        stock: foundStock ?? 0, // Dacă nu există în inventar, stoc = 0
       };
     });
 

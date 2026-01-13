@@ -353,31 +353,6 @@ export default function ProductsPage() {
     },
   });
 
-  // Sync Stock mutation
-  const syncStockMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch("/api/products/sync-stock", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      return res.json();
-    },
-    onSuccess: (data) => {
-      if (data.success) {
-        queryClient.invalidateQueries({ queryKey: ["products"] });
-        toast({ 
-          title: "Sincronizare stocuri completă", 
-          description: data.message,
-        });
-      } else {
-        toast({ title: "Eroare", description: data.error, variant: "destructive" });
-      }
-    },
-    onError: (error: any) => {
-      toast({ title: "Eroare", description: error.message, variant: "destructive" });
-    },
-  });
-
   // Import products mutation
   const importProductsMutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -536,27 +511,6 @@ export default function ProductsPage() {
           description="Gestionează produsele și sincronizarea pe canale"
           actions={
             <>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="md:size-default"
-                    onClick={() => syncStockMutation.mutate()}
-                    disabled={syncStockMutation.isPending}
-                  >
-                    {syncStockMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 md:mr-2 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4 md:mr-2" />
-                    )}
-                    <span className="hidden md:inline">Sync Stocuri</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-xs">
-                  <p>Sincronizează stocurile din SmartBill pentru toate produsele. Actualizează cantitățile disponibile pe baza inventarului real.</p>
-                </TooltipContent>
-              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
