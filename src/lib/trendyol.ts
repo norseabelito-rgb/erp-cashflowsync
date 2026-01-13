@@ -718,6 +718,7 @@ export function generateBarcode(sku: string): string {
 // ============ ORDER SYNC FUNCTIONS ============
 
 import prisma from "./db";
+import { normalizeStatus } from "./trendyol-status";
 
 export async function syncTrendyolOrders(options?: {
   startDate?: Date;
@@ -819,7 +820,7 @@ async function syncSingleTrendyolOrder(orderData: any): Promise<boolean> {
   const orderPayload = {
     trendyolOrderNumber: orderData.orderNumber,
     orderDate: new Date(orderData.orderDate),
-    status: orderData.status,
+    status: normalizeStatus(orderData.status),
     customerName: orderData.shipmentAddress?.fullName || 
                   `${orderData.customerFirstName || ""} ${orderData.customerLastName || ""}`.trim() ||
                   "Unknown",

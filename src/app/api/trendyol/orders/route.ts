@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { syncTrendyolOrders } from "@/lib/trendyol";
+import { getTrendyolStatusInfo, getAllTrendyolStatuses } from "@/lib/trendyol-status";
 
 // GET - Listare comenzi Trendyol
 export async function GET(request: NextRequest) {
@@ -53,9 +54,16 @@ export async function GET(request: NextRequest) {
       prisma.trendyolOrder.count({ where }),
     ]);
 
+    // Enhance orders with status info
+    const enhancedOrders = orders.map((order) => ({
+      ...order,
+      statusInfo: getTrendyolStatusInfo(order.status),
+    }));
+
     return NextResponse.json({
       success: true,
-      orders,
+      orders: enhancedOrders,
+      statusOptions: getAllTrendyolStatuses(),
       pagination: {
         page,
         limit,
