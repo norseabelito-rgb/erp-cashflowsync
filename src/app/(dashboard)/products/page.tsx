@@ -598,7 +598,7 @@ export default function ProductsPage() {
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
                     <FileUp className="h-4 w-4 mr-2" />
-                    Import CSV
+                    Import Excel
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

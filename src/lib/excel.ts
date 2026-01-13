@@ -22,12 +22,12 @@ export function parseExcel<T extends Record<string, unknown>>(
     return []; // Need at least header + 1 row
   }
 
-  // Parse headers
+  // Parse headers - normalize by removing spaces, underscores, asterisks, and converting to lowercase
   const headers = (rawData[0] || []).map((h) =>
     String(h || "")
       .toLowerCase()
       .trim()
-      .replace(/[_\s]/g, "")
+      .replace(/[_\s*]/g, "") // Remove underscores, spaces, and asterisks
   );
 
   // Map header indices
@@ -135,27 +135,47 @@ export interface InventoryImportRow {
 }
 
 export const INVENTORY_COLUMN_MAP: Record<string, keyof InventoryImportRow> = {
+  // SKU
   "sku": "sku",
+  "cod": "sku",
+  // Name
   "nume": "name",
   "name": "name",
+  "denumire": "name",
+  // Description
   "descriere": "description",
   "description": "description",
+  // Current Stock
   "stoccurent": "currentStock",
   "stoc": "currentStock",
   "currentstock": "currentStock",
   "stock": "currentStock",
+  "cantitate": "currentStock",
+  // Min Stock
   "stocminim": "minStock",
   "minstock": "minStock",
+  // Unit
   "unitate": "unit",
   "unit": "unit",
+  "um": "unit",
+  // Units per box
+  "buc/bax": "unitsPerBox",
+  "bucbax": "unitsPerBox",
   "bucperbax": "unitsPerBox",
   "unitsperbox": "unitsPerBox",
+  // Box unit
   "unitatebax": "boxUnit",
   "boxunit": "boxUnit",
+  // Cost price
+  "prețcost": "costPrice",
   "pretcost": "costPrice",
   "costprice": "costPrice",
+  "cost": "costPrice",
+  "pret": "costPrice",
+  // Supplier
   "furnizor": "supplier",
   "supplier": "supplier",
+  // Is composite
   "estecompus": "isComposite",
   "iscomposite": "isComposite",
   "activ": "isActive",

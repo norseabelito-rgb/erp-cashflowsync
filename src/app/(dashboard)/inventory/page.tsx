@@ -280,11 +280,11 @@ export default function InventoryPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Acțiuni CSV</DropdownMenuLabel>
+                <DropdownMenuLabel>Import / Export</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
                   <FileUp className="h-4 w-4 mr-2" />
-                  Import din CSV
+                  Import din Excel
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExport} disabled={isExporting}>
                   {isExporting ? (
