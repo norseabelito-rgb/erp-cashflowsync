@@ -815,8 +815,12 @@ export default function OrdersPage() {
                   <tr><td colSpan={9} className="p-8 text-center"><ShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-50" /><p className="text-muted-foreground">Nu există comenzi</p></td></tr>
                 ) : (
                   orders.map((order) => (
-                    <tr key={order.id} className={cn("border-b hover:bg-muted/50 transition-colors", selectedOrders.includes(order.id) && "bg-primary/5")}>
-                      <td className="p-4"><Checkbox checked={selectedOrders.includes(order.id)} onCheckedChange={() => handleSelectOrder(order.id)} /></td>
+                    <tr
+                      key={order.id}
+                      className={cn("border-b hover:bg-muted/50 transition-colors cursor-pointer", selectedOrders.includes(order.id) && "bg-primary/5")}
+                      onClick={() => handleViewOrder(order)}
+                    >
+                      <td className="p-4" onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedOrders.includes(order.id)} onCheckedChange={() => handleSelectOrder(order.id)} /></td>
                       <td className="p-4">
                         <span className="font-medium">{order.shopifyOrderNumber}</span>
                         <div className="flex items-center gap-1 mt-1"><Badge variant="outline" className="text-xs">{order.store.name}</Badge></div>
@@ -849,10 +853,10 @@ export default function OrdersPage() {
                             <Badge variant="neutral" title={order.invoice.errorMessage || ""}>În așteptare</Badge>
                           )
                         ) : (
-                          <Button size="sm" variant="ghost" onClick={() => invoiceMutation.mutate([order.id])} disabled={invoiceMutation.isPending}><FileText className="h-4 w-4" /></Button>
+                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); invoiceMutation.mutate([order.id]); }} disabled={invoiceMutation.isPending}><FileText className="h-4 w-4" /></Button>
                         )}
                       </td>
-                      <td className="p-4">
+                      <td className="p-4" onClick={(e) => e.stopPropagation()}>
                         {order.awb?.awbNumber ? (
                           (() => {
                             const awbInfo = getAWBStatusInfo(order.awb);
@@ -890,10 +894,10 @@ export default function OrdersPage() {
                             Eroare
                           </Badge>
                         ) : (
-                          <Button size="sm" variant="ghost" onClick={() => handleOpenAwbModal(order.id)} disabled={awbMutation.isPending}><Truck className="h-4 w-4" /></Button>
+                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpenAwbModal(order.id); }} disabled={awbMutation.isPending}><Truck className="h-4 w-4" /></Button>
                         )}
                       </td>
-                      <td className="p-4"><Button size="sm" variant="ghost" onClick={() => handleViewOrder(order)}><Eye className="h-4 w-4" /></Button></td>
+                      <td className="p-4" onClick={(e) => e.stopPropagation()}><Button size="sm" variant="ghost" onClick={() => handleViewOrder(order)}><Eye className="h-4 w-4" /></Button></td>
                     </tr>
                   ))
                 )}

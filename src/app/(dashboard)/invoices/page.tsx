@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   FileText,
@@ -81,6 +82,7 @@ interface Invoice {
 }
 
 export default function InvoicesPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -447,9 +449,10 @@ export default function InvoicesPage() {
                     <tr
                       key={invoice.id}
                       className={cn(
-                        "border-b hover:bg-muted/50 transition-colors",
+                        "border-b hover:bg-muted/50 transition-colors cursor-pointer",
                         invoice.status === "cancelled" && "opacity-60"
                       )}
+                      onClick={() => router.push(`/orders/${invoice.order.id}`)}
                     >
                       <td className="p-4">
                         <div>
@@ -521,7 +524,7 @@ export default function InvoicesPage() {
                           <span className="text-muted-foreground text-sm">-</span>
                         )}
                       </td>
-                      <td className="p-4">
+                      <td className="p-4" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm">

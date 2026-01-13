@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -133,6 +134,7 @@ interface InventoryItem {
 }
 
 export default function ProductsPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -668,8 +670,12 @@ export default function ProductsPage() {
                   </TableRow>
                 ) : (
                   products.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell>
+                    <TableRow
+                      key={product.id}
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/products/${product.id}`)}
+                    >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedProducts.includes(product.id)}
                           onCheckedChange={(checked) => handleSelectProduct(product.id, checked as boolean)}
@@ -734,7 +740,7 @@ export default function ProductsPage() {
                       const pc = product.channels.find(c => c.channelId === channel.id);
                       
                       return (
-                        <TableCell key={channel.id} className="text-center hidden lg:table-cell">
+                        <TableCell key={channel.id} className="text-center hidden lg:table-cell" onClick={(e) => e.stopPropagation()}>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <button
@@ -761,7 +767,7 @@ export default function ProductsPage() {
                         </TableCell>
                       );
                     })}
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">
