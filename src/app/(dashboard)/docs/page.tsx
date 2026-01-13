@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Book,
   ShoppingCart,
@@ -549,7 +549,7 @@ function MermaidDiagram({ chart, title }: { chart: string; title?: string }) {
   const [rendered, setRendered] = useState<string>("");
   const [error, setError] = useState<string>("");
 
-  useState(() => {
+  useEffect(() => {
     // Încărcăm mermaid dinamic
     import("mermaid").then((mermaid) => {
       mermaid.default.initialize({
@@ -605,7 +605,7 @@ function MermaidDiagram({ chart, title }: { chart: string; title?: string }) {
           setError(err.message);
         });
     });
-  });
+  }, [chart]);
 
   if (error) {
     return (
