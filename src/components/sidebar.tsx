@@ -494,7 +494,7 @@ export function Sidebar() {
       {/* Mobile Header Bar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-16 flex items-center justify-between px-4 bg-card/95 backdrop-blur-xl border-b border-border/50">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80">
             <DollarSign className="h-5 w-5 text-white" />
           </div>
           <span className="text-lg font-semibold text-gradient">Cash Flow</span>
@@ -530,14 +530,14 @@ export function Sidebar() {
       <div className="flex h-16 items-center justify-between border-b border-border/50 px-4">
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80">
               <DollarSign className="h-5 w-5 text-white" />
             </div>
             <span className="text-lg font-semibold text-gradient">Cash Flow Grup</span>
           </Link>
         )}
         {collapsed && (
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 mx-auto">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 mx-auto">
             <DollarSign className="h-5 w-5 text-white" />
           </div>
         )}
@@ -563,7 +563,7 @@ export function Sidebar() {
               <Button
                 variant="outline"
                 size="icon"
-                className={cn("w-full", syncing && "animate-pulse bg-blue-50")}
+                className={cn("w-full", syncing && "animate-pulse bg-status-info/10")}
                 disabled={syncing !== null}
               >
                 <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
@@ -589,7 +589,7 @@ export function Sidebar() {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className={cn("w-full justify-between", syncing && "animate-pulse bg-blue-50")}
+                className={cn("w-full justify-between", syncing && "animate-pulse bg-status-info/10")}
                 disabled={syncing !== null}
               >
                 <span className="flex items-center gap-2">
@@ -607,7 +607,7 @@ export function Sidebar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-[236px]" align="start">
               <DropdownMenuItem onClick={handleFullSync} disabled={syncing !== null}>
-                <Zap className="h-4 w-4 mr-2 text-blue-500" />
+                <Zap className="h-4 w-4 mr-2 text-status-info" />
                 <div className="flex flex-col">
                   <span className="font-medium">Sincronizare completă</span>
                   <span className="text-xs text-muted-foreground">Comenzi + AWB + Facturi</span>
@@ -615,14 +615,14 @@ export function Sidebar() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleAWBRefresh} disabled={syncing !== null}>
-                <Truck className="h-4 w-4 mr-2 text-orange-500" />
+                <Truck className="h-4 w-4 mr-2 text-status-warning" />
                 <div className="flex flex-col">
                   <span className="font-medium">Actualizează AWB-uri</span>
                   <span className="text-xs text-muted-foreground">Statusuri din FanCourier</span>
                 </div>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleStockSync} disabled={syncing !== null}>
-                <Package className="h-4 w-4 mr-2 text-green-500" />
+                <Package className="h-4 w-4 mr-2 text-status-success" />
                 <div className="flex flex-col">
                   <span className="font-medium">Sincronizează stocuri</span>
                   <span className="text-xs text-muted-foreground">Din SmartBill</span>
@@ -665,7 +665,7 @@ export function Sidebar() {
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
-              className={cn("w-full justify-between", syncing && "animate-pulse bg-blue-50")}
+              className={cn("w-full justify-between", syncing && "animate-pulse bg-status-info/10")}
               disabled={syncing !== null}
             >
               <span className="flex items-center gap-2">
@@ -677,16 +677,16 @@ export function Sidebar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-[250px]" align="start">
             <DropdownMenuItem onClick={handleFullSync} disabled={syncing !== null}>
-              <Zap className="h-4 w-4 mr-2 text-blue-500" />
+              <Zap className="h-4 w-4 mr-2 text-status-info" />
               Sincronizare completă
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleAWBRefresh} disabled={syncing !== null}>
-              <Truck className="h-4 w-4 mr-2 text-orange-500" />
+              <Truck className="h-4 w-4 mr-2 text-status-warning" />
               Actualizează AWB-uri
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleStockSync} disabled={syncing !== null}>
-              <Package className="h-4 w-4 mr-2 text-green-500" />
+              <Package className="h-4 w-4 mr-2 text-status-success" />
               Sincronizează stocuri
             </DropdownMenuItem>
           </DropdownMenuContent>

@@ -87,7 +87,7 @@ function ChangeIndicator({ value, inverse = false }: { value: number | null; inv
   return (
     <span className={cn(
       "inline-flex items-center gap-1 text-sm font-medium",
-      isNeutral ? "text-muted-foreground" : isPositive ? "text-green-600" : "text-red-600"
+      isNeutral ? "text-muted-foreground" : isPositive ? "text-status-success" : "text-status-error"
     )}>
       {isNeutral ? (
         <Minus className="h-4 w-4" />

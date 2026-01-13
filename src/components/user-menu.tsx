@@ -58,12 +58,12 @@ export function UserMenu({ collapsed = false }: UserMenuProps) {
           <div className="relative">
             <Avatar className="h-8 w-8">
               <AvatarImage src={user.image || undefined} alt={user.name || "User"} />
-              <AvatarFallback className="bg-gradient-to-br from-green-500 to-emerald-600 text-white text-xs">
+              <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-xs">
                 {initials}
               </AvatarFallback>
             </Avatar>
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white font-bold">
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-status-error text-status-error-foreground text-[10px] font-bold">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
@@ -74,7 +74,7 @@ export function UserMenu({ collapsed = false }: UserMenuProps) {
                 <div className="flex items-center gap-1">
                   <p className="truncate font-medium">{user.name}</p>
                   {user.isSuperAdmin && (
-                    <Crown className="h-3 w-3 text-yellow-500" />
+                    <Crown className="h-3 w-3 text-status-warning" />
                   )}
                 </div>
                 <p className="truncate text-xs text-muted-foreground">
@@ -96,7 +96,7 @@ export function UserMenu({ collapsed = false }: UserMenuProps) {
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium">{user.name}</p>
               {user.isSuperAdmin && (
-                <Badge className="bg-yellow-500 text-[10px] px-1 py-0">SuperAdmin</Badge>
+                <Badge className="bg-status-warning text-status-warning-foreground text-[10px] px-1 py-0">SuperAdmin</Badge>
               )}
             </div>
             <p className="text-xs text-muted-foreground">{user.email}</p>
@@ -129,7 +129,7 @@ export function UserMenu({ collapsed = false }: UserMenuProps) {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="text-red-600 focus:text-red-600"
+          className="text-status-error focus:text-status-error"
         >
           <LogOut className="h-4 w-4 mr-2" />
           Deconectare

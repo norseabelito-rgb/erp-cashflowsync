@@ -61,39 +61,35 @@ const config = {
           foreground: "hsl(var(--warning-foreground))",
         },
         // Semantic Status Colors - for consistent status indication across the app
+        // Using <alpha-value> placeholder to enable Tailwind opacity modifiers (e.g., bg-status-success/10)
         status: {
           success: {
-            DEFAULT: "hsl(var(--status-success))",
-            foreground: "hsl(var(--status-success-foreground))",
-            muted: "hsl(var(--status-success) / 0.1)",
+            DEFAULT: "hsl(var(--status-success) / <alpha-value>)",
+            foreground: "hsl(var(--status-success-foreground) / <alpha-value>)",
           },
           warning: {
-            DEFAULT: "hsl(var(--status-warning))",
-            foreground: "hsl(var(--status-warning-foreground))",
-            muted: "hsl(var(--status-warning) / 0.1)",
+            DEFAULT: "hsl(var(--status-warning) / <alpha-value>)",
+            foreground: "hsl(var(--status-warning-foreground) / <alpha-value>)",
           },
           error: {
-            DEFAULT: "hsl(var(--status-error))",
-            foreground: "hsl(var(--status-error-foreground))",
-            muted: "hsl(var(--status-error) / 0.1)",
+            DEFAULT: "hsl(var(--status-error) / <alpha-value>)",
+            foreground: "hsl(var(--status-error-foreground) / <alpha-value>)",
           },
           info: {
-            DEFAULT: "hsl(var(--status-info))",
-            foreground: "hsl(var(--status-info-foreground))",
-            muted: "hsl(var(--status-info) / 0.1)",
+            DEFAULT: "hsl(var(--status-info) / <alpha-value>)",
+            foreground: "hsl(var(--status-info-foreground) / <alpha-value>)",
           },
           neutral: {
-            DEFAULT: "hsl(var(--status-neutral))",
-            foreground: "hsl(var(--status-neutral-foreground))",
-            muted: "hsl(var(--status-neutral) / 0.1)",
+            DEFAULT: "hsl(var(--status-neutral) / <alpha-value>)",
+            foreground: "hsl(var(--status-neutral-foreground) / <alpha-value>)",
           },
         },
         // Surface Hierarchy - for Modern Minimal layering
         surface: {
-          0: "hsl(var(--surface-0))",
-          1: "hsl(var(--surface-1))",
-          2: "hsl(var(--surface-2))",
-          3: "hsl(var(--surface-3))",
+          0: "hsl(var(--surface-0) / <alpha-value>)",
+          1: "hsl(var(--surface-1) / <alpha-value>)",
+          2: "hsl(var(--surface-2) / <alpha-value>)",
+          3: "hsl(var(--surface-3) / <alpha-value>)",
         },
       },
       borderRadius: {

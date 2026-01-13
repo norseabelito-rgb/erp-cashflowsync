@@ -36,15 +36,15 @@ export const GRID_GAP = "gap-4 md:gap-6";
 
 export const PAGE_HEADER = {
   /** Wrapper for the entire header area */
-  wrapper: "flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6 md:mb-8",
+  wrapper: "flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6 md:mb-8 pb-6 border-b border-border/50",
   /** Title and description container */
-  content: "space-y-1",
-  /** Page title styling */
-  title: "text-2xl md:text-3xl font-semibold tracking-tight",
+  content: "space-y-1.5",
+  /** Page title styling - Modern Minimal with subtle gradient on hover */
+  title: "text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text",
   /** Page description/subtitle styling */
-  description: "text-muted-foreground text-sm md:text-base",
+  description: "text-muted-foreground text-sm md:text-base max-w-2xl",
   /** Actions container (buttons, etc.) */
-  actions: "flex items-center gap-2 flex-wrap",
+  actions: "flex items-center gap-3 flex-wrap",
 } as const;
 
 // =============================================================================

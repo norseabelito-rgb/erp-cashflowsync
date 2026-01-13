@@ -49,10 +49,10 @@ const TYPE_ICONS: Record<string, any> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  new_user: "text-green-500",
-  invitation_accepted: "text-blue-500",
-  role_changed: "text-purple-500",
-  group_changed: "text-orange-500",
+  new_user: "text-status-success",
+  invitation_accepted: "text-status-info",
+  role_changed: "text-primary",
+  group_changed: "text-status-warning",
   default: "text-muted-foreground",
 };
 
@@ -238,7 +238,7 @@ export default function NotificationsPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Anulează</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
               onClick={() => {
                 deleteMutation.mutate({ deleteAll: true });
                 setDeleteAllDialogOpen(false);

@@ -232,20 +232,20 @@ export function AIInsights({
   const getTypeColor = (type: string) => {
     switch (type) {
       case "AD_BUDGET":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+        return "bg-status-info/10 text-status-info border-status-info/20";
       case "AD_STATUS":
-        return "bg-purple-500/10 text-purple-500 border-purple-500/20";
+        return "bg-primary/10 text-primary border-primary/20";
       case "PRODUCT_PRICE":
-        return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
+        return "bg-status-success/10 text-status-success border-status-success/20";
       default:
-        return "bg-gray-500/10 text-gray-500 border-gray-500/20";
+        return "bg-status-neutral/10 text-status-neutral border-status-neutral/20";
     }
   };
 
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 80) return "text-emerald-500";
-    if (confidence >= 60) return "text-yellow-500";
-    return "text-orange-500";
+    if (confidence >= 80) return "text-status-success";
+    if (confidence >= 60) return "text-status-warning";
+    return "text-status-error";
   };
 
   if (isLoading) {
@@ -266,13 +266,13 @@ export function AIInsights({
     <>
       <Card className={cn(
         "overflow-hidden",
-        compact && "border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-blue-500/5"
+        compact && "border-primary/20 bg-gradient-to-br from-primary/5 to-status-info/5"
       )}>
         <CardHeader className={compact ? "pb-2" : ""}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-purple-500/10 rounded-lg">
-                <Sparkles className="h-5 w-5 text-purple-500" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Sparkles className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <CardTitle className="text-lg">AI Insights</CardTitle>
@@ -340,7 +340,7 @@ export function AIInsights({
                             {insight.currentValue}
                           </span>
                           <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs font-medium text-emerald-500">
+                          <span className="text-xs font-medium text-status-success">
                             {insight.suggestedValue}
                           </span>
                         </div>
@@ -353,7 +353,7 @@ export function AIInsights({
                         </span>
                       </Badge>
                       {insight.estimatedImpact && (
-                        <span className="text-xs text-emerald-500 font-medium">
+                        <span className="text-xs text-status-success font-medium">
                           {insight.estimatedImpact}
                         </span>
                       )}
@@ -371,7 +371,7 @@ export function AIInsights({
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-purple-500" />
+              <Sparkles className="h-5 w-5 text-primary" />
               Aplică recomandarea AI
             </DialogTitle>
             <DialogDescription>
@@ -393,15 +393,15 @@ export function AIInsights({
 
               {/* Before/After Comparison */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg border bg-red-500/5 border-red-500/20">
+                <div className="p-4 rounded-lg border bg-status-error/5 border-status-error/20">
                   <p className="text-xs text-muted-foreground mb-1">Valoare curentă</p>
                   <p className="font-mono font-bold text-lg">
                     {selectedInsight.currentValue}
                   </p>
                 </div>
-                <div className="p-4 rounded-lg border bg-emerald-500/5 border-emerald-500/20">
+                <div className="p-4 rounded-lg border bg-status-success/5 border-status-success/20">
                   <p className="text-xs text-muted-foreground mb-1">Valoare sugerată</p>
-                  <p className="font-mono font-bold text-lg text-emerald-500">
+                  <p className="font-mono font-bold text-lg text-status-success">
                     {selectedInsight.suggestedValue}
                   </p>
                 </div>
@@ -421,7 +421,7 @@ export function AIInsights({
                 {selectedInsight.estimatedImpact && (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Impact estimat:</span>
-                    <span className="font-medium text-emerald-500">
+                    <span className="font-medium text-status-success">
                       {selectedInsight.estimatedImpact}
                     </span>
                   </div>
@@ -517,7 +517,7 @@ export function AIInsightsBadge() {
   return (
     <Badge 
       variant="secondary" 
-      className="bg-purple-500/10 text-purple-500 border-purple-500/20"
+      className="bg-purple-500/10 text-primary border-purple-500/20"
     >
       <Sparkles className="h-3 w-3 mr-1" />
       {count}
