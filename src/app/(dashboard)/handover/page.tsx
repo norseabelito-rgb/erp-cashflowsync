@@ -19,11 +19,15 @@ import {
   Package,
   Truck,
   Info,
+  Timer,
+  List,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -45,17 +49,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 import { RequirePermission } from "@/hooks/use-permissions";
+import { cn } from "@/lib/utils";
 
 interface HandoverAWB {
   id: string;
@@ -107,13 +104,38 @@ export default function HandoverPage() {
   const [storeFilter, setStoreFilter] = useState<string>("all");
   const [scanInput, setScanInput] = useState("");
   const [lastScanResult, setLastScanResult] = useState<ScanResult | null>(null);
+  const [scanFeedback, setScanFeedback] = useState<"idle" | "success" | "error">("idle");
   const [finalizeDialog, setFinalizeDialog] = useState(false);
   const [c0AlertDialog, setC0AlertDialog] = useState<{
     open: boolean;
     awb: HandoverAWB | null;
   }>({ open: false, awb: null });
+  const [timeLeft, setTimeLeft] = useState("");
   const scanInputRef = useRef<HTMLInputElement>(null);
   const scanTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Countdown timer to 20:00
+  useEffect(() => {
+    const updateTimer = () => {
+      const now = new Date();
+      const deadline = new Date();
+      deadline.setHours(20, 0, 0, 0);
+
+      if (now > deadline) {
+        setTimeLeft("Sesiune finalizata");
+        return;
+      }
+
+      const diff = deadline.getTime() - now.getTime();
+      const hours = Math.floor(diff / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      setTimeLeft(`${hours}h ${mins}m`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch stores for filter
   const { data: storesData } = useQuery({
@@ -148,6 +170,13 @@ export default function HandoverPage() {
   };
   const session: HandoverSession | null = data?.data?.session || null;
 
+  // Split AWBs into pending and scanned
+  const pendingAwbs = awbs.filter(a => !a.handedOverAt);
+  const scannedAwbs = awbs.filter(a => a.handedOverAt);
+  const progressPercent = stats.totalIssued > 0
+    ? Math.round((stats.totalHandedOver / stats.totalIssued) * 100)
+    : 0;
+
   // Fetch C0 alerts
   const { data: c0AlertsData, refetch: refetchAlerts } = useQuery({
     queryKey: ["handover-c0-alerts", storeFilter],
@@ -174,31 +203,37 @@ export default function HandoverPage() {
     onSuccess: (result: ScanResult) => {
       setLastScanResult(result);
       setScanInput("");
-      
+
       if (result.success) {
+        setScanFeedback("success");
         toast({
-          title: result.type === "warning" ? "⚠️ Atenție" : "✓ Scanat",
+          title: result.type === "warning" ? "Atentie" : "Scanat",
           description: result.message,
         });
         queryClient.invalidateQueries({ queryKey: ["handover-today"] });
         queryClient.invalidateQueries({ queryKey: ["handover-c0-alerts"] });
       } else {
+        setScanFeedback("error");
         toast({
           title: "Eroare",
           description: result.message,
           variant: "destructive",
         });
       }
-      
+
+      // Reset feedback after animation
+      setTimeout(() => setScanFeedback("idle"), 2000);
       setTimeout(() => scanInputRef.current?.focus(), 100);
     },
     onError: (error: any) => {
+      setScanFeedback("error");
       toast({
         title: "Eroare",
         description: error.message || "Eroare la scanare",
         variant: "destructive",
       });
       setScanInput("");
+      setTimeout(() => setScanFeedback("idle"), 2000);
       setTimeout(() => scanInputRef.current?.focus(), 100);
     },
   });
@@ -212,7 +247,7 @@ export default function HandoverPage() {
     onSuccess: (result) => {
       setFinalizeDialog(false);
       if (result.success) {
-        toast({ title: "✓ Predarea a fost finalizată" });
+        toast({ title: "Predarea a fost finalizata" });
         queryClient.invalidateQueries({ queryKey: ["handover-today"] });
       } else {
         toast({ title: "Eroare", description: result.message, variant: "destructive" });
@@ -228,7 +263,7 @@ export default function HandoverPage() {
     },
     onSuccess: (result) => {
       if (result.success) {
-        toast({ title: "✓ Predarea a fost redeschisă" });
+        toast({ title: "Predarea a fost redeschisa" });
         queryClient.invalidateQueries({ queryKey: ["handover-today"] });
       } else {
         toast({ title: "Eroare", description: result.message, variant: "destructive" });
@@ -249,7 +284,7 @@ export default function HandoverPage() {
     onSuccess: (result) => {
       setC0AlertDialog({ open: false, awb: null });
       if (result.success) {
-        toast({ title: "✓ Alertă rezolvată" });
+        toast({ title: "Alerta rezolvata" });
         queryClient.invalidateQueries({ queryKey: ["handover-today"] });
         queryClient.invalidateQueries({ queryKey: ["handover-c0-alerts"] });
       }
@@ -262,7 +297,7 @@ export default function HandoverPage() {
     if (!scanInput.trim()) return;
     if (session?.status === "CLOSED") {
       toast({
-        title: "Predare închisă",
+        title: "Predare inchisa",
         description: "Redeschide predarea pentru a continua scanarea.",
         variant: "destructive",
       });
@@ -271,16 +306,14 @@ export default function HandoverPage() {
     scanMutation.mutate(scanInput.trim());
   }, [scanInput, session, scanMutation]);
 
-  // Auto-submit după scanare (scanner-ul trimite rapid caracterele)
+  // Auto-submit after scanning (scanner sends characters rapidly)
   const handleScanInputChange = useCallback((value: string) => {
     setScanInput(value);
-    
-    // Clear previous timeout
+
     if (scanTimeoutRef.current) {
       clearTimeout(scanTimeoutRef.current);
     }
-    
-    // Auto-submit după 100ms de la ultima tastă (scanner-ul e rapid)
+
     if (value.trim().length >= 5 && session?.status !== "CLOSED") {
       scanTimeoutRef.current = setTimeout(() => {
         scanMutation.mutate(value.trim());
@@ -311,7 +344,7 @@ export default function HandoverPage() {
 
   return (
     <TooltipProvider>
-      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="p-4 md:p-6 space-y-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -321,21 +354,29 @@ export default function HandoverPage() {
             </h1>
             <p className="text-muted-foreground text-sm md:text-base">{today}</p>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" size="sm" className="md:size-default" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Refresh</span>
+          <div className="flex gap-2 flex-wrap items-center">
+            {/* Countdown Timer */}
+            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
+              <Timer className="h-4 w-4 text-amber-600" />
+              <span className="text-sm font-medium text-amber-700">
+                Finalizare auto: {timeLeft}
+              </span>
+            </div>
+
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
             </Button>
             <Link href="/handover/not-handed">
-              <Button variant="outline" size="sm" className="md:size-default">
-                <XCircle className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">Nepredate</span>
+              <Button variant="outline" size="sm" className="border-orange-300 text-orange-700 hover:bg-orange-50">
+                <XCircle className="h-4 w-4 mr-2" />
+                Nepredate ({stats.totalNotHandedOver})
               </Button>
             </Link>
             <Link href="/handover/report">
-              <Button variant="outline" size="sm" className="md:size-default">
-                <FileText className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">Rapoarte</span>
+              <Button variant="outline" size="sm">
+                <FileText className="h-4 w-4 mr-2" />
+                Rapoarte
               </Button>
             </Link>
           </div>
@@ -346,16 +387,16 @@ export default function HandoverPage() {
           <Alert className="border-orange-500 bg-orange-50">
             <AlertTriangle className="h-4 w-4 text-orange-600" />
             <AlertTitle className="text-orange-800">
-              Atenție: {c0Alerts.length} AWB-uri ridicate de curier fără scanare internă
+              Atentie: {c0Alerts.length} AWB-uri ridicate de curier fara scanare interna
             </AlertTitle>
             <AlertDescription className="text-orange-700">
-              Aceste AWB-uri au primit confirmare C0 de la FanCourier dar nu au fost scanate în sistem.{" "}
+              Aceste AWB-uri au primit confirmare C0 de la FanCourier dar nu au fost scanate in sistem.{" "}
               <Button
                 variant="link"
                 className="text-orange-800 underline p-0 h-auto"
                 onClick={() => setC0AlertDialog({ open: true, awb: c0Alerts[0] })}
               >
-                Rezolvă alertele
+                Rezolva alertele
               </Button>
             </AlertDescription>
           </Alert>
@@ -365,10 +406,10 @@ export default function HandoverPage() {
         {session?.status === "CLOSED" && (
           <Alert className="border-red-500 bg-red-50">
             <Lock className="h-4 w-4 text-red-600" />
-            <AlertTitle className="text-red-800">Predarea este închisă</AlertTitle>
+            <AlertTitle className="text-red-800">Predarea este inchisa</AlertTitle>
             <AlertDescription className="text-red-700 flex items-center justify-between">
               <span>
-                Finalizată la {formatTime(session.closedAt)} de {session.closedBy || "System"}
+                Finalizata la {formatTime(session.closedAt)} de {session.closedBy || "System"}
               </span>
               <RequirePermission permission="handover.finalize">
                 <Button
@@ -385,217 +426,266 @@ export default function HandoverPage() {
           </Alert>
         )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total emise azi
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalIssued}</div>
-            </CardContent>
-          </Card>
-          <Card className="border-green-200 bg-green-50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-green-700">Scanate</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-700">{stats.totalHandedOver}</div>
-            </CardContent>
-          </Card>
-          <Card className="border-orange-200 bg-orange-50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-orange-700">De scanat</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-700">{stats.totalPending}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Din zile anterioare
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalFromPrevDays}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Procent</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.totalIssued > 0
-                  ? `${Math.round((stats.totalHandedOver / stats.totalIssued) * 100)}%`
-                  : "-"}
+        {/* Large Progress Bar */}
+        <Card className="border-2">
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center mb-2">
+              <div className="text-3xl font-bold">
+                {stats.totalHandedOver} / {stats.totalIssued}
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <div className={cn(
+                "text-3xl font-bold",
+                progressPercent >= 100 ? "text-emerald-600" :
+                progressPercent >= 75 ? "text-blue-600" :
+                progressPercent >= 50 ? "text-amber-600" : "text-orange-600"
+              )}>
+                {progressPercent}%
+              </div>
+            </div>
+            <Progress
+              value={progressPercent}
+              className="h-4"
+            />
+            <div className="flex justify-between mt-2 text-sm text-muted-foreground">
+              <span>Scanate: {stats.totalHandedOver}</span>
+              <span>De scanat: {stats.totalPending}</span>
+              {stats.totalFromPrevDays > 0 && (
+                <span className="text-amber-600">+{stats.totalFromPrevDays} din zile anterioare</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Scan Input + Filters */}
-        <div className="flex gap-4 items-end">
-          <div className="flex-1 max-w-md">
-            <label className="text-sm text-muted-foreground mb-2 block">
-              🔍 Scanează AWB:
-            </label>
-            <form onSubmit={handleScan} className="flex gap-2">
-              <Input
-                ref={scanInputRef}
-                value={scanInput}
-                onChange={(e) => handleScanInputChange(e.target.value)}
-                placeholder="Așteaptă scanare..."
-                className="text-lg font-mono"
-                disabled={session?.status === "CLOSED" || scanMutation.isPending}
-                autoFocus
-              />
-              <Button
-                type="submit"
-                disabled={!scanInput.trim() || session?.status === "CLOSED" || scanMutation.isPending}
-              >
-                {scanMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Scan className="h-4 w-4" />
+        {/* Scan Input with Visual Feedback */}
+        <Card className={cn(
+          "transition-all duration-300 border-2",
+          scanFeedback === "success" && "border-emerald-500 bg-emerald-50",
+          scanFeedback === "error" && "border-red-500 bg-red-50 animate-shake"
+        )}>
+          <CardContent className="pt-6">
+            <div className="flex gap-4 items-end">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <Scan className="h-5 w-5 text-muted-foreground" />
+                  <label className="text-sm font-medium">
+                    Scaneaza AWB:
+                  </label>
+                  {scanFeedback === "success" && (
+                    <CheckCircle2 className="h-6 w-6 text-emerald-500 animate-bounce" />
+                  )}
+                  {scanFeedback === "error" && (
+                    <XCircle className="h-6 w-6 text-red-500" />
+                  )}
+                </div>
+                <form onSubmit={handleScan} className="flex gap-2">
+                  <Input
+                    ref={scanInputRef}
+                    value={scanInput}
+                    onChange={(e) => handleScanInputChange(e.target.value)}
+                    placeholder="Asteapta scanare..."
+                    className="text-xl font-mono h-14"
+                    disabled={session?.status === "CLOSED" || scanMutation.isPending}
+                    autoFocus
+                  />
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="h-14 px-6"
+                    disabled={!scanInput.trim() || session?.status === "CLOSED" || scanMutation.isPending}
+                  >
+                    {scanMutation.isPending ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Scan className="h-5 w-5" />
+                    )}
+                  </Button>
+                </form>
+                {lastScanResult && (
+                  <p
+                    className={cn(
+                      "text-sm mt-2 font-medium",
+                      lastScanResult.type === "error" ? "text-red-600" :
+                      lastScanResult.type === "warning" ? "text-orange-600" : "text-emerald-600"
+                    )}
+                  >
+                    {lastScanResult.message}
+                  </p>
                 )}
-              </Button>
-            </form>
-            {lastScanResult && (
-              <p
-                className={`text-sm mt-1 ${
-                  lastScanResult.type === "error"
-                    ? "text-red-600"
-                    : lastScanResult.type === "warning"
-                    ? "text-orange-600"
-                    : "text-green-600"
-                }`}
-              >
-                {lastScanResult.message}
-              </p>
-            )}
-          </div>
+              </div>
 
-          <Select value={storeFilter} onValueChange={setStoreFilter}>
-            <SelectTrigger className="w-48">
-              <Store className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Magazin" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Toate magazinele</SelectItem>
-              {stores.map((store: any) => (
-                <SelectItem key={store.id} value={store.id}>
-                  {store.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <Select value={storeFilter} onValueChange={setStoreFilter}>
+                <SelectTrigger className="w-48 h-14">
+                  <Store className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Magazin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate magazinele</SelectItem>
+                  {stores.map((store: any) => (
+                    <SelectItem key={store.id} value={store.id}>
+                      {store.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-          <RequirePermission permission="handover.finalize">
-            {session?.status === "OPEN" && (
-              <Button variant="destructive" onClick={() => setFinalizeDialog(true)}>
-                <Lock className="h-4 w-4 mr-2" />
-                Finalizează predarea
-              </Button>
-            )}
-          </RequirePermission>
-        </div>
+              <RequirePermission permission="handover.finalize">
+                {session?.status === "OPEN" && (
+                  <Button
+                    variant="destructive"
+                    size="lg"
+                    className="h-14"
+                    onClick={() => setFinalizeDialog(true)}
+                  >
+                    <Lock className="h-4 w-4 mr-2" />
+                    Finalizeaza
+                  </Button>
+                )}
+              </RequirePermission>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* AWB List */}
+        {/* Split Screen Layout */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
-        ) : awbs.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
-              <p className="text-lg font-medium">Toate AWB-urile au fost scanate!</p>
-              <p className="text-muted-foreground">Nu mai sunt colete de predat pentru azi.</p>
-            </CardContent>
-          </Card>
         ) : (
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>AWB</TableHead>
-                    <TableHead>Comandă</TableHead>
-                    <TableHead>Magazin</TableHead>
-                    <TableHead>Destinatar</TableHead>
-                    <TableHead>Produse</TableHead>
-                    <TableHead>Status FanCourier</TableHead>
-                    <TableHead>Status intern</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {awbs.map((awb) => (
-                    <TableRow key={awb.id} className={awb.hasC0WithoutScan ? "bg-orange-50" : ""}>
-                      <TableCell className="font-mono font-medium">{awb.awbNumber || "-"}</TableCell>
-                      <TableCell>
-                        <Link href={`/orders/${awb.orderId}`} className="text-blue-600 hover:underline">
-                          #{awb.orderNumber}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{awb.storeName}</TableCell>
-                      <TableCell>
-                        <div>{awb.recipientName}</div>
-                        <div className="text-xs text-muted-foreground">{awb.recipientCity}</div>
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate text-sm">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="cursor-help">{awb.products}</span>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-sm">{awb.products}</TooltipContent>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell>
-                        {awb.fanCourierStatusCode ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Badge variant="outline" className="cursor-help">
-                                <Truck className="h-3 w-3 mr-1" />
-                                {awb.fanCourierStatusCode} - {awb.fanCourierStatusName}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Left: Pending AWBs */}
+            <Card className="border-orange-200">
+              <CardHeader className="bg-orange-50 border-b border-orange-200">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-orange-700">
+                    <Clock className="h-5 w-5" />
+                    De scanat ({pendingAwbs.length})
+                  </div>
+                  <Badge variant="outline" className="text-orange-700 border-orange-300">
+                    AWB-uri generate azi, nepredete inca
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <ScrollArea className="h-[400px]">
+                  {pendingAwbs.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                      <CheckCircle2 className="h-12 w-12 text-emerald-500 mb-2" />
+                      <p>Toate scanate!</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {pendingAwbs.map((awb) => (
+                        <div
+                          key={awb.id}
+                          className={cn(
+                            "p-3 hover:bg-muted/50 transition-colors",
+                            awb.hasC0WithoutScan && "bg-orange-50"
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-mono font-bold text-lg">{awb.awbNumber || "-"}</div>
+                              <div className="text-sm text-muted-foreground">
+                                #{awb.orderNumber} - {awb.storeName}
+                              </div>
+                            </div>
+                            {awb.hasC0WithoutScan ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-orange-500 text-orange-700"
+                                onClick={() => setC0AlertDialog({ open: true, awb })}
+                              >
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                C0
+                              </Button>
+                            ) : (
+                              <Badge variant="outline" className="text-orange-600">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Asteapta
                               </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent>{awb.fanCourierStatusDesc}</TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">- fără evenimente</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {awb.handedOverAt ? (
-                          <Badge className="bg-green-100 text-green-800">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            {formatTime(awb.handedOverAt)}
-                          </Badge>
-                        ) : awb.hasC0WithoutScan ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-orange-500 text-orange-700"
-                            onClick={() => setC0AlertDialog({ open: true, awb })}
-                          >
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            C0 fără scanare
-                          </Button>
-                        ) : (
-                          <Badge variant="outline" className="text-orange-600">
-                            <Clock className="h-3 w-3 mr-1" />
-                            Așteaptă scanare
-                          </Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                            )}
+                          </div>
+                          <div className="text-sm mt-1">
+                            <span className="font-medium">{awb.recipientName}</span>
+                            <span className="text-muted-foreground"> - {awb.recipientCity}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+
+            {/* Right: Scanned AWBs */}
+            <Card className="border-emerald-200">
+              <CardHeader className="bg-emerald-50 border-b border-emerald-200">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-emerald-700">
+                    <CheckCircle2 className="h-5 w-5" />
+                    Scanate ({scannedAwbs.length})
+                  </div>
+                  <Badge variant="outline" className="text-emerald-700 border-emerald-300">
+                    AWB-uri predate in aceasta sesiune
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <ScrollArea className="h-[400px]">
+                  {scannedAwbs.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                      <Package className="h-12 w-12 mb-2" />
+                      <p>Niciun AWB scanat inca</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {scannedAwbs.map((awb) => (
+                        <div key={awb.id} className="p-3 hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-mono font-bold text-lg">{awb.awbNumber || "-"}</div>
+                              <div className="text-sm text-muted-foreground">
+                                #{awb.orderNumber} - {awb.storeName}
+                              </div>
+                            </div>
+                            <Badge className="bg-emerald-100 text-emerald-800">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              {formatTime(awb.handedOverAt)}
+                            </Badge>
+                          </div>
+                          <div className="text-sm mt-1">
+                            <span className="font-medium">{awb.recipientName}</span>
+                            <span className="text-muted-foreground"> - {awb.recipientCity}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Quick Actions */}
+        {stats.totalPending > 0 && session?.status === "OPEN" && (
+          <Card className="bg-muted/50">
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  <Info className="h-4 w-4 inline mr-1" />
+                  {stats.totalPending} AWB-uri nepredate. La finalizare vor fi marcate automat ca &quot;Nepredat&quot;.
+                </div>
+                <div className="flex gap-2">
+                  <Link href="/handover/not-handed">
+                    <Button variant="outline" size="sm">
+                      <List className="h-4 w-4 mr-2" />
+                      Vezi toate nepredatele
+                    </Button>
+                  </Link>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -604,7 +694,7 @@ export default function HandoverPage() {
         <Dialog open={finalizeDialog} onOpenChange={setFinalizeDialog}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Finalizează predarea?</DialogTitle>
+              <DialogTitle>Finalizeaza predarea?</DialogTitle>
               <DialogDescription>
                 Toate AWB-urile nescanate ({stats.totalPending}) vor fi marcate ca NEPREDAT.
               </DialogDescription>
@@ -614,7 +704,7 @@ export default function HandoverPage() {
                 <span>Total AWB-uri:</span>
                 <span className="font-bold">{stats.totalIssued}</span>
               </div>
-              <div className="flex justify-between text-green-600">
+              <div className="flex justify-between text-emerald-600">
                 <span>Scanate:</span>
                 <span className="font-bold">{stats.totalHandedOver}</span>
               </div>
@@ -625,7 +715,7 @@ export default function HandoverPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setFinalizeDialog(false)}>
-                Anulează
+                Anuleaza
               </Button>
               <Button
                 variant="destructive"
@@ -637,7 +727,7 @@ export default function HandoverPage() {
                 ) : (
                   <Lock className="h-4 w-4 mr-2" />
                 )}
-                Finalizează
+                Finalizeaza
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -652,7 +742,7 @@ export default function HandoverPage() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-orange-700">
                 <AlertTriangle className="h-5 w-5" />
-                Confirmare automată de ridicare
+                Confirmare automata de ridicare
               </DialogTitle>
             </DialogHeader>
             {c0AlertDialog.awb && (
@@ -661,7 +751,7 @@ export default function HandoverPage() {
                   <p>
                     AWB-ul <strong>{c0AlertDialog.awb.awbNumber}</strong> (Comanda{" "}
                     <strong>#{c0AlertDialog.awb.orderNumber}</strong>) a fost marcat ca
-                    "Ridicat" de FanCourier, dar NU a fost scanat în sistem.
+                    &quot;Ridicat&quot; de FanCourier, dar NU a fost scanat in sistem.
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Data ridicare FanCourier:{" "}
@@ -669,11 +759,11 @@ export default function HandoverPage() {
                       ? new Date(c0AlertDialog.awb.c0ReceivedAt).toLocaleString("ro-RO")
                       : "-"}
                   </p>
-                  <p className="font-medium">Ce doriți să faceți?</p>
+                  <p className="font-medium">Ce doriti sa faceti?</p>
                 </div>
                 <DialogFooter className="flex-col sm:flex-row gap-2">
                   <Button
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-emerald-600 hover:bg-emerald-700"
                     onClick={() =>
                       resolveC0Mutation.mutate({
                         awbId: c0AlertDialog.awb!.id,
@@ -683,7 +773,7 @@ export default function HandoverPage() {
                     disabled={resolveC0Mutation.isPending}
                   >
                     <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Marchează predat
+                    Marcheaza predat
                   </Button>
                   <Button
                     variant="outline"
@@ -695,7 +785,7 @@ export default function HandoverPage() {
                     }
                     disabled={resolveC0Mutation.isPending}
                   >
-                    Lasă nescanat (investighează)
+                    Lasa nescanat (investigheaza)
                   </Button>
                 </DialogFooter>
               </>
