@@ -46,8 +46,8 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         store: { select: { name: true } },
-        invoice: { select: { invoiceNumber: true, status: true } },
-        awb: { select: { trackingNumber: true, status: true, carrier: true } },
+        invoice: { select: { smartbillNumber: true, smartbillSeries: true, status: true } },
+        awb: { select: { awbNumber: true, currentStatus: true, serviceType: true } },
         lineItems: {
           select: {
             title: true,
@@ -100,6 +100,10 @@ export async function GET(request: NextRequest) {
         .map((li) => `${li.sku || "-"}: ${li.title} x${li.quantity}`)
         .join("; ");
 
+      const invoiceNumber = o.invoice?.smartbillNumber
+        ? `${o.invoice.smartbillSeries || ""}${o.invoice.smartbillNumber}`
+        : "";
+
       return [
         escapeCsvField(o.shopifyOrderNumber),
         formatDate(o.createdAt),
@@ -121,11 +125,11 @@ export async function GET(request: NextRequest) {
         o.currency,
         escapeCsvField(o.financialStatus || ""),
         escapeCsvField(o.fulfillmentStatus || ""),
-        escapeCsvField(o.invoice?.invoiceNumber || ""),
+        escapeCsvField(invoiceNumber),
         escapeCsvField(o.invoice?.status || ""),
-        escapeCsvField(o.awb?.trackingNumber || ""),
-        escapeCsvField(o.awb?.carrier || ""),
-        escapeCsvField(o.awb?.status || ""),
+        escapeCsvField(o.awb?.awbNumber || ""),
+        escapeCsvField(o.awb?.serviceType || ""),
+        escapeCsvField(o.awb?.currentStatus || ""),
         escapeCsvField(productsStr),
       ];
     });
@@ -173,14 +177,19 @@ function formatDate(date: Date): string {
 function getStatusLabel(status: OrderStatus): string {
   const labels: Record<OrderStatus, string> = {
     PENDING: "În așteptare",
-    PROCESSING: "În procesare",
-    INVOICE_GENERATED: "Factură generată",
-    AWB_GENERATED: "AWB generat",
-    SHIPPED: "Expediat",
-    DELIVERED: "Livrat",
-    CANCELLED: "Anulat",
-    RETURNED: "Returnat",
-    ON_HOLD: "În așteptare",
+    VALIDATED: "Validată",
+    VALIDATION_FAILED: "Validare eșuată",
+    INVOICE_PENDING: "Așteaptă factură",
+    INVOICE_ERROR: "Eroare factură",
+    INVOICED: "Facturată",
+    PICKING: "În picking",
+    PACKED: "Împachetată",
+    AWB_PENDING: "Așteaptă AWB",
+    AWB_ERROR: "Eroare AWB",
+    SHIPPED: "Expediată",
+    DELIVERED: "Livrată",
+    RETURNED: "Returnată",
+    CANCELLED: "Anulată",
   };
   return labels[status] || status;
 }
