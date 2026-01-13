@@ -24,6 +24,8 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Download,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -271,6 +273,7 @@ export default function OrdersPage() {
   // State pentru erori de procesare
   const [processErrors, setProcessErrors] = useState<ProcessError[]>([]);
   const [errorsDialogOpen, setErrorsDialogOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: ordersData, isLoading: ordersLoading } = useQuery({
     queryKey: ["orders", statusFilter, storeFilter, searchQuery, startDate, endDate, page, limit],
@@ -603,6 +606,36 @@ export default function OrdersPage() {
     });
   };
 
+  const handleExportOrders = async () => {
+    try {
+      setIsExporting(true);
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      if (storeFilter !== "all") params.set("storeId", storeFilter);
+      if (startDate) params.set("startDate", startDate);
+      if (endDate) params.set("endDate", endDate);
+
+      const res = await fetch(`/api/orders/export?${params}`);
+      if (!res.ok) throw new Error("Export failed");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `comenzi_${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({ title: "Export finalizat", description: "Fișierul CSV a fost descărcat" });
+    } catch (error: any) {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const getValidationIcon = (status: string) => {
     if (status === "PASSED") return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
     if (status === "FAILED") return <XCircle className="h-4 w-4 text-red-500" />;
@@ -617,17 +650,40 @@ export default function OrdersPage() {
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Comenzi</h1>
           <p className="text-muted-foreground mt-1 text-sm md:text-base">Gestionează comenzile din toate magazinele</p>
         </div>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button onClick={() => syncMutation.mutate()} loading={syncMutation.isPending} size="sm" className="md:size-default">
-              <RefreshCw className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Sincronizare</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="max-w-xs">
-            <p>Sincronizează comenzile noi din toate magazinele Shopify. Actualizează statusurile și validează adresele.</p>
-          </TooltipContent>
-        </Tooltip>
+        <div className="flex items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                onClick={handleExportOrders}
+                disabled={isExporting}
+                size="sm"
+                className="md:size-default"
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 md:mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 md:mr-2" />
+                )}
+                <span className="hidden md:inline">Export CSV</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs">
+              <p>Exportă comenzile filtrate într-un fișier CSV. Respectă filtrele active (status, magazin, dată).</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button onClick={() => syncMutation.mutate()} loading={syncMutation.isPending} size="sm" className="md:size-default">
+                <RefreshCw className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Sincronizare</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs">
+              <p>Sincronizează comenzile noi din toate magazinele Shopify. Actualizează statusurile și validează adresele.</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
       </div>
 
       <Card className="mb-4 md:mb-6">
@@ -815,8 +871,12 @@ export default function OrdersPage() {
                   <tr><td colSpan={9} className="p-8 text-center"><ShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-50" /><p className="text-muted-foreground">Nu există comenzi</p></td></tr>
                 ) : (
                   orders.map((order) => (
-                    <tr key={order.id} className={cn("border-b hover:bg-muted/50 transition-colors", selectedOrders.includes(order.id) && "bg-primary/5")}>
-                      <td className="p-4"><Checkbox checked={selectedOrders.includes(order.id)} onCheckedChange={() => handleSelectOrder(order.id)} /></td>
+                    <tr
+                      key={order.id}
+                      className={cn("border-b hover:bg-muted/50 transition-colors cursor-pointer", selectedOrders.includes(order.id) && "bg-primary/5")}
+                      onClick={() => handleViewOrder(order)}
+                    >
+                      <td className="p-4" onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedOrders.includes(order.id)} onCheckedChange={() => handleSelectOrder(order.id)} /></td>
                       <td className="p-4">
                         <span className="font-medium">{order.shopifyOrderNumber}</span>
                         <div className="flex items-center gap-1 mt-1"><Badge variant="outline" className="text-xs">{order.store.name}</Badge></div>
@@ -849,10 +909,10 @@ export default function OrdersPage() {
                             <Badge variant="neutral" title={order.invoice.errorMessage || ""}>În așteptare</Badge>
                           )
                         ) : (
-                          <Button size="sm" variant="ghost" onClick={() => invoiceMutation.mutate([order.id])} disabled={invoiceMutation.isPending}><FileText className="h-4 w-4" /></Button>
+                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); invoiceMutation.mutate([order.id]); }} disabled={invoiceMutation.isPending}><FileText className="h-4 w-4" /></Button>
                         )}
                       </td>
-                      <td className="p-4">
+                      <td className="p-4" onClick={(e) => e.stopPropagation()}>
                         {order.awb?.awbNumber ? (
                           (() => {
                             const awbInfo = getAWBStatusInfo(order.awb);
@@ -890,10 +950,10 @@ export default function OrdersPage() {
                             Eroare
                           </Badge>
                         ) : (
-                          <Button size="sm" variant="ghost" onClick={() => handleOpenAwbModal(order.id)} disabled={awbMutation.isPending}><Truck className="h-4 w-4" /></Button>
+                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpenAwbModal(order.id); }} disabled={awbMutation.isPending}><Truck className="h-4 w-4" /></Button>
                         )}
                       </td>
-                      <td className="p-4"><Button size="sm" variant="ghost" onClick={() => handleViewOrder(order)}><Eye className="h-4 w-4" /></Button></td>
+                      <td className="p-4" onClick={(e) => e.stopPropagation()}><Button size="sm" variant="ghost" onClick={() => handleViewOrder(order)}><Eye className="h-4 w-4" /></Button></td>
                     </tr>
                   ))
                 )}

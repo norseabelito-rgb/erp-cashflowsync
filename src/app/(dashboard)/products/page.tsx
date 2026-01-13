@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -23,6 +24,9 @@ import {
   Package,
   Upload,
   Loader2,
+  Download,
+  FileUp,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -133,6 +137,7 @@ interface InventoryItem {
 }
 
 export default function ProductsPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -152,6 +157,10 @@ export default function ProductsPage() {
   } | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importMode, setImportMode] = useState<"upsert" | "create" | "update">("upsert");
+  const [isExporting, setIsExporting] = useState(false);
 
   // Form state pentru produs nou
   const [newProduct, setNewProduct] = useState({
@@ -367,6 +376,33 @@ export default function ProductsPage() {
     },
   });
 
+  // Import products mutation
+  const importProductsMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const res = await fetch("/api/products/import", {
+        method: "POST",
+        body: formData,
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: ["products"] });
+        setImportDialogOpen(false);
+        setImportFile(null);
+        toast({
+          title: "Import finalizat",
+          description: data.message,
+        });
+      } else {
+        toast({ title: "Eroare", description: data.error, variant: "destructive" });
+      }
+    },
+    onError: (error: any) => {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+    },
+  });
+
   const resetNewProductForm = () => {
     setNewProduct({
       sku: "",
@@ -396,6 +432,43 @@ export default function ProductsPage() {
       stock: newProduct.stock || 0,
       inventoryItemId: newProduct.inventoryItemId || undefined,
     });
+  };
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const params = new URLSearchParams();
+      if (categoryFilter !== "all") params.set("categoryId", categoryFilter);
+      if (channelFilter !== "all") params.set("channelId", channelFilter);
+
+      const res = await fetch(`/api/products/export?${params}`);
+      if (!res.ok) throw new Error("Export failed");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `produse_${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({ title: "Export finalizat", description: "Fișierul CSV a fost descărcat" });
+    } catch (error: any) {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImport = () => {
+    if (!importFile) return;
+
+    const formData = new FormData();
+    formData.append("file", importFile);
+    formData.append("mode", importMode);
+    importProductsMutation.mutate(formData);
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -512,6 +585,24 @@ export default function ProductsPage() {
                 <span className="hidden md:inline">Mapare Inventar</span>
               </Button>
             </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="md:size-default">
+                  <FileSpreadsheet className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Import/Export</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExport} disabled={isExporting}>
+                  <Download className="h-4 w-4 mr-2" />
+                  {isExporting ? "Se exportă..." : "Export CSV"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
+                  <FileUp className="h-4 w-4 mr-2" />
+                  Import CSV
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button size="sm" className="md:size-default" onClick={() => setCreateDialogOpen(true)}>
               <Plus className="h-4 w-4 md:mr-2" />
               <span className="hidden md:inline">Produs Nou</span>
@@ -668,8 +759,12 @@ export default function ProductsPage() {
                   </TableRow>
                 ) : (
                   products.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell>
+                    <TableRow
+                      key={product.id}
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/products/${product.id}`)}
+                    >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedProducts.includes(product.id)}
                           onCheckedChange={(checked) => handleSelectProduct(product.id, checked as boolean)}
@@ -734,7 +829,7 @@ export default function ProductsPage() {
                       const pc = product.channels.find(c => c.channelId === channel.id);
                       
                       return (
-                        <TableCell key={channel.id} className="text-center hidden lg:table-cell">
+                        <TableCell key={channel.id} className="text-center hidden lg:table-cell" onClick={(e) => e.stopPropagation()}>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <button
@@ -761,7 +856,7 @@ export default function ProductsPage() {
                         </TableCell>
                       );
                     })}
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">
@@ -1119,6 +1214,86 @@ export default function ProductsPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Import Dialog */}
+        <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Import Produse din CSV</DialogTitle>
+              <DialogDescription>
+                Încarcă un fișier CSV cu produse pentru a le importa în sistem
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Fișier CSV</Label>
+                <Input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Coloane acceptate: SKU, Titlu, Pret, Descriere, Categorie, Tags, etc.
+                </p>
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Mod import</Label>
+                <Select value={importMode} onValueChange={(v: "upsert" | "create" | "update") => setImportMode(v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="upsert">Creare + Actualizare (recomandat)</SelectItem>
+                    <SelectItem value="create">Doar creare produse noi</SelectItem>
+                    <SelectItem value="update">Doar actualizare existente</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {importMode === "upsert" && "Creează produse noi și actualizează cele existente (după SKU)"}
+                  {importMode === "create" && "Ignoră produsele care există deja în sistem"}
+                  {importMode === "update" && "Ignoră produsele care nu există în sistem"}
+                </p>
+              </div>
+
+              <div className="p-4 bg-muted rounded-lg">
+                <h4 className="font-medium mb-2">Format CSV</h4>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Prima linie trebuie să conțină antetul coloanelor. Coloane obligatorii:
+                </p>
+                <ul className="text-sm text-muted-foreground list-disc list-inside">
+                  <li><strong>SKU</strong> - Cod unic produs</li>
+                  <li><strong>Titlu</strong> - Numele produsului</li>
+                  <li><strong>Pret</strong> - Prețul de vânzare</li>
+                </ul>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Poți exporta produsele existente pentru a vedea formatul exact.
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setImportDialogOpen(false); setImportFile(null); }}>
+                Anulează
+              </Button>
+              <Button
+                onClick={handleImport}
+                disabled={!importFile || importProductsMutation.isPending}
+              >
+                {importProductsMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Se importă...
+                  </>
+                ) : (
+                  <>
+                    <FileUp className="h-4 w-4 mr-2" />
+                    Importă
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   );

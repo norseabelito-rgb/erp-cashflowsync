@@ -71,8 +71,7 @@ async function setupSuperAdminRole() {
       },
     });
   }
-  console.log("✅ Permisiuni create/verificate");
-
+  
   // 2. Creează rolul SUPER_ADMIN dacă nu există
   let role = await prisma.role.findFirst({
     where: { name: "SUPER_ADMIN" },
@@ -86,8 +85,7 @@ async function setupSuperAdminRole() {
         isSystem: true,
       },
     });
-    console.log("✅ Rol SUPER_ADMIN creat");
-  }
+      }
 
   // 3. Asignează toate permisiunile la rol
   const allPermissions = await prisma.permission.findMany();
@@ -107,7 +105,6 @@ async function setupSuperAdminRole() {
       },
     });
   }
-  console.log("✅ Permisiuni asignate la SUPER_ADMIN");
 
   return role;
 }
@@ -131,7 +128,6 @@ async function assignSuperAdminToUser(userId: string, roleId: string) {
         roleId,
       },
     });
-    console.log("✅ Rol SUPER_ADMIN asignat userului");
   }
 }
 
@@ -174,10 +170,7 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Parolă", type: "password" },
       },
       async authorize(credentials) {
-        console.log("🔐 Credentials login attempt:", credentials?.email);
-        
         if (!credentials?.email || !credentials?.password) {
-          console.log("❌ Email sau parola lipsesc");
           throw new Error("Email și parola sunt obligatorii");
         }
 
@@ -185,37 +178,24 @@ export const authOptions: NextAuthOptions = {
           where: { email: credentials.email.toLowerCase() },
         });
 
-        console.log("👤 User găsit:", user ? {
-          id: user.id,
-          email: user.email,
-          hasPassword: !!user.password,
-          isActive: user.isActive,
-        } : "NU EXISTĂ");
-
         if (!user) {
-          console.log("❌ Nu există cont cu acest email");
           throw new Error("Nu există un cont cu acest email");
         }
 
         if (!user.password) {
-          console.log("❌ User-ul nu are parolă setată (probabil creat cu Google)");
           throw new Error("Acest cont folosește autentificarea cu Google");
         }
 
         if (!user.isActive) {
-          console.log("❌ Contul este dezactivat");
           throw new Error("Contul a fost dezactivat");
         }
 
         const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-        console.log("🔑 Parolă validă:", isPasswordValid);
 
         if (!isPasswordValid) {
-          console.log("❌ Parola incorectă");
           throw new Error("Parola este incorectă");
         }
 
-        console.log("✅ Autentificare reușită pentru:", user.email);
         return {
           id: user.id,
           email: user.email,
@@ -245,7 +225,6 @@ export const authOptions: NextAuthOptions = {
           
           if (!existingAccount && account.providerAccountId) {
             // Leagă contul Google de utilizatorul existent
-            console.log(`🔗 Linking Google account for ${user.email}...`);
             try {
               await prisma.account.create({
                 data: {
@@ -260,12 +239,10 @@ export const authOptions: NextAuthOptions = {
                   id_token: account.id_token,
                 },
               });
-              console.log(`✅ Google account linked for ${user.email}`);
-              
+
               // Actualizează user.id pentru a folosi id-ul existent
               user.id = existingUser.id;
-            } catch (linkError) {
-              console.error(`❌ Error linking Google account:`, linkError);
+            } catch {
               // Continuă oricum - poate contul era deja legat
             }
           } else if (existingAccount) {
@@ -297,11 +274,8 @@ export const authOptions: NextAuthOptions = {
           });
           
           if (!existingUser && !hasInvitation) {
-            console.log(`❌ Auth respinsă: ${user.email} nu e în ALLOWED_EMAILS, nu există în sistem și nu are invitație`);
             return false; // Respinge autentificarea
           }
-          
-          console.log(`✅ Auth permisă pentru ${user.email} (user existent: ${!!existingUser}, invitație: ${!!hasInvitation})`);
         }
       }
 
@@ -331,44 +305,33 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
     async jwt({ token, user, trigger }) {
-      console.log("🎫 JWT Callback:", { 
-        hasUser: !!user, 
-        trigger, 
-        tokenId: token.id,
-        userEmail: user?.email 
-      });
-      
       // La primul login, adaugă datele user-ului în token
       if (user) {
         token.id = user.id;
-        console.log("🎫 JWT: Setting token.id =", user.id);
-        
+
         // Verifică dacă e primul utilizator - devine SuperAdmin automat
         const userCount = await prisma.user.count();
-        
+
         if (userCount === 1) {
-          // 🎉 Primul utilizator - creează rol SUPER_ADMIN și asignează
-          console.log("🎉 Primul utilizator detectat - asignare SUPER_ADMIN...");
-          
+          // Primul utilizator - creează rol SUPER_ADMIN și asignează
           try {
             const superAdminRole = await setupSuperAdminRole();
-            
+
             // Setează userul ca SUPER_ADMIN
             await prisma.user.update({
               where: { id: user.id },
-              data: { 
+              data: {
                 isSuperAdmin: true,
                 isActive: true,
               },
             });
-            
+
             // Asignează rolul
             await assignSuperAdminToUser(user.id, superAdminRole.id);
-            
+
             token.isSuperAdmin = true;
-            console.log("✅ Utilizator setat ca SUPER_ADMIN");
-          } catch (error) {
-            console.error("❌ Eroare la setup SUPER_ADMIN:", error);
+          } catch {
+            // Silent fail - rolul va fi setat manual dacă e nevoie
           }
         } else {
           // Nu e primul - fetch datele din DB
@@ -377,10 +340,9 @@ export const authOptions: NextAuthOptions = {
             select: { isSuperAdmin: true },
           });
           token.isSuperAdmin = dbUser?.isSuperAdmin || false;
-          console.log("🎫 JWT: isSuperAdmin =", token.isSuperAdmin);
         }
       }
-      
+
       // Refresh la sesiune - re-fetch isSuperAdmin
       if (trigger === "update" && token.id) {
         const dbUser = await prisma.user.findUnique({
@@ -389,23 +351,16 @@ export const authOptions: NextAuthOptions = {
         });
         token.isSuperAdmin = dbUser?.isSuperAdmin || false;
       }
-      
-      console.log("🎫 JWT: Returning token with id =", token.id);
+
       return token;
     },
     async session({ session, token }) {
-      console.log("📍 Session Callback:", { 
-        tokenId: token.id, 
-        sessionUserEmail: session.user?.email 
-      });
-      
       // Adaugă datele din token în sesiune
       if (session.user) {
         session.user.id = token.id as string;
         session.user.isSuperAdmin = token.isSuperAdmin as boolean || false;
       }
-      
-      console.log("📍 Session: Returning session for user id =", session.user?.id);
+
       return session;
     },
     async redirect({ url, baseUrl }) {
