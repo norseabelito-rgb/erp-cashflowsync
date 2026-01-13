@@ -1219,22 +1219,39 @@ export default function ProductsPage() {
         <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Import Produse din CSV</DialogTitle>
+              <DialogTitle>Import Produse din Excel</DialogTitle>
               <DialogDescription>
-                Încarcă un fișier CSV cu produse pentru a le importa în sistem
+                Încarcă un fișier Excel (.xlsx) cu produse pentru a le importa în sistem
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div className="text-sm">
+                  <p className="font-medium">Descarcă template Excel</p>
+                  <p className="text-muted-foreground">Template cu coloanele necesare</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const a = document.createElement("a");
+                    a.href = "/api/products/import";
+                    a.download = "template_produse.xlsx";
+                    a.click();
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Template
+                </Button>
+              </div>
+
               <div className="grid gap-2">
-                <Label>Fișier CSV</Label>
+                <Label>Fișier Excel</Label>
                 <Input
                   type="file"
-                  accept=".csv"
+                  accept=".xlsx,.xls"
                   onChange={(e) => setImportFile(e.target.files?.[0] || null)}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Coloane acceptate: SKU, Titlu, Pret, Descriere, Categorie, Tags, etc.
-                </p>
               </div>
 
               <div className="grid gap-2">
@@ -1256,19 +1273,13 @@ export default function ProductsPage() {
                 </p>
               </div>
 
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Format CSV</h4>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Prima linie trebuie să conțină antetul coloanelor. Coloane obligatorii:
-                </p>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2 text-sm">Coloane obligatorii</h4>
                 <ul className="text-sm text-muted-foreground list-disc list-inside">
                   <li><strong>SKU</strong> - Cod unic produs</li>
                   <li><strong>Titlu</strong> - Numele produsului</li>
-                  <li><strong>Pret</strong> - Prețul de vânzare</li>
+                  <li><strong>Preț</strong> - Prețul de vânzare</li>
                 </ul>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Poți exporta produsele existente pentru a vedea formatul exact.
-                </p>
               </div>
             </div>
             <DialogFooter>

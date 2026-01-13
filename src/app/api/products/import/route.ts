@@ -4,26 +4,14 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 import { Decimal } from "@prisma/client/runtime/library";
+import {
+  parseProductExcel,
+  createExcelTemplate,
+  PRODUCT_TEMPLATE_HEADERS,
+  ProductImportRow,
+} from "@/lib/excel";
 
-interface ImportRow {
-  sku: string;
-  barcode?: string;
-  title: string;
-  description?: string;
-  price: number;
-  compareAtPrice?: number;
-  category?: string;
-  tags?: string[];
-  weight?: number;
-  warehouseLocation?: string;
-  stock?: number;
-  isActive?: boolean;
-  isComposite?: boolean;
-  trendyolBarcode?: string;
-  trendyolBrandName?: string;
-}
-
-// POST /api/products/import - Import products from CSV
+// POST /api/products/import - Import products from Excel
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -38,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     const contentType = request.headers.get("content-type") || "";
 
-    let rows: ImportRow[] = [];
+    let rows: ProductImportRow[] = [];
     let mode: "create" | "update" | "upsert" = "upsert";
 
     if (contentType.includes("multipart/form-data")) {
@@ -51,8 +39,16 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Fișierul este obligatoriu" }, { status: 400 });
       }
 
-      const text = await file.text();
-      rows = parseCsv(text);
+      // Check file extension
+      const fileName = file.name.toLowerCase();
+      if (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls")) {
+        return NextResponse.json({
+          error: "Tip fișier invalid. Încarcă un fișier Excel (.xlsx sau .xls)"
+        }, { status: 400 });
+      }
+
+      const buffer = await file.arrayBuffer();
+      rows = parseProductExcel(buffer);
     } else {
       // Handle JSON payload for preview
       const body = await request.json();
@@ -61,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (rows.length === 0) {
-      return NextResponse.json({ error: "Nu există date de importat" }, { status: 400 });
+      return NextResponse.json({ error: "Nu există date de importat. Verifică că fișierul Excel conține date." }, { status: 400 });
     }
 
     // Validate and process
@@ -164,11 +160,11 @@ export async function POST(request: NextRequest) {
           });
           results.created++;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         results.errors.push({
           row: rowNum,
           sku: row.sku || "",
-          error: error.message || "Eroare necunoscută",
+          error: error instanceof Error ? error.message : "Eroare necunoscută",
         });
         results.skipped++;
       }
@@ -179,155 +175,30 @@ export async function POST(request: NextRequest) {
       message: `Import finalizat: ${results.created} create, ${results.updated} actualizate, ${results.skipped} omise`,
       results,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error importing products:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : "Eroare la import"
+    }, { status: 500 });
   }
 }
 
-function parseCsv(text: string): ImportRow[] {
-  // Remove BOM if present
-  const cleanText = text.replace(/^\uFEFF/, "");
+// GET /api/products/import - Download template
+export async function GET() {
+  try {
+    const buffer = createExcelTemplate(PRODUCT_TEMPLATE_HEADERS, "Produse");
 
-  const lines = cleanText.split(/\r?\n/).filter((line) => line.trim());
-  if (lines.length < 2) return [];
-
-  // Parse header
-  const headerLine = lines[0];
-  const headers = parseCsvLine(headerLine).map((h) => h.toLowerCase().trim());
-
-  // Column mapping (Romanian to field names)
-  const columnMap: Record<string, keyof ImportRow> = {
-    "sku": "sku",
-    "barcode": "barcode",
-    "titlu": "title",
-    "title": "title",
-    "descriere": "description",
-    "description": "description",
-    "pret": "price",
-    "price": "price",
-    "pret_comparat": "compareAtPrice",
-    "compareatprice": "compareAtPrice",
-    "categorie": "category",
-    "category": "category",
-    "tags": "tags",
-    "greutate_kg": "weight",
-    "weight": "weight",
-    "locatie_depozit": "warehouseLocation",
-    "warehouselocation": "warehouseLocation",
-    "stoc": "stock",
-    "stock": "stock",
-    "activ": "isActive",
-    "isactive": "isActive",
-    "este_compus": "isComposite",
-    "iscomposite": "isComposite",
-    "trendyol_barcode": "trendyolBarcode",
-    "trendyolbarcode": "trendyolBarcode",
-    "trendyol_brand": "trendyolBrandName",
-    "trendyolbrandname": "trendyolBrandName",
-  };
-
-  // Map header indices
-  const headerIndices: Partial<Record<keyof ImportRow, number>> = {};
-  headers.forEach((h, i) => {
-    const field = columnMap[h.replace(/[_\s]/g, "").toLowerCase()];
-    if (field) {
-      headerIndices[field] = i;
-    }
-  });
-
-  // Parse rows
-  const rows: ImportRow[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    const values = parseCsvLine(lines[i]);
-    if (values.every((v) => !v.trim())) continue; // Skip empty rows
-
-    const row: ImportRow = {
-      sku: values[headerIndices.sku ?? -1] || "",
-      title: values[headerIndices.title ?? -1] || "",
-      price: 0,
-    };
-
-    // Optional fields
-    if (headerIndices.barcode !== undefined) {
-      row.barcode = values[headerIndices.barcode] || undefined;
-    }
-    if (headerIndices.description !== undefined) {
-      row.description = values[headerIndices.description] || undefined;
-    }
-    if (headerIndices.price !== undefined) {
-      const priceStr = values[headerIndices.price]?.replace(",", ".").trim();
-      row.price = parseFloat(priceStr) || 0;
-    }
-    if (headerIndices.compareAtPrice !== undefined) {
-      const compareStr = values[headerIndices.compareAtPrice]?.replace(",", ".").trim();
-      row.compareAtPrice = compareStr ? parseFloat(compareStr) || undefined : undefined;
-    }
-    if (headerIndices.category !== undefined) {
-      row.category = values[headerIndices.category] || undefined;
-    }
-    if (headerIndices.tags !== undefined) {
-      const tagsStr = values[headerIndices.tags] || "";
-      row.tags = tagsStr ? tagsStr.split(",").map((t) => t.trim()).filter(Boolean) : [];
-    }
-    if (headerIndices.weight !== undefined) {
-      const weightStr = values[headerIndices.weight]?.replace(",", ".").trim();
-      row.weight = weightStr ? parseFloat(weightStr) || undefined : undefined;
-    }
-    if (headerIndices.warehouseLocation !== undefined) {
-      row.warehouseLocation = values[headerIndices.warehouseLocation] || undefined;
-    }
-    if (headerIndices.stock !== undefined) {
-      const stockStr = values[headerIndices.stock]?.trim();
-      row.stock = stockStr ? parseInt(stockStr, 10) || 0 : 0;
-    }
-    if (headerIndices.isActive !== undefined) {
-      const activeStr = values[headerIndices.isActive]?.toLowerCase().trim();
-      row.isActive = activeStr === "da" || activeStr === "true" || activeStr === "1";
-    }
-    if (headerIndices.isComposite !== undefined) {
-      const compositeStr = values[headerIndices.isComposite]?.toLowerCase().trim();
-      row.isComposite = compositeStr === "da" || compositeStr === "true" || compositeStr === "1";
-    }
-    if (headerIndices.trendyolBarcode !== undefined) {
-      row.trendyolBarcode = values[headerIndices.trendyolBarcode] || undefined;
-    }
-    if (headerIndices.trendyolBrandName !== undefined) {
-      row.trendyolBrandName = values[headerIndices.trendyolBrandName] || undefined;
-    }
-
-    rows.push(row);
+    return new NextResponse(buffer, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": "attachment; filename=template_produse.xlsx",
+      },
+    });
+  } catch (error: unknown) {
+    console.error("Error generating template:", error);
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : "Eroare la generare template"
+    }, { status: 500 });
   }
-
-  return rows;
-}
-
-function parseCsvLine(line: string): string[] {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    const nextChar = line[i + 1];
-
-    if (char === '"') {
-      if (inQuotes && nextChar === '"') {
-        // Escaped quote
-        current += '"';
-        i++; // Skip next quote
-      } else {
-        // Toggle quote state
-        inQuotes = !inQuotes;
-      }
-    } else if (char === "," && !inQuotes) {
-      result.push(current);
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-
-  result.push(current);
-  return result;
 }

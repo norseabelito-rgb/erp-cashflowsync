@@ -550,19 +550,37 @@ export default function InventoryPage() {
       <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Import inventar din CSV</DialogTitle>
+            <DialogTitle>Import inventar din Excel</DialogTitle>
             <DialogDescription>
-              Încarcă un fișier CSV cu articole de inventar. Formatul acceptat:
-              SKU, Nume, Descriere, Stoc, Stoc minim, Unitate, Buc/Bax, Unitate bax, Preț cost, Furnizor, Compus, Activ
+              Încarcă un fișier Excel (.xlsx) cu articole de inventar.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <div className="text-sm">
+                <p className="font-medium">Descarcă template Excel</p>
+                <p className="text-muted-foreground">Template cu coloanele necesare</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const a = document.createElement("a");
+                  a.href = "/api/inventory-items/import";
+                  a.download = "template_inventar.xlsx";
+                  a.click();
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Template
+              </Button>
+            </div>
             <div className="space-y-2">
-              <Label htmlFor="importFile">Fișier CSV</Label>
+              <Label htmlFor="importFile">Fișier Excel</Label>
               <Input
                 id="importFile"
                 type="file"
-                accept=".csv"
+                accept=".xlsx,.xls"
                 onChange={(e) => setImportFile(e.target.files?.[0] || null)}
               />
             </div>
