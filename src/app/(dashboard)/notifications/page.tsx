@@ -18,6 +18,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 
 interface Notification {
@@ -48,6 +58,7 @@ const TYPE_COLORS: Record<string, string> = {
 
 export default function NotificationsPage() {
   const queryClient = useQueryClient();
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
 
   // Fetch notifications
   const { data, isLoading } = useQuery({
@@ -130,11 +141,7 @@ export default function NotificationsPage() {
           {notifications.length > 0 && (
             <Button
               variant="outline"
-              onClick={() => {
-                if (confirm("Sigur vrei să ștergi toate notificările?")) {
-                  deleteMutation.mutate({ deleteAll: true });
-                }
-              }}
+              onClick={() => setDeleteAllDialogOpen(true)}
               disabled={deleteMutation.isPending}
             >
               <Trash2 className="h-4 w-4 mr-2" />
@@ -217,6 +224,31 @@ export default function NotificationsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete All Confirmation Dialog */}
+      <AlertDialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ștergi toate notificările?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ești sigur că vrei să ștergi toate notificările?
+              Această acțiune este ireversibilă.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anulează</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                deleteMutation.mutate({ deleteAll: true });
+                setDeleteAllDialogOpen(false);
+              }}
+            >
+              Șterge toate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

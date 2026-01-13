@@ -41,6 +41,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { formatDate, getDriveImageUrl } from "@/lib/utils";
 
@@ -101,6 +111,8 @@ export default function ProductEditPage() {
   const [propagateDialogOpen, setPropagateDialogOpen] = useState(false);
   const [channelsWithOverrides, setChannelsWithOverrides] = useState<string[]>([]);
   const [addingChannelId, setAddingChannelId] = useState<string | null>(null);
+  const [removeChannelDialogOpen, setRemoveChannelDialogOpen] = useState(false);
+  const [channelToRemove, setChannelToRemove] = useState<{ channelId: string; channelName: string } | null>(null);
 
   // Fetch product
   const { data: productData, isLoading, refetch } = useQuery({
@@ -520,7 +532,8 @@ export default function ProductEditPage() {
                     </Button>
                   )}
                   <Button variant="destructive" size="sm" onClick={() => {
-                    if (confirm(`Elimini de pe ${pc.channel.name}?`)) removeChannelMutation.mutate(pc.channelId);
+                    setChannelToRemove({ channelId: pc.channelId, channelName: pc.channel.name });
+                    setRemoveChannelDialogOpen(true);
                   }}>
                     <Trash2 className="h-4 w-4 mr-2" />
                     Elimină
@@ -639,6 +652,34 @@ export default function ProductEditPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Remove Channel Confirmation Dialog */}
+      <AlertDialog open={removeChannelDialogOpen} onOpenChange={setRemoveChannelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Elimini de pe canal?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ești sigur că vrei să elimini produsul de pe {channelToRemove?.channelName}?
+              Această acțiune este ireversibilă.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anulează</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                if (channelToRemove) {
+                  removeChannelMutation.mutate(channelToRemove.channelId);
+                }
+                setRemoveChannelDialogOpen(false);
+                setChannelToRemove(null);
+              }}
+            >
+              Elimină
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

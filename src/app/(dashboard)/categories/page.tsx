@@ -23,6 +23,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/utils";
@@ -40,6 +50,8 @@ export default function CategoriesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState({ name: "", description: "" });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
 
   // Fetch categories
   const { data: categoriesData, isLoading } = useQuery({
@@ -156,9 +168,8 @@ export default function CategoriesPage() {
       return;
     }
 
-    if (confirm(`Ștergi categoria "${category.name}"?`)) {
-      deleteMutation.mutate(category.id);
-    }
+    setCategoryToDelete(category);
+    setDeleteDialogOpen(true);
   };
 
   const categories: Category[] = categoriesData?.categories || [];
@@ -298,6 +309,34 @@ export default function CategoriesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ștergi categoria?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ești sigur că vrei să ștergi categoria &quot;{categoryToDelete?.name}&quot;?
+              Această acțiune este ireversibilă.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anulează</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                if (categoryToDelete) {
+                  deleteMutation.mutate(categoryToDelete.id);
+                }
+                setDeleteDialogOpen(false);
+                setCategoryToDelete(null);
+              }}
+            >
+              Șterge
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
