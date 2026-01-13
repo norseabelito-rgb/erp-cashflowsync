@@ -88,13 +88,13 @@ export function SyncOverlay({
             </div>
           )}
           {status === "success" && (
-            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
-              <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+            <div className="w-16 h-16 rounded-full bg-status-success/10 flex items-center justify-center">
+              <CheckCircle2 className="h-8 w-8 text-status-success" />
             </div>
           )}
           {status === "error" && (
-            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
-              <XCircle className="h-8 w-8 text-red-600" />
+            <div className="w-16 h-16 rounded-full bg-status-error/10 flex items-center justify-center">
+              <XCircle className="h-8 w-8 text-status-error" />
             </div>
           )}
         </div>
@@ -136,25 +136,25 @@ export function SyncOverlay({
 
         {/* Success message */}
         {status === "success" && successMessage && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mt-4">
-            <p className="text-sm text-emerald-700 text-center">{successMessage}</p>
+          <div className="bg-status-success/10 border border-status-success/20 rounded-lg p-4 mt-4">
+            <p className="text-sm text-status-success text-center">{successMessage}</p>
           </div>
         )}
 
         {/* Error message */}
         {status === "error" && errorMessage && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
-            <p className="text-sm text-red-700 text-center">{errorMessage}</p>
+          <div className="bg-status-error/10 border border-status-error/20 rounded-lg p-4 mt-4">
+            <p className="text-sm text-status-error text-center">{errorMessage}</p>
           </div>
         )}
 
         {/* Error list */}
         {errors.length > 0 && (
           <div className="mt-4 max-h-32 overflow-y-auto">
-            <p className="text-sm font-medium text-red-600 mb-2">Erori ({errors.length}):</p>
+            <p className="text-sm font-medium text-status-error mb-2">Erori ({errors.length}):</p>
             <ul className="space-y-1">
               {errors.slice(0, 5).map((error, i) => (
-                <li key={i} className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+                <li key={i} className="text-xs text-status-error bg-status-error/10 px-2 py-1 rounded">
                   {error}
                 </li>
               ))}

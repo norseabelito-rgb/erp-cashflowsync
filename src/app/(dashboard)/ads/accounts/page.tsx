@@ -111,17 +111,17 @@ interface SyncStatus {
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
-  ACTIVE: { label: "Activ", color: "bg-green-100 text-green-800", icon: CheckCircle2 },
-  PAUSED: { label: "Pauză", color: "bg-yellow-100 text-yellow-800", icon: Clock },
-  ERROR: { label: "Eroare", color: "bg-red-100 text-red-800", icon: AlertCircle },
+  ACTIVE: { label: "Activ", color: "bg-status-success/10 text-status-success", icon: CheckCircle2 },
+  PAUSED: { label: "Pauză", color: "bg-status-warning/10 text-status-warning", icon: Clock },
+  ERROR: { label: "Eroare", color: "bg-status-error/10 text-status-error", icon: AlertCircle },
   DISCONNECTED: { label: "Deconectat", color: "bg-gray-100 text-gray-800", icon: XCircle },
-  PENDING_AUTH: { label: "Așteaptă autorizare", color: "bg-blue-100 text-blue-800", icon: Clock },
+  PENDING_AUTH: { label: "Așteaptă autorizare", color: "bg-status-info/10 text-status-info", icon: Clock },
 };
 
 const platformConfig: Record<string, { name: string; icon: any; color: string }> = {
   META: { name: "Meta (Facebook/Instagram)", icon: MetaIcon, color: "bg-blue-600" },
   TIKTOK: { name: "TikTok", icon: TikTokIcon, color: "bg-black" },
-  GOOGLE: { name: "Google Ads", icon: null, color: "bg-red-500" },
+  GOOGLE: { name: "Google Ads", icon: null, color: "bg-status-error" },
 };
 
 interface AdsApp {
@@ -203,7 +203,7 @@ function ConnectDialogContent({
 
         {/* Google - Coming Soon */}
         <div className="flex items-center gap-4 p-4 border rounded-lg opacity-50 cursor-not-allowed">
-          <div className="p-3 rounded-lg bg-red-500 text-white">
+          <div className="p-3 rounded-lg bg-status-error text-white">
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
               <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
             </svg>
@@ -397,10 +397,10 @@ function SyncProgressBar({ accountId, onComplete }: { accountId: string; onCompl
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          {isRunning && <Loader2 className="h-4 w-4 animate-spin text-blue-500" />}
-          {isPaused && <Pause className="h-4 w-4 text-yellow-500" />}
-          {isCompleted && <CheckCircle2 className="h-4 w-4 text-green-500" />}
-          {isFailed && <XCircle className="h-4 w-4 text-red-500" />}
+          {isRunning && <Loader2 className="h-4 w-4 animate-spin text-status-info" />}
+          {isPaused && <Pause className="h-4 w-4 text-status-warning" />}
+          {isCompleted && <CheckCircle2 className="h-4 w-4 text-status-success" />}
+          {isFailed && <XCircle className="h-4 w-4 text-status-error" />}
           
           <span className="font-medium text-sm">
             {isRunning && "Sincronizare în curs..."}
@@ -431,7 +431,7 @@ function SyncProgressBar({ accountId, onComplete }: { accountId: string; onCompl
           {/* Progress Details */}
           <div className="grid grid-cols-3 gap-4 text-sm">
             <div className="text-center">
-              <div className="font-medium text-blue-600">
+              <div className="font-medium text-status-info">
                 {progress.campaigns.synced}/{progress.campaigns.total || '?'}
               </div>
               <div className="text-xs text-muted-foreground">Campanii</div>
@@ -443,7 +443,7 @@ function SyncProgressBar({ accountId, onComplete }: { accountId: string; onCompl
               <div className="text-xs text-muted-foreground">Ad Sets</div>
             </div>
             <div className="text-center">
-              <div className="font-medium text-green-600">
+              <div className="font-medium text-status-success">
                 {progress.ads.synced}/{progress.ads.total || '?'}
               </div>
               <div className="text-xs text-muted-foreground">Ads</div>
@@ -454,24 +454,24 @@ function SyncProgressBar({ accountId, onComplete }: { accountId: string; onCompl
 
       {/* Error / Retry Info */}
       {isPaused && syncStatus.error && (
-        <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-800">
+        <div className="mt-3 p-3 bg-status-warning/10 dark:bg-status-warning/20 rounded border border-status-warning/30 dark:border-status-warning/40">
           <div className="flex items-start gap-2">
-            <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+            <AlertCircle className="h-4 w-4 text-status-warning mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                {syncStatus.errorCode === 'RATE_LIMIT' 
-                  ? "Rate limit Meta atins - prea multe cereri într-un timp scurt"
+              <p className="text-sm text-status-warning dark:text-status-warning">
+                {syncStatus.errorCode === 'RATE_LIMIT'
+                  ? "Rate limit Meta atins - prea multe cereri intr-un timp scurt"
                   : syncStatus.error
                 }
               </p>
               {syncStatus.retryAt && (
-                <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300 mt-1">
+                <p className="text-sm font-medium text-status-warning dark:text-status-warning mt-1">
                   <Clock className="h-3 w-3 inline mr-1" />
-                  Repornește automat în: <span className="font-mono">{countdown}</span>
+                  Reporneste automat in: <span className="font-mono">{countdown}</span>
                 </p>
               )}
-              <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                ✓ Progresul a fost salvat. Sincronizarea va continua de unde a rămas.
+              <p className="text-xs text-status-warning/80 dark:text-status-warning/80 mt-1">
+                Progresul a fost salvat. Sincronizarea va continua de unde a ramas.
               </p>
             </div>
           </div>
@@ -480,8 +480,8 @@ function SyncProgressBar({ accountId, onComplete }: { accountId: string; onCompl
 
       {/* Completed message */}
       {isCompleted && progress && (
-        <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
-          <p className="text-sm text-green-800 dark:text-green-200">
+        <div className="mt-3 p-3 bg-status-success/10 dark:bg-status-success/20 rounded border border-status-success/30 dark:border-status-success/30">
+          <p className="text-sm text-status-success dark:text-status-success">
             ✓ Sincronizare completă: {progress.campaigns.synced} campanii, {progress.adSets.synced} ad sets
           </p>
         </div>
@@ -843,7 +843,7 @@ export default function AdsAccountsPage() {
                               {status.label}
                             </Badge>
                             {isSyncing && (
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300">
+                              <Badge variant="outline" className="bg-status-info/10 text-status-info border-status-info/30 dark:bg-status-info/20 dark:text-status-info">
                                 <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                                 Sincronizare
                               </Badge>
@@ -874,7 +874,7 @@ export default function AdsAccountsPage() {
                           )}
 
                           {account.lastSyncError && !isSyncing && (
-                            <p className="text-xs text-red-600 mt-1">
+                            <p className="text-xs text-status-error mt-1">
                               Eroare: {account.lastSyncError}
                             </p>
                           )}
@@ -919,7 +919,7 @@ export default function AdsAccountsPage() {
                                 onClick={() => setDeleteDialog({ open: true, account })}
                                 disabled={isSyncing}
                               >
-                                <Trash2 className="h-4 w-4 text-red-500" />
+                                <Trash2 className="h-4 w-4 text-status-error" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent side="bottom">
@@ -990,7 +990,7 @@ export default function AdsAccountsPage() {
               <AlertDialogCancel>Anulează</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => deleteDialog.account && deleteMutation.mutate(deleteDialog.account.id)}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-destructive hover:bg-destructive/90"
               >
                 {deleteMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />

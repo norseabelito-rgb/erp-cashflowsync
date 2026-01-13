@@ -403,8 +403,8 @@ export default function GoodsReceiptDetailPage() {
 
       {/* Status Alert for completed receipts */}
       {receipt.status === "COMPLETED" && (
-        <Alert className="mb-6 border-green-500/50 bg-green-500/10">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
+        <Alert className="mb-6 border-status-success/50 bg-status-success/10">
+          <CheckCircle2 className="h-4 w-4 text-status-success" />
           <AlertTitle>Recepție finalizată</AlertTitle>
           <AlertDescription>
             Stocul a fost actualizat la {formatDateTime(receipt.completedAt)}
@@ -718,8 +718,8 @@ export default function GoodsReceiptDetailPage() {
               Aceasta va adăuga {receipt.totalItems} articole în stoc
               cu o valoare totală de {formatCurrency(Number(receipt.totalValue))}.
               <br /><br />
-              <span className="text-yellow-600">
-                Acțiunea este ireversibilă - recepțiile finalizate nu pot fi modificate.
+              <span className="text-status-warning">
+                Actiunea este ireversibila - receptiile finalizate nu pot fi modificate.
               </span>
             </DialogDescription>
           </DialogHeader>

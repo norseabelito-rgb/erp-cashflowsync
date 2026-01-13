@@ -216,7 +216,7 @@ export function CampaignAIInsights({ campaignId, campaignName }: CampaignAIInsig
   const getTypeColor = (type: string) => {
     switch (type) {
       case "AD_BUDGET":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+        return "bg-status-info/10 text-status-info border-status-info/20";
       case "AD_STATUS":
         return "bg-purple-500/10 text-purple-500 border-purple-500/20";
       case "AD_BID":
@@ -228,8 +228,8 @@ export function CampaignAIInsights({ campaignId, campaignName }: CampaignAIInsig
 
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 80) return "text-emerald-500";
-    if (confidence >= 60) return "text-yellow-500";
-    return "text-orange-500";
+    if (confidence >= 60) return "text-status-warning";
+    return "text-status-warning";
   };
 
   // Initial state - no analysis yet
@@ -402,7 +402,7 @@ export function CampaignAIInsights({ campaignId, campaignName }: CampaignAIInsig
 
               {/* Before/After Comparison */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg border bg-red-500/5 border-red-500/20">
+                <div className="p-4 rounded-lg border bg-status-error/5 border-status-error/20">
                   <p className="text-xs text-muted-foreground mb-1">Valoare curentă</p>
                   <p className="font-mono font-bold text-lg">
                     {selectedInsight.currentValue}

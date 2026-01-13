@@ -46,6 +46,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/utils";
+import { PageHeader } from "@/components/ui/page-header";
 
 type MovementType = "RECEIPT" | "SALE" | "ADJUSTMENT_PLUS" | "ADJUSTMENT_MINUS" | "PRODUCTION" | "all";
 
@@ -106,24 +107,24 @@ export default function StockMovementsPage() {
         return {
           label: "Recepție",
           icon: ArrowDownCircle,
-          color: "text-green-600",
-          bgColor: "bg-green-100",
+          color: "text-status-success",
+          bgColor: "bg-status-success/10",
           variant: "success" as const,
         };
       case "SALE":
         return {
           label: "Vânzare",
           icon: ArrowUpCircle,
-          color: "text-red-600",
-          bgColor: "bg-red-100",
+          color: "text-status-error",
+          bgColor: "bg-status-error/10",
           variant: "destructive" as const,
         };
       case "ADJUSTMENT_PLUS":
         return {
           label: "Ajustare +",
           icon: TrendingUp,
-          color: "text-blue-600",
-          bgColor: "bg-blue-100",
+          color: "text-status-info",
+          bgColor: "bg-status-info/10",
           variant: "default" as const,
         };
       case "ADJUSTMENT_MINUS":
@@ -179,25 +180,15 @@ export default function StockMovementsPage() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push("/inventory")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-              <History className="h-8 w-8" />
-              Mișcări stoc
-            </h1>
-            <p className="text-muted-foreground">Istoric complet al mișcărilor de stoc</p>
-          </div>
-        </div>
+      <PageHeader
+        title="Mișcări Stoc"
+        description="Vizualizează toate mișcările de stoc"
+      >
         <Button variant="outline" onClick={() => refetch()}>
           <RefreshCw className="h-4 w-4 mr-2" />
           Reîncarcă
         </Button>
-      </div>
+      </PageHeader>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -217,12 +208,12 @@ export default function StockMovementsPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <ArrowDownCircle className="h-4 w-4 text-green-600" />
+              <div className="p-2 bg-status-success/10 rounded-lg">
+                <ArrowDownCircle className="h-4 w-4 text-status-success" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Intrări</p>
-                <p className="text-xl font-bold text-green-600">{stats.inCount}</p>
+                <p className="text-xl font-bold text-status-success">{stats.inCount}</p>
               </div>
             </div>
           </CardContent>
@@ -230,12 +221,12 @@ export default function StockMovementsPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <ArrowUpCircle className="h-4 w-4 text-red-600" />
+              <div className="p-2 bg-status-error/10 rounded-lg">
+                <ArrowUpCircle className="h-4 w-4 text-status-error" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Ieșiri</p>
-                <p className="text-xl font-bold text-red-600">{stats.outCount}</p>
+                <p className="text-xl font-bold text-status-error">{stats.outCount}</p>
               </div>
             </div>
           </CardContent>
@@ -243,12 +234,12 @@ export default function StockMovementsPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <TrendingUp className="h-4 w-4 text-blue-600" />
+              <div className="p-2 bg-status-info/10 rounded-lg">
+                <TrendingUp className="h-4 w-4 text-status-info" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Cantitate +</p>
-                <p className="text-xl font-bold text-blue-600">+{stats.inQty.toFixed(2)}</p>
+                <p className="text-xl font-bold text-status-info">+{stats.inQty.toFixed(2)}</p>
               </div>
             </div>
           </CardContent>
@@ -394,7 +385,7 @@ export default function StockMovementsPage() {
                               {typeInfo.label}
                             </Badge>
                           </TableCell>
-                          <TableCell className={`text-right font-mono font-medium ${qty > 0 ? "text-green-600" : "text-red-600"}`}>
+                          <TableCell className={`text-right font-mono font-medium ${qty > 0 ? "text-status-success" : "text-status-error"}`}>
                             {qty > 0 ? "+" : ""}{qty.toFixed(3)}
                           </TableCell>
                           <TableCell className="text-right font-mono text-muted-foreground">

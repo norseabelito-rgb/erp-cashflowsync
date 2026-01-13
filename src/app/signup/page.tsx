@@ -120,7 +120,7 @@ export default function SignupPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
         <Card className="w-full max-w-md bg-card/95 backdrop-blur-xl border-border/50 shadow-2xl">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
+            <CheckCircle className="h-16 w-16 text-status-success mb-4" />
             <h2 className="text-xl font-bold mb-2">Cont creat cu succes!</h2>
             <p className="text-muted-foreground text-center">
               Vei fi redirecționat către dashboard...
@@ -143,7 +143,7 @@ export default function SignupPage() {
         <CardHeader className="text-center pb-2">
           {/* Logo */}
           <div className="flex justify-center mb-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/25">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/25">
               <DollarSign className="h-8 w-8 text-white" />
             </div>
           </div>
@@ -287,7 +287,7 @@ export default function SignupPage() {
             <Button
               type="submit"
               disabled={isLoading || isGoogleLoading}
-              className="w-full h-12 text-base font-medium bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+              className="w-full h-12 text-base font-medium bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
             >
               {isLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin mr-2" />

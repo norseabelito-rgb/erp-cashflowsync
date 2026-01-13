@@ -48,9 +48,9 @@ const entityTypeIcons: Record<string, any> = {
 };
 
 const entityTypeColors: Record<string, string> = {
-  ORDER: "bg-blue-100 text-blue-800",
-  INVOICE: "bg-green-100 text-green-800",
-  AWB: "bg-orange-100 text-orange-800",
+  ORDER: "bg-status-info/10 text-status-info",
+  INVOICE: "bg-status-success/10 text-status-success",
+  AWB: "bg-status-warning/10 text-status-warning",
   STOCK: "bg-purple-100 text-purple-800",
   PRODUCT: "bg-purple-100 text-purple-800",
   SETTINGS: "bg-gray-100 text-gray-800",
@@ -58,20 +58,20 @@ const entityTypeColors: Record<string, string> = {
 };
 
 const actionColors: Record<string, string> = {
-  CREATE: "bg-green-100 text-green-800",
-  UPDATE: "bg-blue-100 text-blue-800",
-  DELETE: "bg-red-100 text-red-800",
-  CANCEL: "bg-red-100 text-red-800",
-  ISSUE_INVOICE: "bg-green-100 text-green-800",
-  CANCEL_INVOICE: "bg-red-100 text-red-800",
-  CREATE_AWB: "bg-orange-100 text-orange-800",
-  UPDATE_AWB_STATUS: "bg-orange-100 text-orange-800",
-  STOCK_IN: "bg-green-100 text-green-800",
-  STOCK_OUT: "bg-red-100 text-red-800",
-  STOCK_ADJUST: "bg-yellow-100 text-yellow-800",
+  CREATE: "bg-status-success/10 text-status-success",
+  UPDATE: "bg-status-info/10 text-status-info",
+  DELETE: "bg-status-error/10 text-status-error",
+  CANCEL: "bg-status-error/10 text-status-error",
+  ISSUE_INVOICE: "bg-status-success/10 text-status-success",
+  CANCEL_INVOICE: "bg-status-error/10 text-status-error",
+  CREATE_AWB: "bg-status-warning/10 text-status-warning",
+  UPDATE_AWB_STATUS: "bg-status-warning/10 text-status-warning",
+  STOCK_IN: "bg-status-success/10 text-status-success",
+  STOCK_OUT: "bg-status-error/10 text-status-error",
+  STOCK_ADJUST: "bg-status-warning/10 text-status-warning",
   STOCK_SYNC: "bg-cyan-100 text-cyan-800",
-  PAYMENT_RECEIVED: "bg-emerald-100 text-emerald-800",
-  ERROR: "bg-red-100 text-red-800",
+  PAYMENT_RECEIVED: "bg-status-success/10 text-status-success",
+  ERROR: "bg-status-error/10 text-status-error",
 };
 
 export default function ActivityPage() {
@@ -225,7 +225,7 @@ export default function ActivityPage() {
                             {log.description}
                           </p>
                           {log.errorMessage && (
-                            <p className="text-xs text-red-600 mt-1 truncate" title={log.errorMessage}>
+                            <p className="text-xs text-status-error mt-1 truncate" title={log.errorMessage}>
                               ❌ {log.errorMessage}
                             </p>
                           )}
@@ -251,9 +251,9 @@ export default function ActivityPage() {
                         </TableCell>
                         <TableCell>
                           {log.success ? (
-                            <CheckCircle className="h-5 w-5 text-green-600" />
+                            <CheckCircle className="h-5 w-5 text-status-success" />
                           ) : (
-                            <XCircle className="h-5 w-5 text-red-600" />
+                            <XCircle className="h-5 w-5 text-status-error" />
                           )}
                         </TableCell>
                       </TableRow>

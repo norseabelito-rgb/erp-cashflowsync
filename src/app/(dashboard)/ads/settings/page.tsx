@@ -110,7 +110,7 @@ const platformInfo = {
   GOOGLE: {
     name: "Google Ads",
     icon: null,
-    color: "bg-red-500",
+    color: "bg-status-error",
     docsUrl: "https://console.cloud.google.com/apis/credentials",
     instructions: ["În curând disponibil"],
   },
@@ -140,7 +140,7 @@ function AppCard({
               <h3 className="font-semibold flex items-center gap-2">
                 {app.name}
                 {app.isActive ? (
-                  <Badge variant="outline" className="text-green-600 border-green-600">Activ</Badge>
+                  <Badge variant="outline" className="text-status-success border-status-success">Activ</Badge>
                 ) : (
                   <Badge variant="secondary">Inactiv</Badge>
                 )}
@@ -162,7 +162,7 @@ function AppCard({
               size="sm" 
               onClick={onDelete}
               disabled={app.accountsCount > 0}
-              className={app.accountsCount > 0 ? "opacity-50" : "text-red-600 hover:text-red-700"}
+              className={app.accountsCount > 0 ? "opacity-50" : "text-status-error hover:text-status-error/80"}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -342,7 +342,7 @@ function AppFormDialog({
                 href={info.docsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline flex items-center gap-1 mt-2"
+                className="text-status-info hover:underline flex items-center gap-1 mt-2"
               >
                 Deschide {info.name} Developers
                 <ExternalLink className="h-3 w-3" />
@@ -528,7 +528,7 @@ function PlatformAppsSection({ platform }: { platform: "META" | "TIKTOK" }) {
             <AlertDialogDescription>
               Ești sigur că vrei să ștergi aplicația "{deleteDialog.app?.name}"?
               {deleteDialog.app?.accountsCount && deleteDialog.app.accountsCount > 0 ? (
-                <span className="block mt-2 text-red-600">
+                <span className="block mt-2 text-status-error">
                   Această aplicație are {deleteDialog.app.accountsCount} conturi conectate și nu poate fi ștearsă.
                 </span>
               ) : (
@@ -542,7 +542,7 @@ function PlatformAppsSection({ platform }: { platform: "META" | "TIKTOK" }) {
             <AlertDialogCancel>Anulează</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteDialog.app && deleteMutation.mutate(deleteDialog.app.id)}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
               disabled={deleteDialog.app?.accountsCount ? deleteDialog.app.accountsCount > 0 : false}
             >
               {deleteMutation.isPending ? (

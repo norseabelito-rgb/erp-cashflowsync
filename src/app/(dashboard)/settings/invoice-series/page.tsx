@@ -339,7 +339,7 @@ export default function InvoiceSeriesPage() {
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{s.name}</span>
                           {s.isDefault && (
-                            <Badge className="bg-yellow-500">
+                            <Badge className="bg-status-warning">
                               <Star className="h-3 w-3 mr-1" />
                               Default
                             </Badge>
@@ -347,7 +347,7 @@ export default function InvoiceSeriesPage() {
                           {s.syncToSmartBill && (
                             <Tooltip>
                               <TooltipTrigger>
-                                <Badge variant="outline" className="text-blue-600 border-blue-300">
+                                <Badge variant="outline" className="text-status-info border-status-info/50">
                                   <Settings2 className="h-3 w-3 mr-1" />
                                   SmartBill
                                 </Badge>
@@ -434,8 +434,8 @@ export default function InvoiceSeriesPage() {
                     className="flex items-center justify-between p-3 rounded-lg border"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-                        <Store className="h-5 w-5 text-blue-500" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-status-info/10">
+                        <Store className="h-5 w-5 text-status-info" />
                       </div>
                       <div>
                         <p className="font-medium">{store.name}</p>
@@ -485,8 +485,8 @@ export default function InvoiceSeriesPage() {
           <CardContent>
             <div className="flex items-center justify-between p-3 rounded-lg border">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10">
-                  <ShoppingBag className="h-5 w-5 text-orange-500" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-status-warning/10">
+                  <ShoppingBag className="h-5 w-5 text-status-warning" />
                 </div>
                 <div>
                   <p className="font-medium">Trendyol</p>

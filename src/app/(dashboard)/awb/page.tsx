@@ -101,16 +101,16 @@ function getStatusBadge(status: string | null) {
   const statusLower = status.toLowerCase();
 
   if (statusLower.includes("livrat") || statusLower.includes("delivered")) {
-    return { variant: "default" as const, icon: CheckCircle2, label: status, color: "bg-emerald-100 text-emerald-800" };
+    return { variant: "default" as const, icon: CheckCircle2, label: status, color: "bg-status-success/10 text-status-success" };
   }
   if (statusLower.includes("tranzit") || statusLower.includes("transport") || statusLower.includes("livrare")) {
-    return { variant: "default" as const, icon: Truck, label: status, color: "bg-blue-100 text-blue-800" };
+    return { variant: "default" as const, icon: Truck, label: status, color: "bg-status-info/10 text-status-info" };
   }
   if (statusLower.includes("retur") || statusLower.includes("refuz") || statusLower.includes("returned")) {
-    return { variant: "destructive" as const, icon: AlertTriangle, label: status, color: "bg-orange-100 text-orange-800" };
+    return { variant: "destructive" as const, icon: AlertTriangle, label: status, color: "bg-status-warning/10 text-status-warning" };
   }
   if (statusLower.includes("anulat") || statusLower.includes("șters")) {
-    return { variant: "destructive" as const, icon: XCircle, label: status, color: "bg-red-100 text-red-800" };
+    return { variant: "destructive" as const, icon: XCircle, label: status, color: "bg-status-error/10 text-status-error" };
   }
   if (statusLower.includes("ridicat") || statusLower.includes("predat")) {
     return { variant: "default" as const, icon: Package, label: status, color: "bg-indigo-100 text-indigo-800" };
@@ -222,9 +222,9 @@ export default function AWBPage() {
             <div className="text-xs text-muted-foreground">Total</div>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:border-blue-500" onClick={() => setStatusFilter("tranzit")}>
+        <Card className="cursor-pointer hover:border-status-info" onClick={() => setStatusFilter("tranzit")}>
           <CardContent className="p-3">
-            <div className="text-2xl font-bold text-blue-600">{stats.inTransit}</div>
+            <div className="text-2xl font-bold text-status-info">{stats.inTransit}</div>
             <div className="text-xs text-muted-foreground">În tranzit</div>
           </CardContent>
         </Card>
@@ -234,9 +234,9 @@ export default function AWBPage() {
             <div className="text-xs text-muted-foreground">Livrate</div>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:border-orange-500" onClick={() => setStatusFilter("retur")}>
+        <Card className="cursor-pointer hover:border-status-warning" onClick={() => setStatusFilter("retur")}>
           <CardContent className="p-3">
-            <div className="text-2xl font-bold text-orange-600">{stats.returned}</div>
+            <div className="text-2xl font-bold text-status-warning">{stats.returned}</div>
             <div className="text-xs text-muted-foreground">Retururi</div>
           </CardContent>
         </Card>
@@ -246,9 +246,9 @@ export default function AWBPage() {
             <div className="text-xs text-muted-foreground">În așteptare</div>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:border-red-500" onClick={() => setStatusFilter("anulat")}>
+        <Card className="cursor-pointer hover:border-status-error" onClick={() => setStatusFilter("anulat")}>
           <CardContent className="p-3">
-            <div className="text-2xl font-bold text-red-600">{stats.cancelled}</div>
+            <div className="text-2xl font-bold text-status-error">{stats.cancelled}</div>
             <div className="text-xs text-muted-foreground">Anulate</div>
           </CardContent>
         </Card>

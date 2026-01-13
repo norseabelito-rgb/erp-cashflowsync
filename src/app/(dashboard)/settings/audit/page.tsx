@@ -46,14 +46,14 @@ interface AuditLog {
 }
 
 const ACTION_COLORS: Record<string, string> = {
-  create: "bg-green-500",
-  update: "bg-blue-500",
-  delete: "bg-red-500",
-  activate: "bg-green-500",
+  create: "bg-status-success",
+  update: "bg-status-info",
+  delete: "bg-status-error",
+  activate: "bg-status-success",
   deactivate: "bg-orange-500",
   accept: "bg-purple-500",
   cancel: "bg-gray-500",
-  promote: "bg-yellow-500",
+  promote: "bg-status-warning",
   demote: "bg-orange-500",
 };
 

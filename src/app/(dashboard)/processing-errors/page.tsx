@@ -66,8 +66,8 @@ interface ProcessingError {
 }
 
 const TYPE_CONFIG = {
-  INVOICE: { label: "Factură", icon: FileText, color: "text-blue-600" },
-  AWB: { label: "AWB", icon: Truck, color: "text-orange-600" },
+  INVOICE: { label: "Factură", icon: FileText, color: "text-status-info" },
+  AWB: { label: "AWB", icon: Truck, color: "text-status-warning" },
   PICKING_LIST: { label: "Picking List", icon: ClipboardList, color: "text-purple-600" },
 };
 
@@ -143,7 +143,7 @@ export default function ProcessingErrorsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <AlertTriangle className="h-6 w-6 text-amber-500" />
+            <AlertTriangle className="h-6 w-6 text-status-warning" />
             Erori Procesare
           </h1>
           <p className="text-muted-foreground">
@@ -158,47 +158,47 @@ export default function ProcessingErrorsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-5 gap-4">
-        <Card className="cursor-pointer hover:border-amber-500" onClick={() => setStatusFilter("PENDING")}>
+        <Card className="cursor-pointer hover:border-status-warning" onClick={() => setStatusFilter("PENDING")}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">În așteptare</p>
                 <p className="text-2xl font-bold">{stats.pending || 0}</p>
               </div>
-              <Clock className="h-8 w-8 text-amber-500" />
+              <Clock className="h-8 w-8 text-status-warning" />
             </div>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:border-blue-500" onClick={() => setStatusFilter("RETRYING")}>
+        <Card className="cursor-pointer hover:border-status-info" onClick={() => setStatusFilter("RETRYING")}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Se reîncearcă</p>
                 <p className="text-2xl font-bold">{stats.retrying || 0}</p>
               </div>
-              <RefreshCw className="h-8 w-8 text-blue-500" />
+              <RefreshCw className="h-8 w-8 text-status-info" />
             </div>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:border-green-500" onClick={() => setStatusFilter("RESOLVED")}>
+        <Card className="cursor-pointer hover:border-status-success" onClick={() => setStatusFilter("RESOLVED")}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Rezolvate</p>
                 <p className="text-2xl font-bold">{stats.resolved || 0}</p>
               </div>
-              <CheckCircle2 className="h-8 w-8 text-green-500" />
+              <CheckCircle2 className="h-8 w-8 text-status-success" />
             </div>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:border-red-500" onClick={() => setStatusFilter("FAILED")}>
+        <Card className="cursor-pointer hover:border-status-error" onClick={() => setStatusFilter("FAILED")}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Eșuate</p>
                 <p className="text-2xl font-bold">{stats.failed || 0}</p>
               </div>
-              <XCircle className="h-8 w-8 text-red-500" />
+              <XCircle className="h-8 w-8 text-status-error" />
             </div>
           </CardContent>
         </Card>
@@ -251,7 +251,7 @@ export default function ProcessingErrorsPage() {
       ) : errors.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <CheckCircle2 className="h-12 w-12 mx-auto text-green-500 mb-4" />
+            <CheckCircle2 className="h-12 w-12 mx-auto text-status-success mb-4" />
             <h3 className="font-semibold mb-2">Nicio eroare</h3>
             <p className="text-muted-foreground">
               Nu există erori de procesare pentru filtrele selectate
@@ -288,7 +288,7 @@ export default function ProcessingErrorsPage() {
                         <p className="text-sm text-muted-foreground mb-2">
                           {error.order.customerFirstName} {error.order.customerLastName} • {error.order.store.name}
                         </p>
-                        <div className="bg-red-50 text-red-800 rounded p-2 text-sm">
+                        <div className="bg-status-error/10 text-status-error rounded p-2 text-sm">
                           {error.errorMessage}
                         </div>
                         <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">

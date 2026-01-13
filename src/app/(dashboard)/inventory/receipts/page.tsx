@@ -61,6 +61,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface GoodsReceipt {
   id: string;
@@ -185,28 +186,19 @@ export default function GoodsReceiptsPage() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <ClipboardList className="h-8 w-8" />
-            Recepții marfă
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm md:text-base">
-            Gestionează intrările în stoc de la furnizori
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Reîncarcă
-          </Button>
-          <Button onClick={() => router.push("/inventory/receipts/new")}>
-            <Plus className="h-4 w-4 mr-2" />
-            Recepție nouă
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Recepții"
+        description="Gestionează recepțiile de marfă"
+      >
+        <Button variant="outline" onClick={() => refetch()}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Reîncarcă
+        </Button>
+        <Button onClick={() => router.push("/inventory/receipts/new")}>
+          <Plus className="h-4 w-4 mr-2" />
+          Recepție nouă
+        </Button>
+      </PageHeader>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -218,20 +210,20 @@ export default function GoodsReceiptsPage() {
             <div className="text-2xl font-bold">{stats.total}</div>
           </CardContent>
         </Card>
-        <Card className="border-yellow-500/50">
+        <Card className="border-status-warning/50">
           <CardHeader className="pb-2">
             <CardDescription>Ciorne</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.draft}</div>
+            <div className="text-2xl font-bold text-status-warning">{stats.draft}</div>
           </CardContent>
         </Card>
-        <Card className="border-green-500/50">
+        <Card className="border-status-success/50">
           <CardHeader className="pb-2">
             <CardDescription>Finalizate</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
+            <div className="text-2xl font-bold text-status-success">{stats.completed}</div>
           </CardContent>
         </Card>
         <Card>
@@ -430,8 +422,8 @@ export default function GoodsReceiptsPage() {
               cu o valoare totală de {formatCurrency(Number(selectedReceipt?.totalValue || 0))}.
               <br />
               <br />
-              <span className="text-yellow-600">
-                Acțiunea este ireversibilă - recepțiile finalizate nu pot fi modificate.
+              <span className="text-status-warning">
+                Actiunea este ireversibila - receptiile finalizate nu pot fi modificate.
               </span>
             </DialogDescription>
           </DialogHeader>

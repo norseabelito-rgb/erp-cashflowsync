@@ -184,7 +184,7 @@ export default function TermsOfServicePage() {
                 <li>Fulfill orders in compliance with applicable regulations</li>
               </ul>
 
-              <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-4">
+              <div className="bg-status-warning/10 border-l-4 border-status-warning p-4 mb-4">
                 <p className="text-gray-700">
                   <strong>Important:</strong> We are not responsible for the availability, accuracy, 
                   or functionality of third-party services. Changes to third-party APIs or policies 

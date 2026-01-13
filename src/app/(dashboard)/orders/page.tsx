@@ -892,9 +892,9 @@ export default function OrdersPage() {
   };
 
   const getValidationIcon = (status: string) => {
-    if (status === "PASSED") return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
-    if (status === "FAILED") return <XCircle className="h-4 w-4 text-red-500" />;
-    return <AlertTriangle className="h-4 w-4 text-amber-500" />;
+    if (status === "PASSED") return <CheckCircle2 className="h-4 w-4 text-status-success" />;
+    if (status === "FAILED") return <XCircle className="h-4 w-4 text-status-error" />;
+    return <AlertTriangle className="h-4 w-4 text-status-warning" />;
   };
 
   return (
@@ -1200,9 +1200,9 @@ export default function OrdersPage() {
                                   <span className={cn(
                                     "text-xs",
                                     awbInfo.isDeleted && "text-gray-500 line-through",
-                                    awbInfo.isCancelled && "text-red-600",
-                                    awbInfo.isReturned && "text-orange-600",
-                                    awbInfo.isDelivered && "text-emerald-600",
+                                    awbInfo.isCancelled && "text-status-error",
+                                    awbInfo.isReturned && "text-status-warning",
+                                    awbInfo.isDelivered && "text-status-success",
                                     !awbInfo.isDeleted && !awbInfo.isCancelled && !awbInfo.isReturned && !awbInfo.isDelivered && "text-muted-foreground"
                                   )}>
                                     {order.awb.currentStatus.length > 25 
@@ -1313,19 +1313,19 @@ export default function OrdersPage() {
           {/* Statistici erori */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <Card className="p-4">
-              <div className="text-2xl font-bold text-amber-600">{dbErrorStats.pending}</div>
+              <div className="text-2xl font-bold text-status-warning">{dbErrorStats.pending}</div>
               <div className="text-sm text-muted-foreground">În așteptare</div>
             </Card>
             <Card className="p-4">
-              <div className="text-2xl font-bold text-blue-600">{dbErrorStats.retrying}</div>
+              <div className="text-2xl font-bold text-status-info">{dbErrorStats.retrying}</div>
               <div className="text-sm text-muted-foreground">Se reîncearcă</div>
             </Card>
             <Card className="p-4">
-              <div className="text-2xl font-bold text-red-600">{dbErrorStats.failed}</div>
+              <div className="text-2xl font-bold text-status-error">{dbErrorStats.failed}</div>
               <div className="text-sm text-muted-foreground">Eșuate</div>
             </Card>
             <Card className="p-4">
-              <div className="text-2xl font-bold text-emerald-600">{dbErrorStats.resolved}</div>
+              <div className="text-2xl font-bold text-status-success">{dbErrorStats.resolved}</div>
               <div className="text-sm text-muted-foreground">Rezolvate</div>
             </Card>
             <Card className="p-4">
@@ -1467,7 +1467,7 @@ export default function OrdersPage() {
                             </Badge>
                           </td>
                           <td className="p-4 max-w-xs">
-                            <p className="text-sm text-red-600 line-clamp-2" title={error.errorMessage || ""}>
+                            <p className="text-sm text-status-error line-clamp-2" title={error.errorMessage || ""}>
                               {error.errorMessage || "Eroare necunoscută"}
                             </p>
                           </td>
@@ -1499,7 +1499,7 @@ export default function OrdersPage() {
                               </div>
                             )}
                             {error.resolvedAt && (
-                              <div className="text-xs text-emerald-600">
+                              <div className="text-xs text-status-success">
                                 Rezolvat: {formatDate(error.resolvedAt)}
                               </div>
                             )}
@@ -1665,18 +1665,18 @@ export default function OrdersPage() {
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4" />
                     {viewOrder.phoneValidation === "PASSED" ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      <CheckCircle2 className="h-4 w-4 text-status-success" />
                     ) : (
-                      <XCircle className="h-4 w-4 text-red-500" />
+                      <XCircle className="h-4 w-4 text-status-error" />
                     )}
                     <span className="text-sm">{viewOrder.phoneValidationMsg || "Telefon"}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
                     {viewOrder.addressValidation === "PASSED" ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      <CheckCircle2 className="h-4 w-4 text-status-success" />
                     ) : (
-                      <XCircle className="h-4 w-4 text-red-500" />
+                      <XCircle className="h-4 w-4 text-status-error" />
                     )}
                     <span className="text-sm">{viewOrder.addressValidationMsg || "Adresă"}</span>
                   </div>
@@ -1725,9 +1725,9 @@ export default function OrdersPage() {
                     ) : (
                       <div className="space-y-2">
                         <Badge variant="destructive">Eroare</Badge>
-                        <p className="text-sm text-red-500 mt-1 max-h-20 overflow-y-auto">{viewOrder.invoice.errorMessage}</p>
-                        <Button 
-                          size="sm" 
+                        <p className="text-sm text-status-error mt-1 max-h-20 overflow-y-auto">{viewOrder.invoice.errorMessage}</p>
+                        <Button
+                          size="sm"
                           variant="outline"
                           onClick={() => {
                             invoiceMutation.mutate([viewOrder.id]);
@@ -1779,10 +1779,10 @@ export default function OrdersPage() {
                             <div className={cn(
                               "p-2 rounded-lg text-sm",
                               awbInfo.isDeleted && "bg-gray-100 text-gray-600",
-                              awbInfo.isCancelled && "bg-red-50 text-red-700",
-                              awbInfo.isReturned && "bg-orange-50 text-orange-700",
-                              awbInfo.isDelivered && "bg-emerald-50 text-emerald-700",
-                              !awbInfo.isDeleted && !awbInfo.isCancelled && !awbInfo.isReturned && !awbInfo.isDelivered && "bg-blue-50 text-blue-700"
+                              awbInfo.isCancelled && "bg-status-error/10 text-status-error",
+                              awbInfo.isReturned && "bg-status-warning/10 text-status-warning",
+                              awbInfo.isDelivered && "bg-status-success/10 text-status-success",
+                              !awbInfo.isDeleted && !awbInfo.isCancelled && !awbInfo.isReturned && !awbInfo.isDelivered && "bg-status-info/10 text-status-info"
                             )}>
                               <p className="font-medium flex items-center gap-1">
                                 <Icon className="h-4 w-4" />
@@ -1824,7 +1824,7 @@ export default function OrdersPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                className="text-status-error hover:text-status-error/80 hover:bg-status-error/10"
                                 onClick={() => {
                                   setAwbToDelete({
                                     id: viewOrder.awb!.id,
@@ -1848,8 +1848,8 @@ export default function OrdersPage() {
                         <AlertCircle className="h-3 w-3" />
                         Eroare
                       </Badge>
-                      <div className="p-2 bg-red-50 rounded-lg">
-                        <p className="text-sm text-red-700 max-h-20 overflow-y-auto whitespace-pre-wrap">{viewOrder.awb.errorMessage}</p>
+                      <div className="p-2 bg-status-error/10 rounded-lg">
+                        <p className="text-sm text-status-error max-h-20 overflow-y-auto whitespace-pre-wrap">{viewOrder.awb.errorMessage}</p>
                       </div>
                       <RequirePermission permission="awb.create">
                         <Button 
@@ -1971,7 +1971,7 @@ export default function OrdersPage() {
       <Dialog open={errorsDialogOpen} onOpenChange={setErrorsDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
+            <DialogTitle className="flex items-center gap-2 text-status-error">
               <AlertTriangle className="h-5 w-5" />
               Erori la Procesare ({processErrors.length} comenzi)
             </DialogTitle>
@@ -1985,11 +1985,11 @@ export default function OrdersPage() {
               {processErrors.map((error) => (
                 <div 
                   key={error.orderId}
-                  className="p-4 border rounded-lg bg-red-50 border-red-200"
+                  className="p-4 border rounded-lg bg-status-error/10 border-status-error/20"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
-                      <span className="font-semibold text-red-800">{error.orderNumber}</span>
+                      <span className="font-semibold text-status-error">{error.orderNumber}</span>
                       <div className="flex items-center gap-2">
                         {error.invoiceSuccess === false ? (
                           <Badge variant="destructive" className="gap-1">
@@ -2020,22 +2020,22 @@ export default function OrdersPage() {
                       variant="outline"
                       onClick={() => processAllMutation.mutate([error.orderId])}
                       disabled={processAllMutation.isPending}
-                      className="border-red-300 text-red-700 hover:bg-red-100"
+                      className="border-status-error/30 text-status-error hover:bg-status-error/10"
                     >
                       <RefreshCw className={cn("h-3 w-3 mr-1", processAllMutation.isPending && "animate-spin")} />
                       Reîncearcă
                     </Button>
                   </div>
-                  
+
                   <div className="space-y-1 text-sm">
                     {error.invoiceError && (
-                      <div className="flex items-start gap-2 text-red-700">
+                      <div className="flex items-start gap-2 text-status-error">
                         <FileText className="h-4 w-4 mt-0.5 flex-shrink-0" />
                         <span>{error.invoiceError}</span>
                       </div>
                     )}
                     {error.awbError && (
-                      <div className="flex items-start gap-2 text-red-700">
+                      <div className="flex items-start gap-2 text-status-error">
                         <Truck className="h-4 w-4 mt-0.5 flex-shrink-0" />
                         <span>{error.awbError}</span>
                       </div>
@@ -2059,7 +2059,7 @@ export default function OrdersPage() {
             <Button
               onClick={() => processAllMutation.mutate(processErrors.map(e => e.orderId))}
               disabled={processAllMutation.isPending}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-status-error hover:bg-status-error/90"
             >
               {processAllMutation.isPending ? (
                 <>
@@ -2090,7 +2090,7 @@ export default function OrdersPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Anulează</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-status-error hover:bg-status-error/90"
               onClick={() => {
                 if (awbToDelete) {
                   deleteAwbMutation.mutate(awbToDelete.id);
@@ -2122,12 +2122,12 @@ export default function OrdersPage() {
             <div className="space-y-4 py-4">
               {/* Warning pentru documente emise */}
               {(editOrderData.hasInvoice || editOrderData.hasAwb) && (
-                <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
+                <div className="p-4 rounded-lg bg-status-warning/10 border border-status-warning/20">
                   <div className="flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+                    <AlertTriangle className="h-5 w-5 text-status-warning mt-0.5" />
                     <div className="flex-1">
-                      <p className="font-medium text-amber-800">Atenție: Comanda are documente emise</p>
-                      <ul className="text-sm text-amber-700 mt-1 space-y-1">
+                      <p className="font-medium text-status-warning">Atenție: Comanda are documente emise</p>
+                      <ul className="text-sm text-status-warning/80 mt-1 space-y-1">
                         {editOrderData.hasInvoice && (
                           <li>Factură: {editOrderData.invoiceNumber}</li>
                         )}
@@ -2135,7 +2135,7 @@ export default function OrdersPage() {
                           <li>AWB: {editOrderData.awbNumber}</li>
                         )}
                       </ul>
-                      <p className="text-sm text-amber-700 mt-2">
+                      <p className="text-sm text-status-warning/80 mt-2">
                         Modificarea datelor poate necesita re-emiterea documentelor.
                       </p>
                       <div className="flex items-center gap-2 mt-3">
@@ -2148,7 +2148,7 @@ export default function OrdersPage() {
                             )
                           }
                         />
-                        <Label htmlFor="acknowledgeDocuments" className="text-sm text-amber-800 cursor-pointer">
+                        <Label htmlFor="acknowledgeDocuments" className="text-sm text-status-warning cursor-pointer">
                           Înțeleg și doresc să continui cu modificarea
                         </Label>
                       </div>

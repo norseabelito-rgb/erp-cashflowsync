@@ -47,6 +47,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { formatCurrency } from "@/lib/utils";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface RecipeComponent {
   id: string;
@@ -136,28 +137,19 @@ export default function RecipesPage() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <ChefHat className="h-8 w-8" />
-            Rețetar
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm md:text-base">
-            Gestionează rețetele pentru produsele compuse
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Reîncarcă
-          </Button>
-          <Button variant="outline" onClick={() => router.push("/inventory")}>
-            <Package className="h-4 w-4 mr-2" />
-            Inventar
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Rețetar"
+        description="Gestionează rețetele pentru produse compuse"
+      >
+        <Button variant="outline" onClick={() => refetch()}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Reîncarcă
+        </Button>
+        <Button variant="outline" onClick={() => router.push("/inventory")}>
+          <Package className="h-4 w-4 mr-2" />
+          Inventar
+        </Button>
+      </PageHeader>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -172,23 +164,23 @@ export default function RecipesPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-green-500/50">
+        <Card className="border-status-success/50">
           <CardHeader className="pb-2">
             <CardDescription>Cu rețetă definită</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold flex items-center gap-2 text-green-600">
+            <div className="text-2xl font-bold flex items-center gap-2 text-status-success">
               {stats.withRecipes}
               <CheckCircle2 className="h-5 w-5" />
             </div>
           </CardContent>
         </Card>
-        <Card className={stats.withoutRecipes > 0 ? "border-red-500/50" : ""}>
+        <Card className={stats.withoutRecipes > 0 ? "border-status-error/50" : ""}>
           <CardHeader className="pb-2">
             <CardDescription>Fără rețetă</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold flex items-center gap-2 ${stats.withoutRecipes > 0 ? "text-red-600" : ""}`}>
+            <div className={`text-2xl font-bold flex items-center gap-2 ${stats.withoutRecipes > 0 ? "text-status-error" : ""}`}>
               {stats.withoutRecipes}
               {stats.withoutRecipes > 0 && <AlertTriangle className="h-5 w-5" />}
             </div>
@@ -261,7 +253,7 @@ export default function RecipesPage() {
               items.map((item) => (
                 <TableRow
                   key={item.id}
-                  className={`cursor-pointer hover:bg-muted/50 ${!item.hasRecipe ? "bg-red-50/50 dark:bg-red-950/20" : ""}`}
+                  className={`cursor-pointer hover:bg-muted/50 ${!item.hasRecipe ? "bg-status-error/10 dark:bg-status-error/10" : ""}`}
                   onClick={() => handleRowClick(item)}
                 >
                   <TableCell className="font-mono text-sm font-medium">

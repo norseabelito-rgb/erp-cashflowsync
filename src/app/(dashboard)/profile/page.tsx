@@ -109,7 +109,7 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl font-semibold">{user.name || "Utilizator"}</h2>
                   {user.isSuperAdmin && (
-                    <Badge className="bg-yellow-500">
+                    <Badge className="bg-status-warning">
                       <Crown className="h-3 w-3 mr-1" />
                       SuperAdmin
                     </Badge>

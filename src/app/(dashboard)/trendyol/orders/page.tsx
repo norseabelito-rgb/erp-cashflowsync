@@ -260,7 +260,7 @@ export default function TrendyolOrdersPage() {
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{order.trendyolOrderNumber}</span>
                           {hasUnmappedItems(order) && (
-                            <AlertTriangle className="h-4 w-4 text-orange-500" />
+                            <AlertTriangle className="h-4 w-4 text-status-warning" />
                           )}
                         </div>
                       </TableCell>
@@ -426,12 +426,12 @@ export default function TrendyolOrdersPage() {
 
                 {/* Unmapped warning */}
                 {hasUnmappedItems(viewOrder) && (
-                  <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                    <div className="flex items-center gap-2 text-orange-700">
+                  <div className="p-4 bg-status-warning/10 border border-status-warning/20 rounded-lg">
+                    <div className="flex items-center gap-2 text-status-warning">
                       <AlertTriangle className="h-5 w-5" />
                       <span className="font-medium">Produse nemapate</span>
                     </div>
-                    <p className="text-sm text-orange-600 mt-1">
+                    <p className="text-sm text-status-warning mt-1">
                       Unele produse nu au fost mapate la SKU-uri locale. 
                       <Link href="/trendyol/mapping" className="underline ml-1">
                         Mapează acum

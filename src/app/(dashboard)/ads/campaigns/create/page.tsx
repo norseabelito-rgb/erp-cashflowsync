@@ -216,7 +216,7 @@ export default function CreateCampaignPage() {
                     >
                       <div className={cn(
                         "p-2 rounded-lg",
-                        account.platform === "META" ? "bg-blue-100" : "bg-gray-100"
+                        account.platform === "META" ? "bg-status-info/10" : "bg-gray-100"
                       )}>
                         {account.platform === "META" ? <MetaIcon /> : <TikTokIcon />}
                       </div>
@@ -291,7 +291,7 @@ export default function CreateCampaignPage() {
                             {product.sku}
                             <button
                               onClick={() => removeProduct(product.sku)}
-                              className="ml-2 hover:text-red-500"
+                              className="ml-2 hover:text-status-error"
                             >
                               <X className="h-3 w-3" />
                             </button>
@@ -355,10 +355,10 @@ export default function CreateCampaignPage() {
 
                 {/* Generated Name */}
                 {generatedName && (
-                  <Alert className="bg-green-50 border-green-200">
-                    <Sparkles className="h-4 w-4 text-green-600" />
-                    <AlertTitle className="text-green-800">Nume generat automat</AlertTitle>
-                    <AlertDescription className="text-green-700 font-mono text-sm">
+                  <Alert className="bg-status-success/10 border-status-success/30">
+                    <Sparkles className="h-4 w-4 text-status-success" />
+                    <AlertTitle className="text-status-success">Nume generat automat</AlertTitle>
+                    <AlertDescription className="text-status-success/80 font-mono text-sm">
                       {generatedName}
                     </AlertDescription>
                   </Alert>
@@ -374,7 +374,7 @@ export default function CreateCampaignPage() {
                     className="mt-2"
                   />
                   {!generatedName && !customName && (
-                    <p className="text-xs text-red-500 mt-1">
+                    <p className="text-xs text-status-error mt-1">
                       Selectează produse sau introdu un nume personalizat
                     </p>
                   )}

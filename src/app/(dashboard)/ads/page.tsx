@@ -123,9 +123,9 @@ export default function AdsDashboardPage() {
   // Calculate ROAS color
   const getRoasColor = (roas: number | null) => {
     if (roas === null) return "text-gray-500";
-    if (roas >= 3) return "text-green-600";
-    if (roas >= 2) return "text-yellow-600";
-    return "text-red-600";
+    if (roas >= 3) return "text-status-success";
+    if (roas >= 2) return "text-status-warning";
+    return "text-status-error";
   };
 
   return (
@@ -327,8 +327,8 @@ export default function AdsDashboardPage() {
                         <div className="flex items-center gap-4">
                           {/* Platform Icon */}
                           <div className={`p-2 rounded ${
-                            campaign.account?.platform === "META" 
-                              ? "bg-blue-100 text-blue-600" 
+                            campaign.account?.platform === "META"
+                              ? "bg-status-info/10 text-status-info"
                               : "bg-gray-100 text-gray-600"
                           }`}>
                             {campaign.account?.platform === "META" ? <MetaIcon /> : <TikTokIcon />}

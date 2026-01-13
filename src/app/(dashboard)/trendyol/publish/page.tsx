@@ -169,13 +169,13 @@ export default function TrendyolPublishPage() {
 
   const getStatusBadge = (product: MasterProduct) => {
     if (!product.category?.trendyolCategoryId) {
-      return <Badge variant="outline" className="text-orange-600">Categorie nemapată</Badge>;
+      return <Badge variant="outline" className="text-status-warning">Categorie nemapată</Badge>;
     }
     if (product.images.length === 0) {
-      return <Badge variant="outline" className="text-orange-600">Fără imagini</Badge>;
+      return <Badge variant="outline" className="text-status-warning">Fără imagini</Badge>;
     }
     if (product.trendyolStatus === "approved") {
-      return <Badge variant="default" className="bg-green-600">Aprobat</Badge>;
+      return <Badge variant="default" className="bg-status-success">Aprobat</Badge>;
     }
     if (product.trendyolStatus === "pending") {
       return <Badge variant="secondary">În așteptare</Badge>;
@@ -183,7 +183,7 @@ export default function TrendyolPublishPage() {
     if (product.trendyolStatus === "rejected") {
       return <Badge variant="destructive">Respins</Badge>;
     }
-    return <Badge variant="outline" className="text-blue-600">Gata de publicare</Badge>;
+    return <Badge variant="outline" className="text-status-info">Gata de publicare</Badge>;
   };
 
   const readyToPublish = products.filter(canPublish);
@@ -236,9 +236,9 @@ export default function TrendyolPublishPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Gata de publicare</p>
-                <p className="text-2xl font-bold text-blue-600">{readyToPublish.length}</p>
+                <p className="text-2xl font-bold text-status-info">{readyToPublish.length}</p>
               </div>
-              <Check className="h-8 w-8 text-blue-600" />
+              <Check className="h-8 w-8 text-status-info" />
             </div>
           </CardContent>
         </Card>
@@ -278,7 +278,7 @@ export default function TrendyolPublishPage() {
                   {selectedReadyProducts.length} produse selectate pentru publicare
                 </span>
                 {!selectedBrand && (
-                  <Badge variant="outline" className="text-orange-600">
+                  <Badge variant="outline" className="text-status-warning">
                     <AlertCircle className="h-3 w-3 mr-1" />
                     Selectează un brand
                   </Badge>
@@ -401,7 +401,7 @@ export default function TrendyolPublishPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className={product.stock === 0 ? "text-red-600" : ""}>
+                      <span className={product.stock === 0 ? "text-status-error" : ""}>
                         {product.stock}
                       </span>
                     </TableCell>
@@ -411,7 +411,7 @@ export default function TrendyolPublishPage() {
                     <TableCell>
                       {getStatusBadge(product)}
                       {product.trendyolError && (
-                        <p className="text-xs text-red-600 mt-1 truncate max-w-[150px]" title={product.trendyolError}>
+                        <p className="text-xs text-status-error mt-1 truncate max-w-[150px]" title={product.trendyolError}>
                           {product.trendyolError}
                         </p>
                       )}

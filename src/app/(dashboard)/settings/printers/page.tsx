@@ -286,14 +286,14 @@ export default function PrintersPage() {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${printer.isConnected ? "bg-green-500/10" : "bg-muted"}`}>
-                      <Printer className={`h-5 w-5 ${printer.isConnected ? "text-green-500" : "text-muted-foreground"}`} />
+                    <div className={`p-2 rounded-lg ${printer.isConnected ? "bg-status-success/10" : "bg-muted"}`}>
+                      <Printer className={`h-5 w-5 ${printer.isConnected ? "text-status-success" : "text-muted-foreground"}`} />
                     </div>
                     <div>
                       <CardTitle className="text-lg flex items-center gap-2">
                         {printer.name}
                         {printer.isConnected ? (
-                          <Badge className="bg-green-500">
+                          <Badge className="bg-status-success">
                             <Wifi className="h-3 w-3 mr-1" />
                             Online
                           </Badge>
@@ -361,7 +361,7 @@ export default function PrintersPage() {
                         className="h-6 w-6"
                         onClick={() => copyToken(printer.appToken, `app-${printer.id}`)}
                       >
-                        {copiedToken === `app-${printer.id}` ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                        {copiedToken === `app-${printer.id}` ? <Check className="h-3 w-3 text-status-success" /> : <Copy className="h-3 w-3" />}
                       </Button>
                     </div>
                   </div>
@@ -388,7 +388,7 @@ export default function PrintersPage() {
                         className="h-6 w-6"
                         onClick={() => copyToken(printer.printerToken, `printer-${printer.id}`)}
                       >
-                        {copiedToken === `printer-${printer.id}` ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                        {copiedToken === `printer-${printer.id}` ? <Check className="h-3 w-3 text-status-success" /> : <Copy className="h-3 w-3" />}
                       </Button>
                     </div>
                   </div>
@@ -729,19 +729,19 @@ export default function PrintersPage() {
                   <div
                     key={job.id}
                     className={`p-3 rounded-lg border ${
-                      job.status === 'COMPLETED' ? 'bg-green-50 border-green-200' :
-                      job.status === 'FAILED' ? 'bg-red-50 border-red-200' :
-                      job.status === 'PRINTING' ? 'bg-blue-50 border-blue-200' :
-                      job.status === 'PENDING' ? 'bg-yellow-50 border-yellow-200' :
+                      job.status === 'COMPLETED' ? 'bg-status-success/10 border-status-success/30' :
+                      job.status === 'FAILED' ? 'bg-status-error/10 border-status-error/30' :
+                      job.status === 'PRINTING' ? 'bg-status-info/10 border-status-info/30' :
+                      job.status === 'PENDING' ? 'bg-status-warning/10 border-status-warning/30' :
                       'bg-muted/50 border-border'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        {job.status === 'COMPLETED' && <CheckCircle className="h-5 w-5 text-green-600" />}
-                        {job.status === 'FAILED' && <XCircle className="h-5 w-5 text-red-600" />}
-                        {job.status === 'PRINTING' && <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />}
-                        {job.status === 'PENDING' && <Clock className="h-5 w-5 text-yellow-600" />}
+                        {job.status === 'COMPLETED' && <CheckCircle className="h-5 w-5 text-status-success" />}
+                        {job.status === 'FAILED' && <XCircle className="h-5 w-5 text-status-error" />}
+                        {job.status === 'PRINTING' && <Loader2 className="h-5 w-5 text-status-info animate-spin" />}
+                        {job.status === 'PENDING' && <Clock className="h-5 w-5 text-status-warning" />}
                         {job.status === 'CANCELLED' && <AlertCircle className="h-5 w-5 text-gray-500" />}
                         
                         <div>
@@ -765,8 +765,8 @@ export default function PrintersPage() {
                             'secondary'
                           }
                           className={
-                            job.status === 'COMPLETED' ? 'bg-green-600' :
-                            job.status === 'PRINTING' ? 'bg-blue-600' :
+                            job.status === 'COMPLETED' ? 'bg-status-success' :
+                            job.status === 'PRINTING' ? 'bg-status-info' :
                             ''
                           }
                         >
@@ -785,7 +785,7 @@ export default function PrintersPage() {
                     </div>
                     
                     {job.status === 'FAILED' && job.errorMessage && (
-                      <div className="mt-2 p-2 bg-red-100 rounded text-sm text-red-700">
+                      <div className="mt-2 p-2 bg-status-error/10 rounded text-sm text-status-error">
                         <strong>Eroare:</strong> {job.errorMessage}
                       </div>
                     )}

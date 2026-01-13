@@ -169,18 +169,18 @@ export function WebhookConfigSection() {
             <div className="border rounded-lg p-4">
               <CollapsibleTrigger className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                  <div className="p-2 bg-status-info/10 rounded-lg text-status-info">
                     <MetaIcon />
                   </div>
                   <div className="text-left">
                     <div className="font-medium">Meta Ads</div>
                     <div className="text-sm text-muted-foreground">
                       {webhooks.META?.isVerified ? (
-                        <span className="text-green-600 flex items-center gap-1">
+                        <span className="text-status-success flex items-center gap-1">
                           <CheckCircle2 className="h-3 w-3" /> Verificat
                         </span>
                       ) : webhooks.META?.verifyToken ? (
-                        <span className="text-amber-600 flex items-center gap-1">
+                        <span className="text-status-warning flex items-center gap-1">
                           <Info className="h-3 w-3" /> Așteaptă verificare
                         </span>
                       ) : (
@@ -338,11 +338,11 @@ export function WebhookConfigSection() {
                 >
                   <div className="flex items-center gap-3">
                     {event.processed ? (
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <CheckCircle2 className="h-4 w-4 text-status-success" />
                     ) : event.processError ? (
-                      <XCircle className="h-4 w-4 text-red-600" />
+                      <XCircle className="h-4 w-4 text-status-error" />
                     ) : (
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                      <Loader2 className="h-4 w-4 animate-spin text-status-info" />
                     )}
                     <div>
                       <span className="font-medium">{event.eventType}</span>

@@ -53,6 +53,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface Supplier {
   id: string;
@@ -200,28 +201,19 @@ export default function SuppliersPage() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Building2 className="h-8 w-8" />
-            Furnizori
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm md:text-base">
-            Gestionează furnizorii pentru recepții marfă
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Reîncarcă
-          </Button>
-          <Button onClick={handleNew}>
-            <Plus className="h-4 w-4 mr-2" />
-            Furnizor nou
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Furnizori"
+        description="Gestionează furnizorii de materiale"
+      >
+        <Button variant="outline" onClick={() => refetch()}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Reîncarcă
+        </Button>
+        <Button onClick={handleNew}>
+          <Plus className="h-4 w-4 mr-2" />
+          Furnizor nou
+        </Button>
+      </PageHeader>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
@@ -238,7 +230,7 @@ export default function SuppliersPage() {
             <CardDescription>Activi</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{activeCount}</div>
+            <div className="text-2xl font-bold text-status-success">{activeCount}</div>
           </CardContent>
         </Card>
         <Card>
@@ -555,9 +547,9 @@ export default function SuppliersPage() {
               {selectedSupplier?._count &&
                 (selectedSupplier._count.items > 0 ||
                   selectedSupplier._count.receipts > 0) && (
-                  <span className="block mt-2 text-yellow-600">
-                    Furnizorul are {selectedSupplier._count.items} articole și{" "}
-                    {selectedSupplier._count.receipts} recepții asociate și va fi doar
+                  <span className="block mt-2 text-status-warning">
+                    Furnizorul are {selectedSupplier._count.items} articole si{" "}
+                    {selectedSupplier._count.receipts} receptii asociate si va fi doar
                     dezactivat.
                   </span>
                 )}

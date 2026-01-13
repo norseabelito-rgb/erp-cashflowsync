@@ -181,12 +181,12 @@ export default function StockReportPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <DollarSign className="h-4 w-4 text-blue-600" />
+              <div className="p-2 bg-status-info/10 rounded-lg">
+                <DollarSign className="h-4 w-4 text-status-info" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Valoare la data</p>
-                <p className="text-xl font-bold text-blue-600">
+                <p className="text-xl font-bold text-status-info">
                   {formatCurrency(totals.totalValueAtDate || 0)}
                 </p>
               </div>
@@ -196,12 +196,12 @@ export default function StockReportPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <DollarSign className="h-4 w-4 text-green-600" />
+              <div className="p-2 bg-status-success/10 rounded-lg">
+                <DollarSign className="h-4 w-4 text-status-success" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Valoare curentă</p>
-                <p className="text-xl font-bold text-green-600">
+                <p className="text-xl font-bold text-status-success">
                   {formatCurrency(totals.totalCurrentValue || 0)}
                 </p>
               </div>
@@ -226,12 +226,12 @@ export default function StockReportPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <PackageX className="h-4 w-4 text-red-600" />
+              <div className="p-2 bg-status-error/10 rounded-lg">
+                <PackageX className="h-4 w-4 text-status-error" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Fără stoc</p>
-                <p className="text-xl font-bold text-red-600">
+                <p className="text-xl font-bold text-status-error">
                   {totals.itemsOutOfStock || 0}
                 </p>
               </div>
@@ -327,7 +327,7 @@ export default function StockReportPage() {
 
       {/* Data comparison info */}
       {!isToday && (
-        <Card className="mb-6 border-blue-200 bg-blue-50">
+        <Card className="mb-6 border-status-info/50 bg-status-info/10">
           <CardContent className="py-3">
             <p className="text-sm text-blue-700">
               <Calendar className="h-4 w-4 inline mr-1" />
@@ -408,7 +408,7 @@ export default function StockReportPage() {
                         {item.stockDifference !== 0 && (
                           <span
                             className={`flex items-center justify-end gap-1 ${
-                              item.stockDifference > 0 ? "text-green-600" : "text-red-600"
+                              item.stockDifference > 0 ? "text-status-success" : "text-status-error"
                             }`}
                           >
                             {item.stockDifference > 0 ? (

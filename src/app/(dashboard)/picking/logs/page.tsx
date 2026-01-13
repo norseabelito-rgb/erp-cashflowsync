@@ -30,10 +30,10 @@ import { formatDistanceToNow, format } from "date-fns";
 import { ro } from "date-fns/locale";
 
 const ACTION_CONFIG = {
-  ITEM_PICKED: { label: "Produs ridicat", icon: Package, color: "text-green-600", bgColor: "bg-green-50" },
-  ITEM_UNDO: { label: "Undo produs", icon: RotateCcw, color: "text-orange-600", bgColor: "bg-orange-50" },
-  SURPLUS_ATTEMPT: { label: "Încercare surplus", icon: AlertTriangle, color: "text-red-600", bgColor: "bg-red-50" },
-  LIST_STARTED: { label: "Listă preluată", icon: Play, color: "text-blue-600", bgColor: "bg-blue-50" },
+  ITEM_PICKED: { label: "Produs ridicat", icon: Package, color: "text-status-success", bgColor: "bg-status-success/10" },
+  ITEM_UNDO: { label: "Undo produs", icon: RotateCcw, color: "text-status-warning", bgColor: "bg-status-warning/10" },
+  SURPLUS_ATTEMPT: { label: "Încercare surplus", icon: AlertTriangle, color: "text-status-error", bgColor: "bg-status-error/10" },
+  LIST_STARTED: { label: "Listă preluată", icon: Play, color: "text-status-info", bgColor: "bg-status-info/10" },
   LIST_COMPLETED: { label: "Listă finalizată", icon: CheckCircle2, color: "text-emerald-600", bgColor: "bg-emerald-50" },
   LIST_SAVED: { label: "Progres salvat", icon: Save, color: "text-gray-600", bgColor: "bg-gray-50" },
   QUANTITY_CHANGED: { label: "Cantitate modificată", icon: Package, color: "text-purple-600", bgColor: "bg-purple-50" },
@@ -143,42 +143,42 @@ export default function PickingLogsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-red-50 border-red-200">
+        <Card className="bg-status-error/10 border-status-error/20">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-red-700">Încercări surplus</p>
-                <p className="text-2xl font-bold text-red-800">
+                <p className="text-sm text-status-error">Încercări surplus</p>
+                <p className="text-2xl font-bold text-status-error">
                   {logs.filter(l => l.action === "SURPLUS_ATTEMPT").length}
                 </p>
               </div>
-              <AlertTriangle className="h-8 w-8 text-red-500" />
+              <AlertTriangle className="h-8 w-8 text-status-error" />
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-green-50 border-green-200">
+        <Card className="bg-status-success/10 border-status-success/20">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-green-700">Produse ridicate</p>
-                <p className="text-2xl font-bold text-green-800">
+                <p className="text-sm text-status-success">Produse ridicate</p>
+                <p className="text-2xl font-bold text-status-success">
                   {logs.filter(l => l.action === "ITEM_PICKED").length}
                 </p>
               </div>
-              <Package className="h-8 w-8 text-green-500" />
+              <Package className="h-8 w-8 text-status-success" />
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-orange-50 border-orange-200">
+        <Card className="bg-status-warning/10 border-status-warning/20">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-orange-700">Undo-uri</p>
-                <p className="text-2xl font-bold text-orange-800">
+                <p className="text-sm text-status-warning">Undo-uri</p>
+                <p className="text-2xl font-bold text-status-warning">
                   {logs.filter(l => l.action === "ITEM_UNDO").length}
                 </p>
               </div>
-              <RotateCcw className="h-8 w-8 text-orange-500" />
+              <RotateCcw className="h-8 w-8 text-status-warning" />
             </div>
           </CardContent>
         </Card>
@@ -246,7 +246,7 @@ export default function PickingLogsPage() {
                           </span>
                         )}
                         {log.quantityAttempted !== null && (
-                          <span className="text-red-600">
+                          <span className="text-status-error">
                             Încercat: {log.quantityAttempted}
                           </span>
                         )}

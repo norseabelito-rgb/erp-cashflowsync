@@ -71,10 +71,10 @@ export default function SyncHistoryPage() {
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      RUNNING: "bg-blue-100 text-blue-800 animate-pulse",
-      COMPLETED: "bg-green-100 text-green-800",
-      COMPLETED_WITH_ERRORS: "bg-yellow-100 text-yellow-800",
-      FAILED: "bg-red-100 text-red-800",
+      RUNNING: "bg-status-info/10 text-status-info animate-pulse",
+      COMPLETED: "bg-status-success/10 text-status-success",
+      COMPLETED_WITH_ERRORS: "bg-status-warning/10 text-status-warning",
+      FAILED: "bg-status-error/10 text-status-error",
     };
     
     const labels: Record<string, string> = {
@@ -94,7 +94,7 @@ export default function SyncHistoryPage() {
   const getTypeBadge = (type: string) => {
     const styles: Record<string, string> = {
       MANUAL: "bg-purple-100 text-purple-800",
-      AUTOMATIC: "bg-blue-100 text-blue-800",
+      AUTOMATIC: "bg-status-info/10 text-status-info",
       SINGLE_ORDER: "bg-indigo-100 text-indigo-800",
     };
     
@@ -124,10 +124,10 @@ export default function SyncHistoryPage() {
 
   const getLevelStyle = (level: string) => {
     switch (level) {
-      case "SUCCESS": return "border-l-4 border-green-500 bg-green-50";
-      case "ERROR": return "border-l-4 border-red-500 bg-red-50";
-      case "WARNING": return "border-l-4 border-yellow-500 bg-yellow-50";
-      case "INFO": return "border-l-4 border-blue-500 bg-blue-50";
+      case "SUCCESS": return "border-l-4 border-status-success bg-status-success/10";
+      case "ERROR": return "border-l-4 border-status-error bg-status-error/10";
+      case "WARNING": return "border-l-4 border-status-warning bg-status-warning/10";
+      case "INFO": return "border-l-4 border-status-info bg-status-info/10";
       case "DEBUG": return "border-l-4 border-gray-400 bg-gray-50";
       default: return "border-l-4 border-gray-300 bg-white";
     }
@@ -135,10 +135,10 @@ export default function SyncHistoryPage() {
 
   const getLevelTextColor = (level: string) => {
     switch (level) {
-      case "SUCCESS": return "text-green-800";
-      case "ERROR": return "text-red-800";
-      case "WARNING": return "text-yellow-800";
-      case "INFO": return "text-blue-800";
+      case "SUCCESS": return "text-status-success";
+      case "ERROR": return "text-status-error";
+      case "WARNING": return "text-status-warning";
+      case "INFO": return "text-status-info";
       case "DEBUG": return "text-gray-700";
       default: return "text-gray-700";
     }
@@ -205,7 +205,7 @@ export default function SyncHistoryPage() {
                       <span title="AWB-uri">🚚 {log.awbsUpdated}</span>
                       <span title="Facturi">📄 {log.invoicesChecked}</span>
                       {log.errorsCount > 0 && (
-                        <span className="text-red-600" title="Erori">❌ {log.errorsCount}</span>
+                        <span className="text-status-error" title="Erori">❌ {log.errorsCount}</span>
                       )}
                     </div>
                     {log.durationMs && (
@@ -265,7 +265,7 @@ export default function SyncHistoryPage() {
                     <span className="text-gray-600">🚚 {selectedLog.awbsUpdated} AWB-uri actualizate</span>
                     <span className="text-gray-600">📄 {selectedLog.invoicesChecked} facturi</span>
                     {selectedLog.errorsCount > 0 && (
-                      <span className="text-red-600">❌ {selectedLog.errorsCount} erori</span>
+                      <span className="text-status-error">❌ {selectedLog.errorsCount} erori</span>
                     )}
                     {selectedLog.durationMs && (
                       <span className="text-gray-500">⏱️ {(selectedLog.durationMs / 1000).toFixed(2)}s</span>
@@ -293,17 +293,17 @@ export default function SyncHistoryPage() {
                                 {entry.action}
                               </span>
                               {entry.orderNumber && (
-                                <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">
+                                <span className="text-xs bg-status-info/10 text-status-info px-1.5 py-0.5 rounded">
                                   #{entry.orderNumber}
                                 </span>
                               )}
                               {entry.awbNumber && (
-                                <span className="text-xs bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded">
+                                <span className="text-xs bg-status-warning/10 text-status-warning px-1.5 py-0.5 rounded">
                                   AWB: {entry.awbNumber}
                                 </span>
                               )}
                               {entry.invoiceNumber && (
-                                <span className="text-xs bg-green-100 text-green-800 px-1.5 py-0.5 rounded">
+                                <span className="text-xs bg-status-success/10 text-status-success px-1.5 py-0.5 rounded">
                                   Factură: {entry.invoiceNumber}
                                 </span>
                               )}

@@ -249,7 +249,7 @@ export default function RecipeEditPage() {
   if (!item) {
     return (
       <div className="p-8 text-center">
-        <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-500" />
+        <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-status-warning" />
         <h2 className="text-xl font-semibold mb-2">Articol negăsit</h2>
         <p className="text-muted-foreground mb-4">
           Articolul cu ID-ul specificat nu există sau nu este compus.
@@ -449,7 +449,7 @@ export default function RecipeEditPage() {
                 {components.filter(
                   (c) => Number(c.componentItem?.currentStock || 0) < c.quantity
                 ).length === 0 ? (
-                  <div className="flex items-center gap-2 text-green-600">
+                  <div className="flex items-center gap-2 text-status-success">
                     <CheckCircle2 className="h-4 w-4" />
                     <span className="text-sm">Toate ingredientele au stoc suficient</span>
                   </div>
@@ -476,9 +476,9 @@ export default function RecipeEditPage() {
           )}
 
           {hasChanges && (
-            <Card className="border-yellow-500">
+            <Card className="border-status-warning">
               <CardContent className="pt-4">
-                <div className="flex items-center gap-2 text-yellow-600">
+                <div className="flex items-center gap-2 text-status-warning">
                   <AlertTriangle className="h-4 w-4" />
                   <span className="text-sm">Ai modificări nesalvate</span>
                 </div>

@@ -73,9 +73,9 @@ const TikTokIcon = () => (
 );
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
-  OK: { label: "Activ", color: "bg-green-100 text-green-800", icon: CheckCircle2 },
-  WARNING: { label: "Avertisment", color: "bg-yellow-100 text-yellow-800", icon: AlertCircle },
-  ERROR: { label: "Eroare", color: "bg-red-100 text-red-800", icon: XCircle },
+  OK: { label: "Activ", color: "bg-status-success/10 text-status-success", icon: CheckCircle2 },
+  WARNING: { label: "Avertisment", color: "bg-status-warning/10 text-status-warning", icon: AlertCircle },
+  ERROR: { label: "Eroare", color: "bg-status-error/10 text-status-error", icon: XCircle },
 };
 
 export default function PixelsPage() {
@@ -250,7 +250,7 @@ export default function PixelsPage() {
                     <div className="flex items-center gap-2">
                       <div className={cn(
                         "p-2 rounded-lg",
-                        account.platform === "META" ? "bg-blue-100" : "bg-gray-100"
+                        account.platform === "META" ? "bg-status-info/10" : "bg-gray-100"
                       )}>
                         {account.platform === "META" ? <MetaIcon /> : <TikTokIcon />}
                       </div>
@@ -343,7 +343,7 @@ export default function PixelsPage() {
                           <div className="flex items-center gap-2">
                             <div className={cn(
                               "p-1.5 rounded",
-                              pixel.platform === "META" ? "bg-blue-100" : "bg-gray-100"
+                              pixel.platform === "META" ? "bg-status-info/10" : "bg-gray-100"
                             )}>
                               {pixel.platform === "META" ? <MetaIcon /> : <TikTokIcon />}
                             </div>
@@ -414,7 +414,7 @@ export default function PixelsPage() {
                                 size="sm"
                                 onClick={() => setDeleteDialog({ open: true, pixel })}
                               >
-                                <Trash2 className="h-4 w-4 text-red-500" />
+                                <Trash2 className="h-4 w-4 text-status-error" />
                               </Button>
                             )}
                           </div>
@@ -507,7 +507,7 @@ export default function PixelsPage() {
               <AlertDialogCancel>Anulează</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => deleteDialog.pixel && deleteMutation.mutate(deleteDialog.pixel.id)}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-destructive hover:bg-destructive/90"
               >
                 Șterge
               </AlertDialogAction>

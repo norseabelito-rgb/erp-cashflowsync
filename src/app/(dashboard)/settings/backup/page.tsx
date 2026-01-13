@@ -187,8 +187,8 @@ export default function BackupListPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <HardDrive className="h-4 w-4 text-blue-600" />
+              <div className="p-2 bg-status-info/10 rounded-lg">
+                <HardDrive className="h-4 w-4 text-status-info" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total backup-uri</p>
@@ -200,8 +200,8 @@ export default function BackupListPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Clock className="h-4 w-4 text-green-600" />
+              <div className="p-2 bg-status-success/10 rounded-lg">
+                <Clock className="h-4 w-4 text-status-success" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Ultimul backup</p>
@@ -339,7 +339,7 @@ export default function BackupListPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              <AlertTriangle className="h-5 w-5 text-status-warning" />
               Confirmare restaurare
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
@@ -347,7 +347,7 @@ export default function BackupListPage() {
                 Ești sigur că vrei să restaurezi din backup-ul{" "}
                 <strong className="font-mono">{selectedBackup?.name}</strong>?
               </p>
-              <p className="text-orange-600">
+              <p className="text-status-warning">
                 Această acțiune va suprascrie toate datele existente și nu poate fi anulată!
               </p>
             </AlertDialogDescription>

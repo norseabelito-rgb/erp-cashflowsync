@@ -66,6 +66,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface InventoryItem {
   id: string;
@@ -261,50 +262,44 @@ export default function InventoryPage() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Inventar</h1>
-          <p className="text-muted-foreground mt-1 text-sm md:text-base">
-            Gestionează articolele din inventar
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Reîncarcă
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <FileSpreadsheet className="h-4 w-4 mr-2" />
-                Import/Export
-                <ChevronDown className="h-4 w-4 ml-2" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Acțiuni CSV</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
-                <FileUp className="h-4 w-4 mr-2" />
-                Import din CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExport} disabled={isExporting}>
-                {isExporting ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4 mr-2" />
-                )}
-                Export în CSV
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button onClick={() => router.push("/inventory/new")}>
-            <Plus className="h-4 w-4 mr-2" />
-            Articol nou
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Articole Inventar"
+        description="Gestionează articolele din inventar"
+      >
+        <Button variant="outline" onClick={() => refetch()}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Reîncarcă
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Import/Export
+              <ChevronDown className="h-4 w-4 ml-2" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Acțiuni CSV</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
+              <FileUp className="h-4 w-4 mr-2" />
+              Import din CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExport} disabled={isExporting}>
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              Export în CSV
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <Button onClick={() => router.push("/inventory/new")}>
+          <Plus className="h-4 w-4 mr-2" />
+          Articol nou
+        </Button>
+      </PageHeader>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -335,7 +330,7 @@ export default function InventoryPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className={stats.lowStockItems > 0 ? "border-yellow-500" : ""}>
+        <Card className={stats.lowStockItems > 0 ? "border-status-warning" : ""}>
           <CardHeader className="pb-2">
             <CardDescription>Stoc scăzut</CardDescription>
           </CardHeader>
@@ -343,7 +338,7 @@ export default function InventoryPage() {
             <div className="text-2xl font-bold flex items-center gap-2">
               {stats.lowStockItems}
               {stats.lowStockItems > 0 && (
-                <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                <AlertTriangle className="h-4 w-4 text-status-warning" />
               )}
             </div>
           </CardContent>
@@ -524,8 +519,8 @@ export default function InventoryPage() {
               Ești sigur că vrei să ștergi articolul{" "}
               <strong>{itemToDelete?.name}</strong> ({itemToDelete?.sku})?
               {itemToDelete?._count?.mappedProducts && itemToDelete._count.mappedProducts > 0 && (
-                <span className="block mt-2 text-yellow-600">
-                  Atenție: Acest articol este mapat la {itemToDelete._count.mappedProducts} produse.
+                <span className="block mt-2 text-status-warning">
+                  Atentie: Acest articol este mapat la {itemToDelete._count.mappedProducts} produse.
                 </span>
               )}
             </DialogDescription>

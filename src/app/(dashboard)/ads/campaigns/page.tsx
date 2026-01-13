@@ -94,10 +94,10 @@ function formatNumber(value: number | string): string {
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
-  ACTIVE: { label: "Activ", color: "bg-green-100 text-green-800", icon: Play },
-  PAUSED: { label: "Pauză", color: "bg-yellow-100 text-yellow-800", icon: Pause },
+  ACTIVE: { label: "Activ", color: "bg-status-success/10 text-status-success", icon: Play },
+  PAUSED: { label: "Pauză", color: "bg-status-warning/10 text-status-warning", icon: Pause },
   ARCHIVED: { label: "Arhivat", color: "bg-gray-100 text-gray-800", icon: null },
-  DELETED: { label: "Șters", color: "bg-red-100 text-red-800", icon: null },
+  DELETED: { label: "Șters", color: "bg-status-error/10 text-status-error", icon: null },
 };
 
 export default function CampaignsPage() {
@@ -178,9 +178,9 @@ export default function CampaignsPage() {
 
   const getRoasColor = (roas: number | null) => {
     if (roas === null) return "text-gray-500";
-    if (roas >= 3) return "text-green-600";
-    if (roas >= 2) return "text-yellow-600";
-    return "text-red-600";
+    if (roas >= 3) return "text-status-success";
+    if (roas >= 2) return "text-status-warning";
+    return "text-status-error";
   };
 
   return (
@@ -298,7 +298,7 @@ export default function CampaignsPage() {
                           <div className="flex items-center gap-2">
                             <div className={cn(
                               "p-1 rounded",
-                              campaign.account?.platform === "META" ? "bg-blue-100" : "bg-gray-100"
+                              campaign.account?.platform === "META" ? "bg-status-info/10" : "bg-gray-100"
                             )}>
                               {campaign.account?.platform === "META" ? <MetaIcon /> : <TikTokIcon />}
                             </div>
@@ -321,7 +321,7 @@ export default function CampaignsPage() {
                                 </div>
                               )}
                               {!campaign.namingValid && (
-                                <p className="text-xs text-amber-600">⚠️ Denumire non-standard</p>
+                                <p className="text-xs text-status-warning">⚠️ Denumire non-standard</p>
                               )}
                             </div>
                           </div>

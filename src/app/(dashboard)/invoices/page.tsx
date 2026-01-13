@@ -231,7 +231,7 @@ export default function InvoicesPage() {
 
     if (invoice.paymentStatus === "paid") {
       return (
-        <Badge variant="outline" className="bg-green-100 text-green-700">
+        <Badge variant="outline" className="bg-status-success/10 text-status-success">
           <CreditCard className="h-3 w-3 mr-1" />
           Plătită
         </Badge>
@@ -241,7 +241,7 @@ export default function InvoicesPage() {
     // Verifică dacă e depășită scadența
     if (invoice.dueDate && new Date(invoice.dueDate) < new Date()) {
       return (
-        <Badge variant="outline" className="bg-red-100 text-red-700">
+        <Badge variant="outline" className="bg-status-error/10 text-status-error">
           <AlertTriangle className="h-3 w-3 mr-1" />
           Scadentă
         </Badge>
@@ -249,7 +249,7 @@ export default function InvoicesPage() {
     }
 
     return (
-      <Badge variant="outline" className="bg-yellow-100 text-yellow-700">
+      <Badge variant="outline" className="bg-status-warning/10 text-status-warning">
         <Clock className="h-3 w-3 mr-1" />
         Neplătită
       </Badge>
@@ -313,10 +313,10 @@ export default function InvoicesPage() {
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-5 mb-6">
-        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+        <Card className="bg-gradient-to-br from-status-info/10 to-status-info/5 border-status-info/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <FileText className="h-8 w-8 text-blue-500" />
+              <FileText className="h-8 w-8 text-status-info" />
               <div>
                 <p className="text-2xl font-bold">{stats.total}</p>
                 <p className="text-sm text-muted-foreground">Total facturi</p>
@@ -335,10 +335,10 @@ export default function InvoicesPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
+        <Card className="bg-gradient-to-br from-status-warning/10 to-status-warning/5 border-status-warning/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <Clock className="h-8 w-8 text-amber-500" />
+              <Clock className="h-8 w-8 text-status-warning" />
               <div>
                 <p className="text-2xl font-bold">{stats.unpaid}</p>
                 <p className="text-sm text-muted-foreground">Neplătite</p>
@@ -346,10 +346,10 @@ export default function InvoicesPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20">
+        <Card className="bg-gradient-to-br from-status-error/10 to-status-error/5 border-status-error/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <AlertTriangle className="h-8 w-8 text-red-500" />
+              <AlertTriangle className="h-8 w-8 text-status-error" />
               <div>
                 <p className="text-2xl font-bold">{stats.overdue}</p>
                 <p className="text-sm text-muted-foreground">Scadente</p>
@@ -468,7 +468,7 @@ export default function InvoicesPage() {
                             <span className="text-muted-foreground">-</span>
                           )}
                           {invoice.stornoNumber && (
-                            <div className="text-xs text-red-600 mt-1">
+                            <div className="text-xs text-status-error mt-1">
                               Stornare: {invoice.stornoSeries}{invoice.stornoNumber}
                             </div>
                           )}
@@ -514,7 +514,7 @@ export default function InvoicesPage() {
                           <div className={cn(
                             "flex items-center gap-1 text-sm",
                             new Date(invoice.dueDate) < new Date() && invoice.paymentStatus !== "paid"
-                              ? "text-red-600 font-medium"
+                              ? "text-status-error font-medium"
                               : "text-muted-foreground"
                           )}>
                             <Calendar className="h-3 w-3" />
@@ -588,7 +588,7 @@ export default function InvoicesPage() {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   onClick={() => handleCancelInvoice(invoice)}
-                                  className="text-red-600 focus:text-red-600"
+                                  className="text-status-error focus:text-status-error"
                                 >
                                   <Ban className="h-4 w-4 mr-2" />
                                   Anulează factura
@@ -616,7 +616,7 @@ export default function InvoicesPage() {
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
+            <DialogTitle className="flex items-center gap-2 text-status-error">
               <Ban className="h-5 w-5" />
               Anulare Factură
             </DialogTitle>
@@ -631,10 +631,10 @@ export default function InvoicesPage() {
           </DialogHeader>
 
           <div className="py-4">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <div className="bg-status-warning/10 border border-status-warning/20 rounded-lg p-4 mb-4">
               <div className="flex items-start gap-2">
-                <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
-                <div className="text-sm text-yellow-800">
+                <AlertTriangle className="h-5 w-5 text-status-warning mt-0.5" />
+                <div className="text-sm text-status-warning">
                   <p className="font-medium">Atenție!</p>
                   <p>Această acțiune va emite o factură de stornare în SmartBill. Ambele facturi vor rămâne în sistem pentru evidența contabilă.</p>
                 </div>
@@ -685,7 +685,7 @@ export default function InvoicesPage() {
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <HelpCircle className="h-5 w-5 text-blue-500" />
+              <HelpCircle className="h-5 w-5 text-status-info" />
               Ghid Statusuri Facturi
             </DialogTitle>
             <DialogDescription>
@@ -701,32 +701,32 @@ export default function InvoicesPage() {
                 Status Factură
               </h3>
               <div className="space-y-3">
-                <div className="flex items-start gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5" />
+                <div className="flex items-start gap-3 p-3 bg-status-success/10 rounded-lg border border-status-success/20">
+                  <CheckCircle2 className="h-5 w-5 text-status-success mt-0.5" />
                   <div>
-                    <p className="font-medium text-emerald-800">Emisă (issued)</p>
-                    <p className="text-sm text-emerald-700">Factura a fost emisă cu succes în SmartBill și are un număr valid.</p>
+                    <p className="font-medium text-status-success">Emisă (issued)</p>
+                    <p className="text-sm text-status-success/80">Factura a fost emisă cu succes în SmartBill și are un număr valid.</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                  <Clock className="h-5 w-5 text-amber-600 mt-0.5" />
+                <div className="flex items-start gap-3 p-3 bg-status-warning/10 rounded-lg border border-status-warning/20">
+                  <Clock className="h-5 w-5 text-status-warning mt-0.5" />
                   <div>
-                    <p className="font-medium text-amber-800">În așteptare (pending)</p>
-                    <p className="text-sm text-amber-700">Factura este în curs de procesare sau așteaptă să fie emisă.</p>
+                    <p className="font-medium text-status-warning">În așteptare (pending)</p>
+                    <p className="text-sm text-status-warning/80">Factura este în curs de procesare sau așteaptă să fie emisă.</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
-                  <XCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                <div className="flex items-start gap-3 p-3 bg-status-error/10 rounded-lg border border-status-error/20">
+                  <XCircle className="h-5 w-5 text-status-error mt-0.5" />
                   <div>
-                    <p className="font-medium text-red-800">Eroare (error)</p>
-                    <p className="text-sm text-red-700">A apărut o eroare la emiterea facturii. Verifică mesajul de eroare pentru detalii.</p>
+                    <p className="font-medium text-status-error">Eroare (error)</p>
+                    <p className="text-sm text-status-error/80">A apărut o eroare la emiterea facturii. Verifică mesajul de eroare pentru detalii.</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                  <Ban className="h-5 w-5 text-orange-600 mt-0.5" />
+                <div className="flex items-start gap-3 p-3 bg-status-warning/10 rounded-lg border border-status-warning/20">
+                  <Ban className="h-5 w-5 text-status-warning mt-0.5" />
                   <div>
-                    <p className="font-medium text-orange-800">Anulată (cancelled)</p>
-                    <p className="text-sm text-orange-700">Factura a fost anulată. Dacă a fost stornată în SmartBill, va exista o factură de stornare.</p>
+                    <p className="font-medium text-status-warning">Anulată (cancelled)</p>
+                    <p className="text-sm text-status-warning/80">Factura a fost anulată. Dacă a fost stornată în SmartBill, va exista o factură de stornare.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -746,25 +746,25 @@ export default function InvoicesPage() {
                 Status Plată
               </h3>
               <div className="space-y-3">
-                <div className="flex items-start gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5" />
+                <div className="flex items-start gap-3 p-3 bg-status-success/10 rounded-lg border border-status-success/20">
+                  <CheckCircle2 className="h-5 w-5 text-status-success mt-0.5" />
                   <div>
-                    <p className="font-medium text-emerald-800">Plătită (paid)</p>
-                    <p className="text-sm text-emerald-700">Factura a fost încasată integral. Plata este înregistrată și în SmartBill.</p>
+                    <p className="font-medium text-status-success">Plătită (paid)</p>
+                    <p className="text-sm text-status-success/80">Factura a fost încasată integral. Plata este înregistrată și în SmartBill.</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                  <Clock className="h-5 w-5 text-amber-600 mt-0.5" />
+                <div className="flex items-start gap-3 p-3 bg-status-warning/10 rounded-lg border border-status-warning/20">
+                  <Clock className="h-5 w-5 text-status-warning mt-0.5" />
                   <div>
-                    <p className="font-medium text-amber-800">Parțial plătită (partial)</p>
-                    <p className="text-sm text-amber-700">S-a încasat doar o parte din valoarea facturii.</p>
+                    <p className="font-medium text-status-warning">Parțial plătită (partial)</p>
+                    <p className="text-sm text-status-warning/80">S-a încasat doar o parte din valoarea facturii.</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
-                  <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+                <div className="flex items-start gap-3 p-3 bg-status-error/10 rounded-lg border border-status-error/20">
+                  <AlertTriangle className="h-5 w-5 text-status-error mt-0.5" />
                   <div>
-                    <p className="font-medium text-red-800">Neplătită (unpaid)</p>
-                    <p className="text-sm text-red-700">Factura nu a fost încă plătită. Verifică dacă a trecut de scadență.</p>
+                    <p className="font-medium text-status-error">Neplătită (unpaid)</p>
+                    <p className="text-sm text-status-error/80">Factura nu a fost încă plătită. Verifică dacă a trecut de scadență.</p>
                   </div>
                 </div>
               </div>
@@ -777,18 +777,18 @@ export default function InvoicesPage() {
                 Scadență
               </h3>
               <div className="space-y-3">
-                <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <Calendar className="h-5 w-5 text-blue-600 mt-0.5" />
+                <div className="flex items-start gap-3 p-3 bg-status-info/10 rounded-lg border border-status-info/20">
+                  <Calendar className="h-5 w-5 text-status-info mt-0.5" />
                   <div>
-                    <p className="font-medium text-blue-800">În termen</p>
-                    <p className="text-sm text-blue-700">Scadența nu a trecut încă. Factura poate fi plătită fără penalizări.</p>
+                    <p className="font-medium text-status-info">În termen</p>
+                    <p className="text-sm text-status-info/80">Scadența nu a trecut încă. Factura poate fi plătită fără penalizări.</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
-                  <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+                <div className="flex items-start gap-3 p-3 bg-status-error/10 rounded-lg border border-status-error/20">
+                  <AlertTriangle className="h-5 w-5 text-status-error mt-0.5" />
                   <div>
-                    <p className="font-medium text-red-800">Scadentă (în roșu)</p>
-                    <p className="text-sm text-red-700">Data scadenței a trecut și factura nu este plătită. Necesită atenție urgentă.</p>
+                    <p className="font-medium text-status-error">Scadentă (în roșu)</p>
+                    <p className="text-sm text-status-error/80">Data scadenței a trecut și factura nu este plătită. Necesită atenție urgentă.</p>
                   </div>
                 </div>
               </div>
@@ -799,15 +799,15 @@ export default function InvoicesPage() {
               <h3 className="font-semibold text-lg mb-3">Acțiuni disponibile</h3>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-emerald-600" />
+                  <DollarSign className="h-4 w-4 text-status-success" />
                   <span><strong>Marchează ca plătită</strong> - Înregistrează plata în sistem și în SmartBill</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <Ban className="h-4 w-4 text-red-600" />
+                  <Ban className="h-4 w-4 text-status-error" />
                   <span><strong>Anulează factura</strong> - Creează stornare în SmartBill și marchează ca anulată</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <Download className="h-4 w-4 text-blue-600" />
+                  <Download className="h-4 w-4 text-status-info" />
                   <span><strong>Descarcă PDF</strong> - Descarcă factura în format PDF</span>
                 </li>
               </ul>
@@ -844,10 +844,10 @@ export default function InvoicesPage() {
           </DialogHeader>
 
           <div className="py-4 space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="bg-status-info/10 border border-status-info/20 rounded-lg p-4">
               <div className="flex items-start gap-2">
-                <FileText className="h-5 w-5 text-blue-600 mt-0.5" />
-                <div className="text-sm text-blue-800">
+                <FileText className="h-5 w-5 text-status-info mt-0.5" />
+                <div className="text-sm text-status-info">
                   <p className="font-medium">Informații factură</p>
                   <p>Client: {payDialog.invoice?.order.customerFirstName} {payDialog.invoice?.order.customerLastName}</p>
                   <p>Valoare: {payDialog.invoice ? formatCurrency(parseFloat(payDialog.invoice.order.totalPrice), payDialog.invoice.order.currency) : '-'}</p>
@@ -882,7 +882,7 @@ export default function InvoicesPage() {
               </Select>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+            <div className="bg-status-warning/10 border border-status-warning/20 rounded-lg p-3 text-sm text-status-warning">
               <p>💡 Plata va fi înregistrată și în SmartBill automat.</p>
             </div>
           </div>
@@ -905,7 +905,7 @@ export default function InvoicesPage() {
                 }
               }}
               disabled={payMutation.isPending || !paymentAmount}
-              className="bg-emerald-600 hover:bg-emerald-700"
+              className="bg-status-success hover:bg-status-success/90"
             >
               {payMutation.isPending ? (
                 <>

@@ -191,7 +191,7 @@ export default function InvitePage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
         <Card className="w-full max-w-md bg-card/95 backdrop-blur-xl">
           <CardHeader className="text-center">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <CheckCircle className="h-16 w-16 text-status-success mx-auto mb-4" />
             <CardTitle>Invitație acceptată!</CardTitle>
             <CardDescription>
               Vei fi redirecționat către dashboard...
@@ -207,7 +207,7 @@ export default function InvitePage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
         <Card className="w-full max-w-md bg-card/95 backdrop-blur-xl">
           <CardHeader className="text-center">
-            <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <XCircle className="h-16 w-16 text-status-error mx-auto mb-4" />
             <CardTitle>Invitație invalidă</CardTitle>
             <CardDescription>{error}</CardDescription>
           </CardHeader>
@@ -226,7 +226,7 @@ export default function InvitePage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
         <Card className="w-full max-w-md bg-card/95 backdrop-blur-xl">
           <CardHeader className="text-center">
-            <AlertCircle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+            <AlertCircle className="h-16 w-16 text-status-warning mx-auto mb-4" />
             <CardTitle>Invitație expirată</CardTitle>
             <CardDescription>
               Această invitație a expirat. Contactează administratorul pentru o nouă invitație.
@@ -247,7 +247,7 @@ export default function InvitePage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
         <Card className="w-full max-w-md bg-card/95 backdrop-blur-xl">
           <CardHeader className="text-center">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <CheckCircle className="h-16 w-16 text-status-success mx-auto mb-4" />
             <CardTitle>Invitație deja acceptată</CardTitle>
             <CardDescription>
               Această invitație a fost deja folosită.
@@ -287,7 +287,7 @@ export default function InvitePage() {
       <Card className="w-full max-w-md relative bg-card/95 backdrop-blur-xl border-border/50 shadow-2xl">
         <CardHeader className="text-center pb-2">
           <div className="flex justify-center mb-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/25">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/25">
               <DollarSign className="h-8 w-8 text-white" />
             </div>
           </div>
@@ -299,7 +299,7 @@ export default function InvitePage() {
 
         <CardContent className="space-y-4">
           {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+            <div className="p-3 bg-status-error/10 border border-status-error/20 rounded-lg text-status-error text-sm">
               {error}
             </div>
           )}
@@ -444,7 +444,7 @@ export default function InvitePage() {
                 <Button
                   type="submit"
                   disabled={isSigningUp}
-                  className="w-full h-12 text-base font-medium bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                  className="w-full h-12 text-base font-medium bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
                 >
                   {isSigningUp ? (
                     <Loader2 className="h-5 w-5 animate-spin mr-2" />

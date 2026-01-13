@@ -346,7 +346,7 @@ export default function ProductEditPage() {
             <TabsTrigger key={pc.channelId} value={pc.channelId} className="gap-2">
               {pc.channel.name}
               {Object.keys(pc.overrides || {}).length > 0 && (
-                <AlertTriangle className="h-3 w-3 text-yellow-500" />
+                <AlertTriangle className="h-3 w-3 text-status-warning" />
               )}
             </TabsTrigger>
           ))}
@@ -487,9 +487,9 @@ export default function ProductEditPage() {
                         <div key={pc.channelId} className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             {pc.isPublished && pc.isActive ? (
-                              <CheckCircle2 className="h-4 w-4 text-green-500" />
+                              <CheckCircle2 className="h-4 w-4 text-status-success" />
                             ) : pc.isPublished ? (
-                              <MinusCircle className="h-4 w-4 text-blue-400" />
+                              <MinusCircle className="h-4 w-4 text-status-info" />
                             ) : (
                               <XCircle className="h-4 w-4 text-gray-400" />
                             )}
@@ -666,7 +666,7 @@ export default function ProductEditPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Anulează</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-status-error hover:bg-status-error/90"
               onClick={() => {
                 if (channelToRemove) {
                   removeChannelMutation.mutate(channelToRemove.channelId);
@@ -698,7 +698,7 @@ function OverrideField({ label, masterValue, overrideValue, onSave, type = "text
   useEffect(() => { setValue(overrideValue ?? masterValue); }, [overrideValue, masterValue]);
 
   return (
-    <div className={`p-4 rounded-lg border ${hasOverride ? "border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20" : ""}`}>
+    <div className={`p-4 rounded-lg border ${hasOverride ? "border-status-warning/30 bg-status-warning/10" : ""}`}>
       <div className="flex items-center justify-between mb-2">
         <Label>{label} {hasOverride && <Badge variant="warning" className="ml-2 text-xs">Override</Badge>}</Label>
       </div>

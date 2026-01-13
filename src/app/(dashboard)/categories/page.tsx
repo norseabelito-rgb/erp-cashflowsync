@@ -254,7 +254,7 @@ export default function CategoriesPage() {
                           onClick={() => handleDelete(category)}
                           disabled={deleteMutation.isPending}
                         >
-                          <Trash2 className="h-4 w-4 text-red-500" />
+                          <Trash2 className="h-4 w-4 text-status-error" />
                         </Button>
                       </div>
                     </TableCell>
@@ -323,7 +323,7 @@ export default function CategoriesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Anulează</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-status-error hover:bg-status-error/90"
               onClick={() => {
                 if (categoryToDelete) {
                   deleteMutation.mutate(categoryToDelete.id);

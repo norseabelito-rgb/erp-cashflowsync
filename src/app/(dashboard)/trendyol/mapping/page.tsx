@@ -201,9 +201,9 @@ export default function TrendyolMappingPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Mapate</p>
-                <p className="text-2xl font-bold text-green-600">{mappedCount}</p>
+                <p className="text-2xl font-bold text-status-success">{mappedCount}</p>
               </div>
-              <Link2 className="h-8 w-8 text-green-600" />
+              <Link2 className="h-8 w-8 text-status-success" />
             </div>
           </CardContent>
         </Card>
@@ -212,9 +212,9 @@ export default function TrendyolMappingPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Nemapate</p>
-                <p className="text-2xl font-bold text-orange-600">{unmappedCount}</p>
+                <p className="text-2xl font-bold text-status-warning">{unmappedCount}</p>
               </div>
-              <Unlink className="h-8 w-8 text-orange-600" />
+              <Unlink className="h-8 w-8 text-status-warning" />
             </div>
           </CardContent>
         </Card>
@@ -280,7 +280,7 @@ export default function TrendyolMappingPage() {
                     <TableCell>
                       {category.trendyolCategoryId ? (
                         <div className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-green-600" />
+                          <Check className="h-4 w-4 text-status-success" />
                           <div className="max-w-xs">
                             <p className="text-sm font-medium truncate" title={category.trendyolCategoryName || ''}>
                               {category.trendyolCategoryName?.split(' > ').pop()}

@@ -181,9 +181,9 @@ export default function TrendyolProductsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Active</p>
-                <p className="text-2xl font-bold text-green-600">-</p>
+                <p className="text-2xl font-bold text-status-success">-</p>
               </div>
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
+              <CheckCircle2 className="h-8 w-8 text-status-success" />
             </div>
           </CardContent>
         </Card>
@@ -192,9 +192,9 @@ export default function TrendyolProductsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">În așteptare</p>
-                <p className="text-2xl font-bold text-yellow-600">-</p>
+                <p className="text-2xl font-bold text-status-warning">-</p>
               </div>
-              <Clock className="h-8 w-8 text-yellow-600" />
+              <Clock className="h-8 w-8 text-status-warning" />
             </div>
           </CardContent>
         </Card>
@@ -321,7 +321,7 @@ export default function TrendyolProductsPage() {
                     <TableCell className="font-mono text-sm">{product.barcode}</TableCell>
                     <TableCell className="text-muted-foreground">{product.stockCode || product.productMainId}</TableCell>
                     <TableCell className="text-right">
-                      <span className={product.quantity === 0 ? "text-red-600 font-medium" : ""}>
+                      <span className={product.quantity === 0 ? "text-status-error font-medium" : ""}>
                         {product.quantity}
                       </span>
                     </TableCell>

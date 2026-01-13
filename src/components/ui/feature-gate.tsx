@@ -98,8 +98,8 @@ export function FeatureGateBadge({
     <span
       className={cn(
         "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
-        "bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-600 dark:text-amber-400",
-        "border border-amber-500/20",
+        "bg-status-warning/10 text-status-warning",
+        "border border-status-warning/20",
         className
       )}
     >

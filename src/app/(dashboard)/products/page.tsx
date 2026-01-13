@@ -502,15 +502,15 @@ export default function ProductsPage() {
   const getChannelStatusIcon = (status: string) => {
     switch (status) {
       case "synced":
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+        return <CheckCircle2 className="h-4 w-4 text-status-success" />;
       case "override":
-        return <AlertTriangle className="h-4 w-4 text-yellow-500 cursor-pointer" />;
+        return <AlertTriangle className="h-4 w-4 text-status-warning cursor-pointer" />;
       case "external-changes":
-        return <AlertTriangle className="h-4 w-4 text-orange-500 cursor-pointer" />;
+        return <AlertTriangle className="h-4 w-4 text-status-warning cursor-pointer" />;
       case "draft":
         return <MinusCircle className="h-4 w-4 text-gray-400" />;
       case "paused":
-        return <MinusCircle className="h-4 w-4 text-blue-400" />;
+        return <MinusCircle className="h-4 w-4 text-status-info" />;
       case "not-published":
         return <XCircle className="h-4 w-4 text-gray-300" />;
       default:
@@ -658,7 +658,7 @@ export default function ProductsPage() {
 
         {/* Bulk Actions Bar */}
         {selectedProducts.length > 0 && (
-          <div className="flex items-center gap-4 p-4 mb-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="flex items-center gap-4 p-4 mb-4 bg-primary/10 rounded-lg border border-primary/20">
             <span className="text-sm font-medium">
               {selectedProducts.length} produse selectate
             </span>
@@ -684,7 +684,7 @@ export default function ProductsPage() {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => { setBulkAction("publish-channel"); setBulkDialogOpen(true); }}>
-                    <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
+                    <CheckCircle2 className="h-4 w-4 mr-2 text-status-success" />
                     Publică pe canal
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => { setBulkAction("unpublish-channel"); setBulkDialogOpen(true); }}>
@@ -692,9 +692,9 @@ export default function ProductsPage() {
                     Depublică de pe canal
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => { setBulkAction("delete"); setBulkDialogOpen(true); }}
-                    className="text-red-600"
+                    className="text-status-error"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Șterge produsele
@@ -872,7 +872,7 @@ export default function ProductsPage() {
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            className="text-red-600"
+                            className="text-status-error"
                             onClick={() => {
                               setProductToDelete(product);
                               setDeleteConfirmOpen(true);
@@ -1128,7 +1128,7 @@ export default function ProductsPage() {
                               ? formatCurrency(Number((selectedOverride.product as any)[key]))
                               : String((selectedOverride.product as any)[key] || "-")}
                           </TableCell>
-                          <TableCell className="font-medium text-yellow-600">
+                          <TableCell className="font-medium text-status-warning">
                             {key === "price" || key === "compareAtPrice"
                               ? formatCurrency(Number(value))
                               : String(value)}
@@ -1200,7 +1200,7 @@ export default function ProductsPage() {
             <AlertDialogFooter>
               <AlertDialogCancel>Anulează</AlertDialogCancel>
               <AlertDialogAction
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-status-error hover:bg-status-error/90"
                 onClick={() => {
                   if (productToDelete) {
                     deleteProductMutation.mutate(productToDelete.id);
@@ -1412,11 +1412,11 @@ function BulkActionDialog({
           )}
 
           {action === "delete" && (
-            <div className="p-4 bg-red-50 dark:bg-red-950 rounded-lg border border-red-200 dark:border-red-800">
-              <p className="text-red-600 dark:text-red-400 font-medium">
+            <div className="p-4 bg-status-error/10 rounded-lg border border-status-error/20">
+              <p className="text-status-error font-medium">
                 ⚠️ Atenție! Această acțiune este ireversibilă.
               </p>
-              <p className="text-sm text-red-500 dark:text-red-400 mt-1">
+              <p className="text-sm text-status-error/80 mt-1">
                 Produsele vor fi șterse din sistem și din toate magazinele Shopify asociate.
               </p>
             </div>

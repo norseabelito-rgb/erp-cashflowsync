@@ -290,19 +290,19 @@ export default function AdsAlertsPage() {
           <Card>
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">Alerte Noi</p>
-              <p className="text-2xl font-bold text-red-600">{alertCounts.new}</p>
+              <p className="text-2xl font-bold text-status-error">{alertCounts.new}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">Văzute</p>
-              <p className="text-2xl font-bold text-yellow-600">{alertCounts.seen}</p>
+              <p className="text-2xl font-bold text-status-warning">{alertCounts.seen}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">Rezolvate</p>
-              <p className="text-2xl font-bold text-green-600">{alertCounts.resolved}</p>
+              <p className="text-2xl font-bold text-status-success">{alertCounts.resolved}</p>
             </CardContent>
           </Card>
         </div>
@@ -384,7 +384,7 @@ export default function AdsAlertsPage() {
                               size="sm"
                               onClick={() => deleteMutation.mutate(rule.id)}
                             >
-                              <Trash2 className="h-4 w-4 text-red-500" />
+                              <Trash2 className="h-4 w-4 text-status-error" />
                             </Button>
                           </RequirePermission>
                         </div>
@@ -404,7 +404,7 @@ export default function AdsAlertsPage() {
             ) : alerts.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center py-12">
-                  <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
+                  <CheckCircle2 className="h-12 w-12 text-status-success mb-4" />
                   <p className="text-lg font-medium">Nicio alertă</p>
                   <p className="text-muted-foreground">Toate campaniile funcționează conform așteptărilor</p>
                 </CardContent>
@@ -412,7 +412,7 @@ export default function AdsAlertsPage() {
             ) : (
               <div className="space-y-4">
                 {alerts.map((alert) => (
-                  <Card key={alert.id} className={alert.status === "NEW" ? "border-red-200 bg-red-50" : ""}>
+                  <Card key={alert.id} className={alert.status === "NEW" ? "border-status-error/30 bg-status-error/10" : ""}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
                         <div>

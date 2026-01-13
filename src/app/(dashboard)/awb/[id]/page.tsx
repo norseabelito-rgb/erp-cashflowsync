@@ -76,16 +76,16 @@ function getStatusBadge(status: string | null) {
   const statusLower = status.toLowerCase();
 
   if (statusLower.includes("livrat") || statusLower.includes("delivered")) {
-    return { variant: "default" as const, icon: CheckCircle2, label: status, color: "bg-emerald-100 text-emerald-800" };
+    return { variant: "default" as const, icon: CheckCircle2, label: status, color: "bg-status-success/10 text-status-success" };
   }
   if (statusLower.includes("tranzit") || statusLower.includes("transport") || statusLower.includes("livrare")) {
-    return { variant: "default" as const, icon: Truck, label: status, color: "bg-blue-100 text-blue-800" };
+    return { variant: "default" as const, icon: Truck, label: status, color: "bg-status-info/10 text-status-info" };
   }
   if (statusLower.includes("retur") || statusLower.includes("refuz") || statusLower.includes("returned")) {
-    return { variant: "destructive" as const, icon: AlertTriangle, label: status, color: "bg-orange-100 text-orange-800" };
+    return { variant: "destructive" as const, icon: AlertTriangle, label: status, color: "bg-status-warning/10 text-status-warning" };
   }
   if (statusLower.includes("anulat") || statusLower.includes("șters")) {
-    return { variant: "destructive" as const, icon: XCircle, label: status, color: "bg-red-100 text-red-800" };
+    return { variant: "destructive" as const, icon: XCircle, label: status, color: "bg-status-error/10 text-status-error" };
   }
   if (statusLower.includes("ridicat") || statusLower.includes("predat")) {
     return { variant: "default" as const, icon: Package, label: status, color: "bg-indigo-100 text-indigo-800" };
@@ -285,7 +285,7 @@ export default function AWBDetailPage() {
       </div>
 
       {/* Status Banner */}
-      <Card className={cn("border-2", statusInfo.color.includes("emerald") && "border-emerald-300", statusInfo.color.includes("blue") && "border-blue-300", statusInfo.color.includes("orange") && "border-orange-300", statusInfo.color.includes("red") && "border-red-300")}>
+      <Card className={cn("border-2", statusInfo.color.includes("success") && "border-status-success", statusInfo.color.includes("info") && "border-status-info", statusInfo.color.includes("warning") && "border-status-warning", statusInfo.color.includes("error") && "border-status-error")}>
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

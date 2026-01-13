@@ -222,12 +222,12 @@ export default function ProductInventoryMappingPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <div className="p-2 bg-status-success/10 rounded-lg">
+                <CheckCircle2 className="h-4 w-4 text-status-success" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Mapate</p>
-                <p className="text-2xl font-bold text-green-600">{stats.mapped}</p>
+                <p className="text-2xl font-bold text-status-success">{stats.mapped}</p>
               </div>
             </div>
           </CardContent>
@@ -235,12 +235,12 @@ export default function ProductInventoryMappingPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <XCircle className="h-4 w-4 text-orange-600" />
+              <div className="p-2 bg-status-warning/10 rounded-lg">
+                <XCircle className="h-4 w-4 text-status-warning" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Nemapate</p>
-                <p className="text-2xl font-bold text-orange-600">{stats.unmapped}</p>
+                <p className="text-2xl font-bold text-status-warning">{stats.unmapped}</p>
               </div>
             </div>
           </CardContent>
@@ -249,10 +249,10 @@ export default function ProductInventoryMappingPage() {
 
       {/* Info Alert */}
       {stats.unmapped > 0 && (
-        <Alert className="mb-6 border-orange-200 bg-orange-50">
-          <Link2Off className="h-4 w-4 text-orange-600" />
-          <AlertTitle className="text-orange-800">Produse nemapate</AlertTitle>
-          <AlertDescription className="text-orange-700">
+        <Alert className="mb-6 border-status-warning/20 bg-status-warning/10">
+          <Link2Off className="h-4 w-4 text-status-warning" />
+          <AlertTitle className="text-status-warning">Produse nemapate</AlertTitle>
+          <AlertDescription className="text-status-warning/80">
             Ai {stats.unmapped} produse care nu sunt legate la inventar. Stocul acestor produse nu va fi afectat automat la facturare.
             Folosește butonul &quot;Auto-match SKU&quot; pentru a mapa automat produsele cu același SKU.
           </AlertDescription>

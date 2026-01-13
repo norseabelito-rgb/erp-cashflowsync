@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/utils";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   Tooltip,
   TooltipContent,
@@ -458,10 +459,10 @@ export default function SettingsPage() {
   return (
     <TooltipProvider>
     <div className="p-4 md:p-6 lg:p-8">
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Setări</h1>
-        <p className="text-muted-foreground mt-1 text-sm md:text-base">Configurează integrările și preferințele aplicației</p>
-      </div>
+      <PageHeader
+        title="Setări"
+        description="Configurează integrările și preferințele aplicației"
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4 md:grid-cols-7 lg:w-[1050px]">
@@ -561,7 +562,7 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="bg-status-info/10 dark:bg-status-info/5 border border-status-info/30 dark:border-status-info/20 rounded-lg p-4">
                 <p className="text-sm text-blue-800 dark:text-blue-200">
                   <strong>Unde găsești credențialele?</strong><br />
                   Mergi la <a href="https://partner.trendyol.com" target="_blank" rel="noopener noreferrer" className="underline">partner.trendyol.com</a> → 
@@ -1156,8 +1157,8 @@ export default function SettingsPage() {
                         const matchingTax = smartbillData.taxes.find(t => t.name === settings.smartbillTaxName);
                         if (matchingTax && matchingTax.percentage !== settings.smartbillTaxPercent) {
                           return (
-                            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
-                              <p className="text-xs text-amber-800 font-medium">
+                            <div className="mt-2 p-2 bg-status-warning/10 border border-status-warning/30 rounded-md">
+                              <p className="text-xs text-status-warning font-medium">
                                 ⚠️ Procentul salvat ({settings.smartbillTaxPercent}%) diferă de SmartBill ({matchingTax.percentage}%)!
                               </p>
                               <Button
@@ -1191,7 +1192,7 @@ export default function SettingsPage() {
                         value={settings.smartbillTaxName}
                         onChange={(e) => setSettings({ ...settings, smartbillTaxName: e.target.value })}
                       />
-                      <p className="text-xs text-amber-600">
+                      <p className="text-xs text-status-warning">
                         ⚠️ Click "Încarcă date SmartBill" pentru a vedea cotele TVA disponibile
                       </p>
                     </div>
@@ -1253,10 +1254,10 @@ export default function SettingsPage() {
           </Card>
 
           {/* Status actual configurare */}
-          <Card className="border-blue-200 bg-blue-50/50">
+          <Card className="border-status-info/30 bg-status-info/10">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-blue-500" />
+                <AlertCircle className="h-4 w-4 text-status-info" />
                 Configurare curentă pentru emitere facturi
               </CardTitle>
             </CardHeader>
@@ -1264,7 +1265,7 @@ export default function SettingsPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <span className="text-muted-foreground">Serie factură:</span>
-                  <p className="font-medium">{settings.smartbillSeriesName || <span className="text-red-500">Nesetat</span>}</p>
+                  <p className="font-medium">{settings.smartbillSeriesName || <span className="text-status-error">Nesetat</span>}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Cotă TVA:</span>
@@ -1272,7 +1273,7 @@ export default function SettingsPage() {
                     {settings.smartbillTaxName ? (
                       <>{settings.smartbillTaxName} ({settings.smartbillTaxPercent}%)</>
                     ) : (
-                      <span className="text-red-500">Nesetat (default: Normala 19%)</span>
+                      <span className="text-status-error">Nesetat (default: Normala 19%)</span>
                     )}
                   </p>
                 </div>
@@ -1284,7 +1285,7 @@ export default function SettingsPage() {
                   <span className="text-muted-foreground">Stoc:</span>
                   <p className="font-medium">
                     {settings.smartbillUseStock 
-                      ? (settings.smartbillWarehouseName || <span className="text-amber-500">Gestiune nesetată!</span>)
+                      ? (settings.smartbillWarehouseName || <span className="text-status-warning">Gestiune nesetată!</span>)
                       : "Dezactivat"}
                   </p>
                 </div>
@@ -1544,7 +1545,7 @@ export default function SettingsPage() {
               {/* API Key */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-yellow-500" />
+                  <Zap className="h-4 w-4 text-status-warning" />
                   <Label className="text-base font-medium">API Key Claude (Anthropic)</Label>
                 </div>
                 <div className="space-y-2">
@@ -1658,7 +1659,7 @@ export default function SettingsPage() {
               {settings.aiLastAnalysisAt && (
                 <div className="bg-muted/50 rounded-lg p-4">
                   <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <CheckCircle2 className="h-4 w-4 text-status-success" />
                     <span>Ultima analiză AI: {formatDate(settings.aiLastAnalysisAt)}</span>
                   </div>
                 </div>
@@ -1772,7 +1773,7 @@ export default function SettingsPage() {
               {settings.backupLastAt && (
                 <div className="p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <CheckCircle2 className="h-4 w-4 text-status-success" />
                     <span>Ultimul backup: {formatDate(settings.backupLastAt)}</span>
                   </div>
                 </div>

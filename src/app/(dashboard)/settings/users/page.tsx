@@ -346,7 +346,7 @@ export default function UsersPage() {
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{user.name || "—"}</span>
                       {user.isSuperAdmin && (
-                        <Badge className="bg-yellow-500">
+                        <Badge className="bg-status-warning">
                           <Crown className="h-3 w-3 mr-1" />
                           SuperAdmin
                         </Badge>
@@ -554,8 +554,8 @@ export default function UsersPage() {
 
           {inviteUrl ? (
             <div className="space-y-4">
-              <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
-                <p className="text-sm text-green-400 mb-2">✅ Invitație creată cu succes!</p>
+              <div className="p-4 bg-status-success/10 border border-status-success/20 rounded-lg">
+                <p className="text-sm text-status-success mb-2">Invitatie creata cu succes!</p>
                 <p className="text-sm text-muted-foreground mb-2">
                   Trimite acest link către {inviteEmail}:
                 </p>

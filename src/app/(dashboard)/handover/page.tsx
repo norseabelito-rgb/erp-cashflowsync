@@ -356,9 +356,9 @@ export default function HandoverPage() {
           </div>
           <div className="flex gap-2 flex-wrap items-center">
             {/* Countdown Timer */}
-            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
-              <Timer className="h-4 w-4 text-amber-600" />
-              <span className="text-sm font-medium text-amber-700">
+            <div className="flex items-center gap-2 bg-status-warning/10 border border-status-warning/20 px-3 py-1.5 rounded-lg">
+              <Timer className="h-4 w-4 text-status-warning" />
+              <span className="text-sm font-medium text-status-warning">
                 Finalizare auto: {timeLeft}
               </span>
             </div>
@@ -368,7 +368,7 @@ export default function HandoverPage() {
               Refresh
             </Button>
             <Link href="/handover/not-handed">
-              <Button variant="outline" size="sm" className="border-orange-300 text-orange-700 hover:bg-orange-50">
+              <Button variant="outline" size="sm" className="border-status-warning/30 text-status-warning hover:bg-status-warning/10">
                 <XCircle className="h-4 w-4 mr-2" />
                 Nepredate ({stats.totalNotHandedOver})
               </Button>
@@ -384,16 +384,16 @@ export default function HandoverPage() {
 
         {/* C0 Alerts Banner */}
         {c0Alerts.length > 0 && (
-          <Alert className="border-orange-500 bg-orange-50">
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
-            <AlertTitle className="text-orange-800">
+          <Alert className="border-status-warning bg-status-warning/10">
+            <AlertTriangle className="h-4 w-4 text-status-warning" />
+            <AlertTitle className="text-status-warning">
               Atentie: {c0Alerts.length} AWB-uri ridicate de curier fara scanare interna
             </AlertTitle>
-            <AlertDescription className="text-orange-700">
+            <AlertDescription className="text-status-warning">
               Aceste AWB-uri au primit confirmare C0 de la FanCourier dar nu au fost scanate in sistem.{" "}
               <Button
                 variant="link"
-                className="text-orange-800 underline p-0 h-auto"
+                className="text-status-warning underline p-0 h-auto"
                 onClick={() => setC0AlertDialog({ open: true, awb: c0Alerts[0] })}
               >
                 Rezolva alertele
@@ -404,10 +404,10 @@ export default function HandoverPage() {
 
         {/* Session Status */}
         {session?.status === "CLOSED" && (
-          <Alert className="border-red-500 bg-red-50">
-            <Lock className="h-4 w-4 text-red-600" />
-            <AlertTitle className="text-red-800">Predarea este inchisa</AlertTitle>
-            <AlertDescription className="text-red-700 flex items-center justify-between">
+          <Alert className="border-status-error bg-status-error/10">
+            <Lock className="h-4 w-4 text-status-error" />
+            <AlertTitle className="text-status-error">Predarea este inchisa</AlertTitle>
+            <AlertDescription className="text-status-error flex items-center justify-between">
               <span>
                 Finalizata la {formatTime(session.closedAt)} de {session.closedBy || "System"}
               </span>
@@ -435,9 +435,9 @@ export default function HandoverPage() {
               </div>
               <div className={cn(
                 "text-3xl font-bold",
-                progressPercent >= 100 ? "text-emerald-600" :
-                progressPercent >= 75 ? "text-blue-600" :
-                progressPercent >= 50 ? "text-amber-600" : "text-orange-600"
+                progressPercent >= 100 ? "text-status-success" :
+                progressPercent >= 75 ? "text-status-info" :
+                progressPercent >= 50 ? "text-status-warning" : "text-status-warning"
               )}>
                 {progressPercent}%
               </div>
@@ -450,7 +450,7 @@ export default function HandoverPage() {
               <span>Scanate: {stats.totalHandedOver}</span>
               <span>De scanat: {stats.totalPending}</span>
               {stats.totalFromPrevDays > 0 && (
-                <span className="text-amber-600">+{stats.totalFromPrevDays} din zile anterioare</span>
+                <span className="text-status-warning">+{stats.totalFromPrevDays} din zile anterioare</span>
               )}
             </div>
           </CardContent>
@@ -459,8 +459,8 @@ export default function HandoverPage() {
         {/* Scan Input with Visual Feedback */}
         <Card className={cn(
           "transition-all duration-300 border-2",
-          scanFeedback === "success" && "border-emerald-500 bg-emerald-50",
-          scanFeedback === "error" && "border-red-500 bg-red-50 animate-shake"
+          scanFeedback === "success" && "border-status-success bg-status-success/10",
+          scanFeedback === "error" && "border-status-error bg-status-error/10 animate-shake"
         )}>
           <CardContent className="pt-6">
             <div className="flex gap-4 items-end">
@@ -471,10 +471,10 @@ export default function HandoverPage() {
                     Scaneaza AWB:
                   </label>
                   {scanFeedback === "success" && (
-                    <CheckCircle2 className="h-6 w-6 text-emerald-500 animate-bounce" />
+                    <CheckCircle2 className="h-6 w-6 text-status-success animate-bounce" />
                   )}
                   {scanFeedback === "error" && (
-                    <XCircle className="h-6 w-6 text-red-500" />
+                    <XCircle className="h-6 w-6 text-status-error" />
                   )}
                 </div>
                 <form onSubmit={handleScan} className="flex gap-2">
@@ -504,8 +504,8 @@ export default function HandoverPage() {
                   <p
                     className={cn(
                       "text-sm mt-2 font-medium",
-                      lastScanResult.type === "error" ? "text-red-600" :
-                      lastScanResult.type === "warning" ? "text-orange-600" : "text-emerald-600"
+                      lastScanResult.type === "error" ? "text-status-error" :
+                      lastScanResult.type === "warning" ? "text-status-warning" : "text-status-success"
                     )}
                   >
                     {lastScanResult.message}
@@ -553,14 +553,14 @@ export default function HandoverPage() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Left: Pending AWBs */}
-            <Card className="border-orange-200">
-              <CardHeader className="bg-orange-50 border-b border-orange-200">
+            <Card className="border-status-warning/20">
+              <CardHeader className="bg-status-warning/10 border-b border-status-warning/20">
                 <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-orange-700">
+                  <div className="flex items-center gap-2 text-status-warning">
                     <Clock className="h-5 w-5" />
                     De scanat ({pendingAwbs.length})
                   </div>
-                  <Badge variant="outline" className="text-orange-700 border-orange-300">
+                  <Badge variant="outline" className="text-status-warning border-status-warning/30">
                     AWB-uri generate azi, nepredete inca
                   </Badge>
                 </CardTitle>
@@ -569,7 +569,7 @@ export default function HandoverPage() {
                 <ScrollArea className="h-[400px]">
                   {pendingAwbs.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                      <CheckCircle2 className="h-12 w-12 text-emerald-500 mb-2" />
+                      <CheckCircle2 className="h-12 w-12 text-status-success mb-2" />
                       <p>Toate scanate!</p>
                     </div>
                   ) : (
@@ -579,7 +579,7 @@ export default function HandoverPage() {
                           key={awb.id}
                           className={cn(
                             "p-3 hover:bg-muted/50 transition-colors",
-                            awb.hasC0WithoutScan && "bg-orange-50"
+                            awb.hasC0WithoutScan && "bg-status-warning/10"
                           )}
                         >
                           <div className="flex items-center justify-between">
@@ -593,14 +593,14 @@ export default function HandoverPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="border-orange-500 text-orange-700"
+                                className="border-status-warning text-status-warning"
                                 onClick={() => setC0AlertDialog({ open: true, awb })}
                               >
                                 <AlertTriangle className="h-3 w-3 mr-1" />
                                 C0
                               </Button>
                             ) : (
-                              <Badge variant="outline" className="text-orange-600">
+                              <Badge variant="outline" className="text-status-warning">
                                 <Clock className="h-3 w-3 mr-1" />
                                 Asteapta
                               </Badge>
@@ -619,14 +619,14 @@ export default function HandoverPage() {
             </Card>
 
             {/* Right: Scanned AWBs */}
-            <Card className="border-emerald-200">
-              <CardHeader className="bg-emerald-50 border-b border-emerald-200">
+            <Card className="border-status-success/20">
+              <CardHeader className="bg-status-success/10 border-b border-status-success/20">
                 <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-emerald-700">
+                  <div className="flex items-center gap-2 text-status-success">
                     <CheckCircle2 className="h-5 w-5" />
                     Scanate ({scannedAwbs.length})
                   </div>
-                  <Badge variant="outline" className="text-emerald-700 border-emerald-300">
+                  <Badge variant="outline" className="text-status-success border-status-success/30">
                     AWB-uri predate in aceasta sesiune
                   </Badge>
                 </CardTitle>
@@ -649,7 +649,7 @@ export default function HandoverPage() {
                                 #{awb.orderNumber} - {awb.storeName}
                               </div>
                             </div>
-                            <Badge className="bg-emerald-100 text-emerald-800">
+                            <Badge className="bg-status-success/10 text-status-success">
                               <CheckCircle2 className="h-3 w-3 mr-1" />
                               {formatTime(awb.handedOverAt)}
                             </Badge>
@@ -704,11 +704,11 @@ export default function HandoverPage() {
                 <span>Total AWB-uri:</span>
                 <span className="font-bold">{stats.totalIssued}</span>
               </div>
-              <div className="flex justify-between text-emerald-600">
+              <div className="flex justify-between text-status-success">
                 <span>Scanate:</span>
                 <span className="font-bold">{stats.totalHandedOver}</span>
               </div>
-              <div className="flex justify-between text-red-600">
+              <div className="flex justify-between text-status-error">
                 <span>Vor fi marcate NEPREDAT:</span>
                 <span className="font-bold">{stats.totalPending}</span>
               </div>
@@ -740,7 +740,7 @@ export default function HandoverPage() {
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-orange-700">
+              <DialogTitle className="flex items-center gap-2 text-status-warning">
                 <AlertTriangle className="h-5 w-5" />
                 Confirmare automata de ridicare
               </DialogTitle>

@@ -449,7 +449,7 @@ export default function InventoryItemPage() {
                       <TableRow key={movement.id}>
                         <TableCell>{getMovementTypeBadge(movement.type)}</TableCell>
                         <TableCell className="text-right">
-                          <span className={Number(movement.quantity) > 0 ? "text-green-600" : "text-red-600"}>
+                          <span className={Number(movement.quantity) > 0 ? "text-status-success" : "text-status-error"}>
                             {Number(movement.quantity) > 0 ? "+" : ""}{movement.quantity}
                           </span>
                         </TableCell>
@@ -479,7 +479,7 @@ export default function InventoryItemPage() {
         {/* Right Column - Stock & Mapped Products */}
         <div className="space-y-6">
           {/* Stock Card */}
-          <Card className={!item.isComposite && item.minStock && Number(item.currentStock) <= Number(item.minStock) ? "border-yellow-500" : ""}>
+          <Card className={!item.isComposite && item.minStock && Number(item.currentStock) <= Number(item.minStock) ? "border-status-warning" : ""}>
             <CardHeader>
               <CardTitle>Stoc</CardTitle>
             </CardHeader>
@@ -513,7 +513,7 @@ export default function InventoryItemPage() {
                     </div>
                   )}
                   {item.minStock && Number(item.currentStock) <= Number(item.minStock) && (
-                    <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-950 rounded-lg text-yellow-800 dark:text-yellow-200">
+                    <div className="flex items-center gap-2 p-3 bg-status-warning/10 dark:bg-status-warning/20 rounded-lg text-status-warning dark:text-status-warning">
                       <AlertTriangle className="h-4 w-4" />
                       <span className="text-sm">Stocul este sub limita minimă!</span>
                     </div>
@@ -679,7 +679,7 @@ export default function InventoryItemPage() {
                 <div className="flex justify-between text-sm mt-1">
                   <span>Stoc după ajustare:</span>
                   <span className={`font-medium ${
-                    adjustType === "plus" ? "text-green-600" : "text-red-600"
+                    adjustType === "plus" ? "text-status-success" : "text-status-error"
                   }`}>
                     {adjustType === "plus"
                       ? Number(item.currentStock) + parseFloat(adjustQuantity || "0")

@@ -233,12 +233,12 @@ export default function ReportPage() {
                 <div className="text-2xl font-bold">{report.stats.totalIssued}</div>
               </CardContent>
             </Card>
-            <Card className="border-green-200 bg-green-50">
+            <Card className="border-status-success/20 bg-status-success/10">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-green-700">Predate</CardTitle>
+                <CardTitle className="text-sm font-medium text-status-success">Predate</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-700">
+                <div className="text-2xl font-bold text-status-success">
                   {report.stats.totalHandedOver}
                   <span className="text-sm font-normal ml-2">
                     ({report.stats.totalIssued > 0
@@ -248,12 +248,12 @@ export default function ReportPage() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-red-200 bg-red-50">
+            <Card className="border-status-error/20 bg-status-error/10">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-red-700">Nepredate</CardTitle>
+                <CardTitle className="text-sm font-medium text-status-error">Nepredate</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-700">
+                <div className="text-2xl font-bold text-status-error">
                   {report.stats.totalNotHandedOver}
                 </div>
               </CardContent>
@@ -283,7 +283,7 @@ export default function ReportPage() {
                     </div>
                   </div>
                 ) : (
-                  <Badge variant="outline" className="text-orange-600">
+                  <Badge variant="outline" className="text-status-warning">
                     <Clock className="h-3 w-3 mr-1" />
                     Nefinalizat
                   </Badge>
@@ -349,7 +349,7 @@ export default function ReportPage() {
                             <TableCell>{formatTime(awb.handedOverAt)}</TableCell>
                             <TableCell>
                               {awb.fanCourierStatusCode === "C0" ? (
-                                <Badge className="bg-green-100 text-green-800">
+                                <Badge className="bg-status-success/10 text-status-success">
                                   <CheckCircle2 className="h-3 w-3 mr-1" />
                                   ✓
                                 </Badge>
@@ -372,7 +372,7 @@ export default function ReportPage() {
                 <CardContent className="p-0">
                   {report.notHandedOverList.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12">
-                      <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
+                      <CheckCircle2 className="h-12 w-12 text-status-success mb-4" />
                       <p className="text-lg font-medium">Toate AWB-urile au fost predate!</p>
                     </div>
                   ) : (
@@ -440,7 +440,7 @@ export default function ReportPage() {
                           <TableCell>{awb.recipientName}</TableCell>
                           <TableCell>{formatTime(awb.handedOverAt)}</TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="text-orange-600">
+                            <Badge variant="outline" className="text-status-warning">
                               Fost NEPREDAT
                             </Badge>
                           </TableCell>

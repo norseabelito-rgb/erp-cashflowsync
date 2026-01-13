@@ -128,17 +128,17 @@ const categoryConfig: Record<StatusCategory, {
 }> = {
   pending: {
     label: "În așteptare",
-    bgColor: "bg-amber-50",
-    borderColor: "border-amber-200",
-    textColor: "text-amber-700",
+    bgColor: "bg-status-warning/10",
+    borderColor: "border-status-warning/20",
+    textColor: "text-status-warning",
     badgeVariant: "warning",
     icon: Clock,
   },
   in_transit: {
     label: "În tranzit",
-    bgColor: "bg-blue-50",
-    borderColor: "border-blue-200",
-    textColor: "text-blue-700",
+    bgColor: "bg-status-info/10",
+    borderColor: "border-status-info/20",
+    textColor: "text-status-info",
     badgeVariant: "default",
     icon: Truck,
   },
@@ -152,17 +152,17 @@ const categoryConfig: Record<StatusCategory, {
   },
   returned: {
     label: "Returnat",
-    bgColor: "bg-orange-50",
-    borderColor: "border-orange-200",
-    textColor: "text-orange-700",
+    bgColor: "bg-status-warning/10",
+    borderColor: "border-status-warning/20",
+    textColor: "text-status-warning",
     badgeVariant: "warning",
     icon: RotateCcw,
   },
   cancelled: {
     label: "Anulat",
-    bgColor: "bg-red-50",
-    borderColor: "border-red-200",
-    textColor: "text-red-700",
+    bgColor: "bg-status-error/10",
+    borderColor: "border-status-error/20",
+    textColor: "text-status-error",
     badgeVariant: "destructive",
     icon: Ban,
   },
@@ -176,9 +176,9 @@ const categoryConfig: Record<StatusCategory, {
   },
   error: {
     label: "Eroare",
-    bgColor: "bg-red-50",
-    borderColor: "border-red-300",
-    textColor: "text-red-700",
+    bgColor: "bg-status-error/10",
+    borderColor: "border-status-error/30",
+    textColor: "text-status-error",
     badgeVariant: "destructive",
     icon: AlertCircle,
   },
@@ -290,16 +290,16 @@ export default function TrackingPage() {
           </CardContent>
         </Card>
         
-        <Card 
+        <Card
           className={cn(
-            "cursor-pointer transition-all hover:shadow-md bg-blue-50 border-blue-200",
-            categoryFilter === "in_transit" && "ring-2 ring-blue-500"
+            "cursor-pointer transition-all hover:shadow-md bg-status-info/10 border-status-info/20",
+            categoryFilter === "in_transit" && "ring-2 ring-status-info"
           )}
           onClick={() => setCategoryFilter("in_transit")}
         >
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-blue-600">{stats.inTransit}</p>
-            <p className="text-xs text-blue-600">În tranzit</p>
+            <p className="text-2xl font-bold text-status-info">{stats.inTransit}</p>
+            <p className="text-xs text-status-info">În tranzit</p>
           </CardContent>
         </Card>
         
@@ -316,42 +316,42 @@ export default function TrackingPage() {
           </CardContent>
         </Card>
         
-        <Card 
+        <Card
           className={cn(
-            "cursor-pointer transition-all hover:shadow-md bg-amber-50 border-amber-200",
-            categoryFilter === "pending" && "ring-2 ring-amber-500"
+            "cursor-pointer transition-all hover:shadow-md bg-status-warning/10 border-status-warning/20",
+            categoryFilter === "pending" && "ring-2 ring-status-warning"
           )}
           onClick={() => setCategoryFilter("pending")}
         >
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
-            <p className="text-xs text-amber-600">În așteptare</p>
+            <p className="text-2xl font-bold text-status-warning">{stats.pending}</p>
+            <p className="text-xs text-status-warning">În așteptare</p>
           </CardContent>
         </Card>
         
-        <Card 
+        <Card
           className={cn(
-            "cursor-pointer transition-all hover:shadow-md bg-orange-50 border-orange-200",
-            categoryFilter === "returned" && "ring-2 ring-orange-500"
+            "cursor-pointer transition-all hover:shadow-md bg-status-warning/10 border-status-warning/20",
+            categoryFilter === "returned" && "ring-2 ring-status-warning"
           )}
           onClick={() => setCategoryFilter("returned")}
         >
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-orange-600">{stats.returned}</p>
-            <p className="text-xs text-orange-600">Returnate</p>
+            <p className="text-2xl font-bold text-status-warning">{stats.returned}</p>
+            <p className="text-xs text-status-warning">Returnate</p>
           </CardContent>
         </Card>
         
-        <Card 
+        <Card
           className={cn(
-            "cursor-pointer transition-all hover:shadow-md bg-red-50 border-red-200",
-            categoryFilter === "cancelled" && "ring-2 ring-red-500"
+            "cursor-pointer transition-all hover:shadow-md bg-status-error/10 border-status-error/20",
+            categoryFilter === "cancelled" && "ring-2 ring-status-error"
           )}
           onClick={() => setCategoryFilter("cancelled")}
         >
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-red-600">{stats.cancelled}</p>
-            <p className="text-xs text-red-600">Anulate</p>
+            <p className="text-2xl font-bold text-status-error">{stats.cancelled}</p>
+            <p className="text-xs text-status-error">Anulate</p>
           </CardContent>
         </Card>
         
@@ -368,16 +368,16 @@ export default function TrackingPage() {
           </CardContent>
         </Card>
         
-        <Card 
+        <Card
           className={cn(
-            "cursor-pointer transition-all hover:shadow-md bg-red-100 border-red-300",
-            categoryFilter === "error" && "ring-2 ring-red-600"
+            "cursor-pointer transition-all hover:shadow-md bg-status-error/10 border-status-error/30",
+            categoryFilter === "error" && "ring-2 ring-status-error"
           )}
           onClick={() => setCategoryFilter("error")}
         >
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-red-700">{stats.error}</p>
-            <p className="text-xs text-red-700">Cu erori</p>
+            <p className="text-2xl font-bold text-status-error">{stats.error}</p>
+            <p className="text-xs text-status-error">Cu erori</p>
           </CardContent>
         </Card>
       </div>
@@ -524,8 +524,8 @@ export default function TrackingPage() {
                       
                       {/* Mesaj eroare vizibil direct */}
                       {awb.errorMessage && (
-                        <div className="mt-3 p-3 bg-red-100 border border-red-200 rounded-lg">
-                          <p className="text-sm text-red-700 flex items-start gap-2">
+                        <div className="mt-3 p-3 bg-status-error/10 border border-status-error/20 rounded-lg">
+                          <p className="text-sm text-status-error flex items-start gap-2">
                             <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                             {awb.errorMessage}
                           </p>

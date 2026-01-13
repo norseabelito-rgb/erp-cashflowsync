@@ -104,9 +104,9 @@ interface PickingList {
 }
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  PENDING: { label: "În așteptare", color: "bg-yellow-100 text-yellow-800" },
-  IN_PROGRESS: { label: "În lucru", color: "bg-blue-100 text-blue-800" },
-  COMPLETED: { label: "Finalizat", color: "bg-green-100 text-green-800" },
+  PENDING: { label: "În așteptare", color: "bg-status-warning/10 text-status-warning" },
+  IN_PROGRESS: { label: "În lucru", color: "bg-status-info/10 text-status-info" },
+  COMPLETED: { label: "Finalizat", color: "bg-status-success/10 text-status-success" },
   CANCELLED: { label: "Anulat", color: "bg-gray-100 text-gray-800" },
 };
 
@@ -460,7 +460,7 @@ export default function PickingDetailPage() {
           <div className="flex justify-between mt-2 text-sm">
             <span className="font-semibold text-white">{incompleteItems.length} rămase</span>
             <span className="font-bold text-lg text-white">{progress.percentComplete}%</span>
-            <span className="text-green-400">{completeItems.length} completate</span>
+            <span className="text-status-success">{completeItems.length} completate</span>
           </div>
         </CardContent>
       </Card>
@@ -497,7 +497,7 @@ export default function PickingDetailPage() {
             {lastScanResult && (
               <p
                 className={`text-sm mt-2 ${
-                  lastScanResult.success ? "text-green-400" : "text-red-400"
+                  lastScanResult.success ? "text-status-success" : "text-status-error"
                 }`}
               >
                 {lastScanResult.message}
@@ -524,16 +524,16 @@ export default function PickingDetailPage() {
           </CardContent>
         </Card>
         
-        <Card className={pickingList.startedByName ? "bg-blue-100 border-blue-400" : "bg-gray-50 border-gray-200"}>
+        <Card className={pickingList.startedByName ? "bg-status-info/10 border-status-info" : "bg-gray-50 border-gray-200"}>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <Play className={`h-5 w-5 ${pickingList.startedByName ? "text-blue-700" : "text-gray-400"}`} />
+              <Play className={`h-5 w-5 ${pickingList.startedByName ? "text-status-info" : "text-gray-400"}`} />
               <div>
-                <p className={`text-xs font-medium ${pickingList.startedByName ? "text-blue-700" : "text-gray-500"}`}>Preluat de</p>
-                <p className={`font-semibold ${pickingList.startedByName ? "text-blue-900" : "text-gray-400"}`}>
+                <p className={`text-xs font-medium ${pickingList.startedByName ? "text-status-info" : "text-gray-500"}`}>Preluat de</p>
+                <p className={`font-semibold ${pickingList.startedByName ? "text-status-info" : "text-gray-400"}`}>
                   {pickingList.startedByName || "Nepreluat încă"}
                 </p>
-                <p className={`text-xs ${pickingList.startedByName ? "text-blue-700" : "text-gray-400"}`}>
+                <p className={`text-xs ${pickingList.startedByName ? "text-status-info" : "text-gray-400"}`}>
                   {pickingList.startedAt ? formatDate(pickingList.startedAt) : "-"}
                 </p>
               </div>
@@ -541,16 +541,16 @@ export default function PickingDetailPage() {
           </CardContent>
         </Card>
         
-        <Card className={pickingList.completedByName ? "bg-green-100 border-green-400" : "bg-gray-50 border-gray-200"}>
+        <Card className={pickingList.completedByName ? "bg-status-success/10 border-status-success" : "bg-gray-50 border-gray-200"}>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <CheckCircle2 className={`h-5 w-5 ${pickingList.completedByName ? "text-green-700" : "text-gray-400"}`} />
+              <CheckCircle2 className={`h-5 w-5 ${pickingList.completedByName ? "text-status-success" : "text-gray-400"}`} />
               <div>
-                <p className={`text-xs font-medium ${pickingList.completedByName ? "text-green-700" : "text-gray-500"}`}>Finalizat de</p>
-                <p className={`font-semibold ${pickingList.completedByName ? "text-green-900" : "text-gray-400"}`}>
+                <p className={`text-xs font-medium ${pickingList.completedByName ? "text-status-success" : "text-gray-500"}`}>Finalizat de</p>
+                <p className={`font-semibold ${pickingList.completedByName ? "text-status-success" : "text-gray-400"}`}>
                   {pickingList.completedByName || "Nefinalizat"}
                 </p>
-                <p className={`text-xs ${pickingList.completedByName ? "text-green-700" : "text-gray-400"}`}>
+                <p className={`text-xs ${pickingList.completedByName ? "text-status-success" : "text-gray-400"}`}>
                   {pickingList.completedAt ? formatDate(pickingList.completedAt) : "-"}
                 </p>
               </div>
@@ -595,10 +595,10 @@ export default function PickingDetailPage() {
         </h2>
         
         {incompleteItems.length === 0 ? (
-          <Card className="bg-green-50 border-green-200">
+          <Card className="bg-status-success/10 border-status-success/20">
             <CardContent className="flex items-center justify-center py-8">
-              <CheckCircle2 className="h-8 w-8 text-green-600 mr-3" />
-              <span className="text-lg font-medium text-green-800">
+              <CheckCircle2 className="h-8 w-8 text-status-success mr-3" />
+              <span className="text-lg font-medium text-status-success">
                 Toate produsele au fost ridicate!
               </span>
             </CardContent>
@@ -645,7 +645,7 @@ export default function PickingDetailPage() {
                           </span>
                         )}
                         {item.location && (
-                          <span className="text-blue-700 font-medium">
+                          <span className="text-status-info font-medium">
                             <MapPin className="h-3 w-3 inline mr-1" />
                             {item.location}
                           </span>
@@ -691,24 +691,24 @@ export default function PickingDetailPage() {
       {/* Completed products */}
       {completeItems.length > 0 && (
         <div className="space-y-4">
-          <h2 className="font-semibold flex items-center gap-2 text-green-700">
+          <h2 className="font-semibold flex items-center gap-2 text-status-success">
             <CheckCircle2 className="h-5 w-5" />
             Completate ({completeItems.length})
           </h2>
           <div className="space-y-2">
             {completeItems.map((item) => (
-              <Card key={item.id} className="bg-green-50 border-green-200">
+              <Card key={item.id} className="bg-status-success/10 border-status-success/20">
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+                      <CheckCircle2 className="h-5 w-5 text-status-success flex-shrink-0" />
                       <div>
-                        <p className="font-medium text-green-900">{item.title}</p>
-                        <p className="text-sm text-green-700 font-mono">{item.sku}</p>
+                        <p className="font-medium text-status-success">{item.title}</p>
+                        <p className="text-sm text-status-success font-mono">{item.sku}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="font-bold text-green-800">
+                      <span className="font-bold text-status-success">
                         {item.quantityPicked} / {item.quantityRequired}
                       </span>
                       {pickingList.status === "IN_PROGRESS" && (
@@ -741,7 +741,7 @@ export default function PickingDetailPage() {
               <Badge key={a.awb.id} variant="outline" className="py-2 px-3">
                 <Truck className="h-3 w-3 mr-2" />
                 <span className="font-mono">{a.awb.awbNumber || a.awb.order.shopifyOrderNumber}</span>
-                {a.isPrinted && <Printer className="h-3 w-3 ml-2 text-green-600" />}
+                {a.isPrinted && <Printer className="h-3 w-3 ml-2 text-status-success" />}
               </Badge>
             ))}
           </div>

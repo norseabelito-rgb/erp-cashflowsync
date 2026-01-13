@@ -92,10 +92,10 @@ function formatNumber(value: number): string {
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
-  ACTIVE: { label: "Activ", color: "bg-green-100 text-green-800", icon: Play },
-  PAUSED: { label: "Pauză", color: "bg-yellow-100 text-yellow-800", icon: Pause },
+  ACTIVE: { label: "Activ", color: "bg-status-success/10 text-status-success", icon: Play },
+  PAUSED: { label: "Pauză", color: "bg-status-warning/10 text-status-warning", icon: Pause },
   ARCHIVED: { label: "Arhivat", color: "bg-gray-100 text-gray-800", icon: null },
-  DELETED: { label: "Șters", color: "bg-red-100 text-red-800", icon: null },
+  DELETED: { label: "Șters", color: "bg-status-error/10 text-status-error", icon: null },
 };
 
 function KPICard({ title, value, icon: Icon, suffix, trend }: {
@@ -280,9 +280,9 @@ export default function CampaignDetailsPage() {
 
   const getRoasColor = (roas: number | null) => {
     if (roas === null) return "text-gray-500";
-    if (roas >= 3) return "text-green-600";
-    if (roas >= 2) return "text-yellow-600";
-    return "text-red-600";
+    if (roas >= 3) return "text-status-success";
+    if (roas >= 2) return "text-status-warning";
+    return "text-status-error";
   };
 
   if (isLoading) {
@@ -324,7 +324,7 @@ export default function CampaignDetailsPage() {
               <div className="flex items-center gap-3">
                 <div className={cn(
                   "p-2 rounded-lg",
-                  campaign.account?.platform === "META" ? "bg-blue-100" : "bg-gray-100"
+                  campaign.account?.platform === "META" ? "bg-status-info/10" : "bg-gray-100"
                 )}>
                   {campaign.account?.platform === "META" ? <MetaIcon /> : <TikTokIcon />}
                 </div>
@@ -341,11 +341,11 @@ export default function CampaignDetailsPage() {
                   {status.label}
                 </Badge>
                 {campaign.namingValid ? (
-                  <Badge variant="outline" className="text-green-600">
+                  <Badge variant="outline" className="text-status-success">
                     ✓ Denumire validă
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="text-amber-600">
+                  <Badge variant="outline" className="text-status-warning">
                     ⚠️ Denumire non-standard
                   </Badge>
                 )}
@@ -685,7 +685,7 @@ export default function CampaignDetailsPage() {
                               size="sm"
                               onClick={() => removeSkuMutation.mutate(mapping.sku)}
                             >
-                              <X className="h-4 w-4 text-red-500" />
+                              <X className="h-4 w-4 text-status-error" />
                             </Button>
                           )}
                         </div>
@@ -719,7 +719,7 @@ export default function CampaignDetailsPage() {
                         key={alert.id}
                         className={cn(
                           "p-3 border rounded-lg",
-                          alert.status === "NEW" && "border-red-200 bg-red-50"
+                          alert.status === "NEW" && "border-status-error/30 bg-status-error/10"
                         )}
                       >
                         <div className="flex items-center justify-between">

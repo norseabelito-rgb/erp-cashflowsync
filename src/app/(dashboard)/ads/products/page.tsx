@@ -113,16 +113,16 @@ export default function ProductsPerformancePage() {
 
   const getRoasColor = (roas: number | null) => {
     if (roas === null) return "text-gray-500";
-    if (roas >= 3) return "text-green-600";
-    if (roas >= 2) return "text-yellow-600";
-    return "text-red-600";
+    if (roas >= 3) return "text-status-success";
+    if (roas >= 2) return "text-status-warning";
+    return "text-status-error";
   };
 
   const getRoasBg = (roas: number | null) => {
     if (roas === null) return "bg-gray-100";
-    if (roas >= 3) return "bg-green-100";
-    if (roas >= 2) return "bg-yellow-100";
-    return "bg-red-100";
+    if (roas >= 3) return "bg-status-success/10";
+    if (roas >= 2) return "bg-status-warning/10";
+    return "bg-status-error/10";
   };
 
   return (
@@ -350,7 +350,7 @@ export default function ProductsPerformancePage() {
                                   <TooltipTrigger>
                                     <div className={cn(
                                       "p-1 rounded",
-                                      p === "META" ? "bg-blue-100" : "bg-gray-100"
+                                      p === "META" ? "bg-status-info/10" : "bg-gray-100"
                                     )}>
                                       {p === "META" ? <MetaIcon /> : <TikTokIcon />}
                                     </div>
@@ -408,7 +408,7 @@ export default function ProductsPerformancePage() {
                                   <div className="flex items-center gap-2">
                                     <div className={cn(
                                       "p-1 rounded",
-                                      c.platform === "META" ? "bg-blue-100" : "bg-gray-100"
+                                      c.platform === "META" ? "bg-status-info/10" : "bg-gray-100"
                                     )}>
                                       {c.platform === "META" ? <MetaIcon /> : <TikTokIcon />}
                                     </div>

@@ -239,15 +239,15 @@ export default function StockAdjustmentsPage() {
                   onClick={() => setAdjustmentType("ADJUSTMENT_PLUS")}
                   className={`p-4 rounded-lg border-2 transition-all ${
                     adjustmentType === "ADJUSTMENT_PLUS"
-                      ? "border-green-500 bg-green-50"
-                      : "border-muted hover:border-green-300"
+                      ? "border-status-success bg-status-success/10"
+                      : "border-muted hover:border-status-success/50"
                   }`}
                 >
                   <TrendingUp className={`h-8 w-8 mx-auto mb-2 ${
-                    adjustmentType === "ADJUSTMENT_PLUS" ? "text-green-600" : "text-muted-foreground"
+                    adjustmentType === "ADJUSTMENT_PLUS" ? "text-status-success" : "text-muted-foreground"
                   }`} />
                   <p className={`font-medium ${
-                    adjustmentType === "ADJUSTMENT_PLUS" ? "text-green-700" : ""
+                    adjustmentType === "ADJUSTMENT_PLUS" ? "text-status-success" : ""
                   }`}>
                     Adăugare stoc
                   </p>
@@ -261,15 +261,15 @@ export default function StockAdjustmentsPage() {
                   onClick={() => setAdjustmentType("ADJUSTMENT_MINUS")}
                   className={`p-4 rounded-lg border-2 transition-all ${
                     adjustmentType === "ADJUSTMENT_MINUS"
-                      ? "border-red-500 bg-red-50"
-                      : "border-muted hover:border-red-300"
+                      ? "border-status-error bg-status-error/10"
+                      : "border-muted hover:border-status-error/50"
                   }`}
                 >
                   <TrendingDown className={`h-8 w-8 mx-auto mb-2 ${
-                    adjustmentType === "ADJUSTMENT_MINUS" ? "text-red-600" : "text-muted-foreground"
+                    adjustmentType === "ADJUSTMENT_MINUS" ? "text-status-error" : "text-muted-foreground"
                   }`} />
                   <p className={`font-medium ${
-                    adjustmentType === "ADJUSTMENT_MINUS" ? "text-red-700" : ""
+                    adjustmentType === "ADJUSTMENT_MINUS" ? "text-status-error" : ""
                   }`}>
                     Scădere stoc
                   </p>
@@ -347,7 +347,7 @@ export default function StockAdjustmentsPage() {
                 {selectedItem && quantity && (
                   <p className="text-sm mt-1">
                     Stoc nou:{" "}
-                    <strong className={adjustmentType === "ADJUSTMENT_PLUS" ? "text-green-600" : "text-red-600"}>
+                    <strong className={adjustmentType === "ADJUSTMENT_PLUS" ? "text-status-success" : "text-status-error"}>
                       {(
                         Number(selectedItem.currentStock) +
                         (adjustmentType === "ADJUSTMENT_PLUS" ? 1 : -1) * parseFloat(quantity || "0")

@@ -126,7 +126,7 @@ export default function NotHandedPage() {
             </Link>
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
-                <XCircle className="h-6 w-6 text-red-500" />
+                <XCircle className="h-6 w-6 text-status-error" />
                 AWB-uri Nepredate
               </h1>
               <p className="text-muted-foreground">Colete care nu au fost scanate la predare</p>
@@ -139,12 +139,12 @@ export default function NotHandedPage() {
         </div>
 
         {/* Stats */}
-        <Card className="border-red-200 bg-red-50 max-w-xs">
+        <Card className="border-status-error/20 bg-status-error/10 max-w-xs">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-red-700">Total nepredate</CardTitle>
+            <CardTitle className="text-sm font-medium text-status-error">Total nepredate</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-red-700">{total}</div>
+            <div className="text-3xl font-bold text-status-error">{total}</div>
           </CardContent>
         </Card>
 
@@ -200,7 +200,7 @@ export default function NotHandedPage() {
                       <TableRow key={awb.id}>
                         <TableCell className="font-mono font-medium">{awb.awbNumber || "-"}</TableCell>
                         <TableCell>
-                          <Link href={`/orders/${awb.orderId}`} className="text-blue-600 hover:underline">
+                          <Link href={`/orders/${awb.orderId}`} className="text-status-info hover:underline">
                             #{awb.orderNumber}
                           </Link>
                         </TableCell>
@@ -214,7 +214,7 @@ export default function NotHandedPage() {
                         <TableCell>
                           <Badge
                             variant="destructive"
-                            className={daysAgo >= 3 ? "bg-red-600" : daysAgo >= 2 ? "bg-orange-500" : "bg-yellow-500"}
+                            className={daysAgo >= 3 ? "bg-status-error" : daysAgo >= 2 ? "bg-status-warning" : "bg-status-warning"}
                           >
                             <AlertTriangle className="h-3 w-3 mr-1" />
                             {daysAgo} {daysAgo === 1 ? "zi" : "zile"}

@@ -200,26 +200,26 @@ export default function PickingPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-yellow-600">În așteptare</CardTitle>
+            <CardTitle className="text-sm font-medium text-status-warning">În așteptare</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+            <div className="text-2xl font-bold text-status-warning">{stats.pending}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-blue-600">În lucru</CardTitle>
+            <CardTitle className="text-sm font-medium text-status-info">În lucru</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.inProgress}</div>
+            <div className="text-2xl font-bold text-status-info">{stats.inProgress}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-green-600">Finalizate</CardTitle>
+            <CardTitle className="text-sm font-medium text-status-success">Finalizate</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
+            <div className="text-2xl font-bold text-status-success">{stats.completed}</div>
           </CardContent>
         </Card>
         <Card>
@@ -309,7 +309,7 @@ export default function PickingPage() {
                       <div className="flex items-center gap-2 mr-4">
                         <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-blue-500 transition-all"
+                            className="h-full bg-status-info transition-all"
                             style={{ width: `${getProgress(pl)}%` }}
                           />
                         </div>
