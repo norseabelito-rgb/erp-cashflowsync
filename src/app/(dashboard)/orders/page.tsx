@@ -45,6 +45,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import {
   Tooltip,
@@ -246,6 +256,8 @@ export default function OrdersPage() {
   const [awbOrderId, setAwbOrderId] = useState<string | null>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewOrder, setViewOrder] = useState<Order | null>(null);
+  const [deleteAwbDialogOpen, setDeleteAwbDialogOpen] = useState(false);
+  const [awbToDelete, setAwbToDelete] = useState<{ id: string; awbNumber: string } | null>(null);
   const [awbSettings, setAwbSettings] = useState({
     useDefaults: true,
     serviceType: "Standard",
@@ -1228,14 +1240,16 @@ export default function OrdersPage() {
                           {/* Buton pentru ștergere AWB (doar dacă nu e livrat și nu e deja șters) */}
                           {!awbInfo.isDeleted && !awbInfo.isDelivered && viewOrder.awb.id && (
                             <RequirePermission permission="awb.delete">
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 variant="outline"
                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                 onClick={() => {
-                                  if (confirm(`Ești sigur că vrei să ștergi AWB-ul ${viewOrder.awb?.awbNumber}?`)) {
-                                    deleteAwbMutation.mutate(viewOrder.awb!.id);
-                                  }
+                                  setAwbToDelete({
+                                    id: viewOrder.awb!.id,
+                                    awbNumber: viewOrder.awb?.awbNumber || "",
+                                  });
+                                  setDeleteAwbDialogOpen(true);
                                 }}
                                 disabled={deleteAwbMutation.isPending}
                               >
@@ -1481,6 +1495,34 @@ export default function OrdersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete AWB Confirmation Dialog */}
+      <AlertDialog open={deleteAwbDialogOpen} onOpenChange={setDeleteAwbDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ștergi AWB-ul?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ești sigur că vrei să ștergi AWB-ul {awbToDelete?.awbNumber}?
+              Această acțiune este ireversibilă.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anulează</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                if (awbToDelete) {
+                  deleteAwbMutation.mutate(awbToDelete.id);
+                }
+                setDeleteAwbDialogOpen(false);
+                setAwbToDelete(null);
+              }}
+            >
+              Șterge AWB
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
     </TooltipProvider>
   );

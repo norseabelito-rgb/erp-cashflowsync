@@ -59,6 +59,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -140,6 +150,8 @@ export default function ProductsPage() {
     product: Product;
     productChannel: ProductChannel;
   } | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   // Form state pentru produs nou
   const [newProduct, setNewProduct] = useState({
@@ -767,9 +779,8 @@ export default function ProductsPage() {
                           <DropdownMenuItem
                             className="text-red-600"
                             onClick={() => {
-                              if (confirm(`Ștergi produsul "${product.title}"?`)) {
-                                deleteProductMutation.mutate(product.id);
-                              }
+                              setProductToDelete(product);
+                              setDeleteConfirmOpen(true);
                             }}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
@@ -1080,6 +1091,34 @@ export default function ProductsPage() {
           }}
           isLoading={bulkActionMutation.isPending}
         />
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Ștergi produsul?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Ești sigur că vrei să ștergi produsul &quot;{productToDelete?.title}&quot;?
+                Această acțiune este ireversibilă.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Anulează</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-red-600 hover:bg-red-700"
+                onClick={() => {
+                  if (productToDelete) {
+                    deleteProductMutation.mutate(productToDelete.id);
+                  }
+                  setDeleteConfirmOpen(false);
+                  setProductToDelete(null);
+                }}
+              >
+                Șterge
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </TooltipProvider>
   );
