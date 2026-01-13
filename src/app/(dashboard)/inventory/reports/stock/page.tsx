@@ -53,8 +53,8 @@ export default function StockReportPage() {
   const [reportDate, setReportDate] = useState(
     new Date().toISOString().split("T")[0]
   );
-  const [supplierId, setSupplierId] = useState("");
-  const [isComposite, setIsComposite] = useState("");
+  const [supplierId, setSupplierId] = useState("all");
+  const [isComposite, setIsComposite] = useState("all");
   const [search, setSearch] = useState("");
   const [showOnlyLow, setShowOnlyLow] = useState(false);
 
@@ -64,8 +64,8 @@ export default function StockReportPage() {
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set("date", reportDate);
-      if (supplierId) params.set("supplierId", supplierId);
-      if (isComposite) params.set("isComposite", isComposite);
+      if (supplierId && supplierId !== "all") params.set("supplierId", supplierId);
+      if (isComposite && isComposite !== "all") params.set("isComposite", isComposite);
       if (search) params.set("search", search);
 
       const res = await fetch(`/api/inventory-items/stock-report?${params}`);
@@ -285,7 +285,7 @@ export default function StockReportPage() {
                   <SelectValue placeholder="Toți furnizorii" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Toți furnizorii</SelectItem>
+                  <SelectItem value="all">Toți furnizorii</SelectItem>
                   {suppliers.map((supplier: any) => (
                     <SelectItem key={supplier.id} value={supplier.id}>
                       {supplier.name}
@@ -305,7 +305,7 @@ export default function StockReportPage() {
                   <SelectValue placeholder="Toate" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Toate</SelectItem>
+                  <SelectItem value="all">Toate</SelectItem>
                   <SelectItem value="false">Individuale</SelectItem>
                   <SelectItem value="true">Compuse</SelectItem>
                 </SelectContent>

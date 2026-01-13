@@ -311,20 +311,29 @@ model Store {
   @@map("stores")
 }
 
-// Serii de facturare SmartBill
+// Serii de facturare (gestionate local, independente de SmartBill)
 model InvoiceSeries {
-  id          String   @id @default(cuid())
-  name        String   @unique  // Numele seriei în SmartBill (ex: "CFG", "TRD")
-  type        String   @default("f")  // f = factură, p = proformă, c = chitanță
-  nextNumber  String?  // Următorul număr (din SmartBill)
-  isDefault   Boolean  @default(false)  // Seria default pentru marketplace-uri fără serie setată
-  isActive    Boolean  @default(true)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  stores      Store[]  // Store-urile care folosesc această serie
-  
+  id            String   @id @default(cuid())
+  name          String   @unique  // Numele complet afișat (ex: "Serie Shopify RO", "Trendyol TR")
+  prefix        String             // Prefixul seriei (ex: "CFG", "TRD", "FA")
+  description   String?            // Descriere opțională
+
+  type          String   @default("f")  // f = factură, p = proformă, c = chitanță
+  startNumber   Int      @default(1)    // Numărul de start al seriei
+  currentNumber Int      @default(1)    // Numărul curent (se incrementează automat)
+
+  isDefault     Boolean  @default(false)  // Seria default pentru canale fără serie setată
+  isActive      Boolean  @default(true)
+
+  // Opțiune de sincronizare cu SmartBill (dacă utilizatorul vrea)
+  syncToSmartBill  Boolean  @default(false)  // Dacă true, folosește această serie și în SmartBill
+  smartBillSeries  String?  // Numele seriei corespondente în SmartBill (poate fi diferit)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  stores        Store[]  // Store-urile care folosesc această serie
+
   @@map("invoice_series")
 }
 

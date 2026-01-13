@@ -460,7 +460,7 @@ export default function ProductInventoryMappingPage() {
                 <SelectValue placeholder="Selectează articol inventar" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">
+                <SelectItem value="none">
                   <span className="text-muted-foreground">Fără mapare</span>
                 </SelectItem>
                 {inventoryItems.map((item: any) => (

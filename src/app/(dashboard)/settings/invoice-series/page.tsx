@@ -5,13 +5,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   FileText,
   Plus,
-  RefreshCw,
   Loader2,
   Store,
   Star,
   Trash2,
   ShoppingBag,
-  Check,
+  Edit2,
+  Hash,
+  Settings2,
   AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,7 +47,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
-import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
@@ -57,10 +59,15 @@ import {
 interface InvoiceSeries {
   id: string;
   name: string;
+  prefix: string;
+  description: string | null;
   type: string;
-  nextNumber: string | null;
+  startNumber: number;
+  currentNumber: number;
   isDefault: boolean;
   isActive: boolean;
+  syncToSmartBill: boolean;
+  smartBillSeries: string | null;
   stores: { id: string; name: string }[];
 }
 
@@ -71,14 +78,38 @@ interface StoreWithSeries {
   invoiceSeriesId: string | null;
 }
 
+interface SeriesFormData {
+  id?: string;
+  name: string;
+  prefix: string;
+  description: string;
+  type: string;
+  startNumber: number;
+  isDefault: boolean;
+  syncToSmartBill: boolean;
+  smartBillSeries: string;
+}
+
+const initialFormData: SeriesFormData = {
+  name: "",
+  prefix: "",
+  description: "",
+  type: "f",
+  startNumber: 1,
+  isDefault: false,
+  syncToSmartBill: false,
+  smartBillSeries: "",
+};
+
 export default function InvoiceSeriesPage() {
   const queryClient = useQueryClient();
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formData, setFormData] = useState<SeriesFormData>(initialFormData);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [newSeriesName, setNewSeriesName] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
 
   // Fetch series
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["invoice-series"],
     queryFn: async () => {
       const res = await fetch("/api/invoice-series");
@@ -101,46 +132,25 @@ export default function InvoiceSeriesPage() {
   const stores: StoreWithSeries[] = storesData?.stores || [];
   const trendyolSeries = data?.trendyolSeries;
 
-  // Sync mutation
-  const syncMutation = useMutation({
-    mutationFn: async () => {
+  // Create/Update mutation
+  const saveMutation = useMutation({
+    mutationFn: async (data: SeriesFormData) => {
+      const method = data.id ? "PUT" : "POST";
       const res = await fetch("/api/invoice-series", {
-        method: "POST",
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "sync" }),
+        body: JSON.stringify(data),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["invoice-series"] });
-      toast({ title: "Sincronizare completă", description: data.message });
-    },
-    onError: (error: any) => {
-      toast({ title: "Eroare", description: error.message, variant: "destructive" });
-    },
-  });
-
-  // Create mutation
-  const createMutation = useMutation({
-    mutationFn: async (name: string) => {
-      const res = await fetch("/api/invoice-series", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      return data;
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoice-series"] });
-      toast({ title: "Serie creată" });
-      setIsCreateOpen(false);
-      setNewSeriesName("");
+      toast({ title: isEditing ? "Serie actualizată" : "Serie creată" });
+      handleCloseForm();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Eroare", description: error.message, variant: "destructive" });
     },
   });
@@ -162,7 +172,7 @@ export default function InvoiceSeriesPage() {
       queryClient.invalidateQueries({ queryKey: ["stores-with-series"] });
       toast({ title: "Store actualizat" });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Eroare", description: error.message, variant: "destructive" });
     },
   });
@@ -183,7 +193,7 @@ export default function InvoiceSeriesPage() {
       queryClient.invalidateQueries({ queryKey: ["invoice-series"] });
       toast({ title: "Seria Trendyol actualizată" });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Eroare", description: error.message, variant: "destructive" });
     },
   });
@@ -204,7 +214,7 @@ export default function InvoiceSeriesPage() {
       queryClient.invalidateQueries({ queryKey: ["invoice-series"] });
       toast({ title: "Serie default setată" });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Eroare", description: error.message, variant: "destructive" });
     },
   });
@@ -222,10 +232,50 @@ export default function InvoiceSeriesPage() {
       toast({ title: "Serie ștearsă" });
       setDeleteId(null);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Eroare", description: error.message, variant: "destructive" });
     },
   });
+
+  const handleOpenCreate = () => {
+    setFormData(initialFormData);
+    setIsEditing(false);
+    setIsFormOpen(true);
+  };
+
+  const handleOpenEdit = (s: InvoiceSeries) => {
+    setFormData({
+      id: s.id,
+      name: s.name,
+      prefix: s.prefix,
+      description: s.description || "",
+      type: s.type,
+      startNumber: s.startNumber,
+      isDefault: s.isDefault,
+      syncToSmartBill: s.syncToSmartBill,
+      smartBillSeries: s.smartBillSeries || "",
+    });
+    setIsEditing(true);
+    setIsFormOpen(true);
+  };
+
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setFormData(initialFormData);
+    setIsEditing(false);
+  };
+
+  const handleSubmit = () => {
+    if (!formData.name.trim() || !formData.prefix.trim()) {
+      toast({
+        title: "Eroare",
+        description: "Numele și prefixul sunt obligatorii",
+        variant: "destructive",
+      });
+      return;
+    }
+    saveMutation.mutate(formData);
+  };
 
   if (isLoading) {
     return (
@@ -237,289 +287,397 @@ export default function InvoiceSeriesPage() {
 
   return (
     <TooltipProvider>
-    <div className="p-4 md:p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold">Serii de Facturare</h1>
-          <p className="text-muted-foreground text-sm md:text-base">
-            Gestionează seriile SmartBill și asociază-le magazinelor
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="md:size-default"
-                onClick={() => syncMutation.mutate()}
-                disabled={syncMutation.isPending}
-              >
-                {syncMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin md:mr-2" />
-                ) : (
-                  <RefreshCw className="h-4 w-4 md:mr-2" />
-                )}
-                <span className="hidden md:inline">Sincronizează din SmartBill</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-xs">
-              <p>Importă toate seriile de facturare din contul SmartBill. Seriile existente vor fi actualizate.</p>
-            </TooltipContent>
-          </Tooltip>
-          <Button size="sm" className="md:size-default" onClick={() => setIsCreateOpen(true)}>
-            <Plus className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">Adaugă Serie</span>
+      <div className="p-4 md:p-6 space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold">Serii de Facturare</h1>
+            <p className="text-muted-foreground text-sm md:text-base">
+              Definește și gestionează seriile de facturare pentru magazine
+            </p>
+          </div>
+          <Button onClick={handleOpenCreate}>
+            <Plus className="h-4 w-4 mr-2" />
+            Adaugă Serie
           </Button>
         </div>
-      </div>
 
-      {/* Info */}
-      {series.length === 0 && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Nu ai nicio serie de facturare. Apasă "Sincronizează din SmartBill" pentru a importa seriile existente.
-          </AlertDescription>
-        </Alert>
-      )}
+        {/* Info */}
+        {series.length === 0 && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Nu ai nicio serie de facturare. Creează una pentru a putea emite facturi.
+            </AlertDescription>
+          </Alert>
+        )}
 
-      {/* Series List */}
-      {series.length > 0 && (
+        {/* Series List */}
+        {series.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Serii disponibile
+              </CardTitle>
+              <CardDescription>
+                Seriile de facturare definite în sistem
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {series.map((s) => (
+                  <div
+                    key={s.id}
+                    className="flex items-center justify-between p-4 rounded-lg border"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                        <span className="font-bold text-primary">{s.prefix}</span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{s.name}</span>
+                          {s.isDefault && (
+                            <Badge className="bg-yellow-500">
+                              <Star className="h-3 w-3 mr-1" />
+                              Default
+                            </Badge>
+                          )}
+                          {s.syncToSmartBill && (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Badge variant="outline" className="text-blue-600 border-blue-300">
+                                  <Settings2 className="h-3 w-3 mr-1" />
+                                  SmartBill
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Sincronizat cu seria SmartBill: {s.smartBillSeries || s.prefix}
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                          <span className="flex items-center gap-1">
+                            <Hash className="h-3 w-3" />
+                            Curent: {s.currentNumber}
+                          </span>
+                          {s.description && (
+                            <span className="hidden md:inline">{s.description}</span>
+                          )}
+                        </div>
+                        {s.stores.length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Folosită de: {s.stores.map((st) => st.name).join(", ")}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleOpenEdit(s)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      {!s.isDefault && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDefaultMutation.mutate(s.id)}
+                          disabled={setDefaultMutation.isPending}
+                        >
+                          <Star className="h-4 w-4 mr-1" />
+                          <span className="hidden md:inline">Setează default</span>
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive"
+                        onClick={() => setDeleteId(s.id)}
+                        disabled={s.stores.length > 0}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Store Associations */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Serii disponibile
+              <Store className="h-5 w-5" />
+              Magazine Shopify
             </CardTitle>
             <CardDescription>
-              Seriile de facturare importate din SmartBill
+              Asociază o serie de facturare fiecărui magazin
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {series.map((s) => (
-                <div
-                  key={s.id}
-                  className="flex items-center justify-between p-3 rounded-lg border"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                      <FileText className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{s.name}</span>
-                        {s.isDefault && (
-                          <Badge className="bg-yellow-500">
-                            <Star className="h-3 w-3 mr-1" />
-                            Default
-                          </Badge>
-                        )}
+            {stores.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">
+                Nu ai magazine configurate
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {stores.map((store) => (
+                  <div
+                    key={store.id}
+                    className="flex items-center justify-between p-3 rounded-lg border"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
+                        <Store className="h-5 w-5 text-blue-500" />
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {s.stores.length > 0
-                          ? `Folosită de: ${s.stores.map((st) => st.name).join(", ")}`
-                          : "Neasociată"}
-                      </p>
+                      <div>
+                        <p className="font-medium">{store.name}</p>
+                        <p className="text-sm text-muted-foreground">{store.shopifyDomain}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {!s.isDefault && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDefaultMutation.mutate(s.id)}
-                        disabled={setDefaultMutation.isPending}
-                      >
-                        <Star className="h-4 w-4 mr-1" />
-                        Setează default
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive"
-                      onClick={() => setDeleteId(s.id)}
-                      disabled={s.stores.length > 0}
+                    <Select
+                      value={store.invoiceSeriesId || "none"}
+                      onValueChange={(v) =>
+                        updateStoreMutation.mutate({
+                          storeId: store.id,
+                          seriesId: v === "none" ? null : v,
+                        })
+                      }
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Selectează seria" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Fără serie (folosește default)</SelectItem>
+                        {series.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.prefix} - {s.name}
+                            {s.isDefault && " ⭐"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Trendyol */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5" />
+              Trendyol Marketplace
+            </CardTitle>
+            <CardDescription>
+              Seria de facturare pentru comenzile din Trendyol
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-3 rounded-lg border">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10">
+                  <ShoppingBag className="h-5 w-5 text-orange-500" />
                 </div>
-              ))}
+                <div>
+                  <p className="font-medium">Trendyol</p>
+                  <p className="text-sm text-muted-foreground">Marketplace internațional</p>
+                </div>
+              </div>
+              <Select
+                value={trendyolSeries || "none"}
+                onValueChange={(v) =>
+                  updateTrendyolMutation.mutate(v === "none" ? null : v)
+                }
+              >
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Selectează seria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Fără serie (folosește default)</SelectItem>
+                  {series.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.prefix} - {s.name}
+                      {s.isDefault && " ⭐"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* Store Associations */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Store className="h-5 w-5" />
-            Magazine Shopify
-          </CardTitle>
-          <CardDescription>
-            Asociază o serie de facturare fiecărui magazin
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {stores.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">
-              Nu ai magazine configurate
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {stores.map((store) => (
-                <div
-                  key={store.id}
-                  className="flex items-center justify-between p-3 rounded-lg border"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-                      <Store className="h-5 w-5 text-blue-500" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{store.name}</p>
-                      <p className="text-sm text-muted-foreground">{store.shopifyDomain}</p>
-                    </div>
-                  </div>
-                  <Select
-                    value={store.invoiceSeriesId || "none"}
-                    onValueChange={(v) =>
-                      updateStoreMutation.mutate({
-                        storeId: store.id,
-                        seriesId: v === "none" ? null : v,
-                      })
+        {/* Create/Edit Dialog */}
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>
+                {isEditing ? "Editează Serie" : "Adaugă Serie de Facturare"}
+              </DialogTitle>
+              <DialogDescription>
+                {isEditing
+                  ? "Modifică detaliile seriei de facturare"
+                  : "Creează o nouă serie pentru facturare"}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Prefix *</Label>
+                  <Input
+                    value={formData.prefix}
+                    onChange={(e) =>
+                      setFormData({ ...formData, prefix: e.target.value.toUpperCase() })
                     }
-                  >
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue placeholder="Selectează seria" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Fără serie (folosește default)</SelectItem>
-                      {series.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.name}
-                          {s.isDefault && " ⭐"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Ex: CFG, FA, TRD"
+                    maxLength={10}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Apare înaintea numărului facturii
+                  </p>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Trendyol */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShoppingBag className="h-5 w-5" />
-            Trendyol Marketplace
-          </CardTitle>
-          <CardDescription>
-            Seria de facturare pentru comenzile din Trendyol
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between p-3 rounded-lg border">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10">
-                <ShoppingBag className="h-5 w-5 text-orange-500" />
+                <div className="space-y-2">
+                  <Label>Număr de start</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={formData.startNumber}
+                    onChange={(e) =>
+                      setFormData({ ...formData, startNumber: parseInt(e.target.value) || 1 })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Prima factură din serie
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium">Trendyol</p>
-                <p className="text-sm text-muted-foreground">Marketplace internațional</p>
+
+              <div className="space-y-2">
+                <Label>Nume serie *</Label>
+                <Input
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Ex: Serie Shopify România"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Descriere (opțional)</Label>
+                <Textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Notițe despre această serie..."
+                  rows={2}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Tip document</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(v) => setFormData({ ...formData, type: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="f">Factură</SelectItem>
+                    <SelectItem value="p">Proformă</SelectItem>
+                    <SelectItem value="c">Chitanță</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center justify-between py-2">
+                <div className="space-y-0.5">
+                  <Label>Serie default</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Folosită când canalul nu are serie asociată
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.isDefault}
+                  onCheckedChange={(v) => setFormData({ ...formData, isDefault: v })}
+                />
+              </div>
+
+              <div className="border-t pt-4">
+                <div className="flex items-center justify-between py-2">
+                  <div className="space-y-0.5">
+                    <Label>Sincronizează cu SmartBill</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Folosește aceeași serie și în SmartBill la emiterea facturii
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formData.syncToSmartBill}
+                    onCheckedChange={(v) => setFormData({ ...formData, syncToSmartBill: v })}
+                  />
+                </div>
+
+                {formData.syncToSmartBill && (
+                  <div className="space-y-2 mt-3">
+                    <Label>Seria SmartBill</Label>
+                    <Input
+                      value={formData.smartBillSeries}
+                      onChange={(e) =>
+                        setFormData({ ...formData, smartBillSeries: e.target.value.toUpperCase() })
+                      }
+                      placeholder={formData.prefix || "Ex: CFG"}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Lasă gol pentru a folosi prefixul ca nume de serie SmartBill
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-            <Select
-              value={trendyolSeries || "none"}
-              onValueChange={(v) =>
-                updateTrendyolMutation.mutate(v === "none" ? null : v)
-              }
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Selectează seria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Fără serie (folosește default)</SelectItem>
-                {series.map((s) => (
-                  <SelectItem key={s.id} value={s.name}>
-                    {s.name}
-                    {s.isDefault && " ⭐"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseForm}>
+                Anulează
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={!formData.name || !formData.prefix || saveMutation.isPending}
+              >
+                {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                {isEditing ? "Salvează" : "Creează"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-      {/* Create Dialog */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Adaugă Serie de Facturare</DialogTitle>
-            <DialogDescription>
-              Creează o serie nouă manual (trebuie să existe și în SmartBill)
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Numele seriei</Label>
-              <Input
-                value={newSeriesName}
-                onChange={(e) => setNewSeriesName(e.target.value.toUpperCase())}
-                placeholder="Ex: CFG, TRD, FACT"
-                maxLength={10}
-              />
-              <p className="text-xs text-muted-foreground">
-                Numele trebuie să fie identic cu cel din SmartBill
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-              Anulează
-            </Button>
-            <Button
-              onClick={() => createMutation.mutate(newSeriesName)}
-              disabled={!newSeriesName || createMutation.isPending}
-            >
-              {createMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Creează
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Ștergi seria?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Această acțiune nu poate fi anulată. Seria va fi ștearsă permanent.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Anulează</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteId && deleteMutation.mutate(deleteId)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Șterge
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+        {/* Delete Confirmation */}
+        <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Ștergi seria?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Această acțiune nu poate fi anulată. Seria va fi ștearsă permanent.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Anulează</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteId && deleteMutation.mutate(deleteId)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Șterge
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </TooltipProvider>
   );
 }

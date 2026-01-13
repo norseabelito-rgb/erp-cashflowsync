@@ -47,14 +47,14 @@ import {
 } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/utils";
 
-type MovementType = "RECEIPT" | "SALE" | "ADJUSTMENT_PLUS" | "ADJUSTMENT_MINUS" | "PRODUCTION" | "";
+type MovementType = "RECEIPT" | "SALE" | "ADJUSTMENT_PLUS" | "ADJUSTMENT_MINUS" | "PRODUCTION" | "all";
 
 export default function StockMovementsPage() {
   const router = useRouter();
 
   // Filters
-  const [itemId, setItemId] = useState("");
-  const [type, setType] = useState<MovementType>("");
+  const [itemId, setItemId] = useState("all");
+  const [type, setType] = useState<MovementType>("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [page, setPage] = useState(1);
@@ -65,8 +65,8 @@ export default function StockMovementsPage() {
     queryKey: ["stock-movements", { itemId, type, startDate, endDate, page }],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (itemId) params.set("itemId", itemId);
-      if (type) params.set("type", type);
+      if (itemId && itemId !== "all") params.set("itemId", itemId);
+      if (type && type !== "all") params.set("type", type);
       if (startDate) params.set("startDate", startDate);
       if (endDate) params.set("endDate", endDate);
       params.set("page", page.toString());
@@ -154,8 +154,8 @@ export default function StockMovementsPage() {
   };
 
   const handleClearFilters = () => {
-    setItemId("");
-    setType("");
+    setItemId("all");
+    setType("all");
     setStartDate("");
     setEndDate("");
     setPage(1);
@@ -275,7 +275,7 @@ export default function StockMovementsPage() {
                   <SelectValue placeholder="Toate articolele" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Toate articolele</SelectItem>
+                  <SelectItem value="all">Toate articolele</SelectItem>
                   {items.map((item: any) => (
                     <SelectItem key={item.id} value={item.id}>
                       <span className="font-mono text-xs">{item.sku}</span> - {item.name}
@@ -295,7 +295,7 @@ export default function StockMovementsPage() {
                   <SelectValue placeholder="Toate tipurile" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Toate tipurile</SelectItem>
+                  <SelectItem value="all">Toate tipurile</SelectItem>
                   <SelectItem value="RECEIPT">Recepție</SelectItem>
                   <SelectItem value="SALE">Vânzare</SelectItem>
                   <SelectItem value="ADJUSTMENT_PLUS">Ajustare +</SelectItem>

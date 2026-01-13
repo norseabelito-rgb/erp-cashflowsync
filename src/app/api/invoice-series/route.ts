@@ -40,7 +40,7 @@ export async function GET() {
   }
 }
 
-// POST /api/invoice-series - Sincronizează seriile din SmartBill sau creează manual
+// POST /api/invoice-series - Creează o serie nouă
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -54,126 +54,59 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { action, name, type, isDefault } = body;
+    const {
+      name,
+      prefix,
+      description,
+      type = "f",
+      startNumber = 1,
+      isDefault = false,
+      syncToSmartBill = false,
+      smartBillSeries,
+    } = body;
 
-    // Acțiune de sincronizare din SmartBill
-    if (action === "sync") {
-      // Citim setările SmartBill
-      const settings = await prisma.settings.findUnique({
-        where: { id: "default" },
-      });
-
-      if (!settings?.smartbillEmail || !settings?.smartbillToken || !settings?.smartbillCompanyCif) {
-        return NextResponse.json({
-          error: "Configurează SmartBill în setări înainte de a sincroniza seriile",
-        }, { status: 400 });
-      }
-
-      const auth = Buffer.from(`${settings.smartbillEmail}:${settings.smartbillToken}`).toString("base64");
-      const cif = settings.smartbillCompanyCif;
-
-      // Fetch serii din SmartBill
-      const seriesResponse = await fetch(
-        `https://ws.smartbill.ro/SBORO/api/series?cif=${encodeURIComponent(cif)}`,
-        {
-          method: "GET",
-          headers: {
-            "Authorization": `Basic ${auth}`,
-            "Accept": "application/json",
-          },
-        }
-      );
-
-      if (!seriesResponse.ok) {
-        return NextResponse.json({
-          error: "Eroare la conectarea cu SmartBill",
-        }, { status: 500 });
-      }
-
-      const seriesData = await seriesResponse.json();
-      
-      if (!seriesData?.list || !Array.isArray(seriesData.list)) {
-        return NextResponse.json({
-          error: "Nu s-au găsit serii în SmartBill",
-        }, { status: 404 });
-      }
-
-      // Filtrăm doar seriile de factură (type === "f")
-      const invoiceSeries = seriesData.list.filter((s: any) => 
-        s.type === "f" || s.type === "factura" || !s.type
-      );
-
-      // Upsert pentru fiecare serie
-      let created = 0;
-      let updated = 0;
-
-      for (const s of invoiceSeries) {
-        const existing = await prisma.invoiceSeries.findUnique({
-          where: { name: s.name },
-        });
-
-        if (existing) {
-          await prisma.invoiceSeries.update({
-            where: { name: s.name },
-            data: {
-              nextNumber: s.nextNumber?.toString() || null,
-              type: "f",
-            },
-          });
-          updated++;
-        } else {
-          await prisma.invoiceSeries.create({
-            data: {
-              name: s.name,
-              nextNumber: s.nextNumber?.toString() || null,
-              type: "f",
-            },
-          });
-          created++;
-        }
-      }
-
+    // Validări
+    if (!name || !prefix) {
       return NextResponse.json({
-        success: true,
-        message: `Sincronizare completă: ${created} serii noi, ${updated} actualizate`,
-        total: invoiceSeries.length,
+        error: "Numele și prefixul sunt obligatorii",
+      }, { status: 400 });
+    }
+
+    // Verifică dacă există deja
+    const existingByName = await prisma.invoiceSeries.findUnique({
+      where: { name },
+    });
+
+    if (existingByName) {
+      return NextResponse.json({
+        error: "O serie cu acest nume există deja",
+      }, { status: 400 });
+    }
+
+    // Dacă e setată ca default, dezactivează celelalte
+    if (isDefault) {
+      await prisma.invoiceSeries.updateMany({
+        data: { isDefault: false },
       });
     }
 
-    // Creare manuală a unei serii
-    if (name) {
-      // Verifică dacă există deja
-      const existing = await prisma.invoiceSeries.findUnique({
-        where: { name },
-      });
+    const series = await prisma.invoiceSeries.create({
+      data: {
+        name,
+        prefix: prefix.toUpperCase(),
+        description,
+        type,
+        startNumber: Math.max(1, startNumber),
+        currentNumber: Math.max(1, startNumber),
+        isDefault,
+        syncToSmartBill,
+        smartBillSeries: syncToSmartBill ? (smartBillSeries || prefix.toUpperCase()) : null,
+      },
+    });
 
-      if (existing) {
-        return NextResponse.json({
-          error: "O serie cu acest nume există deja",
-        }, { status: 400 });
-      }
-
-      // Dacă e setată ca default, dezactivează celelalte
-      if (isDefault) {
-        await prisma.invoiceSeries.updateMany({
-          data: { isDefault: false },
-        });
-      }
-
-      const series = await prisma.invoiceSeries.create({
-        data: {
-          name,
-          type: type || "f",
-          isDefault: isDefault || false,
-        },
-      });
-
-      return NextResponse.json({ success: true, series });
-    }
-
-    return NextResponse.json({ error: "Acțiune invalidă" }, { status: 400 });
+    return NextResponse.json({ success: true, series });
   } catch (error: any) {
-    console.error("Error managing invoice series:", error);
+    console.error("Error creating invoice series:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -192,7 +125,21 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, isDefault, isActive, storeId, seriesId, trendyolSeries } = body;
+    const {
+      id,
+      name,
+      prefix,
+      description,
+      type,
+      startNumber,
+      isDefault,
+      isActive,
+      syncToSmartBill,
+      smartBillSeries,
+      storeId,
+      seriesId,
+      trendyolSeries,
+    } = body;
 
     // Actualizare serie pentru Trendyol în Settings
     if (trendyolSeries !== undefined) {
@@ -215,21 +162,56 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: true, message: "Store actualizat" });
     }
 
-    // Actualizare serie
+    // Actualizare serie existentă
     if (id) {
+      const existingSeries = await prisma.invoiceSeries.findUnique({
+        where: { id },
+      });
+
+      if (!existingSeries) {
+        return NextResponse.json({ error: "Seria nu există" }, { status: 404 });
+      }
+
+      // Verifică dacă noul nume e unic (dacă se schimbă)
+      if (name && name !== existingSeries.name) {
+        const nameExists = await prisma.invoiceSeries.findUnique({
+          where: { name },
+        });
+        if (nameExists) {
+          return NextResponse.json({
+            error: "O serie cu acest nume există deja",
+          }, { status: 400 });
+        }
+      }
+
       // Dacă e setată ca default, dezactivează celelalte
-      if (isDefault) {
+      if (isDefault === true) {
         await prisma.invoiceSeries.updateMany({
+          where: { id: { not: id } },
           data: { isDefault: false },
         });
       }
 
+      const updateData: any = {};
+      if (name !== undefined) updateData.name = name;
+      if (prefix !== undefined) updateData.prefix = prefix.toUpperCase();
+      if (description !== undefined) updateData.description = description;
+      if (type !== undefined) updateData.type = type;
+      if (startNumber !== undefined) {
+        updateData.startNumber = Math.max(1, startNumber);
+        // Dacă noul startNumber e mai mare decât currentNumber, actualizează și currentNumber
+        if (startNumber > existingSeries.currentNumber) {
+          updateData.currentNumber = startNumber;
+        }
+      }
+      if (isDefault !== undefined) updateData.isDefault = isDefault;
+      if (isActive !== undefined) updateData.isActive = isActive;
+      if (syncToSmartBill !== undefined) updateData.syncToSmartBill = syncToSmartBill;
+      if (smartBillSeries !== undefined) updateData.smartBillSeries = smartBillSeries || null;
+
       const series = await prisma.invoiceSeries.update({
         where: { id },
-        data: {
-          ...(isDefault !== undefined && { isDefault }),
-          ...(isActive !== undefined && { isActive }),
-        },
+        data: updateData,
       });
 
       return NextResponse.json({ success: true, series });
@@ -287,4 +269,29 @@ export async function DELETE(request: NextRequest) {
     console.error("Error deleting invoice series:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+}
+
+// POST /api/invoice-series/next-number - Obține și incrementează numărul curent
+export async function getNextNumber(seriesId: string): Promise<{ prefix: string; number: number; formatted: string } | null> {
+  const series = await prisma.invoiceSeries.findUnique({
+    where: { id: seriesId },
+  });
+
+  if (!series || !series.isActive) {
+    return null;
+  }
+
+  const currentNumber = series.currentNumber;
+
+  // Incrementează numărul pentru următoarea factură
+  await prisma.invoiceSeries.update({
+    where: { id: seriesId },
+    data: { currentNumber: currentNumber + 1 },
+  });
+
+  return {
+    prefix: series.prefix,
+    number: currentNumber,
+    formatted: `${series.prefix}${currentNumber.toString().padStart(6, "0")}`,
+  };
 }
