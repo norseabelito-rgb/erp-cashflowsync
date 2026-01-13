@@ -26,6 +26,7 @@ import {
   X,
   Download,
   Loader2,
+  Pencil,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -298,6 +299,26 @@ export default function OrdersPage() {
     observations: "",
     createPickingList: true, // Crează automat picking list
   });
+
+  // State pentru editare comandă
+  const [editOrderDialogOpen, setEditOrderDialogOpen] = useState(false);
+  const [editOrderData, setEditOrderData] = useState<{
+    orderId: string;
+    customerPhone: string;
+    customerEmail: string;
+    customerFirstName: string;
+    customerLastName: string;
+    shippingAddress1: string;
+    shippingAddress2: string;
+    shippingCity: string;
+    shippingProvince: string;
+    shippingZip: string;
+    hasInvoice: boolean;
+    hasAwb: boolean;
+    invoiceNumber: string | null;
+    awbNumber: string | null;
+    acknowledgeDocumentsIssued: boolean;
+  } | null>(null);
 
   // State pentru erori de procesare (in-session)
   const [processErrors, setProcessErrors] = useState<ProcessError[]>([]);
@@ -599,6 +620,70 @@ export default function OrdersPage() {
     },
   });
 
+  // Mutație pentru actualizare date comandă
+  const updateOrderMutation = useMutation({
+    mutationFn: async (data: {
+      orderId: string;
+      customerPhone?: string;
+      customerEmail?: string;
+      customerFirstName?: string;
+      customerLastName?: string;
+      shippingAddress1?: string;
+      shippingAddress2?: string;
+      shippingCity?: string;
+      shippingProvince?: string;
+      shippingZip?: string;
+      acknowledgeDocumentsIssued?: boolean;
+    }) => {
+      const res = await fetch(`/api/orders/${data.orderId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast({
+          title: "Comandă actualizată",
+          description: data.shopifySynced
+            ? "Datele au fost salvate și sincronizate în Shopify"
+            : "Datele au fost salvate (sincronizarea în Shopify a eșuat)",
+        });
+        setEditOrderDialogOpen(false);
+        setEditOrderData(null);
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
+      } else if (data.requiresAcknowledgement) {
+        // Trebuie să confirme că înțelege că are documente emise
+        setEditOrderData((prev) =>
+          prev
+            ? {
+                ...prev,
+                hasInvoice: data.hasInvoice,
+                hasAwb: data.hasAwb,
+                invoiceNumber: data.invoiceNumber,
+                awbNumber: data.awbNumber,
+              }
+            : null
+        );
+        toast({
+          title: "Atenție",
+          description: "Comanda are documente emise. Confirmă pentru a continua.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Eroare",
+          description: data.error || "Nu s-au putut actualiza datele",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+    },
+  });
+
   // Mutații pentru retry și skip erori persistente
   const retryDbErrorMutation = useMutation({
     mutationFn: async (errorId: string) => {
@@ -689,6 +774,45 @@ export default function OrdersPage() {
   const handleViewOrder = (order: Order) => {
     setViewOrder(order);
     setViewModalOpen(true);
+  };
+
+  const handleEditOrder = (order: Order) => {
+    setEditOrderData({
+      orderId: order.id,
+      customerPhone: order.customerPhone || "",
+      customerEmail: order.customerEmail || "",
+      customerFirstName: order.customerFirstName || "",
+      customerLastName: order.customerLastName || "",
+      shippingAddress1: order.shippingAddress1 || "",
+      shippingAddress2: order.shippingAddress2 || "",
+      shippingCity: order.shippingCity || "",
+      shippingProvince: order.shippingProvince || "",
+      shippingZip: order.shippingZip || "",
+      hasInvoice: !!(order.invoice && order.invoice.status === "issued"),
+      hasAwb: !!(order.awb && order.awb.awbNumber),
+      invoiceNumber: order.invoice ? `${order.invoice.smartbillSeries}${order.invoice.smartbillNumber}` : null,
+      awbNumber: order.awb?.awbNumber || null,
+      acknowledgeDocumentsIssued: false,
+    });
+    setEditOrderDialogOpen(true);
+  };
+
+  const handleSaveOrderEdit = () => {
+    if (!editOrderData) return;
+
+    updateOrderMutation.mutate({
+      orderId: editOrderData.orderId,
+      customerPhone: editOrderData.customerPhone,
+      customerEmail: editOrderData.customerEmail,
+      customerFirstName: editOrderData.customerFirstName,
+      customerLastName: editOrderData.customerLastName,
+      shippingAddress1: editOrderData.shippingAddress1,
+      shippingAddress2: editOrderData.shippingAddress2,
+      shippingCity: editOrderData.shippingCity,
+      shippingProvince: editOrderData.shippingProvince,
+      shippingZip: editOrderData.shippingZip,
+      acknowledgeDocumentsIssued: editOrderData.acknowledgeDocumentsIssued,
+    });
   };
 
   const handleSelectOrder = (orderId: string) => {
@@ -1095,7 +1219,14 @@ export default function OrdersPage() {
                           <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpenAwbModal(order.id); }} disabled={awbMutation.isPending}><Truck className="h-4 w-4" /></Button>
                         )}
                       </td>
-                      <td className="p-4" onClick={(e) => e.stopPropagation()}><Button size="sm" variant="ghost" onClick={() => handleViewOrder(order)}><Eye className="h-4 w-4" /></Button></td>
+                      <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => handleViewOrder(order)}><Eye className="h-4 w-4" /></Button>
+                          <RequirePermission permission="orders.edit">
+                            <Button size="sm" variant="ghost" onClick={() => handleEditOrder(order)}><Pencil className="h-4 w-4" /></Button>
+                          </RequirePermission>
+                        </div>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -1970,6 +2101,197 @@ export default function OrdersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog pentru editare comandă */}
+      <Dialog open={editOrderDialogOpen} onOpenChange={(open) => {
+        setEditOrderDialogOpen(open);
+        if (!open) setEditOrderData(null);
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editare date comandă</DialogTitle>
+            <DialogDescription>
+              Modificările vor fi sincronizate automat în Shopify cu un comentariu audit.
+            </DialogDescription>
+          </DialogHeader>
+
+          {editOrderData && (
+            <div className="space-y-4 py-4">
+              {/* Warning pentru documente emise */}
+              {(editOrderData.hasInvoice || editOrderData.hasAwb) && (
+                <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-medium text-amber-800">Atenție: Comanda are documente emise</p>
+                      <ul className="text-sm text-amber-700 mt-1 space-y-1">
+                        {editOrderData.hasInvoice && (
+                          <li>Factură: {editOrderData.invoiceNumber}</li>
+                        )}
+                        {editOrderData.hasAwb && (
+                          <li>AWB: {editOrderData.awbNumber}</li>
+                        )}
+                      </ul>
+                      <p className="text-sm text-amber-700 mt-2">
+                        Modificarea datelor poate necesita re-emiterea documentelor.
+                      </p>
+                      <div className="flex items-center gap-2 mt-3">
+                        <Checkbox
+                          id="acknowledgeDocuments"
+                          checked={editOrderData.acknowledgeDocumentsIssued}
+                          onCheckedChange={(checked) =>
+                            setEditOrderData((prev) =>
+                              prev ? { ...prev, acknowledgeDocumentsIssued: !!checked } : null
+                            )
+                          }
+                        />
+                        <Label htmlFor="acknowledgeDocuments" className="text-sm text-amber-800 cursor-pointer">
+                          Înțeleg și doresc să continui cu modificarea
+                        </Label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Câmpuri de editare */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Prenume</Label>
+                  <Input
+                    value={editOrderData.customerFirstName}
+                    onChange={(e) =>
+                      setEditOrderData((prev) =>
+                        prev ? { ...prev, customerFirstName: e.target.value } : null
+                      )
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Nume</Label>
+                  <Input
+                    value={editOrderData.customerLastName}
+                    onChange={(e) =>
+                      setEditOrderData((prev) =>
+                        prev ? { ...prev, customerLastName: e.target.value } : null
+                      )
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Telefon</Label>
+                  <Input
+                    value={editOrderData.customerPhone}
+                    onChange={(e) =>
+                      setEditOrderData((prev) =>
+                        prev ? { ...prev, customerPhone: e.target.value } : null
+                      )
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={editOrderData.customerEmail}
+                    onChange={(e) =>
+                      setEditOrderData((prev) =>
+                        prev ? { ...prev, customerEmail: e.target.value } : null
+                      )
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Adresă 1</Label>
+                <Input
+                  value={editOrderData.shippingAddress1}
+                  onChange={(e) =>
+                    setEditOrderData((prev) =>
+                      prev ? { ...prev, shippingAddress1: e.target.value } : null
+                    )
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Adresă 2 (opțional)</Label>
+                <Input
+                  value={editOrderData.shippingAddress2}
+                  onChange={(e) =>
+                    setEditOrderData((prev) =>
+                      prev ? { ...prev, shippingAddress2: e.target.value } : null
+                    )
+                  }
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Oraș</Label>
+                  <Input
+                    value={editOrderData.shippingCity}
+                    onChange={(e) =>
+                      setEditOrderData((prev) =>
+                        prev ? { ...prev, shippingCity: e.target.value } : null
+                      )
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Județ</Label>
+                  <Input
+                    value={editOrderData.shippingProvince}
+                    onChange={(e) =>
+                      setEditOrderData((prev) =>
+                        prev ? { ...prev, shippingProvince: e.target.value } : null
+                      )
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cod poștal</Label>
+                  <Input
+                    value={editOrderData.shippingZip}
+                    onChange={(e) =>
+                      setEditOrderData((prev) =>
+                        prev ? { ...prev, shippingZip: e.target.value } : null
+                      )
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOrderDialogOpen(false)}>
+              Anulează
+            </Button>
+            <Button
+              onClick={handleSaveOrderEdit}
+              disabled={
+                updateOrderMutation.isPending ||
+                ((editOrderData?.hasInvoice || editOrderData?.hasAwb) &&
+                  !editOrderData?.acknowledgeDocumentsIssued)
+              }
+            >
+              {updateOrderMutation.isPending ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Se salvează...
+                </>
+              ) : (
+                "Salvează modificările"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
     </TooltipProvider>
   );

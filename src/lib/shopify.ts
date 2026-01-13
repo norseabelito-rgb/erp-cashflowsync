@@ -152,6 +152,70 @@ export class ShopifyClient {
   }
 
   /**
+   * Adaugă un comentariu la timeline-ul comenzii (note_attributes sau metafield)
+   * Format: "[2026-01-13 14:30] user@email.com: Modificare telefon: 0722xxx → 0733xxx"
+   */
+  async addOrderTimelineNote(orderId: string, note: string): Promise<void> {
+    // Obținem comanda curentă pentru a păstra nota existentă
+    const order = await this.getOrder(orderId);
+    const existingNote = order.note || "";
+
+    // Adăugăm noua notă la începutul notei existente
+    const newNote = existingNote
+      ? `${note}\n\n---\n\n${existingNote}`
+      : note;
+
+    await this.client.put(`/orders/${orderId}.json`, {
+      order: {
+        id: orderId,
+        note: newNote,
+      },
+    });
+  }
+
+  /**
+   * Actualizează adresa de livrare și alte date ale comenzii
+   */
+  async updateOrderAddress(
+    orderId: string,
+    data: {
+      shipping_address?: {
+        first_name?: string;
+        last_name?: string;
+        address1?: string;
+        address2?: string;
+        city?: string;
+        province?: string;
+        zip?: string;
+        phone?: string;
+        country?: string;
+      };
+      email?: string;
+      phone?: string;
+    }
+  ): Promise<void> {
+    const updateData: any = {
+      id: orderId,
+    };
+
+    if (data.shipping_address) {
+      updateData.shipping_address = data.shipping_address;
+    }
+
+    if (data.email) {
+      updateData.email = data.email;
+    }
+
+    if (data.phone) {
+      updateData.phone = data.phone;
+    }
+
+    await this.client.put(`/orders/${orderId}.json`, {
+      order: updateData,
+    });
+  }
+
+  /**
    * Adaugă tag-uri la comandă
    */
   async addOrderTags(orderId: string, tags: string[]): Promise<void> {

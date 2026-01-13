@@ -337,3 +337,37 @@ export async function logPaymentReceived(params: {
     source: "manual",
   });
 }
+
+/**
+ * Helper pentru logarea modificărilor la date comenzi
+ */
+export async function logOrderDataUpdate(params: {
+  orderId: string;
+  orderNumber: string;
+  changes: Array<{
+    field: string;
+    oldValue: string | null;
+    newValue: string | null;
+  }>;
+  updatedBy: string;
+  syncedToShopify: boolean;
+}) {
+  const changesText = params.changes
+    .map((c) => `${c.field}: ${c.oldValue || "(gol)"} → ${c.newValue || "(gol)"}`)
+    .join(", ");
+
+  return logActivity({
+    entityType: EntityType.ORDER,
+    entityId: params.orderId,
+    action: ActionType.UPDATE,
+    description: `Date comandă #${params.orderNumber} modificate de ${params.updatedBy}: ${changesText}${params.syncedToShopify ? " (sincronizat în Shopify)" : ""}`,
+    orderId: params.orderId,
+    orderNumber: params.orderNumber,
+    details: {
+      changes: params.changes,
+      updatedBy: params.updatedBy,
+      syncedToShopify: params.syncedToShopify,
+    },
+    source: "manual",
+  });
+}
