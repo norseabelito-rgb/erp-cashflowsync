@@ -402,7 +402,6 @@ export async function DELETE(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
-    const hardDelete = searchParams.get("hardDelete") === "true";
 
     if (!id) {
       return NextResponse.json({
@@ -447,28 +446,20 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 });
     }
 
-    if (hardDelete) {
-      // Ștergere permanentă
-      await prisma.inventoryItem.delete({
-        where: { id },
-      });
+    // Delete related stock movements first
+    await prisma.inventoryStockMovement.deleteMany({
+      where: { itemId: id },
+    });
 
-      return NextResponse.json({
-        success: true,
-        message: "Articolul a fost șters permanent",
-      });
-    } else {
-      // Soft delete (dezactivare)
-      await prisma.inventoryItem.update({
-        where: { id },
-        data: { isActive: false },
-      });
+    // Delete the item
+    await prisma.inventoryItem.delete({
+      where: { id },
+    });
 
-      return NextResponse.json({
-        success: true,
-        message: "Articolul a fost dezactivat",
-      });
-    }
+    return NextResponse.json({
+      success: true,
+      message: "Articolul a fost șters",
+    });
   } catch (error: any) {
     console.error("Error deleting inventory item:", error);
     return NextResponse.json({

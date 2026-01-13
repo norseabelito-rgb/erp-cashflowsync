@@ -59,18 +59,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Delete items that have no dependencies (soft delete - set isActive to false)
+    // Hard delete items that have no dependencies
     if (toDelete.length > 0) {
-      await prisma.inventoryItem.updateMany({
+      // First delete related stock movements
+      await prisma.inventoryStockMovement.deleteMany({
+        where: { itemId: { in: toDelete } },
+      });
+
+      // Then delete the items
+      await prisma.inventoryItem.deleteMany({
         where: { id: { in: toDelete } },
-        data: { isActive: false },
       });
     }
 
     const deletedCount = toDelete.length;
     const skippedCount = skipped.length;
 
-    let message = `${deletedCount} articole dezactivate`;
+    let message = `${deletedCount} articole șterse`;
     if (skippedCount > 0) {
       message += `, ${skippedCount} omise (au dependențe)`;
     }
