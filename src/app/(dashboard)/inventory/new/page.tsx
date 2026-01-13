@@ -468,7 +468,7 @@ export default function NewInventoryItemPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">Fără furnizor</SelectItem>
+                          <SelectItem value="none">Fără furnizor</SelectItem>
                           {suppliers.map((supplier: any) => (
                             <SelectItem key={supplier.id} value={supplier.id}>
                               {supplier.name}
