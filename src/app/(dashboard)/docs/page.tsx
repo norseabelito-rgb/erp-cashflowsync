@@ -1622,7 +1622,8 @@ export async function GET(request: NextRequest) {
 // /api/cron/sync-awb/route.ts
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
-  if (authHeader !== \`Bearer \${process.env.CRON_SECRET}\`) {
+  const expectedToken = "Bearer " + process.env.CRON_SECRET;
+  if (authHeader !== expectedToken) {
     return unauthorized();
   }
 
