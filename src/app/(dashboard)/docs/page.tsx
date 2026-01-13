@@ -32,9 +32,6 @@ import {
   Copy,
   GitMerge,
   Workflow,
-  Tags,
-  Link2,
-  Network,
   FolderTree,
   Cog,
   Timer,
@@ -42,8 +39,6 @@ import {
   RefreshCw,
   Users,
   Eye,
-  Pencil,
-  Trash2,
   Lock,
   History,
   ClipboardList,
@@ -51,12 +46,9 @@ import {
   Hand,
   Target,
   TrendingUp,
-  Bell,
   Key,
-  UserCheck,
   Table2,
   Server,
-  Cloud,
   Terminal,
 } from "lucide-react";
 
@@ -93,8 +85,8 @@ const modules = [
 
 function SectionTitle({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <h2 className="flex items-center gap-3 text-xl font-semibold text-slate-800 mt-8 mb-4">
-      <span className="text-blue-600">{icon}</span>
+    <h2 className="flex items-center gap-3 text-xl font-semibold text-foreground mt-8 mb-4">
+      <span className="text-primary">{icon}</span>
       {children}
     </h2>
   );
@@ -110,20 +102,20 @@ function InfoBox({
   children: React.ReactNode;
 }) {
   const styles = {
-    info: { bg: "bg-blue-50", border: "border-blue-200", icon: <Info className="h-5 w-5 text-blue-600" /> },
-    warning: { bg: "bg-amber-50", border: "border-amber-200", icon: <AlertTriangle className="h-5 w-5 text-amber-600" /> },
-    success: { bg: "bg-green-50", border: "border-green-200", icon: <CheckCircle2 className="h-5 w-5 text-green-600" /> },
-    tip: { bg: "bg-purple-50", border: "border-purple-200", icon: <Lightbulb className="h-5 w-5 text-purple-600" /> },
+    info: { bg: "bg-primary/10", border: "border-primary/30", icon: <Info className="h-5 w-5 text-primary" /> },
+    warning: { bg: "bg-warning/10", border: "border-warning/30", icon: <AlertTriangle className="h-5 w-5 text-warning" /> },
+    success: { bg: "bg-success/10", border: "border-success/30", icon: <CheckCircle2 className="h-5 w-5 text-success" /> },
+    tip: { bg: "bg-accent", border: "border-accent-foreground/20", icon: <Lightbulb className="h-5 w-5 text-accent-foreground" /> },
   };
   const style = styles[variant];
 
   return (
     <div className={cn("rounded-lg border p-4", style.bg, style.border)}>
-      <div className="flex items-center gap-2 font-medium mb-2">
+      <div className="flex items-center gap-2 font-medium mb-2 text-foreground">
         {style.icon}
         {title}
       </div>
-      <div className="text-sm text-slate-700">{children}</div>
+      <div className="text-sm text-muted-foreground">{children}</div>
     </div>
   );
 }
@@ -138,21 +130,21 @@ function CodeBlock({ code, title }: { code: string; title?: string }) {
   };
 
   return (
-    <div className="relative rounded-lg border border-slate-200 bg-slate-900 overflow-hidden">
+    <div className="relative rounded-lg border border-border bg-muted overflow-hidden">
       {title && (
-        <div className="px-4 py-2 bg-slate-800 border-b border-slate-700 text-sm text-slate-400">
+        <div className="px-4 py-2 bg-muted/80 border-b border-border text-sm text-muted-foreground">
           {title}
         </div>
       )}
       <Button
         variant="ghost"
         size="sm"
-        className="absolute top-2 right-2 text-slate-400 hover:text-white"
+        className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
         onClick={handleCopy}
       >
         {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
       </Button>
-      <pre className="p-4 text-sm text-slate-300 overflow-x-auto">
+      <pre className="p-4 text-sm text-foreground overflow-x-auto">
         <code>{code}</code>
       </pre>
     </div>
@@ -175,11 +167,11 @@ function StatCard({
       <CardContent className="pt-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-slate-500">{label}</p>
-            <p className="text-2xl font-bold">{value}</p>
-            <p className="text-xs text-slate-400">{description}</p>
+            <p className="text-sm text-muted-foreground">{label}</p>
+            <p className="text-2xl font-bold text-foreground">{value}</p>
+            <p className="text-xs text-muted-foreground">{description}</p>
           </div>
-          <div className="text-blue-600">{icon}</div>
+          <div className="text-primary">{icon}</div>
         </div>
       </CardContent>
     </Card>
@@ -201,12 +193,12 @@ function FeatureCard({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <span className="text-blue-600">{icon}</span>
+          <span className="text-primary">{icon}</span>
           {title}
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-slate-600 mb-3">{description}</p>
+        <p className="text-sm text-muted-foreground mb-3">{description}</p>
         <div className="flex flex-wrap gap-1">
           {badges.map((badge, i) => (
             <Badge key={i} variant="secondary" className="text-xs">{badge}</Badge>
@@ -221,7 +213,7 @@ function OverviewContent() {
   return (
     <div className="space-y-8">
       <div className="prose max-w-none">
-        <p className="text-lg text-slate-600">
+        <p className="text-lg text-muted-foreground">
           ERP CashFlowSync este o platforma completa pentru gestionarea comenzilor,
           inventarului, facturarii si livrarilor pentru magazine online.
         </p>
@@ -265,7 +257,7 @@ function OverviewContent() {
 
       <SectionTitle icon={<Workflow className="h-6 w-6" />}>Fluxul Principal</SectionTitle>
 
-      <div className="flex flex-wrap items-center gap-2 p-4 bg-slate-50 rounded-lg">
+      <div className="flex flex-wrap items-center gap-2 p-4 bg-muted rounded-lg">
         {[
           "Comanda Noua",
           "Validare",
@@ -277,7 +269,7 @@ function OverviewContent() {
         ].map((step, i, arr) => (
           <span key={i} className="flex items-center gap-2">
             <Badge variant="outline" className="px-3 py-1">{step}</Badge>
-            {i < arr.length - 1 && <ArrowRight className="h-4 w-4 text-slate-400" />}
+            {i < arr.length - 1 && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
           </span>
         ))}
       </div>
@@ -289,7 +281,7 @@ function ArchitectureContent() {
   return (
     <div className="space-y-8">
       <div className="prose max-w-none">
-        <p className="text-lg text-slate-600">
+        <p className="text-lg text-muted-foreground">
           Arhitectura ERP CashFlowSync este construita pe principii moderne de dezvoltare,
           cu separare clara intre UI, business logic si persistenta.
         </p>
@@ -326,50 +318,50 @@ function ArchitectureContent() {
       <SectionTitle icon={<Layers className="h-6 w-6" />}>Arhitectura pe Straturi</SectionTitle>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="border-2 border-blue-200">
+        <Card className="border-primary/30">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-700">
+            <CardTitle className="flex items-center gap-2 text-primary">
               <Eye className="h-5 w-5" />
               Presentation Layer
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-slate-600">
+          <CardContent className="text-muted-foreground">
             <p>React components cu Next.js App Router. Shadcn/ui pentru UI consistency.</p>
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-green-200">
+        <Card className="border-success/30">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-700">
+            <CardTitle className="flex items-center gap-2 text-success">
               <Cog className="h-5 w-5" />
               Service Layer
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-slate-600">
+          <CardContent className="text-muted-foreground">
             <p>Fiecare integrare externa are un serviciu dedicat cu functii pure.</p>
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-purple-200">
+        <Card className="border-accent-foreground/30">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-purple-700">
+            <CardTitle className="flex items-center gap-2 text-accent-foreground">
               <Code className="h-5 w-5" />
               API Routes
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-slate-600">
+          <CardContent className="text-muted-foreground">
             <p>Toate endpoint-urile urmeaza conventii REST cu validare si autorizare.</p>
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-orange-200">
+        <Card className="border-warning/30">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-700">
+            <CardTitle className="flex items-center gap-2 text-warning">
               <Timer className="h-5 w-5" />
               CRON Jobs
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-slate-600">
+          <CardContent className="text-muted-foreground">
             <p>Task-uri programate pentru sincronizare automata si cleanup.</p>
           </CardContent>
         </Card>
@@ -382,7 +374,7 @@ function OrdersContent() {
   return (
     <div className="space-y-8">
       <div className="prose max-w-none">
-        <p className="text-lg text-slate-600">
+        <p className="text-lg text-muted-foreground">
           Modulul de comenzi este inima sistemului ERP. Gestioneaza importul comenzilor
           din multiple surse, validarea, procesarea si urmarirea lor pana la livrare.
         </p>
@@ -391,25 +383,25 @@ function OrdersContent() {
       <SectionTitle icon={<GitMerge className="h-6 w-6" />}>Surse de Comenzi</SectionTitle>
 
       <div className="grid grid-cols-3 gap-4">
-        <Card className="border-2 border-green-200 bg-green-50">
+        <Card className="border-success/30 bg-success/5">
           <CardContent className="pt-6 text-center">
-            <Store className="h-8 w-8 text-green-600 mx-auto mb-2" />
-            <h3 className="font-semibold">Shopify</h3>
-            <p className="text-sm text-slate-600">Webhook + API sync</p>
+            <Store className="h-8 w-8 text-success mx-auto mb-2" />
+            <h3 className="font-semibold text-foreground">Shopify</h3>
+            <p className="text-sm text-muted-foreground">Webhook + API sync</p>
           </CardContent>
         </Card>
-        <Card className="border-2 border-orange-200 bg-orange-50">
+        <Card className="border-warning/30 bg-warning/5">
           <CardContent className="pt-6 text-center">
-            <Globe className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-            <h3 className="font-semibold">Trendyol</h3>
-            <p className="text-sm text-slate-600">CRON sync periodic</p>
+            <Globe className="h-8 w-8 text-warning mx-auto mb-2" />
+            <h3 className="font-semibold text-foreground">Trendyol</h3>
+            <p className="text-sm text-muted-foreground">CRON sync periodic</p>
           </CardContent>
         </Card>
-        <Card className="border-2 border-slate-200 bg-slate-50">
+        <Card className="border-muted-foreground/30 bg-muted/50">
           <CardContent className="pt-6 text-center">
-            <Plus className="h-8 w-8 text-slate-600 mx-auto mb-2" />
-            <h3 className="font-semibold">Manual</h3>
-            <p className="text-sm text-slate-600">Creare din ERP</p>
+            <Plus className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <h3 className="font-semibold text-foreground">Manual</h3>
+            <p className="text-sm text-muted-foreground">Creare din ERP</p>
           </CardContent>
         </Card>
       </div>
@@ -418,22 +410,22 @@ function OrdersContent() {
 
       <div className="space-y-2">
         {[
-          { status: "PENDING", color: "bg-slate-100 border-slate-300", desc: "Comanda noua, nevalidata" },
-          { status: "VALIDATED", color: "bg-blue-100 border-blue-300", desc: "Date validate, pregatita pentru procesare" },
-          { status: "VALIDATION_FAILED", color: "bg-red-100 border-red-300", desc: "Date invalide (telefon, adresa)" },
-          { status: "INVOICE_PENDING", color: "bg-yellow-100 border-yellow-300", desc: "In curs de facturare" },
-          { status: "INVOICED", color: "bg-purple-100 border-purple-300", desc: "Factura emisa cu succes" },
-          { status: "AWB_PENDING", color: "bg-yellow-100 border-yellow-300", desc: "In curs de generare AWB" },
-          { status: "PICKING", color: "bg-cyan-100 border-cyan-300", desc: "In picking, pregatire colet" },
-          { status: "PACKED", color: "bg-teal-100 border-teal-300", desc: "Colet pregatit" },
-          { status: "SHIPPED", color: "bg-orange-100 border-orange-300", desc: "Predat curier, in tranzit" },
-          { status: "DELIVERED", color: "bg-green-100 border-green-300", desc: "Livrat cu succes" },
-          { status: "RETURNED", color: "bg-red-100 border-red-300", desc: "Returnat" },
-          { status: "CANCELLED", color: "bg-slate-100 border-slate-300", desc: "Anulat" },
+          { status: "PENDING", color: "bg-muted border-border", desc: "Comanda noua, nevalidata" },
+          { status: "VALIDATED", color: "bg-primary/10 border-primary/30", desc: "Date validate, pregatita pentru procesare" },
+          { status: "VALIDATION_FAILED", color: "bg-destructive/10 border-destructive/30", desc: "Date invalide (telefon, adresa)" },
+          { status: "INVOICE_PENDING", color: "bg-warning/10 border-warning/30", desc: "In curs de facturare" },
+          { status: "INVOICED", color: "bg-accent border-accent-foreground/20", desc: "Factura emisa cu succes" },
+          { status: "AWB_PENDING", color: "bg-warning/10 border-warning/30", desc: "In curs de generare AWB" },
+          { status: "PICKING", color: "bg-primary/10 border-primary/30", desc: "In picking, pregatire colet" },
+          { status: "PACKED", color: "bg-success/10 border-success/30", desc: "Colet pregatit" },
+          { status: "SHIPPED", color: "bg-warning/10 border-warning/30", desc: "Predat curier, in tranzit" },
+          { status: "DELIVERED", color: "bg-success/10 border-success/30", desc: "Livrat cu succes" },
+          { status: "RETURNED", color: "bg-destructive/10 border-destructive/30", desc: "Returnat" },
+          { status: "CANCELLED", color: "bg-muted border-border", desc: "Anulat" },
         ].map((item, i) => (
           <div key={i} className={cn("flex items-center justify-between p-3 rounded-lg border", item.color)}>
             <Badge variant="outline">{item.status}</Badge>
-            <span className="text-sm text-slate-600">{item.desc}</span>
+            <span className="text-sm text-muted-foreground">{item.desc}</span>
           </div>
         ))}
       </div>
@@ -443,24 +435,24 @@ function OrdersContent() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-700">
+            <CardTitle className="flex items-center gap-2 text-success">
               <CheckCircle2 className="h-5 w-5" />
               Validari Aplicate
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              <li className="flex items-center gap-2 text-sm">
-                <Phone className="h-4 w-4 text-slate-500" />
-                <span><strong>Telefon:</strong> Format 07XXXXXXXX (10 cifre)</span>
+              <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Phone className="h-4 w-4" />
+                <span><strong className="text-foreground">Telefon:</strong> Format 07XXXXXXXX (10 cifre)</span>
               </li>
-              <li className="flex items-center gap-2 text-sm">
-                <MapPin className="h-4 w-4 text-slate-500" />
-                <span><strong>Adresa:</strong> Minimum strada si numarul</span>
+              <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                <span><strong className="text-foreground">Adresa:</strong> Minimum strada si numarul</span>
               </li>
-              <li className="flex items-center gap-2 text-sm">
-                <Building2 className="h-4 w-4 text-slate-500" />
-                <span><strong>Judet:</strong> Nomenclator FanCourier valid</span>
+              <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Building2 className="h-4 w-4" />
+                <span><strong className="text-foreground">Judet:</strong> Nomenclator FanCourier valid</span>
               </li>
             </ul>
           </CardContent>
@@ -468,20 +460,20 @@ function OrdersContent() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-700">
+            <CardTitle className="flex items-center gap-2 text-destructive">
               <XCircle className="h-5 w-5" />
               Erori Frecvente
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2 text-sm">
-              <li className="flex items-start gap-2">
-                <XCircle className="h-4 w-4 text-red-500 mt-0.5" />
-                <span><strong>Telefon invalid:</strong> Format gresit sau numar inexistent</span>
+              <li className="flex items-start gap-2 text-muted-foreground">
+                <XCircle className="h-4 w-4 text-destructive mt-0.5" />
+                <span><strong className="text-foreground">Telefon invalid:</strong> Format gresit sau numar inexistent</span>
               </li>
-              <li className="flex items-start gap-2">
-                <XCircle className="h-4 w-4 text-red-500 mt-0.5" />
-                <span><strong>Adresa incompleta:</strong> Lipseste strada sau numarul</span>
+              <li className="flex items-start gap-2 text-muted-foreground">
+                <XCircle className="h-4 w-4 text-destructive mt-0.5" />
+                <span><strong className="text-foreground">Adresa incompleta:</strong> Lipseste strada sau numarul</span>
               </li>
             </ul>
           </CardContent>
@@ -495,7 +487,7 @@ function ProductsContent() {
   return (
     <div className="space-y-8">
       <div className="prose max-w-none">
-        <p className="text-lg text-slate-600">
+        <p className="text-lg text-muted-foreground">
           Sistemul de produse si inventar gestioneaza catalogul complet de articole,
           stocul multi-locatie si produsele compuse (retete).
         </p>
@@ -515,7 +507,7 @@ function ProductsContent() {
             <CardTitle>MasterProduct</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="text-sm space-y-1 text-slate-600">
+            <ul className="text-sm space-y-1 text-muted-foreground">
               <li>SKU si Barcode unice</li>
               <li>Titlu si descriere</li>
               <li>Pret si stoc</li>
@@ -529,7 +521,7 @@ function ProductsContent() {
             <CardTitle>InventoryItem</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="text-sm space-y-1 text-slate-600">
+            <ul className="text-sm space-y-1 text-muted-foreground">
               <li>Suport pentru retete</li>
               <li>Istoric miscari stoc</li>
               <li>Alerte stoc scazut</li>
@@ -553,7 +545,7 @@ function InvoicesContent() {
   return (
     <div className="space-y-8">
       <div className="prose max-w-none">
-        <p className="text-lg text-slate-600">
+        <p className="text-lg text-muted-foreground">
           Sistemul de facturare este integrat complet cu SmartBill pentru emiterea
           automata a facturilor fiscale.
         </p>
@@ -561,7 +553,7 @@ function InvoicesContent() {
 
       <SectionTitle icon={<FileText className="h-6 w-6" />}>Procesul de Facturare</SectionTitle>
 
-      <div className="flex flex-wrap items-center gap-2 p-4 bg-slate-50 rounded-lg">
+      <div className="flex flex-wrap items-center gap-2 p-4 bg-muted rounded-lg">
         {[
           "Comanda Validata",
           "Generare Date Factura",
@@ -571,7 +563,7 @@ function InvoicesContent() {
         ].map((step, i, arr) => (
           <span key={i} className="flex items-center gap-2">
             <Badge variant="outline" className="px-3 py-1">{step}</Badge>
-            {i < arr.length - 1 && <ArrowRight className="h-4 w-4 text-slate-400" />}
+            {i < arr.length - 1 && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
           </span>
         ))}
       </div>
@@ -588,7 +580,7 @@ function ShippingContent() {
   return (
     <div className="space-y-8">
       <div className="prose max-w-none">
-        <p className="text-lg text-slate-600">
+        <p className="text-lg text-muted-foreground">
           Modulul de livrare gestioneaza generarea AWB-urilor prin FanCourier,
           tracking-ul expeditiilor si gestionarea rambursului.
         </p>
@@ -599,20 +591,20 @@ function ShippingContent() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-6">
-            <h3 className="font-semibold mb-2">Date Expeditor</h3>
-            <p className="text-sm text-slate-600">Configurate din setari, preluate automat</p>
+            <h3 className="font-semibold mb-2 text-foreground">Date Expeditor</h3>
+            <p className="text-sm text-muted-foreground">Configurate din setari, preluate automat</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <h3 className="font-semibold mb-2">Date Destinatar</h3>
-            <p className="text-sm text-slate-600">Preluate din comanda, validate anterior</p>
+            <h3 className="font-semibold mb-2 text-foreground">Date Destinatar</h3>
+            <p className="text-sm text-muted-foreground">Preluate din comanda, validate anterior</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <h3 className="font-semibold mb-2">Optiuni Livrare</h3>
-            <p className="text-sm text-slate-600">Ramburs, asigurare, deschidere colet</p>
+            <h3 className="font-semibold mb-2 text-foreground">Optiuni Livrare</h3>
+            <p className="text-sm text-muted-foreground">Ramburs, asigurare, deschidere colet</p>
           </CardContent>
         </Card>
       </div>
@@ -628,7 +620,7 @@ function PickingContent() {
   return (
     <div className="space-y-8">
       <div className="prose max-w-none">
-        <p className="text-lg text-slate-600">
+        <p className="text-lg text-muted-foreground">
           Sistemul de picking permite crearea listelor de pregatire si urmarirea
           procesului de coletare pana la predarea catre curier.
         </p>
@@ -636,7 +628,7 @@ function PickingContent() {
 
       <SectionTitle icon={<ClipboardList className="h-6 w-6" />}>Procesul de Picking</SectionTitle>
 
-      <div className="flex flex-wrap items-center gap-2 p-4 bg-slate-50 rounded-lg">
+      <div className="flex flex-wrap items-center gap-2 p-4 bg-muted rounded-lg">
         {[
           "Selectie Comenzi",
           "Generare Lista",
@@ -646,7 +638,7 @@ function PickingContent() {
         ].map((step, i, arr) => (
           <span key={i} className="flex items-center gap-2">
             <Badge variant="outline" className="px-3 py-1">{step}</Badge>
-            {i < arr.length - 1 && <ArrowRight className="h-4 w-4 text-slate-400" />}
+            {i < arr.length - 1 && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
           </span>
         ))}
       </div>
@@ -660,7 +652,7 @@ function PickingContent() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-muted-foreground">
               Fiecare produs este scanat pentru confirmare. Sistemul valideaza
               ca toate produsele din comanda sunt in colet.
             </p>
@@ -675,7 +667,7 @@ function PickingContent() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-muted-foreground">
               La predare se genereaza raport C0 cu toate AWB-urile predate
               si se actualizeaza statusul comenzilor.
             </p>
@@ -690,7 +682,7 @@ function AdvertisingContent() {
   return (
     <div className="space-y-8">
       <div className="prose max-w-none">
-        <p className="text-lg text-slate-600">
+        <p className="text-lg text-muted-foreground">
           Modulul de advertising integreaza Meta Ads si TikTok Ads pentru
           monitorizarea campaniilor si calcularea ROAS.
         </p>
@@ -699,12 +691,12 @@ function AdvertisingContent() {
       <SectionTitle icon={<Target className="h-6 w-6" />}>Platforme Integrate</SectionTitle>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="border-2 border-blue-200">
+        <Card className="border-primary/30">
           <CardHeader>
             <CardTitle>Meta Ads</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="text-sm space-y-1 text-slate-600">
+            <ul className="text-sm space-y-1 text-muted-foreground">
               <li>Sincronizare campanii si ad sets</li>
               <li>Metrici: spend, impressions, clicks</li>
               <li>Calcul ROAS per produs</li>
@@ -712,12 +704,12 @@ function AdvertisingContent() {
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-pink-200">
+        <Card className="border-destructive/30">
           <CardHeader>
             <CardTitle>TikTok Ads</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="text-sm space-y-1 text-slate-600">
+            <ul className="text-sm space-y-1 text-muted-foreground">
               <li>Sincronizare campanii</li>
               <li>Metrici similare cu Meta</li>
               <li>Alerte ROAS scazut</li>
@@ -740,7 +732,7 @@ function RBACContent() {
   return (
     <div className="space-y-8">
       <div className="prose max-w-none">
-        <p className="text-lg text-slate-600">
+        <p className="text-lg text-muted-foreground">
           Sistemul RBAC (Role-Based Access Control) ofera control granular asupra
           accesului utilizatorilor la diferite functionalitati.
         </p>
@@ -757,7 +749,7 @@ function RBACContent() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-muted-foreground">
               Conturi individuale cu email si parola. Pot avea multiple roluri.
             </p>
           </CardContent>
@@ -771,7 +763,7 @@ function RBACContent() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-muted-foreground">
               Grupuri de permisiuni (ex: Admin, Operator, Viewer).
             </p>
           </CardContent>
@@ -785,7 +777,7 @@ function RBACContent() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-muted-foreground">
               Actiuni specifice (ex: orders.view, orders.edit, orders.delete).
             </p>
           </CardContent>
@@ -811,7 +803,7 @@ function DatabaseContent() {
   return (
     <div className="space-y-8">
       <div className="prose max-w-none">
-        <p className="text-lg text-slate-600">
+        <p className="text-lg text-muted-foreground">
           Baza de date PostgreSQL contine peste 80 de tabele organizate
           pe categorii functionale.
         </p>
@@ -833,7 +825,7 @@ function DatabaseContent() {
               <CardTitle className="text-base">{cat.title}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-slate-600">{cat.tables}</p>
+              <p className="text-sm text-muted-foreground">{cat.tables}</p>
             </CardContent>
           </Card>
         ))}
@@ -846,7 +838,7 @@ function IntegrationsContent() {
   return (
     <div className="space-y-8">
       <div className="prose max-w-none">
-        <p className="text-lg text-slate-600">
+        <p className="text-lg text-muted-foreground">
           ERP-ul se integreaza cu multiple servicii externe pentru a automatiza
           procesele de business.
         </p>
@@ -856,19 +848,19 @@ function IntegrationsContent() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {[
-          { name: "Shopify", desc: "E-commerce platform - comenzi, produse, stoc", color: "border-green-200" },
-          { name: "Trendyol", desc: "Marketplace turcesc - comenzi, produse", color: "border-orange-200" },
-          { name: "SmartBill", desc: "Facturare electronica - emitere, storno", color: "border-blue-200" },
-          { name: "FanCourier", desc: "Curierat - AWB, tracking, ramburs", color: "border-purple-200" },
-          { name: "Meta Ads", desc: "Advertising - campanii, metrici, ROAS", color: "border-cyan-200" },
-          { name: "TikTok Ads", desc: "Advertising - campanii, metrici", color: "border-pink-200" },
-          { name: "Google Drive", desc: "Storage - backup documente", color: "border-yellow-200" },
-          { name: "NextAuth", desc: "Autentificare - OAuth, sessions", color: "border-slate-200" },
+          { name: "Shopify", desc: "E-commerce platform - comenzi, produse, stoc", color: "border-success/30" },
+          { name: "Trendyol", desc: "Marketplace turcesc - comenzi, produse", color: "border-warning/30" },
+          { name: "SmartBill", desc: "Facturare electronica - emitere, storno", color: "border-primary/30" },
+          { name: "FanCourier", desc: "Curierat - AWB, tracking, ramburs", color: "border-accent-foreground/30" },
+          { name: "Meta Ads", desc: "Advertising - campanii, metrici, ROAS", color: "border-primary/30" },
+          { name: "TikTok Ads", desc: "Advertising - campanii, metrici", color: "border-destructive/30" },
+          { name: "Google Drive", desc: "Storage - backup documente", color: "border-warning/30" },
+          { name: "NextAuth", desc: "Autentificare - OAuth, sessions", color: "border-border" },
         ].map((svc, i) => (
           <Card key={i} className={cn("border-2", svc.color)}>
             <CardContent className="pt-6">
-              <h3 className="font-semibold mb-1">{svc.name}</h3>
-              <p className="text-sm text-slate-600">{svc.desc}</p>
+              <h3 className="font-semibold mb-1 text-foreground">{svc.name}</h3>
+              <p className="text-sm text-muted-foreground">{svc.desc}</p>
             </CardContent>
           </Card>
         ))}
@@ -881,7 +873,7 @@ function APIReferenceContent() {
   return (
     <div className="space-y-8">
       <div className="prose max-w-none">
-        <p className="text-lg text-slate-600">
+        <p className="text-lg text-muted-foreground">
           API-ul REST expune peste 50 de endpoints pentru toate operatiunile CRUD
           si actiunile de business.
         </p>
@@ -898,12 +890,12 @@ function APIReferenceContent() {
           { method: "POST", path: "/api/awb/create", desc: "Genereaza AWB pentru comanda" },
           { method: "GET", path: "/api/inventory-items", desc: "Lista articole inventar" },
         ].map((ep, i) => (
-          <div key={i} className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg">
+          <div key={i} className="flex items-center gap-4 p-3 bg-muted rounded-lg">
             <Badge variant={ep.method === "GET" ? "secondary" : "default"} className="w-16 justify-center">
               {ep.method}
             </Badge>
-            <code className="text-sm font-mono">{ep.path}</code>
-            <span className="text-sm text-slate-600 ml-auto">{ep.desc}</span>
+            <code className="text-sm font-mono text-foreground">{ep.path}</code>
+            <span className="text-sm text-muted-foreground ml-auto">{ep.desc}</span>
           </div>
         ))}
       </div>
@@ -922,7 +914,7 @@ function ChangelogContent() {
   return (
     <div className="space-y-8">
       <div className="prose max-w-none">
-        <p className="text-lg text-slate-600">
+        <p className="text-lg text-muted-foreground">
           Istoricul modificarilor si imbunatatirilor aduse platformei.
         </p>
       </div>
@@ -970,8 +962,8 @@ function ChangelogContent() {
             <CardContent>
               <ul className="space-y-1">
                 {release.changes.map((change, j) => (
-                  <li key={j} className="flex items-center gap-2 text-sm text-slate-600">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <li key={j} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <CheckCircle2 className="h-4 w-4 text-success" />
                     {change}
                   </li>
                 ))}
@@ -1015,10 +1007,10 @@ export default function DocumentationPage() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)]">
-      <div className="w-64 border-r bg-slate-50/50 flex flex-col">
-        <div className="p-4 border-b">
+      <div className="w-64 border-r border-border bg-card flex flex-col">
+        <div className="p-4 border-b border-border">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Cauta..."
               value={search}
@@ -1038,8 +1030,8 @@ export default function DocumentationPage() {
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors",
                     activeModule === module.id
-                      ? "bg-blue-100 text-blue-700"
-                      : "hover:bg-slate-100 text-slate-700"
+                      ? "bg-primary/20 text-primary"
+                      : "hover:bg-muted text-foreground"
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -1049,19 +1041,19 @@ export default function DocumentationPage() {
             })}
           </div>
         </ScrollArea>
-        <div className="p-4 border-t text-xs text-slate-500">
+        <div className="p-4 border-t border-border text-xs text-muted-foreground">
           <div>v{DOC_VERSION}</div>
           <div>Actualizat: {LAST_UPDATED}</div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto bg-white">
-        <div className="sticky top-0 z-10 bg-white border-b px-8 py-4">
-          <div className="flex items-center gap-2 text-sm text-slate-500">
+      <div className="flex-1 overflow-auto bg-background">
+        <div className="sticky top-0 z-10 bg-background border-b border-border px-8 py-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Book className="h-4 w-4" />
             <span>Documentatie</span>
             <ChevronRight className="h-4 w-4" />
-            <span className="text-slate-900 font-medium">{currentModule?.name}</span>
+            <span className="text-foreground font-medium">{currentModule?.name}</span>
           </div>
         </div>
 
@@ -1069,8 +1061,8 @@ export default function DocumentationPage() {
           {renderContent(activeModule)}
         </div>
 
-        <div className="border-t bg-slate-50 px-8 py-6 mt-8">
-          <div className="max-w-4xl mx-auto text-center text-sm text-slate-500">
+        <div className="border-t border-border bg-muted px-8 py-6 mt-8">
+          <div className="max-w-4xl mx-auto text-center text-sm text-muted-foreground">
             <p>ERP CashFlowSync - Documentatie Tehnica v{DOC_VERSION}</p>
             <p className="mt-1">Ultima actualizare: {LAST_UPDATED}</p>
           </div>
