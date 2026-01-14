@@ -48,6 +48,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -163,6 +176,7 @@ export default function ProductsPage() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importMode, setImportMode] = useState<"upsert" | "create" | "update">("upsert");
   const [isExporting, setIsExporting] = useState(false);
+  const [inventoryComboboxOpen, setInventoryComboboxOpen] = useState(false);
 
   // Form state pentru produs nou
   const [newProduct, setNewProduct] = useState({
@@ -394,6 +408,7 @@ export default function ProductsPage() {
       inventoryItemId: "",
     });
     setSkuSearch("");
+    setInventoryComboboxOpen(false);
   };
 
   const handleCreateProduct = () => {
@@ -885,50 +900,65 @@ export default function ProductsPage() {
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
               <div className="grid gap-2">
                 <Label>Articol din Inventar *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Caută SKU sau nume..."
-                    value={skuSearch}
-                    onChange={(e) => setSkuSearch(e.target.value)}
-                    className="flex-1"
-                  />
-                </div>
-                <Select
-                  value={newProduct.inventoryItemId}
-                  onValueChange={(id) => {
-                    const inventoryItem = inventoryItems.find(item => item.id === id);
-                    if (inventoryItem) {
-                      setNewProduct({
-                        ...newProduct,
-                        inventoryItemId: inventoryItem.id,
-                        sku: inventoryItem.sku,
-                        title: inventoryItem.name,
-                        description: inventoryItem.description || "",
-                        price: inventoryItem.costPrice ? String(inventoryItem.costPrice) : "",
-                        stock: Number(inventoryItem.currentStock),
-                      });
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selectează articolul din inventar" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
-                    {availableInventoryItems.length === 0 ? (
-                      <div className="p-4 text-center text-muted-foreground text-sm">
-                        {skuSearch ? "Niciun articol găsit" : "Nu există articole disponibile în inventar"}
-                      </div>
-                    ) : (
-                      availableInventoryItems.map((inv) => (
-                        <SelectItem key={inv.id} value={inv.id}>
-                          <span className="font-mono text-xs bg-muted px-1 rounded mr-2">{inv.sku}</span>
-                          {inv.name}
-                          <span className="text-muted-foreground ml-2">({Number(inv.currentStock)} {inv.unit})</span>
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                <Popover open={inventoryComboboxOpen} onOpenChange={setInventoryComboboxOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={inventoryComboboxOpen}
+                      className="w-full justify-between font-normal"
+                    >
+                      {newProduct.inventoryItemId ? (
+                        <span className="flex items-center gap-2 truncate">
+                          <span className="font-mono text-xs bg-muted px-1 rounded">{newProduct.sku}</span>
+                          {newProduct.title}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">Selectează articolul din inventar</span>
+                      )}
+                      <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[462px] p-0" align="start">
+                    <Command shouldFilter={false}>
+                      <CommandInput
+                        placeholder="Caută SKU sau nume..."
+                        value={skuSearch}
+                        onValueChange={setSkuSearch}
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          {skuSearch ? "Niciun articol găsit" : "Nu există articole disponibile în inventar"}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {availableInventoryItems.map((inv) => (
+                            <CommandItem
+                              key={inv.id}
+                              value={inv.id}
+                              onSelect={() => {
+                                setNewProduct({
+                                  ...newProduct,
+                                  inventoryItemId: inv.id,
+                                  sku: inv.sku,
+                                  title: inv.name,
+                                  description: inv.description || "",
+                                  price: inv.costPrice ? String(inv.costPrice) : "",
+                                  stock: Number(inv.currentStock),
+                                });
+                                setInventoryComboboxOpen(false);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <span className="font-mono text-xs bg-muted px-1 rounded mr-2">{inv.sku}</span>
+                              <span className="truncate flex-1">{inv.name}</span>
+                              <span className="text-muted-foreground ml-2 text-xs">({Number(inv.currentStock)} {inv.unit})</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <p className="text-xs text-muted-foreground">
                   Selectează un articol din inventarul local pentru a crea produsul.
                 </p>
