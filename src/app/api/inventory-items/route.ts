@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     const isActive = searchParams.get("isActive");
     const supplierId = searchParams.get("supplierId");
     const lowStock = searchParams.get("lowStock") === "true";
+    const excludeMapped = searchParams.get("excludeMapped") === "true";
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
 
@@ -59,6 +60,11 @@ export async function GET(request: NextRequest) {
         { isComposite: false }, // Doar articolele individuale au stoc
         { minStock: { not: null } },
       ];
+    }
+
+    // Exclude articolele deja mapate la produse
+    if (excludeMapped) {
+      where.mappedProducts = { none: {} };
     }
 
     const skip = (page - 1) * limit;

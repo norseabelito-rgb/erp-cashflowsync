@@ -226,13 +226,14 @@ export default function ProductsPage() {
     },
   });
 
-  // Fetch inventory items (pentru dropdown SKU)
+  // Fetch inventory items (pentru dropdown SKU) - doar cele nemapate la produse
   const { data: inventoryData } = useQuery({
     queryKey: ["inventory-items", skuSearch],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (skuSearch) params.set("search", skuSearch);
       params.set("isActive", "true");
+      params.set("excludeMapped", "true");
       const res = await fetch(`/api/inventory-items?${params}`);
       return res.json();
     },
@@ -514,7 +515,7 @@ export default function ProductsPage() {
   const inventoryItems: InventoryItem[] = inventoryData?.data?.items || [];
   const pagination = productsData?.pagination;
 
-  // Filtrează articolele care nu sunt deja mapate la un produs
+  // Articolele sunt filtrate server-side (excludeMapped=true)
   const availableInventoryItems = inventoryItems;
 
   return (
