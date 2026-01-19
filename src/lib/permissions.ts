@@ -82,6 +82,19 @@ export const PERMISSIONS: PermissionDefinition[] = [
   { code: "inventory.adjust", name: "Ajustare stoc", description: "Poate face ajustări manuale de stoc", category: "inventory", sortOrder: 601 },
   { code: "inventory.sync", name: "Sincronizare stoc", description: "Poate sincroniza stocul cu SmartBill", category: "inventory", sortOrder: 602 },
 
+  // ==================== DEPOZITE ====================
+  { code: "warehouses.view", name: "Vizualizare depozite", description: "Poate vedea lista depozitelor și stocurile per depozit", category: "warehouses", sortOrder: 620 },
+  { code: "warehouses.create", name: "Creare depozite", description: "Poate crea depozite noi", category: "warehouses", sortOrder: 621 },
+  { code: "warehouses.edit", name: "Editare depozite", description: "Poate modifica depozitele existente", category: "warehouses", sortOrder: 622 },
+  { code: "warehouses.delete", name: "Ștergere depozite", description: "Poate șterge depozite goale", category: "warehouses", sortOrder: 623 },
+  { code: "warehouses.set_primary", name: "Setare depozit principal", description: "Poate seta depozitul principal pentru comenzi", category: "warehouses", sortOrder: 624 },
+
+  // ==================== TRANSFERURI ====================
+  { code: "transfers.view", name: "Vizualizare transferuri", description: "Poate vedea transferurile între depozite", category: "transfers", sortOrder: 630 },
+  { code: "transfers.create", name: "Creare transferuri", description: "Poate crea transferuri noi între depozite", category: "transfers", sortOrder: 631 },
+  { code: "transfers.execute", name: "Execuție transferuri", description: "Poate executa/finaliza transferurile", category: "transfers", sortOrder: 632 },
+  { code: "transfers.cancel", name: "Anulare transferuri", description: "Poate anula transferuri", category: "transfers", sortOrder: 633 },
+
   // ==================== MARKETPLACE ====================
   { code: "marketplace.view", name: "Vizualizare marketplace", description: "Poate vedea integrările marketplace", category: "marketplace", sortOrder: 700 },
   { code: "marketplace.manage", name: "Gestiune marketplace", description: "Poate configura și sincroniza marketplace-uri", category: "marketplace", sortOrder: 701 },
@@ -135,6 +148,8 @@ export const PERMISSION_CATEGORIES = [
   { code: "handover", name: "Predare Curier", icon: "PackageCheck" },
   { code: "processing", name: "Procesare", icon: "RefreshCw" },
   { code: "inventory", name: "Inventar", icon: "Warehouse" },
+  { code: "warehouses", name: "Depozite", icon: "Building2" },
+  { code: "transfers", name: "Transferuri", icon: "ArrowLeftRight" },
   { code: "marketplace", name: "Marketplace", icon: "Globe" },
   { code: "ads", name: "Advertising", icon: "Megaphone" },
   { code: "reports", name: "Rapoarte", icon: "BarChart" },
@@ -168,6 +183,8 @@ export const DEFAULT_ROLES = [
       "picking.view", "picking.create", "picking.process", "picking.complete", "picking.print",
       "handover.view", "handover.scan", "handover.finalize", "handover.report",
       "inventory.view", "inventory.sync",
+      "warehouses.view", "warehouses.edit",
+      "transfers.view", "transfers.create", "transfers.execute",
       "ads.view", "ads.manage",
       "reports.view", "reports.export",
       "logs.sync", "logs.activity",
@@ -224,6 +241,8 @@ export const DEFAULT_ROLES = [
       "picking.view",
       "handover.view",
       "inventory.view",
+      "warehouses.view",
+      "transfers.view",
       "reports.view",
     ],
   },
@@ -410,6 +429,80 @@ export async function getUserStores(userId: string): Promise<string[]> {
   }
 
   return storeAccess.map(sa => sa.storeId);
+}
+
+/**
+ * Verifică dacă un utilizator are acces la un depozit specific
+ */
+export async function hasWarehouseAccess(userId: string, warehouseId: string): Promise<boolean> {
+  // Verifică dacă e SuperAdmin
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isSuperAdmin: true, isActive: true },
+  });
+
+  if (!user || !user.isActive) return false;
+  if (user.isSuperAdmin) return true;
+
+  // Verifică dacă are acces explicit la depozit
+  const warehouseAccess = await prisma.userWarehouseAccess.findFirst({
+    where: { userId, warehouseId },
+  });
+
+  // Dacă nu există nicio restricție de depozit pentru user, are acces la toate
+  const hasAnyWarehouseRestriction = await prisma.userWarehouseAccess.findFirst({
+    where: { userId },
+  });
+
+  if (!hasAnyWarehouseRestriction) return true;
+
+  return !!warehouseAccess;
+}
+
+/**
+ * Obține depozitele la care are acces un utilizator
+ */
+export async function getUserWarehouses(userId: string): Promise<string[]> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isSuperAdmin: true },
+  });
+
+  // SuperAdmin are acces la toate
+  if (user?.isSuperAdmin) {
+    const allWarehouses = await prisma.warehouse.findMany({
+      where: { isActive: true },
+      select: { id: true }
+    });
+    return allWarehouses.map(w => w.id);
+  }
+
+  // Verifică dacă are restricții de depozit
+  const warehouseAccess = await prisma.userWarehouseAccess.findMany({
+    where: { userId },
+    select: { warehouseId: true },
+  });
+
+  // Dacă nu are nicio restricție, are acces la toate
+  if (warehouseAccess.length === 0) {
+    const allWarehouses = await prisma.warehouse.findMany({
+      where: { isActive: true },
+      select: { id: true }
+    });
+    return allWarehouses.map(w => w.id);
+  }
+
+  return warehouseAccess.map(wa => wa.warehouseId);
+}
+
+/**
+ * Obține depozitul principal (pentru comenzi)
+ */
+export async function getPrimaryWarehouse(): Promise<{ id: string; code: string; name: string } | null> {
+  return prisma.warehouse.findFirst({
+    where: { isPrimary: true, isActive: true },
+    select: { id: true, code: true, name: true },
+  });
 }
 
 /**

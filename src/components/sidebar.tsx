@@ -46,6 +46,7 @@ import {
   Wrench,
   ArrowDownUp,
   Link2,
+  ArrowLeftRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -106,9 +107,10 @@ const navigation: NavItem[] = [
   {
     name: "Inventar",
     icon: Warehouse,
-    permissions: ["inventory.view"],
+    permissions: ["inventory.view", "transfers.view"],
     children: [
       { name: "Articole", href: "/inventory", icon: Package, permissions: ["inventory.view"] },
+      { name: "Transferuri", href: "/inventory/transfers", icon: ArrowLeftRight, permissions: ["transfers.view"] },
       { name: "Rețetar", href: "/inventory/recipes", icon: ChefHat, permissions: ["inventory.view"] },
       { name: "Furnizori", href: "/inventory/suppliers", icon: Building2, permissions: ["inventory.view"] },
       { name: "Recepții", href: "/inventory/receipts", icon: ClipboardList, permissions: ["inventory.view"] },
@@ -174,9 +176,10 @@ const navigation: NavItem[] = [
   {
     name: "Setări",
     icon: Settings,
-    permissions: ["settings.view", "invoices.series", "printers.view", "users.view", "admin.roles", "admin.groups", "admin.audit"],
+    permissions: ["settings.view", "invoices.series", "printers.view", "users.view", "admin.roles", "admin.groups", "admin.audit", "warehouses.view"],
     children: [
       { name: "General", href: "/settings", icon: Settings, permissions: ["settings.view"] },
+      { name: "Depozite", href: "/settings/warehouses", icon: Building2, permissions: ["warehouses.view"] },
       { name: "Serii Facturare", href: "/settings/invoice-series", icon: FileText, permissions: ["invoices.series"] },
       { name: "Imprimante", href: "/settings/printers", icon: Printer, permissions: ["printers.view"] },
       { name: "Utilizatori", href: "/settings/users", icon: Users, permissions: ["users.view"] },

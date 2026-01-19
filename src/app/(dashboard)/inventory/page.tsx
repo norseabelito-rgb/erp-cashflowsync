@@ -23,6 +23,7 @@ import {
   XCircle,
   ChevronLeft,
   ChevronRight,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -123,6 +124,14 @@ interface ImportResult {
   errors: Array<{ row: number; sku: string; error: string }>;
 }
 
+interface Warehouse {
+  id: string;
+  code: string;
+  name: string;
+  isPrimary: boolean;
+  isActive: boolean;
+}
+
 export default function InventoryPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -131,6 +140,7 @@ export default function InventoryPage() {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStock, setFilterStock] = useState<string>("all");
+  const [filterWarehouse, setFilterWarehouse] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState<number>(50);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -144,15 +154,31 @@ export default function InventoryPage() {
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 
+  // Fetch warehouses
+  const { data: warehousesData } = useQuery({
+    queryKey: ["warehouses"],
+    queryFn: async () => {
+      const res = await fetch("/api/warehouses");
+      if (!res.ok) throw new Error("Eroare la incarcarea depozitelor");
+      return res.json();
+    },
+  });
+
+  const warehouses: Warehouse[] = warehousesData?.warehouses || [];
+
   // Fetch inventory items
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["inventory-items", search, filterType, filterStock, page, limit],
+    queryKey: ["inventory-items", search, filterType, filterStock, filterWarehouse, page, limit],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
       if (filterType !== "all") params.set("isComposite", filterType === "composite" ? "true" : "false");
       if (filterStock === "low") params.set("lowStock", "true");
       if (filterStock === "active") params.set("isActive", "true");
+      if (filterWarehouse !== "all") {
+        params.set("warehouseId", filterWarehouse);
+        params.set("includeWarehouseStock", "true");
+      }
       params.set("page", page.toString());
       params.set("limit", limit.toString());
 
@@ -459,6 +485,22 @@ export default function InventoryPage() {
             <SelectItem value="active">Doar active</SelectItem>
           </SelectContent>
         </Select>
+        {warehouses.length > 0 && (
+          <Select value={filterWarehouse} onValueChange={(v) => { setFilterWarehouse(v); setPage(1); }}>
+            <SelectTrigger className="w-[200px]">
+              <Building2 className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Depozit" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toate depozitele</SelectItem>
+              {warehouses.map((wh) => (
+                <SelectItem key={wh.id} value={wh.id}>
+                  {wh.name} {wh.isPrimary && "(Principal)"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         {selectedItems.size > 0 && (
           <Button
             variant="destructive"

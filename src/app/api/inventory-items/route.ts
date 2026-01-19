@@ -26,6 +26,8 @@ export async function GET(request: NextRequest) {
     const supplierId = searchParams.get("supplierId");
     const lowStock = searchParams.get("lowStock") === "true";
     const excludeMapped = searchParams.get("excludeMapped") === "true";
+    const warehouseId = searchParams.get("warehouseId"); // Filtru per depozit
+    const includeWarehouseStock = searchParams.get("includeWarehouseStock") === "true";
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
 
@@ -67,6 +69,15 @@ export async function GET(request: NextRequest) {
       where.mappedProducts = { none: {} };
     }
 
+    // Filtrare după depozit specific (doar articole cu stoc în acel depozit)
+    if (warehouseId) {
+      where.warehouseStocks = {
+        some: {
+          warehouseId: warehouseId,
+        },
+      };
+    }
+
     const skip = (page - 1) * limit;
 
     const [items, total] = await Promise.all([
@@ -99,6 +110,25 @@ export async function GET(request: NextRequest) {
               stockMovements: true,
             },
           },
+          // Include stocuri per depozit dacă cerut
+          ...(includeWarehouseStock && {
+            warehouseStocks: {
+              include: {
+                warehouse: {
+                  select: {
+                    id: true,
+                    code: true,
+                    name: true,
+                  },
+                },
+              },
+              orderBy: {
+                warehouse: {
+                  sortOrder: "asc" as const,
+                },
+              },
+            },
+          }),
         },
         orderBy: [
           { name: "asc" },

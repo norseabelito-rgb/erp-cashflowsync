@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
-import { hasPermission } from "@/lib/permissions";
+import { hasPermission, hasWarehouseAccess } from "@/lib/permissions";
+import { syncItemTotalStock } from "@/lib/inventory-stock";
 
 export const dynamic = 'force-dynamic';
 
-// POST - Ajustare stoc pentru un articol
+// POST - Ajustare stoc pentru un articol într-un depozit specific
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -20,13 +21,13 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { itemId, type, quantity, reason, notes } = body;
+    const { itemId, warehouseId, type, quantity, reason, notes } = body;
 
     // Validare câmpuri obligatorii
-    if (!itemId || !type || quantity === undefined) {
+    if (!itemId || !warehouseId || !type || quantity === undefined) {
       return NextResponse.json({
         success: false,
-        error: "ID articol, tip și cantitate sunt obligatorii",
+        error: "ID articol, ID depozit, tip și cantitate sunt obligatorii",
       }, { status: 400 });
     }
 
@@ -35,6 +36,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         error: "Tipul ajustării trebuie să fie ADJUSTMENT_PLUS sau ADJUSTMENT_MINUS",
+      }, { status: 400 });
+    }
+
+    // Verifică accesul la depozit
+    const canAccessWarehouse = await hasWarehouseAccess(session.user.id, warehouseId);
+    if (!canAccessWarehouse) {
+      return NextResponse.json({
+        success: false,
+        error: "Nu ai acces la acest depozit",
+      }, { status: 403 });
+    }
+
+    // Verifică dacă depozitul există și este activ
+    const warehouse = await prisma.warehouse.findUnique({
+      where: { id: warehouseId },
+    });
+
+    if (!warehouse) {
+      return NextResponse.json({
+        success: false,
+        error: "Depozitul nu a fost găsit",
+      }, { status: 404 });
+    }
+
+    if (!warehouse.isActive) {
+      return NextResponse.json({
+        success: false,
+        error: "Nu poți ajusta stocul într-un depozit inactiv",
       }, { status: 400 });
     }
 
@@ -58,7 +87,17 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const previousStock = Number(item.currentStock);
+    // Obține stocul curent din depozit
+    const warehouseStock = await prisma.warehouseStock.findUnique({
+      where: {
+        warehouseId_itemId: {
+          warehouseId,
+          itemId,
+        },
+      },
+    });
+
+    const previousStock = Number(warehouseStock?.currentStock || 0);
     const adjustmentQty = type === "ADJUSTMENT_PLUS" ? Math.abs(quantity) : -Math.abs(quantity);
     const newStock = previousStock + adjustmentQty;
 
@@ -66,19 +105,35 @@ export async function POST(request: NextRequest) {
     if (newStock < 0) {
       return NextResponse.json({
         success: false,
-        error: `Stocul nu poate fi negativ. Stoc curent: ${previousStock}, ajustare: ${adjustmentQty}`,
+        error: `Stocul nu poate fi negativ. Stoc curent în depozit: ${previousStock}, ajustare: ${adjustmentQty}`,
       }, { status: 400 });
     }
 
-    // Actualizează stocul și creează mișcarea
-    const [updatedItem, movement] = await prisma.$transaction([
-      prisma.inventoryItem.update({
-        where: { id: itemId },
-        data: { currentStock: newStock },
-      }),
-      prisma.inventoryStockMovement.create({
+    // Actualizează stocul în depozit și creează mișcarea
+    const result = await prisma.$transaction(async (tx) => {
+      // Actualizează sau creează stocul în depozit
+      const updatedWarehouseStock = await tx.warehouseStock.upsert({
+        where: {
+          warehouseId_itemId: {
+            warehouseId,
+            itemId,
+          },
+        },
+        create: {
+          warehouseId,
+          itemId,
+          currentStock: newStock,
+        },
+        update: {
+          currentStock: newStock,
+        },
+      });
+
+      // Creează mișcarea de stoc
+      const movement = await tx.inventoryStockMovement.create({
         data: {
           itemId,
+          warehouseId,
           type,
           quantity: adjustmentQty,
           previousStock,
@@ -88,16 +143,28 @@ export async function POST(request: NextRequest) {
           userId: session.user.id,
           userName: session.user.name || session.user.email,
         },
-      }),
-    ]);
+      });
+
+      return { warehouseStock: updatedWarehouseStock, movement };
+    });
+
+    // Sincronizează stocul total în InventoryItem
+    const totalStock = await syncItemTotalStock(itemId);
+
+    // Reîncarcă articolul cu stocul actualizat
+    const updatedItem = await prisma.inventoryItem.findUnique({
+      where: { id: itemId },
+    });
 
     return NextResponse.json({
       success: true,
       data: {
         item: updatedItem,
-        movement,
+        warehouseStock: result.warehouseStock,
+        movement: result.movement,
+        totalStock,
       },
-      message: `Stocul a fost ${type === "ADJUSTMENT_PLUS" ? "crescut" : "scăzut"} cu ${Math.abs(quantity)} unități`,
+      message: `Stocul în ${warehouse.name} a fost ${type === "ADJUSTMENT_PLUS" ? "crescut" : "scăzut"} cu ${Math.abs(quantity)} unități`,
     });
   } catch (error: any) {
     console.error("Error adjusting stock:", error);
@@ -123,6 +190,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const itemId = searchParams.get("itemId");
+    const warehouseId = searchParams.get("warehouseId");
     const type = searchParams.get("type");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
@@ -133,6 +201,10 @@ export async function GET(request: NextRequest) {
 
     if (itemId) {
       where.itemId = itemId;
+    }
+
+    if (warehouseId) {
+      where.warehouseId = warehouseId;
     }
 
     if (type) {
@@ -161,6 +233,13 @@ export async function GET(request: NextRequest) {
               sku: true,
               name: true,
               unit: true,
+            },
+          },
+          warehouse: {
+            select: {
+              id: true,
+              code: true,
+              name: true,
             },
           },
         },
