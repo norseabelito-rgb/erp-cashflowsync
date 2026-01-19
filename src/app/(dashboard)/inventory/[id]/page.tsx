@@ -168,6 +168,7 @@ export default function InventoryItemPage() {
   const adjustMutation = useMutation({
     mutationFn: async (data: {
       itemId: string;
+      warehouseId: string;
       type: string;
       quantity: number;
       reason: string;

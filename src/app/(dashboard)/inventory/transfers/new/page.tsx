@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
   Loader2,
-  Plus,
-  Trash2,
-  Search,
   Package,
   AlertCircle,
+  Search,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,19 +33,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 
 interface Warehouse {
@@ -56,20 +45,24 @@ interface Warehouse {
   isActive: boolean;
 }
 
-interface InventoryItem {
-  id: string;
+interface WarehouseStockItem {
+  itemId: string;
+  currentStock: number;
+  item: {
+    id: string;
+    sku: string;
+    name: string;
+    unit: string;
+  };
+}
+
+interface SelectedItem {
+  itemId: string;
   sku: string;
   name: string;
   unit: string;
-  currentStock: number;
-}
-
-interface TransferItem {
-  itemId: string;
-  item: InventoryItem;
   quantity: number;
   availableStock: number;
-  notes?: string;
 }
 
 export default function NewTransferPage() {
@@ -77,9 +70,8 @@ export default function NewTransferPage() {
   const [fromWarehouseId, setFromWarehouseId] = useState("");
   const [toWarehouseId, setToWarehouseId] = useState("");
   const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<TransferItem[]>([]);
-  const [itemSearchOpen, setItemSearchOpen] = useState(false);
-  const [itemSearch, setItemSearch] = useState("");
+  const [selectedItems, setSelectedItems] = useState<Map<string, SelectedItem>>(new Map());
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch warehouses
   const { data: warehousesData, isLoading: loadingWarehouses } = useQuery({
@@ -91,25 +83,8 @@ export default function NewTransferPage() {
     },
   });
 
-  // Fetch inventory items for selection
-  const { data: itemsData, isLoading: loadingItems } = useQuery({
-    queryKey: ["inventory-items-for-transfer", itemSearch],
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        limit: "50",
-        isComposite: "false",
-      });
-      if (itemSearch) params.append("search", itemSearch);
-
-      const res = await fetch(`/api/inventory-items?${params}`);
-      if (!res.ok) throw new Error("Eroare la incarcarea articolelor");
-      return res.json();
-    },
-    enabled: itemSearchOpen,
-  });
-
   // Fetch stock for source warehouse
-  const { data: warehouseStockData } = useQuery({
+  const { data: warehouseStockData, isLoading: loadingStock } = useQuery({
     queryKey: ["warehouse-stock", fromWarehouseId],
     queryFn: async () => {
       if (!fromWarehouseId) return null;
@@ -126,7 +101,7 @@ export default function NewTransferPage() {
       fromWarehouseId: string;
       toWarehouseId: string;
       notes: string;
-      items: { itemId: string; quantity: number; notes?: string }[];
+      items: { itemId: string; quantity: number }[];
     }) => {
       const res = await fetch("/api/transfers", {
         method: "POST",
@@ -149,46 +124,74 @@ export default function NewTransferPage() {
   });
 
   const warehouses: Warehouse[] = warehousesData?.warehouses?.filter((w: Warehouse) => w.isActive) || [];
-  const availableItems: InventoryItem[] = itemsData?.data?.items || [];
 
-  // Get stock map for source warehouse
-  const stockMap = new Map<string, number>();
-  if (warehouseStockData?.stock) {
-    warehouseStockData.stock.forEach((s: any) => {
-      stockMap.set(s.itemId, Number(s.currentStock));
-    });
-  }
+  // Stock items from source warehouse with positive stock
+  const stockItems: WarehouseStockItem[] = useMemo(() => {
+    if (!warehouseStockData?.stock) return [];
+    return warehouseStockData.stock.filter((s: WarehouseStockItem) => Number(s.currentStock) > 0);
+  }, [warehouseStockData]);
 
-  const addItem = (item: InventoryItem) => {
-    if (items.find((i) => i.itemId === item.id)) {
-      toast({ title: "Articolul este deja adaugat", variant: "destructive" });
-      return;
-    }
+  // Filter items by search
+  const filteredStockItems = useMemo(() => {
+    if (!searchQuery.trim()) return stockItems;
+    const query = searchQuery.toLowerCase();
+    return stockItems.filter(
+      (s) =>
+        s.item.sku.toLowerCase().includes(query) ||
+        s.item.name.toLowerCase().includes(query)
+    );
+  }, [stockItems, searchQuery]);
 
-    const availableStock = stockMap.get(item.id) || 0;
-    setItems([
-      ...items,
-      {
-        itemId: item.id,
-        item,
+  // Reset selections when source warehouse changes
+  useEffect(() => {
+    setSelectedItems(new Map());
+  }, [fromWarehouseId]);
+
+  const toggleItemSelection = (stockItem: WarehouseStockItem) => {
+    const newSelected = new Map(selectedItems);
+    const itemId = stockItem.itemId;
+
+    if (newSelected.has(itemId)) {
+      newSelected.delete(itemId);
+    } else {
+      newSelected.set(itemId, {
+        itemId,
+        sku: stockItem.item.sku,
+        name: stockItem.item.name,
+        unit: stockItem.item.unit,
         quantity: 1,
-        availableStock,
-      },
-    ]);
-    setItemSearchOpen(false);
-    setItemSearch("");
+        availableStock: Number(stockItem.currentStock),
+      });
+    }
+    setSelectedItems(newSelected);
   };
 
   const updateItemQuantity = (itemId: string, quantity: number) => {
-    setItems(
-      items.map((i) =>
-        i.itemId === itemId ? { ...i, quantity: Math.max(0, quantity) } : i
-      )
-    );
+    const newSelected = new Map(selectedItems);
+    const item = newSelected.get(itemId);
+    if (item) {
+      newSelected.set(itemId, { ...item, quantity: Math.max(0, quantity) });
+      setSelectedItems(newSelected);
+    }
   };
 
-  const removeItem = (itemId: string) => {
-    setItems(items.filter((i) => i.itemId !== itemId));
+  const selectAll = () => {
+    const newSelected = new Map<string, SelectedItem>();
+    filteredStockItems.forEach((stockItem) => {
+      newSelected.set(stockItem.itemId, {
+        itemId: stockItem.itemId,
+        sku: stockItem.item.sku,
+        name: stockItem.item.name,
+        unit: stockItem.item.unit,
+        quantity: 1,
+        availableStock: Number(stockItem.currentStock),
+      });
+    });
+    setSelectedItems(newSelected);
+  };
+
+  const deselectAll = () => {
+    setSelectedItems(new Map());
   };
 
   const handleCreate = () => {
@@ -207,13 +210,14 @@ export default function NewTransferPage() {
       });
       return;
     }
-    if (items.length === 0) {
-      toast({ title: "Adauga cel putin un articol", variant: "destructive" });
+    if (selectedItems.size === 0) {
+      toast({ title: "Selecteaza cel putin un articol", variant: "destructive" });
       return;
     }
 
     // Check quantities
-    const invalidItems = items.filter((i) => i.quantity <= 0);
+    const itemsArray = Array.from(selectedItems.values());
+    const invalidItems = itemsArray.filter((i) => i.quantity <= 0);
     if (invalidItems.length > 0) {
       toast({
         title: "Toate cantitatile trebuie sa fie mai mari ca 0",
@@ -223,10 +227,10 @@ export default function NewTransferPage() {
     }
 
     // Check available stock
-    const insufficientStock = items.filter((i) => i.quantity > i.availableStock);
+    const insufficientStock = itemsArray.filter((i) => i.quantity > i.availableStock);
     if (insufficientStock.length > 0) {
       toast({
-        title: `Stoc insuficient pentru: ${insufficientStock.map((i) => i.item.sku).join(", ")}`,
+        title: `Stoc insuficient pentru: ${insufficientStock.map((i) => i.sku).join(", ")}`,
         variant: "destructive",
       });
       return;
@@ -236,12 +240,17 @@ export default function NewTransferPage() {
       fromWarehouseId,
       toWarehouseId,
       notes,
-      items: items.map((i) => ({
+      items: itemsArray.map((i) => ({
         itemId: i.itemId,
         quantity: i.quantity,
       })),
     });
   };
+
+  const selectedItemsArray = Array.from(selectedItems.values());
+  const hasInsufficientStock = selectedItemsArray.some((i) => i.quantity > i.availableStock);
+  const allFilteredSelected = filteredStockItems.length > 0 &&
+    filteredStockItems.every((s) => selectedItems.has(s.itemId));
 
   if (loadingWarehouses) {
     return (
@@ -294,11 +303,7 @@ export default function NewTransferPage() {
                     <Label>Din depozitul</Label>
                     <Select
                       value={fromWarehouseId}
-                      onValueChange={(value) => {
-                        setFromWarehouseId(value);
-                        // Reset items when source changes
-                        setItems([]);
-                      }}
+                      onValueChange={setFromWarehouseId}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecteaza sursa" />
@@ -341,161 +346,142 @@ export default function NewTransferPage() {
               </CardContent>
             </Card>
 
-            {/* Items */}
+            {/* Items Selection with Checkboxes */}
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">Articole de Transferat</CardTitle>
-                <Popover open={itemSearchOpen} onOpenChange={setItemSearchOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={!fromWarehouseId}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Adauga Articol
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[400px] p-0" align="end">
-                    <Command shouldFilter={false}>
-                      <CommandInput
-                        placeholder="Cauta dupa SKU sau nume..."
-                        value={itemSearch}
-                        onValueChange={setItemSearch}
-                      />
-                      <CommandList>
-                        {loadingItems ? (
-                          <div className="p-4 text-center">
-                            <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                          </div>
-                        ) : availableItems.length === 0 ? (
-                          <CommandEmpty>Niciun articol gasit</CommandEmpty>
-                        ) : (
-                          <CommandGroup>
-                            {availableItems.map((item) => {
-                              const stock = stockMap.get(item.id) || 0;
-                              const alreadyAdded = items.some(
-                                (i) => i.itemId === item.id
-                              );
-                              return (
-                                <CommandItem
-                                  key={item.id}
-                                  value={item.id}
-                                  onSelect={() => addItem(item)}
-                                  disabled={alreadyAdded || stock <= 0}
-                                  className="flex items-center justify-between"
-                                >
-                                  <div>
-                                    <p className="font-medium">{item.sku}</p>
-                                    <p className="text-sm text-muted-foreground">
-                                      {item.name}
-                                    </p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p
-                                      className={`text-sm ${
-                                        stock <= 0
-                                          ? "text-destructive"
-                                          : "text-muted-foreground"
-                                      }`}
-                                    >
-                                      Stoc: {stock} {item.unit}
-                                    </p>
-                                    {alreadyAdded && (
-                                      <p className="text-xs text-amber-600">
-                                        Deja adaugat
-                                      </p>
-                                    )}
-                                  </div>
-                                </CommandItem>
-                              );
-                            })}
-                          </CommandGroup>
-                        )}
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+              <CardHeader>
+                <CardTitle className="text-lg">Selecteaza Articolele</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 {!fromWarehouseId ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p>Selecteaza depozitul sursa pentru a adauga articole</p>
+                    <p>Selecteaza depozitul sursa pentru a vedea articolele disponibile</p>
                   </div>
-                ) : items.length === 0 ? (
+                ) : loadingStock ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : stockItems.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p>Niciun articol adaugat</p>
-                    <p className="text-sm">
-                      Apasa "Adauga Articol" pentru a selecta articolele de transferat
-                    </p>
+                    <p>Nu exista articole cu stoc in acest depozit</p>
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Articol</TableHead>
-                        <TableHead className="text-right">Disponibil</TableHead>
-                        <TableHead className="text-right w-[150px]">
-                          Cantitate
-                        </TableHead>
-                        <TableHead className="w-[50px]"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {items.map((item) => (
-                        <TableRow key={item.itemId}>
-                          <TableCell>
-                            <p className="font-medium">{item.item.sku}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {item.item.name}
-                            </p>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span
-                              className={
-                                item.quantity > item.availableStock
-                                  ? "text-destructive font-medium"
-                                  : ""
-                              }
-                            >
-                              {item.availableStock} {item.item.unit}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Input
-                              type="number"
-                              value={item.quantity}
-                              onChange={(e) =>
-                                updateItemQuantity(
-                                  item.itemId,
-                                  parseFloat(e.target.value) || 0
-                                )
-                              }
-                              min={0}
-                              max={item.availableStock}
-                              step={0.001}
-                              className={`w-[120px] text-right ${
-                                item.quantity > item.availableStock
-                                  ? "border-destructive"
-                                  : ""
-                              }`}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeItem(item.itemId)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <>
+                    {/* Search and Select All */}
+                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                      <div className="relative flex-1 max-w-sm">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Cauta dupa SKU sau nume..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-9"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={allFilteredSelected ? deselectAll : selectAll}
+                        >
+                          {allFilteredSelected ? (
+                            <>
+                              <Square className="h-4 w-4 mr-2" />
+                              Deselecteaza toate
+                            </>
+                          ) : (
+                            <>
+                              <CheckSquare className="h-4 w-4 mr-2" />
+                              Selecteaza toate ({filteredStockItems.length})
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Items Table */}
+                    <div className="border rounded-lg max-h-[400px] overflow-y-auto">
+                      <Table>
+                        <TableHeader className="sticky top-0 bg-background">
+                          <TableRow>
+                            <TableHead className="w-[50px]"></TableHead>
+                            <TableHead>Articol</TableHead>
+                            <TableHead className="text-right">Disponibil</TableHead>
+                            <TableHead className="text-right w-[150px]">Cantitate</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredStockItems.map((stockItem) => {
+                            const isSelected = selectedItems.has(stockItem.itemId);
+                            const selectedItem = selectedItems.get(stockItem.itemId);
+                            const availableStock = Number(stockItem.currentStock);
+                            const hasError = selectedItem && selectedItem.quantity > availableStock;
+
+                            return (
+                              <TableRow
+                                key={stockItem.itemId}
+                                className={isSelected ? "bg-muted/50" : ""}
+                              >
+                                <TableCell>
+                                  <Checkbox
+                                    checked={isSelected}
+                                    onCheckedChange={() => toggleItemSelection(stockItem)}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <div
+                                    className="cursor-pointer"
+                                    onClick={() => toggleItemSelection(stockItem)}
+                                  >
+                                    <p className="font-medium font-mono text-sm">
+                                      {stockItem.item.sku}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {stockItem.item.name}
+                                    </p>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Badge variant="secondary">
+                                    {availableStock} {stockItem.item.unit}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {isSelected ? (
+                                    <Input
+                                      type="number"
+                                      value={selectedItem?.quantity || 0}
+                                      onChange={(e) =>
+                                        updateItemQuantity(
+                                          stockItem.itemId,
+                                          parseFloat(e.target.value) || 0
+                                        )
+                                      }
+                                      min={0}
+                                      max={availableStock}
+                                      step={0.001}
+                                      className={`w-[120px] text-right ${
+                                        hasError ? "border-destructive" : ""
+                                      }`}
+                                    />
+                                  ) : (
+                                    <span className="text-muted-foreground">-</span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {filteredStockItems.length === 0 && searchQuery && (
+                      <p className="text-center text-muted-foreground py-4">
+                        Niciun articol gasit pentru "{searchQuery}"
+                      </p>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -525,19 +511,43 @@ export default function NewTransferPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Articole</span>
-                  <span className="font-medium">{items.length}</span>
+                  <span className="text-muted-foreground">Articole selectate</span>
+                  <span className="font-medium">{selectedItems.size}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Total unitati</span>
                   <span className="font-medium">
-                    {items.reduce((sum, i) => sum + i.quantity, 0).toFixed(2)}
+                    {selectedItemsArray.reduce((sum, i) => sum + i.quantity, 0).toFixed(2)}
                   </span>
                 </div>
-                {items.some((i) => i.quantity > i.availableStock) && (
+                {hasInsufficientStock && (
                   <div className="flex items-center gap-2 text-sm text-destructive">
                     <AlertCircle className="h-4 w-4" />
                     <span>Stoc insuficient pentru unele articole</span>
+                  </div>
+                )}
+
+                {/* Selected Items Preview */}
+                {selectedItemsArray.length > 0 && (
+                  <div className="pt-3 border-t space-y-2">
+                    <p className="text-sm font-medium">Articole selectate:</p>
+                    <div className="max-h-[200px] overflow-y-auto space-y-1">
+                      {selectedItemsArray.map((item) => (
+                        <div
+                          key={item.itemId}
+                          className={`flex justify-between text-xs p-2 rounded ${
+                            item.quantity > item.availableStock
+                              ? "bg-destructive/10 text-destructive"
+                              : "bg-muted"
+                          }`}
+                        >
+                          <span className="truncate flex-1">{item.sku}</span>
+                          <span className="ml-2">
+                            {item.quantity} / {item.availableStock}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -550,9 +560,10 @@ export default function NewTransferPage() {
                 onClick={handleCreate}
                 disabled={
                   createMutation.isPending ||
-                  items.length === 0 ||
+                  selectedItems.size === 0 ||
                   !fromWarehouseId ||
-                  !toWarehouseId
+                  !toWarehouseId ||
+                  hasInsufficientStock
                 }
               >
                 {createMutation.isPending && (
