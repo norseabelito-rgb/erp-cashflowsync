@@ -62,6 +62,7 @@ export default function WarehousesPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [deleteWarehouse, setDeleteWarehouse] = useState<Warehouse | null>(null);
   const [isMigrating, setIsMigrating] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Form state
   const [formCode, setFormCode] = useState("");
@@ -162,14 +163,14 @@ export default function WarehousesPage() {
 
       if (data.success) {
         toast({
-          title: "Migrare reușită!",
+          title: "Migrare reusita!",
           description: `Depozit principal creat: ${data.results.warehouse.name}. ${data.results.migratedStocks} stocuri migrate.`,
         });
         queryClient.invalidateQueries({ queryKey: ["warehouses"] });
       } else {
         toast({
           title: "Eroare la migrare",
-          description: data.error || "Eroare necunoscută",
+          description: data.error || "Eroare necunoscuta",
           variant: "destructive",
         });
       }
@@ -181,6 +182,38 @@ export default function WarehousesPage() {
       });
     } finally {
       setIsMigrating(false);
+    }
+  };
+
+  // Funcție pentru sincronizarea articolelor cu depozitul principal
+  const handleSyncStock = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await fetch("/api/admin/sync-warehouse-stock", { method: "POST" });
+      const data = await res.json();
+
+      if (data.success) {
+        toast({
+          title: "Sincronizare reusita!",
+          description: `${data.results.syncedItems} articole asociate depozitului ${data.results.warehouse.name}.`,
+        });
+        queryClient.invalidateQueries({ queryKey: ["warehouses"] });
+        queryClient.invalidateQueries({ queryKey: ["inventory-items"] });
+      } else {
+        toast({
+          title: "Eroare la sincronizare",
+          description: data.error || "Eroare necunoscuta",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Eroare la sincronizare",
+        description: error.message || "Eroare de conexiune",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -247,10 +280,26 @@ export default function WarehousesPage() {
             Gestioneaza depozitele si stocurile per locatie
           </p>
         </div>
-        <Button onClick={openCreateDialog}>
-          <Plus className="h-4 w-4 mr-2" />
-          Depozit Nou
-        </Button>
+        <div className="flex gap-2">
+          {warehouses.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={handleSyncStock}
+              disabled={isSyncing}
+            >
+              {isSyncing ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Database className="h-4 w-4 mr-2" />
+              )}
+              Sincronizeaza Articole
+            </Button>
+          )}
+          <Button onClick={openCreateDialog}>
+            <Plus className="h-4 w-4 mr-2" />
+            Depozit Nou
+          </Button>
+        </div>
       </div>
 
       {/* Info Alert */}

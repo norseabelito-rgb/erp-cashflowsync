@@ -16,6 +16,7 @@ import {
   Link2,
   AlertTriangle,
   Check,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -140,6 +141,19 @@ export default function InventoryItemPage() {
   const [adjustQuantity, setAdjustQuantity] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
   const [adjustNotes, setAdjustNotes] = useState("");
+  const [adjustWarehouseId, setAdjustWarehouseId] = useState("");
+
+  // Fetch warehouses
+  const { data: warehousesData } = useQuery({
+    queryKey: ["warehouses"],
+    queryFn: async () => {
+      const res = await fetch("/api/warehouses");
+      if (!res.ok) throw new Error("Eroare la incarcarea depozitelor");
+      return res.json();
+    },
+  });
+
+  const warehouses = warehousesData?.warehouses || [];
 
   // Fetch item details
   const { data, isLoading, refetch } = useQuery({
@@ -192,13 +206,25 @@ export default function InventoryItemPage() {
     setAdjustQuantity("");
     setAdjustReason("");
     setAdjustNotes("");
+    // Set default warehouse to primary
+    const primary = warehouses.find((w: any) => w.isPrimary);
+    setAdjustWarehouseId(primary?.id || warehouses[0]?.id || "");
   };
 
   const handleAdjustStock = () => {
     if (!adjustQuantity || parseFloat(adjustQuantity) <= 0) {
       toast({
         title: "Eroare",
-        description: "Introdu o cantitate validă",
+        description: "Introdu o cantitate valida",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!adjustWarehouseId) {
+      toast({
+        title: "Eroare",
+        description: "Selecteaza un depozit",
         variant: "destructive",
       });
       return;
@@ -206,9 +232,10 @@ export default function InventoryItemPage() {
 
     adjustMutation.mutate({
       itemId: id,
+      warehouseId: adjustWarehouseId,
       type: adjustType === "plus" ? "ADJUSTMENT_PLUS" : "ADJUSTMENT_MINUS",
       quantity: parseFloat(adjustQuantity),
-      reason: adjustReason || (adjustType === "plus" ? "Intrare manuală" : "Ieșire manuală"),
+      reason: adjustReason || (adjustType === "plus" ? "Intrare manuala" : "Iesire manuala"),
       notes: adjustNotes,
     });
   };
@@ -287,7 +314,12 @@ export default function InventoryItemPage() {
             Editează
           </Button>
           {!item.isComposite && (
-            <Button onClick={() => setAdjustDialogOpen(true)}>
+            <Button onClick={() => {
+              // Set default warehouse to primary when opening dialog
+              const primary = warehouses.find((w: any) => w.isPrimary);
+              setAdjustWarehouseId(primary?.id || warehouses[0]?.id || "");
+              setAdjustDialogOpen(true);
+            }}>
               <Plus className="h-4 w-4 mr-2" />
               Ajustare stoc
             </Button>
@@ -607,6 +639,24 @@ export default function InventoryItemPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {warehouses.length > 0 && (
+              <div>
+                <Label>Depozit *</Label>
+                <Select value={adjustWarehouseId} onValueChange={setAdjustWarehouseId}>
+                  <SelectTrigger>
+                    <Building2 className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Selecteaza depozitul" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {warehouses.map((wh: any) => (
+                      <SelectItem key={wh.id} value={wh.id}>
+                        {wh.name} {wh.isPrimary && "(Principal)"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="flex gap-2">
               <Button
                 variant={adjustType === "plus" ? "default" : "outline"}
@@ -622,7 +672,7 @@ export default function InventoryItemPage() {
                 onClick={() => setAdjustType("minus")}
               >
                 <Minus className="h-4 w-4 mr-2" />
-                Ieșire
+                Iesire
               </Button>
             </div>
             <div>
