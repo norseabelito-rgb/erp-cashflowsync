@@ -12,6 +12,7 @@ import {
   MapPin,
   Package,
   AlertCircle,
+  Database,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +61,7 @@ export default function WarehousesPage() {
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [deleteWarehouse, setDeleteWarehouse] = useState<Warehouse | null>(null);
+  const [isMigrating, setIsMigrating] = useState(false);
 
   // Form state
   const [formCode, setFormCode] = useState("");
@@ -150,6 +152,37 @@ export default function WarehousesPage() {
   });
 
   const warehouses: Warehouse[] = warehousesData?.warehouses || [];
+
+  // Funcție pentru rularea migrării
+  const handleMigration = async () => {
+    setIsMigrating(true);
+    try {
+      const res = await fetch("/api/admin/migrate-warehouse", { method: "POST" });
+      const data = await res.json();
+
+      if (data.success) {
+        toast({
+          title: "Migrare reușită!",
+          description: `Depozit principal creat: ${data.results.warehouse.name}. ${data.results.migratedStocks} stocuri migrate.`,
+        });
+        queryClient.invalidateQueries({ queryKey: ["warehouses"] });
+      } else {
+        toast({
+          title: "Eroare la migrare",
+          description: data.error || "Eroare necunoscută",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Eroare la migrare",
+        description: error.message || "Eroare de conexiune",
+        variant: "destructive",
+      });
+    } finally {
+      setIsMigrating(false);
+    }
+  };
 
   const openCreateDialog = () => {
     setFormCode("");
@@ -242,10 +275,27 @@ export default function WarehousesPage() {
             <p className="text-muted-foreground text-center mb-4">
               Creeaza primul depozit pentru a incepe gestiunea multi-locatie.
             </p>
-            <Button onClick={openCreateDialog}>
-              <Plus className="h-4 w-4 mr-2" />
-              Creeaza Depozit
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button onClick={openCreateDialog}>
+                <Plus className="h-4 w-4 mr-2" />
+                Creeaza Depozit
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleMigration}
+                disabled={isMigrating}
+              >
+                {isMigrating ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Database className="h-4 w-4 mr-2" />
+                )}
+                Migrare Date Existente
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3 max-w-md text-center">
+              Folosește "Migrare Date Existente" dacă ai deja stocuri în sistem și vrei să le muți în sistemul multi-depozit.
+            </p>
           </CardContent>
         </Card>
       ) : (
