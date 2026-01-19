@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import {
@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   History,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,11 +70,32 @@ export default function StockAdjustmentsPage() {
 
   // Form state
   const [selectedItemId, setSelectedItemId] = useState("");
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState("");
   const [adjustmentType, setAdjustmentType] = useState<AdjustmentType>("ADJUSTMENT_PLUS");
   const [quantity, setQuantity] = useState("");
   const [selectedReason, setSelectedReason] = useState("");
   const [customReason, setCustomReason] = useState("");
   const [notes, setNotes] = useState("");
+
+  // Fetch warehouses
+  const { data: warehousesData } = useQuery({
+    queryKey: ["warehouses"],
+    queryFn: async () => {
+      const res = await fetch("/api/warehouses");
+      if (!res.ok) throw new Error("Eroare la incarcarea depozitelor");
+      return res.json();
+    },
+  });
+
+  const warehouses = warehousesData?.warehouses || [];
+
+  // Set default warehouse when loaded
+  useEffect(() => {
+    if (warehouses.length > 0 && !selectedWarehouseId) {
+      const primary = warehouses.find((w: any) => w.isPrimary);
+      setSelectedWarehouseId(primary?.id || warehouses[0]?.id || "");
+    }
+  }, [warehouses, selectedWarehouseId]);
 
   // Fetch inventory items
   const { data: itemsData, isLoading: itemsLoading } = useQuery({
@@ -97,6 +119,7 @@ export default function StockAdjustmentsPage() {
   const adjustMutation = useMutation({
     mutationFn: async (data: {
       itemId: string;
+      warehouseId: string;
       type: AdjustmentType;
       quantity: number;
       reason: string;
@@ -114,6 +137,7 @@ export default function StockAdjustmentsPage() {
         queryClient.invalidateQueries({ queryKey: ["inventory-items"] });
         queryClient.invalidateQueries({ queryKey: ["recent-adjustments"] });
         queryClient.invalidateQueries({ queryKey: ["stock-movements"] });
+        queryClient.invalidateQueries({ queryKey: ["warehouses"] });
         toast({
           title: "Succes",
           description: result.message,
@@ -135,7 +159,7 @@ export default function StockAdjustmentsPage() {
     onError: () => {
       toast({
         title: "Eroare",
-        description: "A apărut o eroare la ajustarea stocului",
+        description: "A aparut o eroare la ajustarea stocului",
         variant: "destructive",
       });
     },
@@ -146,10 +170,19 @@ export default function StockAdjustmentsPage() {
   const selectedItem = items.find((i: any) => i.id === selectedItemId);
 
   const handleSubmit = () => {
+    if (!selectedWarehouseId) {
+      toast({
+        title: "Eroare",
+        description: "Selecteaza un depozit",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!selectedItemId) {
       toast({
         title: "Eroare",
-        description: "Selectează un articol",
+        description: "Selecteaza un articol",
         variant: "destructive",
       });
       return;
@@ -159,7 +192,7 @@ export default function StockAdjustmentsPage() {
     if (!qty || qty <= 0) {
       toast({
         title: "Eroare",
-        description: "Cantitatea trebuie să fie mai mare decât 0",
+        description: "Cantitatea trebuie sa fie mai mare decat 0",
         variant: "destructive",
       });
       return;
@@ -181,7 +214,7 @@ export default function StockAdjustmentsPage() {
       if (qty > currentStock) {
         toast({
           title: "Eroare",
-          description: `Cantitatea de scăzut (${qty}) depășește stocul curent (${currentStock})`,
+          description: `Cantitatea de scazut (${qty}) depaseste stocul curent (${currentStock})`,
           variant: "destructive",
         });
         return;
@@ -190,6 +223,7 @@ export default function StockAdjustmentsPage() {
 
     adjustMutation.mutate({
       itemId: selectedItemId,
+      warehouseId: selectedWarehouseId,
       type: adjustmentType,
       quantity: qty,
       reason,
@@ -281,6 +315,36 @@ export default function StockAdjustmentsPage() {
             </CardContent>
           </Card>
 
+          {/* Warehouse Selection */}
+          {warehouses.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  Depozit
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div>
+                  <Label>Selecteaza depozitul *</Label>
+                  <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
+                    <SelectTrigger>
+                      <Building2 className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Selecteaza depozitul" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map((wh: any) => (
+                        <SelectItem key={wh.id} value={wh.id}>
+                          {wh.name} {wh.isPrimary && "(Principal)"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Item Selection */}
           <Card>
             <CardHeader>
@@ -291,10 +355,10 @@ export default function StockAdjustmentsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label>Selectează articolul *</Label>
+                <Label>Selecteaza articolul *</Label>
                 <Select value={selectedItemId} onValueChange={setSelectedItemId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Caută și selectează un articol" />
+                    <SelectValue placeholder="Cauta si selecteaza un articol" />
                   </SelectTrigger>
                   <SelectContent>
                     {items.map((item: any) => (
