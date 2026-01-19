@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json(warehousesWithTotals);
+    return NextResponse.json({ warehouses: warehousesWithTotals });
   } catch (error) {
     console.error("Error fetching warehouses:", error);
     return NextResponse.json(
