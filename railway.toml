@@ -4,6 +4,7 @@ installCommand = "npm install --legacy-peer-deps"
 buildCommand = "npx prisma generate && npm run build"
 
 [deploy]
-startCommand = "npx prisma db push --accept-data-loss && npm run start"
+# Safe migration script that uses IF NOT EXISTS - won't delete data
+startCommand = "node scripts/run-migration.js && npm run start"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
