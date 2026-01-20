@@ -3,6 +3,7 @@ node_modules
 .env
 .env.local
 *.sql
+!prisma/migrations/**/*.sql
 *.dump
 .DS_Store
 next-env.d.ts
