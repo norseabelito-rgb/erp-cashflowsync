@@ -360,14 +360,19 @@ export class FacturisAPI {
           return responseData;
         }
 
+        // Extragem mesajul de eroare (poate fi string sau obiect)
+        const errorMessage = typeof responseData.error === "string"
+          ? responseData.error
+          : responseData.error?.message || responseData.error?.msg || JSON.stringify(responseData.error);
+
         // Eroare de autentificare
-        if (responseData.success === 4 || responseData.error?.toLowerCase().includes("autentificare")) {
-          throw new FacturisAuthError(responseData.error || "Autentificare eșuată");
+        if (responseData.success === 4 || (typeof errorMessage === "string" && errorMessage.toLowerCase().includes("autentificare"))) {
+          throw new FacturisAuthError(errorMessage || "Autentificare eșuată");
         }
 
         // Alte erori
         throw new FacturisApiError(
-          responseData.error || `Eroare Facturis (cod ${responseData.success})`,
+          errorMessage || `Eroare Facturis (cod ${responseData.success})`,
           responseData.success,
           false
         );
