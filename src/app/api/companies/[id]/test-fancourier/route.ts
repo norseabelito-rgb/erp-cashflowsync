@@ -4,11 +4,11 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 
-// Importăm funcția de test din fancourier (va fi adăugată)
-// import { testFanCourierConnection } from "@/lib/fancourier";
-
 /**
  * POST /api/companies/[id]/test-fancourier - Test conexiune FanCourier
+ *
+ * Acceptă credențiale în body pentru testare live (fără salvare)
+ * sau folosește credențialele din DB dacă nu sunt trimise în body.
  */
 export async function POST(
   request: NextRequest,
@@ -33,7 +33,16 @@ export async function POST(
 
     const { id } = await params;
 
-    // Obținem firma cu credențialele
+    // Parsăm body-ul pentru credențiale trimise din formular
+    let bodyCredentials: any = {};
+    try {
+      const body = await request.json();
+      bodyCredentials = body || {};
+    } catch {
+      // Body gol sau invalid - e OK, vom folosi credențialele din DB
+    }
+
+    // Obținem firma cu credențialele din DB
     const company = await prisma.company.findUnique({
       where: { id },
       select: {
@@ -52,19 +61,28 @@ export async function POST(
       );
     }
 
+    // Folosim credențialele din body dacă sunt trimise, altfel cele din DB
+    // Ignorăm valorile "********" care sunt placeholder pentru parole mascate
+    const testCredentials = {
+      fancourierClientId: bodyCredentials.fancourierClientId || company.fancourierClientId,
+      fancourierUsername: bodyCredentials.fancourierUsername || company.fancourierUsername,
+      fancourierPassword: (bodyCredentials.fancourierPassword && bodyCredentials.fancourierPassword !== "********")
+        ? bodyCredentials.fancourierPassword
+        : company.fancourierPassword,
+    };
+
     // Verificăm credențialele
-    if (!company.fancourierClientId || !company.fancourierUsername || !company.fancourierPassword) {
+    if (!testCredentials.fancourierClientId || !testCredentials.fancourierUsername || !testCredentials.fancourierPassword) {
       return NextResponse.json(
         {
           success: false,
-          error: "Credențialele FanCourier nu sunt configurate complet. Setează Client ID, Username și Password.",
+          error: "Credențialele FanCourier nu sunt complete. Completează Client ID, Username și Password, apoi încearcă din nou.",
         },
         { status: 400 }
       );
     }
 
     // Testăm conexiunea FanCourier
-    // FanCourier API test - încercăm să obținem un token sau să facem un request simplu
     try {
       const FAN_COURIER_API_URL = "https://api.fancourier.ro/reports/awb";
 
@@ -74,9 +92,9 @@ export async function POST(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          clientId: company.fancourierClientId,
-          username: company.fancourierUsername,
-          password: company.fancourierPassword,
+          clientId: testCredentials.fancourierClientId,
+          username: testCredentials.fancourierUsername,
+          password: testCredentials.fancourierPassword,
           // Request AWB status cu un AWB inexistent doar pentru a testa autentificarea
           awb: ["TEST123"],
         }),

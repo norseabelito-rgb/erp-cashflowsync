@@ -7,6 +7,9 @@ import { createFacturisClient } from "@/lib/facturis";
 
 /**
  * POST /api/companies/[id]/test-facturis - Test conexiune Facturis
+ *
+ * Acceptă credențiale în body pentru testare live (fără salvare)
+ * sau folosește credențialele din DB dacă nu sunt trimise în body.
  */
 export async function POST(
   request: NextRequest,
@@ -31,7 +34,16 @@ export async function POST(
 
     const { id } = await params;
 
-    // Obținem firma cu credențialele
+    // Parsăm body-ul pentru credențiale trimise din formular
+    let bodyCredentials: any = {};
+    try {
+      const body = await request.json();
+      bodyCredentials = body || {};
+    } catch {
+      // Body gol sau invalid - e OK, vom folosi credențialele din DB
+    }
+
+    // Obținem firma cu credențialele din DB
     const company = await prisma.company.findUnique({
       where: { id },
       select: {
@@ -52,19 +64,33 @@ export async function POST(
       );
     }
 
+    // Folosim credențialele din body dacă sunt trimise, altfel cele din DB
+    // Ignorăm valorile "********" care sunt placeholder pentru parole mascate
+    const testCredentials = {
+      ...company,
+      facturisApiKey: (bodyCredentials.facturisApiKey && bodyCredentials.facturisApiKey !== "********")
+        ? bodyCredentials.facturisApiKey
+        : company.facturisApiKey,
+      facturisUsername: bodyCredentials.facturisUsername || company.facturisUsername,
+      facturisPassword: (bodyCredentials.facturisPassword && bodyCredentials.facturisPassword !== "********")
+        ? bodyCredentials.facturisPassword
+        : company.facturisPassword,
+      facturisCompanyCif: bodyCredentials.facturisCompanyCif || company.facturisCompanyCif || company.cif,
+    };
+
     // Verificăm credențialele
-    if (!company.facturisApiKey || !company.facturisUsername || !company.facturisPassword) {
+    if (!testCredentials.facturisApiKey || !testCredentials.facturisUsername || !testCredentials.facturisPassword) {
       return NextResponse.json(
         {
           success: false,
-          error: "Credențialele Facturis nu sunt configurate complet. Setează API Key, Username și Password.",
+          error: "Credențialele Facturis nu sunt complete. Completează API Key, Username și Password, apoi încearcă din nou.",
         },
         { status: 400 }
       );
     }
 
-    // Creăm clientul Facturis
-    const facturis = createFacturisClient(company);
+    // Creăm clientul Facturis cu credențialele de test
+    const facturis = createFacturisClient(testCredentials);
 
     if (!facturis) {
       return NextResponse.json(

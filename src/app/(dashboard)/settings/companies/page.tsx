@@ -191,11 +191,21 @@ export default function CompaniesPage() {
     },
   });
 
-  // Test Facturis mutation
+  // Test Facturis mutation - trimite credențialele din formular pentru testare live
   const testFacturisMutation = useMutation({
     mutationFn: async (companyId: string) => {
+      // Trimitem credențialele din formular pentru testare live
+      const credentials = {
+        facturisApiKey: formFacturisApiKey || undefined,
+        facturisUsername: formFacturisUsername || undefined,
+        facturisPassword: formFacturisPassword || undefined,
+        facturisCompanyCif: formFacturisCompanyCif || undefined,
+      };
+
       const res = await fetch(`/api/companies/${companyId}/test-facturis`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(credentials),
       });
       const result = await res.json();
       if (!result.success) {
@@ -218,11 +228,20 @@ export default function CompaniesPage() {
     },
   });
 
-  // Test FanCourier mutation
+  // Test FanCourier mutation - trimite credențialele din formular pentru testare live
   const testFancourierMutation = useMutation({
     mutationFn: async (companyId: string) => {
+      // Trimitem credențialele din formular pentru testare live
+      const credentials = {
+        fancourierClientId: formFancourierClientId || undefined,
+        fancourierUsername: formFancourierUsername || undefined,
+        fancourierPassword: formFancourierPassword || undefined,
+      };
+
       const res = await fetch(`/api/companies/${companyId}/test-fancourier`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(credentials),
       });
       const result = await res.json();
       if (!result.success) {
