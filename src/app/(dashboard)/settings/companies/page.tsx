@@ -64,6 +64,25 @@ interface Company {
   vatPayer: boolean;
   defaultVatRate: number;
   intercompanyMarkup: number;
+  // Credențiale Facturis (mascate de API)
+  facturisApiKey: string | null;
+  facturisUsername: string | null;
+  facturisPassword: string | null;
+  facturisCompanyCif: string | null;
+  // Credențiale FanCourier (mascate de API)
+  fancourierClientId: string | null;
+  fancourierUsername: string | null;
+  fancourierPassword: string | null;
+  // Sender info
+  senderName: string | null;
+  senderPhone: string | null;
+  senderEmail: string | null;
+  senderCounty: string | null;
+  senderCity: string | null;
+  senderStreet: string | null;
+  senderNumber: string | null;
+  senderPostalCode: string | null;
+  // Flags
   hasFacturisCredentials?: boolean;
   hasFancourierCredentials?: boolean;
   _count?: {
@@ -328,22 +347,24 @@ export default function CompaniesPage() {
     setFormVatPayer(company.vatPayer);
     setFormDefaultVatRate(String(company.defaultVatRate));
     setFormIntercompanyMarkup(String(company.intercompanyMarkup));
-    // Credențialele nu le preîncărcăm (sunt mascate)
-    setFormFacturisApiKey("");
-    setFormFacturisUsername("");
-    setFormFacturisPassword("");
-    setFormFacturisCompanyCif("");
-    setFormFancourierClientId("");
-    setFormFancourierUsername("");
-    setFormFancourierPassword("");
-    setFormSenderName("");
-    setFormSenderPhone("");
-    setFormSenderEmail("");
-    setFormSenderCounty("");
-    setFormSenderCity("");
-    setFormSenderStreet("");
-    setFormSenderNumber("");
-    setFormSenderPostalCode("");
+    // Credențialele Facturis - afișăm valori mascate dacă există
+    setFormFacturisApiKey(company.facturisApiKey || "");
+    setFormFacturisUsername(company.facturisUsername || "");
+    setFormFacturisPassword(company.facturisPassword || "");
+    setFormFacturisCompanyCif(company.facturisCompanyCif || "");
+    // Credențialele FanCourier - afișăm valori mascate dacă există
+    setFormFancourierClientId(company.fancourierClientId || "");
+    setFormFancourierUsername(company.fancourierUsername || "");
+    setFormFancourierPassword(company.fancourierPassword || "");
+    // Sender info
+    setFormSenderName(company.senderName || "");
+    setFormSenderPhone(company.senderPhone || "");
+    setFormSenderEmail(company.senderEmail || "");
+    setFormSenderCounty(company.senderCounty || "");
+    setFormSenderCity(company.senderCity || "");
+    setFormSenderStreet(company.senderStreet || "");
+    setFormSenderNumber(company.senderNumber || "");
+    setFormSenderPostalCode(company.senderPostalCode || "");
     setShowPasswords(false);
     setIsCreateDialogOpen(true);
   };

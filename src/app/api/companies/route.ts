@@ -47,9 +47,19 @@ export async function GET(request: NextRequest) {
       ],
     });
 
+    // Mascăm credențialele sensibile pentru securitate
+    const safeCompanies = companies.map((company) => ({
+      ...company,
+      facturisApiKey: company.facturisApiKey ? "********" : null,
+      facturisPassword: company.facturisPassword ? "********" : null,
+      fancourierPassword: company.fancourierPassword ? "********" : null,
+      hasFacturisCredentials: !!(company.facturisApiKey && company.facturisUsername && company.facturisPassword),
+      hasFancourierCredentials: !!(company.fancourierClientId && company.fancourierUsername && company.fancourierPassword),
+    }));
+
     return NextResponse.json({
       success: true,
-      companies,
+      companies: safeCompanies,
     });
   } catch (error: any) {
     console.error("Error fetching companies:", error);
