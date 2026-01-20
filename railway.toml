@@ -5,6 +5,6 @@ buildCommand = "npx prisma generate && npm run build"
 
 [deploy]
 # Safe migration script that uses IF NOT EXISTS - won't delete data
-startCommand = "node scripts/run-migration.js && npm run start"
+startCommand = "node scripts/force-migration.js && npm run start"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
