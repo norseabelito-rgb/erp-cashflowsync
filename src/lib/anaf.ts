@@ -5,7 +5,8 @@
  * Documentație: https://static.anaf.ro/static/10/Anaf/Informatii_R/documentatie_SWUAIF.pdf
  */
 
-const ANAF_API_URL = "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva";
+// API v9 - URL-ul nou de la ANAF (v8 nu mai funcționează din 2025)
+const ANAF_API_URL = "https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva";
 
 export interface AnafCompanyInfo {
   cui: string;
@@ -122,14 +123,21 @@ export async function lookupCompanyByCui(cui: string): Promise<AnafLookupResult>
     const stareInactiv = companyData.stare_inactiv || {};
     const splitTva = companyData.inregistrare_SplitTVA || {};
     const adresa = companyData.adresa_sediu_social || {};
-    const eFactura = companyData.inregistrare_RO_e_Factura || {};
 
-    // Construim adresa completă
+    // În v9, perioade_TVA e un array - luăm prima perioadă activă
+    const periodeTva = inregistrareScopTva.perioade_TVA || [];
+    const primaPerioadaTva = periodeTva.length > 0 ? periodeTva[0] : {};
+
+    // În v9, statusRO_e_Factura e în date_generale, nu în obiect separat
+    const eFacturaStatus = generalData.statusRO_e_Factura || false;
+    const eFacturaStartDate = generalData.data_inreg_Reg_RO_e_Factura || null;
+
+    // Construim adresa completă - folosim și județul auto (DB, BV, etc.)
     const adresaCompleta = [
       adresa.sdenumire_Strada,
       adresa.snumar_Strada,
       adresa.sdenumire_Localitate,
-      adresa.scod_Judet,
+      adresa.scod_JudetAuto || adresa.sdenumire_Judet,
       adresa.scod_Postal,
     ].filter(Boolean).join(', ');
 
@@ -144,10 +152,10 @@ export async function lookupCompanyByCui(cui: string): Promise<AnafLookupResult>
       act: generalData.act || '',
       stare_inregistrare: generalData.stare_inregistrare || '',
       scpTVA: inregistrareScopTva.scpTVA || false,
-      data_inceput_ScpTVA: inregistrareScopTva.data_inceput_ScpTVA || null,
-      data_sfarsit_ScpTVA: inregistrareScopTva.data_sfarsit_ScpTVA || null,
-      data_anul_imp_ScpTVA: inregistrareScopTva.data_anul_imp_ScpTVA || null,
-      mesaj_ScpTVA: inregistrareScopTva.mesaj_ScpTVA || null,
+      data_inceput_ScpTVA: primaPerioadaTva.data_inceput_ScpTVA || null,
+      data_sfarsit_ScpTVA: primaPerioadaTva.data_sfarsit_ScpTVA || null,
+      data_anul_imp_ScpTVA: primaPerioadaTva.data_anul_imp_ScpTVA || null,
+      mesaj_ScpTVA: primaPerioadaTva.mesaj_ScpTVA || null,
       dataInceputTvaInc: tvaIncasare.dataInceputTvaInc || null,
       dataSfarsitTvaInc: tvaIncasare.dataSfarsitTvaInc || null,
       dataActualizareTvaInc: tvaIncasare.dataActualizareTvaInc || null,
@@ -163,9 +171,9 @@ export async function lookupCompanyByCui(cui: string): Promise<AnafLookupResult>
       dataAnulareSplitTVA: splitTva.dataAnulareSplitTVA || null,
       statusSplitTVA: splitTva.statusSplitTVA || false,
       iban: generalData.iban || null,
-      statusRO_e_Factura: eFactura.statusRO_e_Factura || false,
-      dataInceputRO_e_Factura: eFactura.dataInceputRO_e_Factura || null,
-      dataAnulareRO_e_Factura: eFactura.dataAnulareRO_e_Factura || null,
+      statusRO_e_Factura: eFacturaStatus,
+      dataInceputRO_e_Factura: eFacturaStartDate,
+      dataAnulareRO_e_Factura: null, // Nu mai există în v9
     };
 
     return {
