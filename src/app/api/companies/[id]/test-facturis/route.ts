@@ -3,7 +3,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
-import { createFacturisClient } from "@/lib/facturis";
+import {
+  createFacturisClient,
+  hasFacturisCredentials,
+  FacturisValidationError,
+  FacturisAuthError,
+} from "@/lib/facturis";
 
 /**
  * POST /api/companies/[id]/test-facturis - Test conexiune Facturis
@@ -78,8 +83,8 @@ export async function POST(
       facturisCompanyCif: bodyCredentials.facturisCompanyCif || company.facturisCompanyCif || company.cif,
     };
 
-    // Verificăm credențialele
-    if (!testCredentials.facturisApiKey || !testCredentials.facturisUsername || !testCredentials.facturisPassword) {
+    // Verificăm credențialele folosind funcția helper
+    if (!hasFacturisCredentials(testCredentials)) {
       return NextResponse.json(
         {
           success: false,
@@ -94,7 +99,7 @@ export async function POST(
 
     if (!facturis) {
       return NextResponse.json(
-        { success: false, error: "Nu s-a putut crea clientul Facturis" },
+        { success: false, error: "Nu s-a putut crea clientul Facturis. Verifică credențialele." },
         { status: 500 }
       );
     }
@@ -113,10 +118,27 @@ export async function POST(
       success: false,
       error: result.error || "Eroare la conexiunea cu Facturis",
     });
+
   } catch (error: any) {
-    console.error("Error testing Facturis connection:", error);
+    console.error("[test-facturis] Error:", error);
+
+    // Erori specifice Facturis
+    if (error instanceof FacturisValidationError) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 400 }
+      );
+    }
+
+    if (error instanceof FacturisAuthError) {
+      return NextResponse.json(
+        { success: false, error: "Autentificare eșuată. Verifică API Key, Username și Parola." },
+        { status: 401 }
+      );
+    }
+
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: error.message || "Eroare internă" },
       { status: 500 }
     );
   }
