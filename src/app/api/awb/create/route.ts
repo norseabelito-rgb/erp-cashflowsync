@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
-import { createAWBForOrder } from "@/lib/fancourier";
+import { createAWBForOrder } from "@/lib/awb-service";
 import { hasPermission } from "@/lib/permissions";
 
 export async function POST(request: NextRequest) {

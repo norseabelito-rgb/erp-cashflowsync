@@ -134,6 +134,15 @@ export const PERMISSIONS: PermissionDefinition[] = [
   // ==================== LOGURI ====================
   { code: "logs.sync", name: "Vizualizare istoric sync", description: "Poate vedea istoricul sincronizărilor", category: "logs", sortOrder: 1200 },
   { code: "logs.activity", name: "Vizualizare activitate", description: "Poate vedea log-urile de activitate", category: "logs", sortOrder: 1201 },
+
+  // ==================== FIRME (COMPANIES) ====================
+  { code: "companies.view", name: "Vizualizare firme", description: "Poate vedea lista firmelor și detaliile lor", category: "companies", sortOrder: 1300 },
+  { code: "companies.manage", name: "Gestiune firme", description: "Poate crea, modifica și șterge firme", category: "companies", sortOrder: 1301 },
+
+  // ==================== DECONTARE INTERCOMPANY ====================
+  { code: "intercompany.view", name: "Vizualizare decontări", description: "Poate vedea decontările intercompany", category: "intercompany", sortOrder: 1400 },
+  { code: "intercompany.generate", name: "Generare decontări", description: "Poate genera facturi intercompany", category: "intercompany", sortOrder: 1401 },
+  { code: "intercompany.mark_paid", name: "Marcare plată", description: "Poate marca facturile intercompany ca plătite", category: "intercompany", sortOrder: 1402 },
 ];
 
 // Categoriile de permisiuni pentru UI
@@ -157,6 +166,8 @@ export const PERMISSION_CATEGORIES = [
   { code: "users", name: "Utilizatori", icon: "Users" },
   { code: "admin", name: "Administrare", icon: "Shield" },
   { code: "logs", name: "Loguri", icon: "ScrollText" },
+  { code: "companies", name: "Firme", icon: "Building" },
+  { code: "intercompany", name: "Decontări Intercompany", icon: "ArrowRightLeft" },
 ];
 
 // Roluri default de sistem

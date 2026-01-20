@@ -302,22 +302,27 @@ model Store {
   accessToken      String   // Shopify Admin API access token
   webhookSecret    String?  // Pentru verificarea webhook-urilor
   isActive         Boolean  @default(true)
-  
+
   // Facturare
   invoiceSeriesId  String?  // Seria de facturare asociată
   invoiceSeries    InvoiceSeries? @relation(fields: [invoiceSeriesId], references: [id])
-  
+
+  // NOU: Firma de facturare asociată magazinului
+  companyId        String?
+  company          Company? @relation(fields: [companyId], references: [id])
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
-  
+
   orders           Order[]
   channel          Channel?  // Canalul PIM asociat
   userAccess       UserStoreAccess[]  // Utilizatorii cu acces la acest store
-  
+
+  @@index([companyId])
   @@map("stores")
 }
 
-// Serii de facturare (gestionate local, independente de SmartBill)
+// Serii de facturare (gestionate local, independente de SmartBill/Facturis)
 model InvoiceSeries {
   id            String   @id @default(cuid())
   name          String   @unique  // Numele complet afișat (ex: "Serie Shopify RO", "Trendyol TR")
@@ -328,18 +333,31 @@ model InvoiceSeries {
   startNumber   Int      @default(1)    // Numărul de start al seriei
   currentNumber Int      @default(1)    // Numărul curent (se incrementează automat)
 
+  // Formatul numărului
+  numberPadding Int      @default(6)    // Câte cifre (6 = 000001)
+
   isDefault     Boolean  @default(false)  // Seria default pentru canale fără serie setată
   isActive      Boolean  @default(true)
 
-  // Opțiune de sincronizare cu SmartBill (dacă utilizatorul vrea)
-  syncToSmartBill  Boolean  @default(false)  // Dacă true, folosește această serie și în SmartBill
-  smartBillSeries  String?  // Numele seriei corespondente în SmartBill (poate fi diferit)
+  // NOU: Firma asociată (fiecare firmă are propriile serii)
+  companyId     String?
+  company       Company? @relation(fields: [companyId], references: [id])
+
+  // Opțiune de sincronizare cu SmartBill (depreciat - migrăm la Facturis)
+  syncToSmartBill  Boolean  @default(false)
+  smartBillSeries  String?
+
+  // Sincronizare cu Facturis
+  syncToFacturis   Boolean  @default(false)
+  facturisSeries   String?  // Numele seriei în Facturis (dacă diferit)
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   stores        Store[]  // Store-urile care folosesc această serie
+  invoices      Invoice[]  // Facturile emise pe această serie
 
+  @@index([companyId])
   @@map("invoice_series")
 }
 
@@ -348,6 +366,7 @@ enum OrderStatus {
   PENDING           // Comandă nouă, nevalidată
   VALIDATED         // Validări trecute
   VALIDATION_FAILED // Validări eșuate
+  WAIT_TRANSFER     // NOU: Așteaptă finalizarea transferului de stoc
   INVOICE_PENDING   // Așteaptă factură
   INVOICE_ERROR     // Eroare la emiterea facturii
   INVOICED          // Factură emisă
@@ -417,18 +436,36 @@ model Order {
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
   
+  // NOU: Firma care facturează (setat automat la sync din Store)
+  billingCompanyId    String?
+  billingCompany      Company? @relation(fields: [billingCompanyId], references: [id])
+
+  // NOU: Depozit operațional (de unde pleacă coletul)
+  operationalWarehouseId String?
+  operationalWarehouse   Warehouse? @relation("OperationalOrders", fields: [operationalWarehouseId], references: [id])
+
+  // NOU: Transfer necesar (dacă stocul nu e în depozitul operațional)
+  requiredTransferId    String?  @unique
+  requiredTransfer      WarehouseTransfer? @relation("RequiredForOrder", fields: [requiredTransferId], references: [id])
+
+  // NOU: Status decontare intercompany (doar pentru firme secundare)
+  intercompanyStatus    String?  // null (N/A), "pending", "settled"
+
   // Relații
   invoice             Invoice?
   awb                 AWB?
   lineItems           LineItem[]
   processingErrors    ProcessingError[]
   trendyolOrder       TrendyolOrder?
-  
+  intercompanyLink    IntercompanyOrderLink?
+
   @@unique([shopifyOrderId, storeId])
   @@index([status])
   @@index([storeId])
   @@index([createdAt])
-  @@index([storeId, status, createdAt]) // Composite index pentru filtrare frecventă
+  @@index([storeId, status, createdAt])
+  @@index([billingCompanyId])
+  @@index([intercompanyStatus])
   @@map("orders")
 }
 
@@ -461,40 +498,58 @@ model LineItem {
   @@map("line_items")
 }
 
-// Facturile emise prin SmartBill
+// Facturile emise (Facturis sau SmartBill)
 model Invoice {
   id                String   @id @default(cuid())
   orderId           String   @unique
   order             Order    @relation(fields: [orderId], references: [id])
-  
-  smartbillNumber   String?  // Numărul facturii în SmartBill
+
+  // NOU: Firma care a emis factura
+  companyId         String?
+  company           Company? @relation(fields: [companyId], references: [id])
+
+  // NOU: Seria de facturare folosită (pentru tracking numerotare locală)
+  invoiceSeriesId   String?
+  invoiceSeries     InvoiceSeries? @relation(fields: [invoiceSeriesId], references: [id])
+
+  // NOU: Provider factură (pentru migrare graduală)
+  invoiceProvider   String   @default("smartbill") // "smartbill", "facturis"
+
+  // Număr și serie (păstrate pentru compatibilitate)
+  smartbillNumber   String?  // Numărul facturii
   smartbillSeries   String?  // Seria facturii
-  smartbillId       String?  // ID-ul intern SmartBill
-  
+  smartbillId       String?  // ID-ul intern (SmartBill sau Facturis)
+
+  // NOU: ID Facturis (pentru referință)
+  facturisId        String?
+
   status            String   @default("pending") // pending, issued, cancelled, error
-  errorMessage      String?  // Mesajul de eroare de la SmartBill
-  
+  errorMessage      String?  // Mesajul de eroare
+
   // Date factură
   dueDate           DateTime? // Data scadenței
-  
+
   // Status plată
   paymentStatus     String   @default("unpaid") // unpaid, partial, paid
   paidAmount        Decimal  @db.Decimal(10, 2) @default(0)
   paidAt            DateTime?
-  
+
   // Anulare/Stornare
   cancelledAt       DateTime?
   cancelReason      String?
   stornoNumber      String?  // Numărul facturii de stornare
   stornoSeries      String?
-  
+
   pdfUrl            String?  // URL-ul PDF-ului facturii
   pdfData           Bytes?   // PDF-ul facturii stocat local
-  
+
   issuedAt          DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-  
+
+  @@index([companyId])
+  @@index([invoiceSeriesId])
+  @@index([invoiceProvider])
   @@map("invoices")
 }
 
@@ -503,9 +558,13 @@ model AWB {
   id                String     @id @default(cuid())
   orderId           String     @unique
   order             Order      @relation(fields: [orderId], references: [id])
-  
+
+  // NOU: Firma care a emis AWB-ul (pentru credențiale separate)
+  companyId         String?
+  company           Company?   @relation(fields: [companyId], references: [id])
+
   awbNumber         String?    // Numărul AWB-ului
-  
+
   // Setări AWB
   serviceType       String     @default("Standard") // Standard, Express, etc.
   paymentType       String     @default("destinatar") // destinatar (ramburs), expeditor
@@ -514,19 +573,19 @@ model AWB {
   declaredValue     Decimal?   @db.Decimal(10, 2)
   cashOnDelivery    Decimal?   @db.Decimal(10, 2) // Suma ramburs
   observations      String?
-  
+
   // Status curent
   currentStatus     String     @default("pending") // pending, created, in_transit, delivered, returned
   currentStatusDate DateTime?
-  
+
   // Erori
   errorMessage      String?
-  
+
   // Status FanCourier detaliat (cod + descriere)
   fanCourierStatusCode   String?   // Codul statusului (C0, S2, H4, etc.)
   fanCourierStatusName   String?   // Denumirea statusului
   fanCourierStatusDesc   String?   // Descrierea detaliată
-  
+
   // Predare curier (handover intern)
   handedOverAt      DateTime?      // Când a fost scanat la predare
   handedOverBy      String?        // User ID care a scanat
@@ -534,14 +593,19 @@ model AWB {
   handedOverNote    String?        // Notă (ex: "Marcat automat pe baza C0")
   notHandedOver     Boolean   @default(false)  // Marcat ca NEPREDAT
   notHandedOverAt   DateTime?      // Când a fost marcat NEPREDAT
-  
+
   // Flag pentru alertă C0 fără scanare
   hasC0WithoutScan  Boolean   @default(false)  // C0 primit dar nescanat intern
   c0ReceivedAt      DateTime?      // Când s-a primit C0 de la FanCourier
-  
+
+  // NOU: Încasare ramburs (pentru decontare intercompany)
+  isCollected       Boolean    @default(false)  // Rambursul a fost încasat
+  collectedAt       DateTime?                   // Când a fost încasat
+  collectedAmount   Decimal?   @db.Decimal(10, 2)
+
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
-  
+
   // Istoric statusuri
   statusHistory     AWBStatusHistory[]
 
@@ -554,13 +618,15 @@ model AWB {
 
   // Comentarii
   comments          AWBComment[]
-  
+
+  @@index([companyId])
   @@index([currentStatus])
   @@index([createdAt])
   @@index([awbNumber])
   @@index([handedOverAt])
   @@index([notHandedOver])
   @@index([hasC0WithoutScan])
+  @@index([isCollected])
   @@map("awbs")
 }
 
@@ -2840,6 +2906,9 @@ model Warehouse {
   isPrimary     Boolean  @default(false)  // Doar 1 poate fi principal (pentru comenzi)
   sortOrder     Int      @default(0)
 
+  // NOU: Depozit operațional (de aici se facturează/expediază)
+  isOperational Boolean  @default(false)  // Doar 1 trebuie să fie true (ex: Săcueni)
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -2851,9 +2920,13 @@ model Warehouse {
   userAccess        UserWarehouseAccess[]
   goodsReceipts     GoodsReceipt[]
 
+  // NOU: Comenzi care au acest depozit ca operațional
+  operationalOrders Order[] @relation("OperationalOrders")
+
   @@index([code])
   @@index([isActive])
   @@index([isPrimary])
+  @@index([isOperational])
   @@map("warehouses")
 }
 
@@ -2893,6 +2966,14 @@ model WarehouseTransfer {
 
   status            TransferStatus @default(DRAFT)
 
+  // NOU: Transfer propus automat pentru comandă
+  isAutoProposed    Boolean  @default(false)  // True dacă a fost propus automat
+
+  // NOU: Aprobare transfer
+  approvedById      String?
+  approvedByName    String?
+  approvedAt        DateTime?
+
   // Note
   notes             String?   @db.Text
 
@@ -2906,6 +2987,9 @@ model WarehouseTransfer {
   // Linii transfer
   items             WarehouseTransferItem[]
 
+  // NOU: Comanda care necesită acest transfer
+  requiredForOrder  Order?   @relation("RequiredForOrder")
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -2913,6 +2997,7 @@ model WarehouseTransfer {
   @@index([fromWarehouseId])
   @@index([toWarehouseId])
   @@index([createdAt])
+  @@index([isAutoProposed])
   @@map("warehouse_transfers")
 }
 
@@ -2959,4 +3044,158 @@ model UserWarehouseAccess {
   @@index([userId])
   @@index([warehouseId])
   @@map("user_warehouse_access")
+}
+
+// ============================================
+// MULTI-COMPANY SYSTEM (Sistem Multi-Firmă)
+// ============================================
+
+// Firma de facturare (entitate juridică)
+model Company {
+  id                String   @id @default(cuid())
+  name              String   @unique  // "Aquaterra SRL", "Construim Destine SRL"
+  code              String   @unique  // "AQ", "CD" - cod scurt
+
+  // Date fiscale
+  cif               String?  // CUI/CIF
+  regCom            String?  // Nr. Reg. Com. (J12/1234/2020)
+  address           String?
+  city              String?
+  county            String?
+  postalCode        String?
+  country           String   @default("România")
+
+  // Date bancare
+  bankName          String?
+  bankAccount       String?  // IBAN
+
+  // Contact
+  email             String?
+  phone             String?
+
+  // ===== CREDENȚIALE FACTURIS =====
+  facturisApiKey        String?
+  facturisUsername      String?
+  facturisPassword      String?
+  facturisCompanyCif    String?  // CIF-ul din Facturis (poate fi diferit)
+
+  // ===== CREDENȚIALE FANCOURIER/SELFAWB =====
+  fancourierClientId    String?
+  fancourierUsername    String?
+  fancourierPassword    String?
+
+  // Sender info pentru AWB (expeditor)
+  senderName            String?
+  senderPhone           String?
+  senderEmail           String?
+  senderCounty          String?
+  senderCity            String?
+  senderStreet          String?
+  senderNumber          String?
+  senderPostalCode      String?
+
+  // ===== CONFIGURARE =====
+  // Este firma principală (stocul este proprietate fiscală aici)
+  isPrimary         Boolean  @default(false)  // Doar 1 = true (Aquaterra)
+
+  // Adaos pentru decontare intercompany (%)
+  intercompanyMarkup Decimal @db.Decimal(5,2) @default(10.0)  // 10%
+
+  // TVA
+  defaultVatRate    Decimal  @db.Decimal(5,2) @default(19.0)  // 19%
+  vatPayer          Boolean  @default(true)  // Plătitor TVA
+
+  isActive          Boolean  @default(true)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relații
+  stores                   Store[]
+  orders                   Order[]
+  invoices                 Invoice[]
+  awbs                     AWB[]
+  invoiceSeries            InvoiceSeries[]
+  intercompanyInvoicesIssued   IntercompanyInvoice[] @relation("IssuedBy")
+  intercompanyInvoicesReceived IntercompanyInvoice[] @relation("ReceivedBy")
+
+  @@index([cif])
+  @@index([isPrimary])
+  @@map("companies")
+}
+
+// Facturi între firme (decontare intercompany)
+model IntercompanyInvoice {
+  id                String   @id @default(cuid())
+
+  // Aquaterra (isPrimary) emite către firma secundară
+  issuedByCompanyId   String
+  issuedByCompany     Company @relation("IssuedBy", fields: [issuedByCompanyId], references: [id])
+
+  receivedByCompanyId String
+  receivedByCompany   Company @relation("ReceivedBy", fields: [receivedByCompanyId], references: [id])
+
+  // Perioada acoperită
+  periodStart       DateTime
+  periodEnd         DateTime
+
+  // Document
+  invoiceNumber     String   @unique
+  invoiceSeries     String?
+
+  // Totale
+  totalValue        Decimal  @db.Decimal(12, 2)
+  totalVat          Decimal  @db.Decimal(12, 2) @default(0)
+  totalWithVat      Decimal  @db.Decimal(12, 2)
+  totalItems        Int      // Număr de comenzi incluse
+
+  // Status
+  status            String   @default("pending")  // pending, issued, paid
+
+  issuedAt          DateTime?
+  paidAt            DateTime?
+
+  // Linii detaliate (JSON)
+  lineItems         Json     // [{sku, name, quantity, unitCost, markup, vatRate, lineTotal}]
+
+  // Note
+  notes             String?  @db.Text
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Comenzi incluse în această decontare
+  includedOrders    IntercompanyOrderLink[]
+
+  @@index([issuedByCompanyId])
+  @@index([receivedByCompanyId])
+  @@index([status])
+  @@index([periodStart, periodEnd])
+  @@map("intercompany_invoices")
+}
+
+// Link între comenzi și facturi intercompany
+model IntercompanyOrderLink {
+  id                    String   @id @default(cuid())
+
+  orderId               String   @unique
+  order                 Order    @relation(fields: [orderId], references: [id])
+
+  intercompanyInvoiceId String?
+  intercompanyInvoice   IntercompanyInvoice? @relation(fields: [intercompanyInvoiceId], references: [id])
+
+  // Status decontare individuală
+  status                String   @default("pending")  // pending, settled
+  settledAt             DateTime?
+
+  // Valoare pentru această comandă
+  orderValue            Decimal? @db.Decimal(12, 2)
+  costValue             Decimal? @db.Decimal(12, 2)  // Preț achiziție
+  intercompanyValue     Decimal? @db.Decimal(12, 2)  // Cu markup
+
+  createdAt             DateTime @default(now())
+
+  @@index([status])
+  @@index([intercompanyInvoiceId])
+  @@map("intercompany_order_links")
 }

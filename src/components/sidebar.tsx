@@ -174,11 +174,18 @@ const navigation: NavItem[] = [
     ],
   },
   {
+    name: "Decontări",
+    href: "/intercompany",
+    icon: ArrowLeftRight,
+    permissions: ["intercompany.view"],
+  },
+  {
     name: "Setări",
     icon: Settings,
-    permissions: ["settings.view", "invoices.series", "printers.view", "users.view", "admin.roles", "admin.groups", "admin.audit", "warehouses.view"],
+    permissions: ["settings.view", "invoices.series", "printers.view", "users.view", "admin.roles", "admin.groups", "admin.audit", "warehouses.view", "companies.view"],
     children: [
       { name: "General", href: "/settings", icon: Settings, permissions: ["settings.view"] },
+      { name: "Firme", href: "/settings/companies", icon: Building2, permissions: ["companies.view"] },
       { name: "Depozite", href: "/settings/warehouses", icon: Building2, permissions: ["warehouses.view"] },
       { name: "Serii Facturare", href: "/settings/invoice-series", icon: FileText, permissions: ["invoices.series"] },
       { name: "Imprimante", href: "/settings/printers", icon: Printer, permissions: ["printers.view"] },

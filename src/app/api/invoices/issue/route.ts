@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { issueInvoiceForOrder } from "@/lib/smartbill";
+import { issueInvoiceForOrder } from "@/lib/invoice-service";
 import { hasPermission } from "@/lib/permissions";
 
 export async function POST(request: NextRequest) {
