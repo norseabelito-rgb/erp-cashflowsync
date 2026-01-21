@@ -115,9 +115,9 @@ Răspunde în format JSON:
   });
 
   // Parse response
-  const content = response.content[0];
-  if (content.type !== "text") {
-    throw new Error("Răspuns AI invalid");
+  const content = response.content?.[0];
+  if (!content || content.type !== "text") {
+    throw new Error("Răspuns AI invalid sau gol");
   }
 
   try {
@@ -205,9 +205,9 @@ Răspunde în format JSON:
     system: systemPrompt,
   });
 
-  const content = response.content[0];
-  if (content.type !== "text") {
-    throw new Error("Răspuns AI invalid");
+  const content = response.content?.[0];
+  if (!content || content.type !== "text") {
+    throw new Error("Răspuns AI invalid sau gol");
   }
 
   try {

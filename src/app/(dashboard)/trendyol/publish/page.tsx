@@ -369,10 +369,10 @@ export default function TrendyolPublishPage() {
                       />
                     </TableCell>
                     <TableCell>
-                      {product.images[0]?.url ? (
+                      {product.images?.[0]?.url ? (
                         <div className="w-12 h-12 relative rounded overflow-hidden bg-muted">
                           <Image
-                            src={product.images[0].url}
+                            src={product.images?.[0]?.url || ""}
                             alt={product.title}
                             fill
                             className="object-cover"

@@ -325,7 +325,7 @@ export default function ProductInventoryMappingPage() {
                         <TableCell>
                           {product.images?.[0]?.url ? (
                             <img
-                              src={product.images[0].url}
+                              src={product.images?.[0]?.url || ""}
                               alt={product.title}
                               className="h-10 w-10 rounded object-cover"
                             />

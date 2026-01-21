@@ -743,7 +743,7 @@ export default function ProductsPage() {
                       <TableCell>
                         {product.images?.[0] ? (
                           <img
-                            src={getDriveImageUrl(product.images[0].url)}
+                            src={getDriveImageUrl(product.images?.[0]?.url || "")}
                             alt={product.title}
                             className="w-10 h-10 object-cover rounded"
                           />

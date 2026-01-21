@@ -408,7 +408,7 @@ export class FanCourierAPI {
       if (response.data.status === "success" && response.data.data?.[0]) {
         const trackingData = response.data.data[0];
         const events = trackingData.events || [];
-        const lastEvent = events[events.length - 1];
+        const lastEvent = events.length > 0 ? events[events.length - 1] : null;
 
         return {
           success: true,
