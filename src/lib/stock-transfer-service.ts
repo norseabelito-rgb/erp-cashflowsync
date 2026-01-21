@@ -249,7 +249,7 @@ export async function proposeTransferForOrder(orderId: string): Promise<Transfer
       toWarehouseId: operationalWarehouse.id,
       status: "DRAFT",
       isAutoProposed: true,
-      notes: `Transfer automat propus pentru comanda ${order?.shopifyOrderNumber || order?.externalOrderNumber || orderId}`,
+      notes: `Transfer automat propus pentru comanda ${order?.shopifyOrderNumber || orderId}`,
       items: {
         create: sourceData.items.map((item) => ({
           itemId: item.itemId,

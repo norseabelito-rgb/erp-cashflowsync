@@ -131,7 +131,7 @@ export async function getEligibleOrdersForSettlement(
 
   return orders.map((order) => ({
     id: order.id,
-    orderNumber: order.shopifyOrderNumber || order.externalOrderNumber || order.id,
+    orderNumber: order.shopifyOrderNumber || order.id,
     totalPrice: order.totalPrice,
     processedAt: order.invoice?.issuedAt || order.createdAt,
     lineItems: order.lineItems,

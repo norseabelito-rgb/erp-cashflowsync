@@ -10,6 +10,9 @@ const CRON_SECRET = process.env.CRON_SECRET;
  * - GET /api/cron/run-all?job=ads-alerts     - Check alerts (every 15 min)
  * - GET /api/cron/run-all?job=ads-rollback   - Rollback actions (every hour)
  * - GET /api/cron/run-all?job=handover       - Finalize handover (at 20:00)
+ * - GET /api/cron/run-all?job=backup         - Automatic backup (at configured time)
+ * - GET /api/cron/run-all?job=sync-orders    - Sync Shopify orders (every 15 min)
+ * - GET /api/cron/run-all?job=sync-awb       - Sync AWB status (every 30 min)
  * - GET /api/cron/run-all?job=all            - Run all jobs (for testing)
  *
  * Can be called from:
@@ -109,6 +112,42 @@ export async function GET(request: NextRequest) {
         }
       } else {
         results["handover"] = { success: true, skipped: true, data: "Only runs after 20:00" };
+      }
+    }
+
+    if (job === "backup" || job === "all") {
+      try {
+        const data = await callEndpoint("/api/cron/backup");
+        results["backup"] = { success: true, data };
+        console.log(`[CRON RUN-ALL] backup: SUCCESS`);
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : "Unknown error";
+        results["backup"] = { success: false, error };
+        console.error(`[CRON RUN-ALL] backup: FAILED -`, error);
+      }
+    }
+
+    if (job === "sync-orders" || job === "all") {
+      try {
+        const data = await callEndpoint("/api/cron/sync-orders");
+        results["sync-orders"] = { success: true, data };
+        console.log(`[CRON RUN-ALL] sync-orders: SUCCESS`);
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : "Unknown error";
+        results["sync-orders"] = { success: false, error };
+        console.error(`[CRON RUN-ALL] sync-orders: FAILED -`, error);
+      }
+    }
+
+    if (job === "sync-awb" || job === "all") {
+      try {
+        const data = await callEndpoint("/api/cron/sync-awb");
+        results["sync-awb"] = { success: true, data };
+        console.log(`[CRON RUN-ALL] sync-awb: SUCCESS`);
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : "Unknown error";
+        results["sync-awb"] = { success: false, error };
+        console.error(`[CRON RUN-ALL] sync-awb: FAILED -`, error);
       }
     }
 

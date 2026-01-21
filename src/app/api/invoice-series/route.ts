@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
       type = "f",
       startNumber = 1,
       isDefault = false,
+      // DEPRECATED: SmartBill fields - replaced by Facturis per-company credentials
       syncToSmartBill = false,
       smartBillSeries,
     } = body;
@@ -134,6 +135,7 @@ export async function PUT(request: NextRequest) {
       startNumber,
       isDefault,
       isActive,
+      // DEPRECATED: SmartBill fields - replaced by Facturis per-company credentials
       syncToSmartBill,
       smartBillSeries,
       storeId,

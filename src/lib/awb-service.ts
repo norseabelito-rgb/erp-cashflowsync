@@ -208,7 +208,7 @@ export async function createAWBForOrder(
     console.log("\n" + "=".repeat(60));
     console.log("📦 CREARE AWB - FANCOURIER");
     console.log("=".repeat(60));
-    console.log(`📦 Comandă: ${order.shopifyOrderNumber || order.externalOrderNumber || order.id}`);
+    console.log(`📦 Comandă: ${order.shopifyOrderNumber || order.id}`);
     console.log(`🏢 Firmă: ${company.name} (${company.code})`);
     console.log(`📍 Expeditor: ${sender.name}, ${sender.city}, ${sender.county}`);
     console.log(`📍 Destinatar: ${order.shippingCity}, ${order.shippingProvince}`);
@@ -239,7 +239,7 @@ export async function createAWBForOrder(
       payment: isRamburs ? "recipient" : "sender",
       parcels: options?.packages || settings?.defaultPackages || 1,
       weight: options?.weight || Number(settings?.defaultWeight) || 1,
-      content: `Comandă ${order.shopifyOrderNumber || order.externalOrderNumber || order.id}`,
+      content: `Comandă ${order.shopifyOrderNumber || order.id}`,
       cod: cod || 0,
       declaredValue: Math.round(Number(order.totalPrice) * 100) / 100,
       observation: observations,
@@ -313,7 +313,7 @@ export async function createAWBForOrder(
       const { logAwbCreated } = await import("./activity-log");
       await logAwbCreated({
         orderId: order.id,
-        orderNumber: order.shopifyOrderNumber || order.externalOrderNumber || order.id,
+        orderNumber: order.shopifyOrderNumber || order.id,
         awbNumber: result.awb,
         courier: "FanCourier",
         companyName: company.name,

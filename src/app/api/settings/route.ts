@@ -135,28 +135,14 @@ export async function POST(request: NextRequest) {
     if (updateData.trendyolCurrencyRate) {
       updateData.trendyolCurrencyRate = parseFloat(updateData.trendyolCurrencyRate) || 5.0;
     }
-    // SmartBill numeric fields
+    // DEPRECATED: SmartBill fields - replaced by Facturis per-company credentials
+    // Keeping for backward compatibility with existing DB records
     if (updateData.smartbillTaxPercent !== undefined) {
       updateData.smartbillTaxPercent = parseInt(updateData.smartbillTaxPercent) || 21;
     }
     if (updateData.smartbillDueDays !== undefined) {
       updateData.smartbillDueDays = parseInt(updateData.smartbillDueDays) || 0;
     }
-
-    // Debug logging pentru SmartBill
-    console.log("\n" + "=".repeat(60));
-    console.log("💾 SETTINGS API - SALVARE");
-    console.log("=".repeat(60));
-    console.log("SmartBill fields being saved:");
-    console.log("  - smartbillTaxName:", updateData.smartbillTaxName);
-    console.log("  - smartbillTaxPercent:", updateData.smartbillTaxPercent);
-    console.log("  - smartbillSeriesName:", updateData.smartbillSeriesName);
-    console.log("  - smartbillWarehouseName:", updateData.smartbillWarehouseName);
-    console.log("  - smartbillUseStock:", updateData.smartbillUseStock);
-    if (updateData.aiApiKey) {
-      console.log("AI API Key:", updateData.aiApiKey ? "SET (length: " + updateData.aiApiKey.length + ")" : "NOT SET");
-    }
-    console.log("=".repeat(60) + "\n");
 
     const settings = await prisma.settings.upsert({
       where: { id: "default" },
