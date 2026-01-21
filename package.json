@@ -8,7 +8,7 @@
     "prestart": "node scripts/force-migration.js",
     "db:migrate": "node scripts/run-migration.js",
     "db:force-migrate": "node scripts/force-migration.js",
-    "start": "next start",
+    "start": "node .next/standalone/server.js",
     "lint": "next lint",
     "test": "vitest",
     "test:run": "vitest run",
