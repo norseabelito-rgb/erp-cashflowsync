@@ -1,13 +1,10 @@
-# TEST
 [build]
 builder = "NIXPACKS"
 installCommand = "npm install --legacy-peer-deps"
-# Build and copy static files for standalone mode
-buildCommand = "npx prisma generate && npm run build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public"
+buildCommand = "npx prisma generate && npm run build"
 
 [deploy]
 # Safe migration script that uses IF NOT EXISTS - won't delete data
-# Use standalone server (required for output: standalone in next.config.js)
-startCommand = "node scripts/force-migration.js && node .next/standalone/server.js"
+startCommand = "node scripts/force-migration.js && npm run start"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
