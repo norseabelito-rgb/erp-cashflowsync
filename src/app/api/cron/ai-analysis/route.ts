@@ -16,13 +16,17 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify cron secret (optional but recommended)
+    // Verify cron secret (MANDATORY)
     const authHeader = request.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
-    
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      // Allow without secret for development, but log warning
-      console.warn("AI Cron called without valid secret");
+
+    if (!cronSecret) {
+      console.error("[AI ANALYSIS CRON] CRON_SECRET environment variable not configured");
+      return NextResponse.json({ error: "Server configuration error: CRON_SECRET not set" }, { status: 500 });
+    }
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      console.warn("[AI ANALYSIS CRON] Called without valid secret");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Get AI settings

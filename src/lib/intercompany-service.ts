@@ -6,6 +6,7 @@
  */
 
 import prisma from "./db";
+import { Prisma } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 
 interface SettlementPreview {
@@ -194,18 +195,19 @@ export async function generateSettlementPreview(
   }
 
   // Calculăm markup-ul
+  // C8: Use proper rounding for financial calculations to avoid floating point errors
   const markup = Number(company.intercompanyMarkup) || 10;
   const subtotal = Array.from(productMap.values()).reduce((sum, p) => sum + p.totalValue, 0);
-  const markupAmount = (subtotal * markup) / 100;
-  const total = subtotal + markupAmount;
+  const markupAmount = Math.round((subtotal * markup) / 100 * 100) / 100; // Round to 2 decimals
+  const total = Math.round((subtotal + markupAmount) * 100) / 100;
 
   const lineItems = Array.from(productMap.values()).map((p) => ({
     sku: p.sku,
     title: p.title,
     quantity: p.quantity,
-    unitCost: p.totalValue / p.quantity,
+    unitCost: Math.round((p.totalValue / p.quantity) * 100) / 100,
     markup,
-    lineTotal: (p.totalValue * (1 + markup / 100)),
+    lineTotal: Math.round((p.totalValue * (1 + markup / 100)) * 100) / 100,
   }));
 
   return {
@@ -257,55 +259,60 @@ export async function generateIntercompanyInvoice(
       };
     }
 
-    // Generăm număr unic pentru factura intercompany
-    const year = new Date().getFullYear();
-    const count = await prisma.intercompanyInvoice.count({
-      where: {
-        invoiceNumber: { startsWith: `IC-${year}` },
-      },
-    });
-    const invoiceNumber = `IC-${year}-${String(count + 1).padStart(5, "0")}`;
+    // Executăm totul într-o tranzacție atomică pentru a preveni race conditions
+    const result = await prisma.$transaction(async (tx) => {
+      // Generăm număr unic pentru factura intercompany (în tranzacție pentru atomicitate)
+      const year = new Date().getFullYear();
+      const count = await tx.intercompanyInvoice.count({
+        where: {
+          invoiceNumber: { startsWith: `IC-${year}` },
+        },
+      });
+      const invoiceNumber = `IC-${year}-${String(count + 1).padStart(5, "0")}`;
 
-    // Creăm factura intercompany
-    const intercompanyInvoice = await prisma.intercompanyInvoice.create({
-      data: {
-        issuedByCompanyId: primaryCompany.id,
-        receivedByCompanyId: companyId,
-        periodStart: preview.periodStart,
-        periodEnd: preview.periodEnd,
-        invoiceNumber,
-        totalValue: preview.total,
-        totalItems: preview.totalOrders,
-        status: "pending",
-        lineItems: JSON.stringify(preview.lineItems),
-        issuedAt: new Date(),
-      },
-    });
-
-    // Legăm comenzile de factura intercompany
-    for (const order of preview.orders) {
-      await prisma.intercompanyOrderLink.create({
+      // Creăm factura intercompany
+      const intercompanyInvoice = await tx.intercompanyInvoice.create({
         data: {
-          intercompanyInvoiceId: intercompanyInvoice.id,
-          orderId: order.id,
+          issuedByCompanyId: primaryCompany.id,
+          receivedByCompanyId: companyId,
+          periodStart: preview.periodStart,
+          periodEnd: preview.periodEnd,
+          invoiceNumber,
+          totalValue: preview.total,
+          totalItems: preview.totalOrders,
+          status: "pending",
+          lineItems: JSON.stringify(preview.lineItems),
+          issuedAt: new Date(),
         },
       });
 
-      // Marcăm comanda ca decontată
-      await prisma.order.update({
-        where: { id: order.id },
-        data: { intercompanyStatus: "settled" },
-      });
-    }
+      // Legăm comenzile de factura intercompany și le marcăm ca decontate
+      for (const order of preview.orders) {
+        await tx.intercompanyOrderLink.create({
+          data: {
+            intercompanyInvoiceId: intercompanyInvoice.id,
+            orderId: order.id,
+          },
+        });
+
+        // Marcăm comanda ca decontată
+        await tx.order.update({
+          where: { id: order.id },
+          data: { intercompanyStatus: "settled" },
+        });
+      }
+
+      return { invoiceId: intercompanyInvoice.id, invoiceNumber };
+    });
 
     console.log(
-      `📋 Factură intercompany generată: ${invoiceNumber} pentru ${preview.companyName} - ${preview.total} RON`
+      `📋 Factură intercompany generată: ${result.invoiceNumber} pentru ${preview.companyName} - ${preview.total} RON`
     );
 
     return {
       success: true,
-      invoiceId: intercompanyInvoice.id,
-      invoiceNumber,
+      invoiceId: result.invoiceId,
+      invoiceNumber: result.invoiceNumber,
     };
   } catch (error: any) {
     console.error("Eroare la generarea facturii intercompany:", error);

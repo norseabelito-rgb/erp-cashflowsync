@@ -19,8 +19,13 @@ export function useAutoSync({ intervalMinutes = 5, enabled = true }: AutoSyncOpt
       try {
         console.log(`[AutoSync] Sincronizare automată la ${new Date().toLocaleTimeString()}`);
         const res = await fetch("/api/sync", { method: "POST" });
+
+        if (!res.ok) {
+          throw new Error(`Sync failed with status ${res.status}`);
+        }
+
         const data = await res.json();
-        
+
         if (data.synced > 0) {
           console.log(`[AutoSync] ${data.synced} comenzi noi sincronizate`);
           // Invalidăm query-urile pentru a actualiza UI-ul

@@ -330,8 +330,10 @@ export const authOptions: NextAuthOptions = {
             await assignSuperAdminToUser(user.id, superAdminRole.id);
 
             token.isSuperAdmin = true;
-          } catch {
-            // Silent fail - rolul va fi setat manual dacă e nevoie
+          } catch (error) {
+            // Log the error for debugging but don't block login
+            console.error("[Auth] Failed to setup SuperAdmin role for first user:", error);
+            // Note: SuperAdmin role can be manually assigned in the admin panel if needed
           }
         } else {
           // Nu e primul - fetch datele din DB
@@ -376,7 +378,8 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 60, // 30 minute - timeout sesiune
+    // Session timeout configurable via environment variable (default: 30 minutes)
+    maxAge: parseInt(process.env.SESSION_TIMEOUT_MINUTES || "30", 10) * 60,
     updateAge: 60, // Resetează timeout-ul la fiecare minut de activitate
   },
   // Let NextAuth handle cookies automatically based on environment

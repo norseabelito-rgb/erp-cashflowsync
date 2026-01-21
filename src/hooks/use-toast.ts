@@ -110,10 +110,18 @@ export const reducer = (state: State, action: Action): State => {
     }
     case "REMOVE_TOAST":
       if (action.toastId === undefined) {
+        // Clear all timeouts when removing all toasts
+        toastTimeouts.forEach((timeout) => clearTimeout(timeout));
+        toastTimeouts.clear();
         return {
           ...state,
           toasts: [],
         };
+      }
+      // Clear the timeout for this specific toast to prevent memory leaks
+      if (toastTimeouts.has(action.toastId)) {
+        clearTimeout(toastTimeouts.get(action.toastId));
+        toastTimeouts.delete(action.toastId);
       }
       return {
         ...state,
@@ -175,7 +183,9 @@ function useToast() {
         listeners.splice(index, 1);
       }
     };
-  }, [state]);
+    // Empty dependency array - listener registration only needs to happen once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     ...state,

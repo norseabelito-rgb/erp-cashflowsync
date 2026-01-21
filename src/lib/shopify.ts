@@ -521,46 +521,52 @@ export async function syncSingleOrder(
     status = "VALIDATION_FAILED";
   }
 
-  // Pregătim LineItems cu date îmbogățite din MasterProduct
-  const lineItemsData = await Promise.all(
-    shopifyOrder.line_items.map(async (item) => {
-      // Căutăm MasterProduct după SKU pentru a prelua barcode, location, etc.
-      let masterProduct = null;
-      const effectiveSku = item.sku || `SHOPIFY-${item.id}`;
-      
-      if (item.sku) {
-        masterProduct = await prisma.masterProduct.findUnique({
-          where: { sku: item.sku },
-          select: {
-            id: true,
-            barcode: true,
-            warehouseLocation: true,
-            weight: true,
-            images: {
-              where: { position: 0 },
-              select: { url: true },
-              take: 1,
-            },
-          },
-        });
-      }
+  // OPTIMIZATION: Batch load all MasterProducts by SKU to avoid N+1 queries
+  const skus = shopifyOrder.line_items
+    .filter((item) => item.sku)
+    .map((item) => item.sku as string);
 
-      return {
-        shopifyLineItemId: String(item.id),
-        title: item.title,
-        variantTitle: item.variant_title,
-        sku: effectiveSku,
-        quantity: item.quantity,
-        price: parseFloat(item.price),
-        // Date îmbogățite din MasterProduct (dacă există)
-        barcode: masterProduct?.barcode || null,
-        location: masterProduct?.warehouseLocation || null,
-        weight: masterProduct?.weight || null,
-        imageUrl: masterProduct?.images?.[0]?.url || null,
-        masterProductId: masterProduct?.id || null,
-      };
-    })
-  );
+  const masterProducts = skus.length > 0
+    ? await prisma.masterProduct.findMany({
+        where: { sku: { in: skus } },
+        select: {
+          id: true,
+          sku: true,
+          barcode: true,
+          warehouseLocation: true,
+          weight: true,
+          images: {
+            where: { position: 0 },
+            select: { url: true },
+            take: 1,
+          },
+        },
+      })
+    : [];
+
+  // Create a lookup map for fast access
+  const masterProductBySku = new Map(masterProducts.map((mp) => [mp.sku, mp]));
+
+  // Pregătim LineItems cu date îmbogățite din MasterProduct (no additional queries)
+  const lineItemsData = shopifyOrder.line_items.map((item) => {
+    const effectiveSku = item.sku || `SHOPIFY-${item.id}`;
+    const masterProduct = item.sku ? masterProductBySku.get(item.sku) : null;
+
+    return {
+      shopifyLineItemId: String(item.id),
+      title: item.title,
+      variantTitle: item.variant_title,
+      sku: effectiveSku,
+      quantity: item.quantity,
+      price: parseFloat(item.price),
+      // Date îmbogățite din MasterProduct (dacă există)
+      barcode: masterProduct?.barcode || null,
+      location: masterProduct?.warehouseLocation || null,
+      weight: masterProduct?.weight || null,
+      imageUrl: masterProduct?.images?.[0]?.url || null,
+      masterProductId: masterProduct?.id || null,
+    };
+  });
 
   // Verificăm dacă comanda există deja
   const existingOrder = await prisma.order.findUnique({

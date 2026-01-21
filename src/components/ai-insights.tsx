@@ -95,6 +95,9 @@ export function AIInsights({
       params.set("limit", maxItems.toString());
       
       const res = await fetch(`/api/ai/analyze?${params}`);
+      if (!res.ok) {
+        throw new Error(`Request failed with status ${res.status}`);
+      }
       return res.json();
     },
   });

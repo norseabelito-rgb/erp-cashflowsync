@@ -14,7 +14,13 @@ interface FanCourierConfig {
   clientId: string;
 }
 
-let cachedToken: FanCourierToken | null = null;
+// Token cache per company (keyed by clientId to prevent multi-company data leakage)
+const tokenCache = new Map<string, FanCourierToken>();
+
+// Helper to generate cache key from credentials
+function getTokenCacheKey(clientId: string, username: string): string {
+  return `${clientId}:${username}`;
+}
 
 export class FanCourierAPI {
   private username: string;
@@ -42,16 +48,21 @@ export class FanCourierAPI {
 
   /**
    * Obține token de autentificare (valid 24h)
+   * Tokens are cached per-company (by clientId+username) to prevent multi-company data leakage
    */
   async getToken(): Promise<string> {
-    // Verifică dacă avem token valid în cache
+    // Use company-specific cache key to prevent multi-tenant token sharing
+    const cacheKey = getTokenCacheKey(this.clientId, this.username);
+    const cachedToken = tokenCache.get(cacheKey);
+
+    // Verifică dacă avem token valid în cache pentru această companie
     if (cachedToken && cachedToken.expiresAt > new Date()) {
       return cachedToken.token;
     }
 
     // Construim URL-ul cu parametrii în query string (conform documentației)
     const loginUrl = `${FANCOURIER_API_URL}/login?username=${encodeURIComponent(this.username)}&password=${encodeURIComponent(this.password)}`;
-    
+
     const response = await fetch(loginUrl, {
       method: "POST",
       headers: {
@@ -66,16 +77,16 @@ export class FanCourierAPI {
 
     const data = await response.json();
     const token = data?.data?.token;
-    
+
     if (!token) {
       throw new Error("Nu s-a putut obține token de la FanCourier");
     }
-    
-    // Cache token pentru 23 ore (să fim siguri că nu expiră)
-    cachedToken = {
+
+    // Cache token pentru 23 ore pentru această companie specifică
+    tokenCache.set(cacheKey, {
       token,
       expiresAt: new Date(Date.now() + 23 * 60 * 60 * 1000),
-    };
+    });
 
     return token;
   }
@@ -263,9 +274,10 @@ export class FanCourierAPI {
         localErrors.push('❌ Nume destinatar: Numele trebuie să aibă minim 2 caractere.');
       }
       
-      // Validăm telefonul normalizat - trebuie să fie 07XXXXXXXX sau 02XXXXXXXX/03XXXXXXXX (fix)
-      if (!normalizedPhone || !/^0[237]\d{8}$/.test(normalizedPhone)) {
-        localErrors.push('❌ Telefon: Formatul corect este 07XXXXXXXX, +40XXXXXXXXX sau 0040XXXXXXXXX. Valoare primită: "' + data.recipientPhone + '" → normalizat: "' + normalizedPhone + '"');
+      // Validăm telefonul normalizat - acceptă orice număr românesc valid de 10 cifre
+      // Include: 07X (mobile), 02X (București), 03X (fix), 04X (mobile VoIP), 05X (servicii speciale)
+      if (!normalizedPhone || !/^0[2-7]\d{8}$/.test(normalizedPhone)) {
+        localErrors.push('❌ Telefon: Formatul corect este 0XXXXXXXXX (10 cifre). Valoare primită: "' + data.recipientPhone + '" → normalizat: "' + normalizedPhone + '"');
       }
       
       if (!data.recipientCounty || data.recipientCounty.trim().length < 2) {
@@ -808,6 +820,18 @@ export async function updateAllAWBStatuses(): Promise<{ updated: number; errors:
   try {
     const fancourier = await createFanCourierClient();
 
+    // OPTIMIZATION: Preload all existing status history to avoid N+1 queries
+    const awbIds = awbs.map((a) => a.id);
+    const existingHistory = await prisma.aWBStatusHistory.findMany({
+      where: { awbId: { in: awbIds } },
+      select: { awbId: true, status: true, statusDate: true },
+    });
+
+    // Create a Set for O(1) lookup of existing events
+    const existingEventsSet = new Set(
+      existingHistory.map((h) => `${h.awbId}|${h.status}|${h.statusDate.getTime()}`)
+    );
+
     for (const awb of awbs) {
       if (!awb.awbNumber) continue;
 
@@ -819,24 +843,23 @@ export async function updateAllAWBStatuses(): Promise<{ updated: number; errors:
           continue;
         }
 
-        // Salvăm evenimentele noi
+        // Salvăm evenimentele noi (using preloaded data for existence check)
         for (const event of tracking.events) {
           const eventDate = new Date(event.date);
+          const eventKey = `${awb.id}|${event.name}|${eventDate.getTime()}`;
 
-          const existingEvent = await prisma.aWBStatusHistory.findFirst({
-            where: { awbId: awb.id, status: event.name, statusDate: eventDate },
-          });
-
-          if (!existingEvent) {
+          if (!existingEventsSet.has(eventKey)) {
             await prisma.aWBStatusHistory.create({
-              data: { 
-                awbId: awb.id, 
-                status: event.name, 
-                statusDate: eventDate, 
+              data: {
+                awbId: awb.id,
+                status: event.name,
+                statusDate: eventDate,
                 location: event.location,
                 description: `${event.id}: ${event.name}`,
               },
             });
+            // Add to set to prevent duplicate insertions in same run
+            existingEventsSet.add(eventKey);
           }
         }
 
@@ -851,9 +874,18 @@ export async function updateAllAWBStatuses(): Promise<{ updated: number; errors:
             },
           });
 
-          // Actualizăm statusul comenzii
+          // Actualizăm statusul comenzii și flag-ul isCollected pentru COD
           if (lastEvent.id === "S2") { // Livrat
             await prisma.order.update({ where: { id: awb.orderId }, data: { status: "DELIVERED" } });
+
+            // Setăm isCollected = true pentru comenzile cu ramburs (COD)
+            // Acest flag este necesar pentru decontarea intercompany
+            if (awb.cashOnDelivery && Number(awb.cashOnDelivery) > 0) {
+              await prisma.aWB.update({
+                where: { id: awb.id },
+                data: { isCollected: true },
+              });
+            }
           } else if (lastEvent.id === "S43" || lastEvent.id === "S6") { // Retur sau Refuz
             await prisma.order.update({ where: { id: awb.orderId }, data: { status: "RETURNED" } });
           }

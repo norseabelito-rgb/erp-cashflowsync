@@ -165,49 +165,60 @@ export async function recordStockMovement(data: {
   const quantityChange = data.type === StockMovementType.OUT ? -Math.abs(data.quantity) : Math.abs(data.quantity);
   const newStock = previousStock + quantityChange;
 
-  // Actualizează stocul produsului în inventar (Product)
-  await prisma.product.update({
-    where: { id: data.productId },
-    data: { stockQuantity: newStock },
-  });
-
-  // Actualizează și MasterProduct dacă există cu același SKU
-  try {
-    const masterProduct = await prisma.masterProduct.findUnique({
-      where: { sku: product.sku },
-    });
-    
-    if (masterProduct) {
-      const newMasterStock = Math.max(0, masterProduct.stock + quantityChange);
-      await prisma.masterProduct.update({
-        where: { sku: product.sku },
-        data: { 
-          stock: newMasterStock,
-          stockLastSyncedAt: new Date(),
-        },
-      });
-      console.log(`     📦 MasterProduct ${product.sku} stock: ${masterProduct.stock} → ${newMasterStock}`);
-    }
-  } catch (masterError) {
-    // Nu oprim procesarea dacă MasterProduct nu poate fi actualizat
-    console.warn(`     ⚠️ Nu s-a putut actualiza MasterProduct pentru ${product.sku}`);
+  // B13: Validate that stock doesn't go negative (unless explicitly allowed)
+  if (newStock < 0) {
+    throw new Error(
+      `Stoc insuficient pentru ${product.name} (${product.sku}). ` +
+      `Stoc curent: ${previousStock}, Necesar: ${Math.abs(data.quantity)}`
+    );
   }
 
-  // Înregistrează mișcarea
-  return prisma.stockMovement.create({
-    data: {
-      productId: data.productId,
-      type: data.type,
-      quantity: quantityChange,
-      previousStock,
-      newStock,
-      orderId: data.orderId,
-      invoiceId: data.invoiceId,
-      reference: data.reference,
-      notes: data.notes,
-      createdBy: data.createdBy,
-    },
-  });
+  // B14: Use transaction to ensure atomicity of all stock updates
+  return prisma.$transaction(async (tx) => {
+    // Actualizează stocul produsului în inventar (Product)
+    await tx.product.update({
+      where: { id: data.productId },
+      data: { stockQuantity: newStock },
+    });
+
+    // Actualizează și MasterProduct dacă există cu același SKU
+    try {
+      const masterProduct = await tx.masterProduct.findUnique({
+        where: { sku: product.sku },
+      });
+
+      if (masterProduct) {
+        const newMasterStock = Math.max(0, masterProduct.stock + quantityChange);
+        await tx.masterProduct.update({
+          where: { sku: product.sku },
+          data: {
+            stock: newMasterStock,
+            stockLastSyncedAt: new Date(),
+          },
+        });
+        console.log(`     📦 MasterProduct ${product.sku} stock: ${masterProduct.stock} → ${newMasterStock}`);
+      }
+    } catch (masterError) {
+      // Nu oprim procesarea dacă MasterProduct nu poate fi actualizat
+      console.warn(`     ⚠️ Nu s-a putut actualiza MasterProduct pentru ${product.sku}`);
+    }
+
+    // Înregistrează mișcarea
+    return tx.stockMovement.create({
+      data: {
+        productId: data.productId,
+        type: data.type,
+        quantity: quantityChange,
+        previousStock,
+        newStock,
+        orderId: data.orderId,
+        invoiceId: data.invoiceId,
+        reference: data.reference,
+        notes: data.notes,
+        createdBy: data.createdBy,
+      },
+    });
+  }); // Close transaction
 }
 
 /**
@@ -243,14 +254,32 @@ export async function processStockForOrder(
 
     console.log(`📋 Produse în comandă: ${lineItems.length}`);
 
+    // OPTIMIZATION: Batch load all products by SKU to avoid N+1 queries
+    const skus = lineItems.filter((li) => li.sku).map((li) => li.sku as string);
+    const products = skus.length > 0
+      ? await prisma.product.findMany({
+          where: { sku: { in: skus } },
+          include: {
+            components: {
+              include: {
+                componentProduct: true,
+              },
+            },
+          },
+        })
+      : [];
+
+    // Create a lookup map for fast access
+    const productBySku = new Map(products.map((p) => [p.sku, p]));
+
     for (const item of lineItems) {
       if (!item.sku) {
         console.log(`  ⚠️ Produs "${item.title}" nu are SKU - skip`);
         continue;
       }
 
-      // Găsește produsul în inventar
-      const product = await findProductBySku(item.sku);
+      // Găsește produsul din lookup map (no additional query)
+      const product = productBySku.get(item.sku);
 
       if (!product) {
         console.log(`  ⚠️ SKU "${item.sku}" nu există în inventar - skip`);
@@ -261,8 +290,15 @@ export async function processStockForOrder(
       console.log(`     Cantitate comandată: ${item.quantity}`);
       console.log(`     Este compus: ${product.isComposite ? "DA" : "NU"}`);
 
-      // Obține componentele efective (pentru produse compuse sau simple)
-      const components = await getEffectiveComponents(product.id);
+      // Obține componentele efective inline (data already loaded, no query needed)
+      const components = (!product.isComposite || product.components.length === 0)
+        ? [{ productId: product.id, sku: product.sku, name: product.name, quantity: 1 }]
+        : product.components.map((comp) => ({
+            productId: comp.componentProduct.id,
+            sku: comp.componentProduct.sku,
+            name: comp.componentProduct.name,
+            quantity: comp.quantity,
+          }));
 
       for (const comp of components) {
         const totalQuantity = comp.quantity * item.quantity;

@@ -23,9 +23,13 @@ const CRON_SECRET = process.env.CRON_SECRET;
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verifică autorizarea
+    // Verifică autorizarea (MANDATORY)
     const authHeader = request.headers.get("authorization");
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+    if (!CRON_SECRET) {
+      console.error("[CRON RUN-ALL] CRON_SECRET environment variable not configured");
+      return NextResponse.json({ error: "Server configuration error: CRON_SECRET not set" }, { status: 500 });
+    }
+    if (authHeader !== `Bearer ${CRON_SECRET}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
