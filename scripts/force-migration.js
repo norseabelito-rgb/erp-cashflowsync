@@ -50,10 +50,18 @@ async function runMigration() {
     const sql = fs.readFileSync(sqlPath, 'utf8');
 
     // Împarte SQL-ul în statements individuale
+    // IMPORTANT: Eliminăm comentariile ÎNAINTE de split, altfel statements
+    // precedate de comentarii (-- comment\nALTER TABLE...) ar fi filtrate greșit
     const statements = sql
+      // Elimină comentariile single-line (-- comment)
+      .replace(/--.*$/gm, '')
+      // Elimină comentariile multi-line (/* comment */)
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      // Split pe ;
       .split(';')
+      // Trim și filtrează linii goale
       .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--'));
+      .filter(s => s.length > 0);
 
     console.log(`📋 Se execută ${statements.length} statements SQL...`);
     console.log('');
