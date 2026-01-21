@@ -206,6 +206,18 @@ CREATE INDEX IF NOT EXISTS "awbs_isCollected_idx" ON "awbs"("isCollected");
 CREATE INDEX IF NOT EXISTS "invoice_series_companyId_idx" ON "invoice_series"("companyId");
 CREATE INDEX IF NOT EXISTS "warehouses_isOperational_idx" ON "warehouses"("isOperational");
 
+-- 13. Add missing columns for Settings (needed for Prisma schema compatibility)
+ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "defaultVatRate" INTEGER DEFAULT 19;
+
+-- 14. Add missing columns for Invoices (legacy SmartBill fields for compatibility)
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "smartbill_number" TEXT;
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "smartbill_series" TEXT;
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "smartbill_id" TEXT;
+
+-- 15. Add missing columns for InvoiceSeries
+ALTER TABLE "invoice_series" ADD COLUMN IF NOT EXISTS "sync_to_smartbill" BOOLEAN DEFAULT false;
+ALTER TABLE "invoice_series" ADD COLUMN IF NOT EXISTS "smartbill_series" TEXT;
+
 -- Done!
 -- After running this migration, run: npx prisma generate (if cache permits)
 -- Or manually restart the application to pick up schema changes
