@@ -1,462 +1,135 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { logStockSync, logStockMovement } from "@/lib/activity-log";
+import { logStockSync } from "@/lib/activity-log";
 
-interface SmartBillStock {
-  productName: string;
-  productCode: string;
-  quantity: number;
-  warehouse: string;
-  measuringUnit: string;
-  averageAcquisitionPrice?: number;
-}
-
-interface StockComparison {
+interface StockItem {
   sku: string;
   productName: string;
-  erpQuantity: number;
-  smartbillQuantity: number;
-  difference: number;
+  quantity: number;
   warehouse?: string;
 }
 
-// GET - Citește stocurile din SmartBill și compară cu ERP
+// GET - Citește stocurile din inventarul local
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const warehouseName = searchParams.get("warehouse");
-    const compareOnly = searchParams.get("compare") === "true";
+    const warehouseId = searchParams.get("warehouse");
 
-    // Citim setările SmartBill
-    const settings = await prisma.settings.findUnique({
-      where: { id: "default" },
-    });
-
-    if (!settings?.smartbillEmail || !settings?.smartbillToken || !settings?.smartbillCompanyCif) {
-      return NextResponse.json({
-        success: false,
-        error: "Configurația SmartBill nu este completă",
-      });
+    // Citim stocurile din inventarul local
+    const whereClause: any = {};
+    if (warehouseId) {
+      whereClause.warehouseId = warehouseId;
     }
 
-    const auth = Buffer.from(`${settings.smartbillEmail}:${settings.smartbillToken}`).toString("base64");
-    const cif = settings.smartbillCompanyCif;
-    const today = new Date().toISOString().split("T")[0];
-
-    // Construim URL-ul
-    let url = `https://ws.smartbill.ro/SBORO/api/stocks?cif=${encodeURIComponent(cif)}&date=${today}`;
-    if (warehouseName) {
-      url += `&warehouseName=${encodeURIComponent(warehouseName)}`;
-    }
-
-    console.log("Fetching SmartBill stocks...", url);
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "Authorization": `Basic ${auth}`,
-        "Accept": "application/json",
+    const inventoryItems = await prisma.inventoryItem.findMany({
+      where: whereClause,
+      include: {
+        masterProduct: true,
+        warehouse: true,
       },
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return NextResponse.json({
-        success: false,
-        error: errorData?.errorText || `Eroare HTTP ${response.status}`,
-      });
-    }
-
-    const data = await response.json();
-    
-    if (data?.errorText) {
-      return NextResponse.json({
-        success: false,
-        error: data.errorText,
-      });
-    }
-
-    // DEBUG: Logăm primul item pentru a vedea structura
-    if (data?.list?.[0]) {
-      console.log("=== SmartBill Stock Item Structure ===");
-      console.log(JSON.stringify(data.list[0], null, 2));
-      console.log("======================================");
-    }
-
-    // SmartBill returnează structură grupată pe gestiuni:
-    // { warehouse: { warehouseName, warehouseType }, products: [...] }
-    const smartbillStocks: SmartBillStock[] = [];
-
-    for (const warehouseGroup of (data?.list || [])) {
-      // Extrage numele gestiunii
-      let warehouseStr = "";
-      if (typeof warehouseGroup.warehouse === "string") {
-        warehouseStr = warehouseGroup.warehouse;
-      } else if (warehouseGroup.warehouse?.warehouseName) {
-        warehouseStr = warehouseGroup.warehouse.warehouseName;
-      }
-
-      // Parcurge produsele din această gestiune
-      const products = warehouseGroup.products || [];
-      for (const item of products) {
-        smartbillStocks.push({
-          productName: item.productName || item.name || "",
-          productCode: item.productCode || item.code || "",
-          quantity: parseFloat(item.quantity) || 0,
-          warehouse: warehouseStr,
-          measuringUnit: item.measuringUnit || item.measuringUnitName || "buc",
-          averageAcquisitionPrice: parseFloat(item.averageAcquisitionPrice) || 0,
-        });
-      }
-    }
-
-    // Dacă vrem să comparăm cu ERP
-    if (compareOnly) {
-      // Obținem produsele din ERP
-      const erpProducts = await prisma.product.findMany({
-        where: { isActive: true },
-        select: {
-          sku: true,
-          name: true,
-          stockQuantity: true,
-        },
-      });
-
-      // Comparăm stocurile
-      const comparison: StockComparison[] = [];
-      const smartbillByCode = new Map<string, SmartBillStock>();
-      
-      smartbillStocks.forEach(stock => {
-        if (stock.productCode) {
-          smartbillByCode.set(stock.productCode, stock);
-        }
-      });
-
-      // Verificăm produsele ERP
-      for (const product of erpProducts) {
-        const sbStock = smartbillByCode.get(product.sku);
-        const sbQuantity = sbStock?.quantity || 0;
-        
-        if (product.stockQuantity !== sbQuantity) {
-          comparison.push({
-            sku: product.sku,
-            productName: product.name,
-            erpQuantity: product.stockQuantity,
-            smartbillQuantity: sbQuantity,
-            difference: product.stockQuantity - sbQuantity,
-            warehouse: sbStock?.warehouse,
-          });
-        }
-      }
-
-      // Verificăm produse în SmartBill dar nu în ERP
-      for (const [code, sbStock] of smartbillByCode) {
-        const erpProduct = erpProducts.find(p => p.sku === code);
-        if (!erpProduct && sbStock.quantity > 0) {
-          comparison.push({
-            sku: code,
-            productName: sbStock.productName,
-            erpQuantity: 0,
-            smartbillQuantity: sbStock.quantity,
-            difference: -sbStock.quantity,
-            warehouse: sbStock.warehouse,
-          });
-        }
-      }
-
-      return NextResponse.json({
-        success: true,
-        data: {
-          smartbillStocks,
-          comparison,
-          totalDifferences: comparison.length,
-          warehouses: [...new Set(smartbillStocks.map(s => s.warehouse).filter(Boolean))],
-        },
-      });
-    }
+    const stocks: StockItem[] = inventoryItems.map(item => ({
+      sku: item.masterProduct?.sku || item.sku || "N/A",
+      productName: item.masterProduct?.name || item.name || "Produs necunoscut",
+      quantity: item.quantity,
+      warehouse: item.warehouse?.name,
+    }));
 
     return NextResponse.json({
       success: true,
-      data: {
-        stocks: smartbillStocks,
-        total: smartbillStocks.length,
-        warehouses: [...new Set(smartbillStocks.map(s => s.warehouse).filter(Boolean))],
-      },
+      stocks,
+      totalProducts: stocks.length,
+      totalQuantity: stocks.reduce((sum, s) => sum + s.quantity, 0),
     });
 
   } catch (error: any) {
-    console.error("Stock sync error:", error);
-    return NextResponse.json({
-      success: false,
-      error: error.message || "Eroare la citirea stocurilor",
-    });
+    console.error("Error fetching local stocks:", error);
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
   }
 }
 
-// POST - Sincronizează stocurile
+// POST - Sincronizare stocuri (dezactivată - Facturis nu suportă sincronizare stocuri)
 export async function POST(request: NextRequest) {
   try {
-    // Parsează body-ul dacă există
-    let body: any = {};
-    try {
-      const text = await request.text();
-      if (text) {
-        body = JSON.parse(text);
-      }
-    } catch (e) {
-      // Body gol sau invalid - continuăm cu default
-    }
+    const body = await request.json().catch(() => ({}));
+    const { direction } = body;
 
-    const { direction = "smartbill_to_erp", confirm, changes } = body;
-
-    // direction: "smartbill_to_erp" sau "erp_to_smartbill"
-    // confirm: true dacă utilizatorul a confirmat modificările
-    // changes: array cu modificările de aplicat (pentru erp_to_smartbill)
-
-    const settings = await prisma.settings.findUnique({
-      where: { id: "default" },
-    });
-
-    if (!settings?.smartbillEmail || !settings?.smartbillToken || !settings?.smartbillCompanyCif) {
-      return NextResponse.json({
-        success: false,
-        error: "Configurația SmartBill nu este completă",
-      });
-    }
-
-    if (direction === "smartbill_to_erp") {
-      // Sincronizăm din SmartBill în ERP
-      const auth = Buffer.from(`${settings.smartbillEmail}:${settings.smartbillToken}`).toString("base64");
-      const cif = settings.smartbillCompanyCif;
-      const today = new Date().toISOString().split("T")[0];
-      
-      let url = `https://ws.smartbill.ro/SBORO/api/stocks?cif=${encodeURIComponent(cif)}&date=${today}`;
-      if (settings.smartbillWarehouseName) {
-        url += `&warehouseName=${encodeURIComponent(settings.smartbillWarehouseName)}`;
-      }
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Authorization": `Basic ${auth}`,
-          "Accept": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Nu s-au putut citi stocurile din SmartBill");
-      }
-
-      const data = await response.json();
-      
-      // Flatten structura SmartBill (grupată pe gestiuni)
-      const smartbillStocks: Array<{ productCode: string; productName: string; quantity: number }> = [];
-      for (const warehouseGroup of (data?.list || [])) {
-        const products = warehouseGroup.products || [];
-        for (const item of products) {
-          smartbillStocks.push({
-            productCode: item.productCode || item.code || "",
-            productName: item.productName || item.name || "",
-            quantity: parseFloat(item.quantity) || 0,
-          });
-        }
-      }
-
-      // Actualizăm/creăm produsele în ERP
-      const updates: Array<{ sku: string; oldQty: number; newQty: number }> = [];
-      const created: Array<{ sku: string; name: string; qty: number }> = [];
-      const { createMissing } = body;
-      
-      for (const sbStock of smartbillStocks) {
-        const productCode = sbStock.productCode;
-        if (!productCode) continue;
-
-        const erpProduct = await prisma.product.findUnique({
-          where: { sku: productCode },
-        });
-
-        if (erpProduct) {
-          // Produs existent - actualizăm stocul
-          const newQuantity = Math.floor(sbStock.quantity || 0);
-          
-          if (erpProduct.stockQuantity !== newQuantity) {
-            const oldQty = erpProduct.stockQuantity;
-            
-            await prisma.product.update({
-              where: { sku: productCode },
-              data: { stockQuantity: newQuantity },
-            });
-
-            updates.push({
-              sku: productCode,
-              oldQty,
-              newQty: newQuantity,
-            });
-
-            // Logăm mișcarea de stoc
-            await logStockMovement({
-              productSku: productCode,
-              productName: erpProduct.name,
-              type: "ADJUST",
-              quantity: newQuantity - oldQty,
-              oldQuantity: oldQty,
-              newQuantity: newQuantity,
-              reason: "Sincronizare din SmartBill",
-            });
-          }
-        } else if (createMissing !== false) {
-          // Produs nou - îl creăm în baza de date locală
-          const newQuantity = Math.floor(sbStock.quantity || 0);
-          
-          await prisma.product.create({
-            data: {
-              sku: productCode,
-              name: sbStock.productName || productCode,
-              stockQuantity: newQuantity,
-              price: 0, // Va fi actualizat manual sau din altă sursă
-              costPrice: 0,
-              lowStockAlert: 5,
-              unit: "buc",
-              isActive: true,
-            },
-          });
-
-          created.push({
-            sku: productCode,
-            name: sbStock.productName || productCode,
-            qty: newQuantity,
-          });
-        }
-      }
-
-      // Logăm sincronizarea
-      await logStockSync({
-        direction: "smartbill_to_erp",
-        productsUpdated: updates.length,
-        details: updates.map(u => ({ sku: u.sku, oldQty: u.oldQty, newQty: u.newQty })),
-        success: true,
-      });
-
-      return NextResponse.json({
-        success: true,
-        message: `Sincronizare completă. ${updates.length} produse actualizate, ${created.length} produse noi create.`,
-        updates,
-        created,
-        synced: updates.length + created.length,
-      });
-
-    } else if (direction === "erp_to_smartbill") {
-      // Pentru această direcție, TREBUIE să confirmăm și să avem lista de modificări
-      
-      if (!confirm) {
-        // Pas 1: Returnăm preview-ul modificărilor
-        const erpProducts = await prisma.product.findMany({
-          where: { isActive: true },
-          select: {
-            sku: true,
-            name: true,
-            stockQuantity: true,
-          },
-        });
-
-        // Citim stocurile din SmartBill pentru comparație
-        const auth = Buffer.from(`${settings.smartbillEmail}:${settings.smartbillToken}`).toString("base64");
-        const cif = settings.smartbillCompanyCif;
-        const today = new Date().toISOString().split("T")[0];
-        
-        let url = `https://ws.smartbill.ro/SBORO/api/stocks?cif=${encodeURIComponent(cif)}&date=${today}`;
-        if (settings.smartbillWarehouseName) {
-          url += `&warehouseName=${encodeURIComponent(settings.smartbillWarehouseName)}`;
-        }
-
-        const response = await fetch(url, {
-          method: "GET",
-          headers: {
-            "Authorization": `Basic ${auth}`,
-            "Accept": "application/json",
-          },
-        });
-
-        const data = await response.json();
-        
-        // Flatten structura SmartBill (grupată pe gestiuni)
-        const smartbillByCode = new Map<string, number>();
-        for (const warehouseGroup of (data?.list || [])) {
-          const products = warehouseGroup.products || [];
-          for (const item of products) {
-            const code = item.productCode || item.code;
-            if (code) {
-              smartbillByCode.set(code, parseFloat(item.quantity) || 0);
-            }
-          }
-        }
-
-        // Calculăm modificările necesare
-        const pendingChanges: Array<{
-          sku: string;
-          name: string;
-          currentSmartBill: number;
-          newQuantity: number;
-          difference: number;
-          operation: "increase" | "decrease";
-        }> = [];
-
-        for (const product of erpProducts) {
-          const sbQuantity = smartbillByCode.get(product.sku) || 0;
-          
-          if (product.stockQuantity !== sbQuantity) {
-            const diff = product.stockQuantity - sbQuantity;
-            pendingChanges.push({
-              sku: product.sku,
-              name: product.name,
-              currentSmartBill: sbQuantity,
-              newQuantity: product.stockQuantity,
-              difference: diff,
-              operation: diff > 0 ? "increase" : "decrease",
-            });
-          }
-        }
-
-        return NextResponse.json({
-          success: true,
-          needsConfirmation: true,
-          message: `${pendingChanges.length} produse necesită actualizare în SmartBill`,
-          pendingChanges,
-          warning: "ATENȚIE: Modificarea stocurilor în SmartBill se face prin emiterea de documente (NIR pentru creștere, factură/consum pentru scădere). Această funcție va crea documentele necesare automat.",
-        });
-      }
-
-      // Pas 2: Aplicăm modificările (confirm === true)
-      // NOTĂ: SmartBill nu permite modificarea directă a stocurilor prin API.
-      // Stocul se modifică doar prin documente (NIR, facturi, etc.)
-      // Această funcționalitate ar necesita emiterea de NIR-uri pentru creștere
-      // și documente de consum pentru scădere.
-      
-      return NextResponse.json({
-        success: false,
-        error: "Modificarea stocurilor în SmartBill nu este disponibilă direct prin API. Stocurile SmartBill se modifică automat prin emiterea facturilor cu descărcare de stoc activată. Pentru ajustări manuale, folosește interfața SmartBill.",
-        suggestion: "Activează 'Descărcare stoc la emitere factură' în Setări pentru a sincroniza automat stocurile la fiecare vânzare.",
-      });
-    }
-
+    // Funcționalitatea de sincronizare cu SmartBill a fost dezactivată
+    // Facturis nu oferă API pentru gestionarea stocurilor
     return NextResponse.json({
       success: false,
-      error: "Direcție de sincronizare invalidă",
+      error: "Sincronizarea stocurilor cu sistemul extern a fost dezactivată. Folosește gestionarea stocurilor din inventarul local.",
+      suggestion: "Gestionează stocurile direct din secțiunea Inventar a aplicației.",
     });
 
   } catch (error: any) {
-    console.error("Stock sync error:", error);
-    
+    console.error("Error in stock sync:", error);
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT - Actualizare stoc local
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { sku, quantity, warehouseId, reason } = body;
+
+    if (!sku || quantity === undefined) {
+      return NextResponse.json(
+        { success: false, error: "SKU și cantitatea sunt obligatorii" },
+        { status: 400 }
+      );
+    }
+
+    // Găsim produsul în inventar
+    const inventoryItem = await prisma.inventoryItem.findFirst({
+      where: { sku },
+      include: { masterProduct: true },
+    });
+
+    if (!inventoryItem) {
+      return NextResponse.json(
+        { success: false, error: `Produsul cu SKU ${sku} nu a fost găsit în inventar` },
+        { status: 404 }
+      );
+    }
+
+    const oldQuantity = inventoryItem.quantity;
+    const newQuantity = quantity;
+
+    // Actualizăm cantitatea
+    await prisma.inventoryItem.update({
+      where: { id: inventoryItem.id },
+      data: { quantity: newQuantity },
+    });
+
+    // Logăm sincronizarea
     await logStockSync({
-      direction: "smartbill_to_erp",
-      productsUpdated: 0,
-      success: false,
-      errorMessage: error.message,
+      direction: "erp_to_external",
+      productsUpdated: 1,
+      details: [{ sku, oldQty: oldQuantity, newQty: newQuantity }],
+      success: true,
     });
 
     return NextResponse.json({
-      success: false,
-      error: error.message || "Eroare la sincronizarea stocurilor",
+      success: true,
+      message: `Stoc actualizat pentru ${sku}: ${oldQuantity} → ${newQuantity}`,
+      oldQuantity,
+      newQuantity,
     });
+
+  } catch (error: any) {
+    console.error("Error updating stock:", error);
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
   }
 }

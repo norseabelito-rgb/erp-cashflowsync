@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
-import { issueInvoiceForOrder } from "@/lib/smartbill";
+import { issueInvoiceForOrder } from "@/lib/invoice-service";
 import { createAWBForOrder } from "@/lib/fancourier";
 
 // GET - Lista erorilor de procesare

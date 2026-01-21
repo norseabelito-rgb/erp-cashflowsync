@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { logInvoiceCancelled } from "@/lib/activity-log";
+import { createFacturisClient } from "@/lib/facturis";
 
 export async function POST(
   request: NextRequest,
@@ -11,11 +12,20 @@ export async function POST(
     const body = await request.json().catch(() => ({}));
     const reason = body.reason || "";
 
-    // Găsim factura
+    // Găsim factura cu toate relațiile necesare
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: {
-        order: true,
+        order: {
+          include: {
+            store: {
+              include: {
+                company: true,
+              },
+            },
+          },
+        },
+        company: true,
       },
     });
 
@@ -35,67 +45,60 @@ export async function POST(
 
     if (!invoice.smartbillNumber || !invoice.smartbillSeries) {
       return NextResponse.json(
-        { success: false, error: "Factura nu a fost emisă în SmartBill" },
+        { success: false, error: "Factura nu a fost emisă în Facturis" },
         { status: 400 }
       );
     }
 
-    // Citim setările SmartBill
-    const settings = await prisma.settings.findUnique({
-      where: { id: "default" },
-    });
+    // Obținem firma pentru credențiale
+    const company = invoice.company || invoice.order.store?.company;
 
-    if (!settings?.smartbillEmail || !settings?.smartbillToken || !settings?.smartbillCompanyCif) {
+    if (!company) {
       return NextResponse.json({
         success: false,
-        error: "Configurația SmartBill nu este completă",
+        error: "Nu s-a găsit firma asociată facturii",
       });
     }
 
-    const auth = Buffer.from(`${settings.smartbillEmail}:${settings.smartbillToken}`).toString("base64");
+    if (!company.facturisApiKey || !company.facturisUsername || !company.facturisPassword) {
+      return NextResponse.json({
+        success: false,
+        error: "Configurația Facturis nu este completă pentru această firmă",
+      });
+    }
 
     console.log("\n" + "=".repeat(60));
-    console.log("🚫 SMARTBILL - ANULARE FACTURĂ");
+    console.log("🚫 FACTURIS - ANULARE FACTURĂ");
     console.log("=".repeat(60));
     console.log(`Factură: ${invoice.smartbillSeries}${invoice.smartbillNumber}`);
     console.log(`Comandă: #${invoice.order.shopifyOrderNumber}`);
+    console.log(`Firma: ${company.name}`);
     console.log(`Motiv: ${reason || "Nespecificat"}`);
     console.log("=".repeat(60));
 
-    // Anulăm factura în SmartBill (POST /invoice/cancel)
-    const cancelResponse = await fetch(
-      "https://ws.smartbill.ro/SBORO/api/invoice/cancel",
-      {
-        method: "PUT",
-        headers: {
-          "Authorization": `Basic ${auth}`,
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
-        body: JSON.stringify({
-          companyVatCode: settings.smartbillCompanyCif,
-          seriesName: invoice.smartbillSeries,
-          number: invoice.smartbillNumber,
-        }),
+    // Anulăm factura în Facturis
+    const facturisClient = createFacturisClient(company);
+
+    // Folosim facturisId (smartbillId în DB) dacă există
+    const facturisKey = invoice.smartbillId || invoice.facturisId;
+
+    if (!facturisKey) {
+      // Dacă nu avem key, anulăm doar local
+      console.log("⚠️ Nu există ID Facturis, anulăm doar local");
+    } else {
+      const cancelResult = await facturisClient.cancelInvoice(facturisKey);
+
+      if (!cancelResult.success) {
+        console.error("❌ FACTURIS - EROARE ANULARE:", cancelResult.error);
+
+        return NextResponse.json({
+          success: false,
+          error: `Eroare Facturis: ${cancelResult.error}`,
+        });
       }
-    );
 
-    const cancelData = await cancelResponse.json();
-    console.log("SmartBill cancel response:", cancelData);
-
-    if (!cancelResponse.ok || cancelData?.errorText) {
-      const errorMsg = cancelData?.errorText || cancelData?.message || `Eroare HTTP ${cancelResponse.status}`;
-      console.error("❌ SMARTBILL - EROARE ANULARE:", errorMsg);
-      
-      return NextResponse.json({
-        success: false,
-        error: `Eroare SmartBill: ${errorMsg}`,
-      });
+      console.log("✅ Facturis cancel response:", cancelResult.message);
     }
-
-    // Extragem informațiile despre stornare
-    const stornoNumber = cancelData?.number || null;
-    const stornoSeries = cancelData?.series || null;
 
     // Actualizăm factura în baza de date
     const updatedInvoice = await prisma.invoice.update({
@@ -104,8 +107,6 @@ export async function POST(
         status: "cancelled",
         cancelledAt: new Date(),
         cancelReason: reason || null,
-        stornoNumber,
-        stornoSeries,
       },
     });
 
@@ -121,24 +122,16 @@ export async function POST(
       orderNumber: invoice.order.shopifyOrderNumber,
       invoiceNumber: invoice.smartbillNumber,
       invoiceSeries: invoice.smartbillSeries,
-      stornoNumber: stornoNumber || undefined,
-      stornoSeries: stornoSeries || undefined,
       reason,
     });
 
-    console.log("✅ SMARTBILL - FACTURĂ ANULATĂ");
-    if (stornoNumber) {
-      console.log(`📄 Stornare emisă: ${stornoSeries}${stornoNumber}`);
-    }
+    console.log("✅ FACTURIS - FACTURĂ ANULATĂ");
     console.log("=".repeat(60) + "\n");
 
     return NextResponse.json({
       success: true,
-      message: stornoNumber 
-        ? `Factura a fost anulată. Stornare emisă: ${stornoSeries}${stornoNumber}`
-        : "Factura a fost anulată cu succes",
+      message: "Factura a fost anulată cu succes",
       invoice: updatedInvoice,
-      storno: stornoNumber ? { series: stornoSeries, number: stornoNumber } : null,
     });
 
   } catch (error: any) {

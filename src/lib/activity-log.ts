@@ -289,9 +289,9 @@ export async function logStockSync(params: {
   success: boolean;
   errorMessage?: string;
 }) {
-  const directionText = params.direction === "smartbill_to_erp" 
-    ? "SmartBill → ERP" 
-    : "ERP → SmartBill";
+  const directionText = params.direction === "smartbill_to_erp"
+    ? "Extern → ERP"
+    : "ERP → Extern";
 
   return logActivity({
     entityType: EntityType.STOCK,

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { syncInvoicesFromSmartBill } from "@/lib/smartbill";
 import { syncAWBsFromFanCourier } from "@/lib/fancourier";
 
 export async function POST(request: NextRequest) {
@@ -19,14 +18,14 @@ export async function POST(request: NextRequest) {
     console.log(`📋 Tip: ${type || 'all'}`);
     console.log("=".repeat(70) + "\n");
 
-    // Sincronizare facturi SmartBill
+    // Sincronizare facturi - dezactivată (credențiale Facturis sunt per firmă)
     if (!type || type === 'invoices' || type === 'all') {
-      try {
-        results.invoices = await syncInvoicesFromSmartBill();
-      } catch (error: any) {
-        console.error("Eroare sincronizare facturi:", error.message);
-        results.invoices = { error: error.message };
-      }
+      console.log("🧾 Sincronizare facturi dezactivată (credențiale Facturis per firmă)");
+      results.invoices = {
+        message: "Sincronizare facturi dezactivată - folosește facturare per firmă",
+        checked: 0,
+        updated: 0,
+      };
     }
 
     // Sincronizare AWB-uri FanCourier
@@ -61,7 +60,7 @@ export async function GET() {
   return NextResponse.json({
     message: "Folosește POST pentru a iniția sincronizarea bilaterală",
     options: {
-      type: "'invoices' | 'awbs' | 'all'",
+      type: "'awbs' | 'all' (sincronizare facturi dezactivată)",
     },
   });
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
-import { issueInvoiceForOrder } from "@/lib/smartbill";
+import { issueInvoiceForOrder } from "@/lib/invoice-service";
 import { createAWBForOrder } from "@/lib/fancourier";
 import { logActivity } from "@/lib/activity-log";
 import { v4 as uuidv4 } from "uuid";

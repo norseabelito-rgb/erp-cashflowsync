@@ -51,16 +51,6 @@ import {
 } from "@/components/ui/tooltip";
 
 interface Settings {
-  // SmartBill
-  smartbillEmail: string;
-  smartbillToken: string;
-  smartbillCompanyCif: string;
-  smartbillSeriesName: string;
-  smartbillWarehouseName: string;
-  smartbillUseStock: boolean;
-  smartbillTaxName: string;
-  smartbillTaxPercent: number;
-  smartbillDueDays: number;
   // FanCourier
   fancourierClientId: string;
   fancourierUsername: string;
@@ -102,13 +92,6 @@ interface Settings {
   backupLastAt: string | null;
 }
 
-interface SmartBillData {
-  series: Array<{ name: string; nextNumber: string; type: string }>;
-  taxes: Array<{ name: string; percentage: number }>;
-  warehouses: string[];
-  cacheUpdated?: string | Date;
-}
-
 interface FanCourierService {
   id: string | number;
   name: string;
@@ -120,17 +103,22 @@ interface StoreType {
   shopifyDomain: string;
   isActive: boolean;
   createdAt: string;
+  companyId: string | null;
+  company: { id: string; name: string } | null;
   _count?: { orders: number };
+}
+
+interface CompanyOption {
+  id: string;
+  name: string;
 }
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("stores");
-  const [showSmartbillToken, setShowSmartbillToken] = useState(false);
   const [showFancourierPassword, setShowFancourierPassword] = useState(false);
   const [showTrendyolSecret, setShowTrendyolSecret] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
-  const [smartbillData, setSmartbillData] = useState<SmartBillData | null>(null);
   const [fancourierServices, setFancourierServices] = useState<FanCourierService[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   
@@ -138,16 +126,12 @@ export default function SettingsPage() {
   const [storeDialogOpen, setStoreDialogOpen] = useState(false);
   const [newStore, setNewStore] = useState({ name: "", shopifyDomain: "", accessToken: "" });
 
+  // Dialog pentru editare magazin (asociere cu firmă)
+  const [editStoreDialogOpen, setEditStoreDialogOpen] = useState(false);
+  const [editingStore, setEditingStore] = useState<StoreType | null>(null);
+  const [editStoreCompanyId, setEditStoreCompanyId] = useState<string | null>(null);
+
   const [settings, setSettings] = useState<Settings>({
-    smartbillEmail: "",
-    smartbillToken: "",
-    smartbillCompanyCif: "",
-    smartbillSeriesName: "",
-    smartbillWarehouseName: "",
-    smartbillUseStock: false,
-    smartbillTaxName: "Normala",
-    smartbillTaxPercent: 21,
-    smartbillDueDays: 0,
     fancourierClientId: "",
     fancourierUsername: "",
     fancourierPassword: "",
@@ -202,18 +186,19 @@ export default function SettingsPage() {
     },
   });
 
+  // Fetch companies pentru asociere cu magazine
+  const { data: companiesData } = useQuery({
+    queryKey: ["companies-list"],
+    queryFn: async () => {
+      const res = await fetch("/api/companies");
+      return res.json();
+    },
+  });
+  const companies: CompanyOption[] = companiesData?.companies || [];
+
   useEffect(() => {
     if (settingsData?.settings) {
       setSettings({
-        smartbillEmail: settingsData.settings.smartbillEmail || "",
-        smartbillToken: settingsData.settings.smartbillToken || "",
-        smartbillCompanyCif: settingsData.settings.smartbillCompanyCif || "",
-        smartbillSeriesName: settingsData.settings.smartbillSeriesName || "",
-        smartbillWarehouseName: settingsData.settings.smartbillWarehouseName || "",
-        smartbillUseStock: settingsData.settings.smartbillUseStock || false,
-        smartbillTaxName: settingsData.settings.smartbillTaxName || "Normala",
-        smartbillTaxPercent: Number(settingsData.settings.smartbillTaxPercent) || 21,
-        smartbillDueDays: Number(settingsData.settings.smartbillDueDays) || 0,
         fancourierClientId: settingsData.settings.fancourierClientId || "",
         fancourierUsername: settingsData.settings.fancourierUsername || "",
         fancourierPassword: settingsData.settings.fancourierPassword || "",
@@ -252,81 +237,6 @@ export default function SettingsPage() {
     }
   }, [settingsData]);
 
-  // Load SmartBill data from API (fresh)
-  const loadSmartbillDataMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch("/api/settings/smartbill-data", { method: "POST" });
-      return res.json();
-    },
-    onSuccess: (data) => {
-      if (data.success) {
-        setSmartbillData(data.data);
-        
-        // AUTO-SYNC: Dacă avem o cotă TVA selectată, actualizăm procentul cu cel din SmartBill
-        if (data.data.taxes && data.data.taxes.length > 0 && settings.smartbillTaxName) {
-          const matchingTax = data.data.taxes.find(
-            (t: { name: string; percentage: number }) => t.name === settings.smartbillTaxName
-          );
-          if (matchingTax && matchingTax.percentage !== settings.smartbillTaxPercent) {
-            console.log(`🔄 Auto-sync TVA: "${settings.smartbillTaxName}" ${settings.smartbillTaxPercent}% → ${matchingTax.percentage}%`);
-            setSettings(prev => ({
-              ...prev,
-              smartbillTaxPercent: matchingTax.percentage
-            }));
-            toast({ 
-              title: "TVA actualizat", 
-              description: `Cota "${settings.smartbillTaxName}" actualizată la ${matchingTax.percentage}%` 
-            });
-          }
-        }
-        
-        toast({ title: "Date încărcate", description: data.message });
-      } else {
-        toast({ title: "Eroare", description: data.error, variant: "destructive" });
-      }
-    },
-  });
-
-  // Load SmartBill data from cache on mount
-  useEffect(() => {
-    const loadSmartbillCache = async () => {
-      try {
-        const res = await fetch("/api/settings/smartbill-data");
-        const data = await res.json();
-        if (data.success && data.data) {
-          // Doar dacă avem date în cache
-          if ((data.data.series && data.data.series.length > 0) || 
-              (data.data.taxes && data.data.taxes.length > 0) ||
-              (data.data.warehouses && data.data.warehouses.length > 0)) {
-            setSmartbillData(data.data);
-            
-            // AUTO-SYNC: Actualizăm procentul TVA din cache dacă diferă
-            if (data.data.taxes && data.data.taxes.length > 0) {
-              const currentTaxName = settingsData?.settings?.smartbillTaxName;
-              const currentTaxPercent = settingsData?.settings?.smartbillTaxPercent;
-              if (currentTaxName) {
-                const matchingTax = data.data.taxes.find(
-                  (t: { name: string; percentage: number }) => t.name === currentTaxName
-                );
-                if (matchingTax && matchingTax.percentage !== currentTaxPercent) {
-                  console.log(`🔄 Auto-sync TVA from cache: "${currentTaxName}" ${currentTaxPercent}% → ${matchingTax.percentage}%`);
-                  // Nu actualizăm automat settings aici, doar afișăm warning
-                }
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error loading SmartBill cache:", error);
-      }
-    };
-    
-    // Încarcă cache-ul după ce setările s-au încărcat din DB
-    if (settingsData?.settings?.smartbillEmail && settingsData?.settings?.smartbillToken) {
-      loadSmartbillCache();
-    }
-  }, [settingsData?.settings?.smartbillEmail, settingsData?.settings?.smartbillToken, settingsData?.settings?.smartbillTaxName, settingsData?.settings?.smartbillTaxPercent]);
-
   // Load FanCourier services
   const loadFancourierServices = async () => {
     setLoadingServices(true);
@@ -362,37 +272,6 @@ export default function SettingsPage() {
     },
     onError: (error: any) => {
       toast({ title: "Eroare", description: error.message, variant: "destructive" });
-    },
-  });
-
-  // Test SmartBill connection
-  const testSmartbillMutation = useMutation({
-    mutationFn: async () => {
-      // Trimite credențialele din formular pentru a testa ÎNAINTE de salvare
-      const res = await fetch("/api/smartbill/test", { 
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: settings.smartbillEmail,
-          token: settings.smartbillToken,
-          cif: settings.smartbillCompanyCif,
-        }),
-      });
-      return res.json();
-    },
-    onSuccess: (data) => {
-      if (data.success) {
-        toast({ 
-          title: "✅ Conexiune reușită", 
-          description: data.message || `Conectat la SmartBill: ${data.company || "OK"}` 
-        });
-      } else {
-        toast({ 
-          title: "❌ Conexiune eșuată", 
-          description: data.error || "Nu s-a putut conecta la SmartBill", 
-          variant: "destructive" 
-        });
-      }
     },
   });
 
@@ -448,6 +327,34 @@ export default function SettingsPage() {
       }
     },
   });
+
+  // Update store (pentru asociere cu firmă)
+  const updateStoreMutation = useMutation({
+    mutationFn: async (data: { storeId: string; companyId: string | null }) => {
+      const res = await fetch(`/api/stores/${data.storeId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyId: data.companyId }),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: ["stores-list"] });
+        setEditStoreDialogOpen(false);
+        setEditingStore(null);
+        toast({ title: "Magazin actualizat", description: "Firma a fost asociată cu succes" });
+      } else {
+        toast({ title: "Eroare", description: data.error, variant: "destructive" });
+      }
+    },
+  });
+
+  const openEditStoreDialog = (store: StoreType) => {
+    setEditingStore(store);
+    setEditStoreCompanyId(store.companyId);
+    setEditStoreDialogOpen(true);
+  };
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -521,9 +428,10 @@ export default function SettingsPage() {
                     <TableRow>
                       <TableHead>Nume</TableHead>
                       <TableHead>Domeniu Shopify</TableHead>
+                      <TableHead>Firmă Facturare</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Comenzi</TableHead>
-                      <TableHead>Data adăugării</TableHead>
+                      <TableHead className="text-right">Acțiuni</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -532,13 +440,26 @@ export default function SettingsPage() {
                         <TableCell className="font-medium">{store.name}</TableCell>
                         <TableCell className="text-muted-foreground">{store.shopifyDomain}</TableCell>
                         <TableCell>
+                          {store.company ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              {store.company.name}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                              Neasociată
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           <Badge variant={store.isActive ? "success" : "neutral"}>
                             {store.isActive ? "Activ" : "Inactiv"}
                           </Badge>
                         </TableCell>
                         <TableCell>{store._count?.orders || 0}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatDate(store.createdAt)}
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" onClick={() => openEditStoreDialog(store)}>
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -1005,305 +926,66 @@ export default function SettingsPage() {
           </div>
         </TabsContent>
 
-        {/* TAB: Contabilitate (SmartBill) */}
+        {/* TAB: Contabilitate (Facturis) */}
         <TabsContent value="accounting" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>SmartBill - Credențiale API</CardTitle>
-              <CardDescription>Conectează-te la SmartBill pentru emiterea automată a facturilor</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="grid gap-2">
-                  <Label>Email cont SmartBill</Label>
-                  <Input
-                    type="email"
-                    placeholder="email@company.ro"
-                    value={settings.smartbillEmail}
-                    onChange={(e) => setSettings({ ...settings, smartbillEmail: e.target.value })}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Token API</Label>
-                  <div className="relative">
-                    <Input
-                      type={showSmartbillToken ? "text" : "password"}
-                      placeholder="Token din SmartBill Cloud"
-                      value={settings.smartbillToken}
-                      onChange={(e) => setSettings({ ...settings, smartbillToken: e.target.value })}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowSmartbillToken(!showSmartbillToken)}
-                    >
-                      {showSmartbillToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label>CIF Companie</Label>
-                  <Input
-                    placeholder="RO12345678"
-                    value={settings.smartbillCompanyCif}
-                    onChange={(e) => setSettings({ ...settings, smartbillCompanyCif: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      onClick={() => testSmartbillMutation.mutate()}
-                      disabled={testSmartbillMutation.isPending || !settings.smartbillEmail || !settings.smartbillToken}
-                    >
-                      {testSmartbillMutation.isPending ? (
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Wifi className="h-4 w-4 mr-2" />
-                      )}
-                      Testează conexiunea
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p>Verifică dacă credențialele SmartBill sunt valide și conexiunea funcționează corect.</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      onClick={() => loadSmartbillDataMutation.mutate()}
-                      disabled={loadSmartbillDataMutation.isPending || !settings.smartbillEmail || !settings.smartbillToken}
-                    >
-                      <RefreshCw className={`h-4 w-4 mr-2 ${loadSmartbillDataMutation.isPending ? "animate-spin" : ""}`} />
-                      Încarcă date SmartBill
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p>Încarcă seriile de facturare și depozitele disponibile din contul SmartBill.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Setări Facturare</CardTitle>
-              <CardDescription>Configurează opțiunile de facturare</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="grid gap-2">
-                  <Label>Serie Factură</Label>
-                  {smartbillData?.series ? (
-                    <Select
-                      value={settings.smartbillSeriesName}
-                      onValueChange={(value) => setSettings({ ...settings, smartbillSeriesName: value })}
-                    >
-                      <SelectTrigger><SelectValue placeholder="Selectează seria" /></SelectTrigger>
-                      <SelectContent>
-                        {smartbillData.series.filter(s => s.type === "f").map((series) => (
-                          <SelectItem key={series.name} value={series.name}>
-                            {series.name} (următorul: {series.nextNumber})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      placeholder="ex: FACT"
-                      value={settings.smartbillSeriesName}
-                      onChange={(e) => setSettings({ ...settings, smartbillSeriesName: e.target.value })}
-                    />
-                  )}
-                </div>
-                <div className="grid gap-2">
-                  <Label>Cotă TVA</Label>
-                  {smartbillData?.taxes && smartbillData.taxes.length > 0 ? (
-                    <>
-                      <Select
-                        value={settings.smartbillTaxName}
-                        onValueChange={(value) => {
-                          const tax = smartbillData.taxes.find(t => t.name === value);
-                          setSettings({ 
-                            ...settings, 
-                            smartbillTaxName: value,
-                            smartbillTaxPercent: tax?.percentage || 21
-                          });
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selectează cota TVA">
-                            {settings.smartbillTaxName ? (
-                              `${settings.smartbillTaxName} (${settings.smartbillTaxPercent}%)`
-                            ) : (
-                              "Selectează cota TVA"
-                            )}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {smartbillData.taxes.map((tax) => (
-                            <SelectItem key={tax.name} value={tax.name}>
-                              {tax.name} ({tax.percentage}%)
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {/* Warning dacă procentul din settings diferă de cel din SmartBill */}
-                      {settings.smartbillTaxName && (() => {
-                        const matchingTax = smartbillData.taxes.find(t => t.name === settings.smartbillTaxName);
-                        if (matchingTax && matchingTax.percentage !== settings.smartbillTaxPercent) {
-                          return (
-                            <div className="mt-2 p-2 bg-status-warning/10 border border-status-warning/30 rounded-md">
-                              <p className="text-xs text-status-warning font-medium">
-                                ⚠️ Procentul salvat ({settings.smartbillTaxPercent}%) diferă de SmartBill ({matchingTax.percentage}%)!
-                              </p>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="mt-1 h-7 text-xs"
-                                onClick={() => {
-                                  setSettings({
-                                    ...settings,
-                                    smartbillTaxPercent: matchingTax.percentage
-                                  });
-                                  toast({
-                                    title: "TVA actualizat",
-                                    description: `Procentul a fost actualizat la ${matchingTax.percentage}%`
-                                  });
-                                }}
-                              >
-                                🔄 Actualizează la {matchingTax.percentage}%
-                              </Button>
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </>
-                  ) : (
-                    <div className="space-y-2">
-                      <Input
-                        placeholder="ex: Normala"
-                        value={settings.smartbillTaxName}
-                        onChange={(e) => setSettings({ ...settings, smartbillTaxName: e.target.value })}
-                      />
-                      <p className="text-xs text-status-warning">
-                        ⚠️ Click "Încarcă date SmartBill" pentru a vedea cotele TVA disponibile
-                      </p>
-                    </div>
-                  )}
-                  {settings.smartbillTaxName && (
-                    <p className="text-xs text-muted-foreground">
-                      Se va folosi: <strong>{settings.smartbillTaxName}</strong> cu <strong>{settings.smartbillTaxPercent}%</strong>
-                    </p>
-                  )}
-                </div>
-                <div className="grid gap-2">
-                  <Label>Zile scadență</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={settings.smartbillDueDays}
-                    onChange={(e) => setSettings({ ...settings, smartbillDueDays: parseInt(e.target.value) || 0 })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label>Gestiune Stoc</Label>
-                  {smartbillData?.warehouses ? (
-                    <Select
-                      value={settings.smartbillWarehouseName}
-                      onValueChange={(value) => setSettings({ ...settings, smartbillWarehouseName: value })}
-                    >
-                      <SelectTrigger><SelectValue placeholder="Selectează gestiunea" /></SelectTrigger>
-                      <SelectContent>
-                        {smartbillData.warehouses.map((wh) => (
-                          <SelectItem key={wh} value={wh}>{wh}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      placeholder="ex: Gestiune Principală"
-                      value={settings.smartbillWarehouseName}
-                      onChange={(e) => setSettings({ ...settings, smartbillWarehouseName: e.target.value })}
-                    />
-                  )}
-                </div>
-                <div className="flex items-center gap-4 pt-6">
-                  <Switch
-                    checked={settings.smartbillUseStock}
-                    onCheckedChange={(checked) => setSettings({ ...settings, smartbillUseStock: checked })}
-                  />
-                  <div>
-                    <Label>Descărcare stoc SmartBill (gestiune externă)</Label>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Dezactivați pentru a folosi doar inventarul local. Stocul local se descarcă automat.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Status actual configurare */}
-          <Card className="border-status-info/30 bg-status-info/10">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-status-info" />
-                Configurare curentă pentru emitere facturi
+              <CardTitle className="flex items-center gap-2">
+                <Calculator className="h-5 w-5" />
+                Facturare cu Facturis
               </CardTitle>
+              <CardDescription>
+                Credențialele Facturis sunt configurate per firmă pentru a permite facturare de pe mai multe entități juridice
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Serie factură:</span>
-                  <p className="font-medium">{settings.smartbillSeriesName || <span className="text-status-error">Nesetat</span>}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Cotă TVA:</span>
-                  <p className="font-medium">
-                    {settings.smartbillTaxName ? (
-                      <>{settings.smartbillTaxName} ({settings.smartbillTaxPercent}%)</>
-                    ) : (
-                      <span className="text-status-error">Nesetat (default: Normala 19%)</span>
-                    )}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Scadență:</span>
-                  <p className="font-medium">{settings.smartbillDueDays > 0 ? `${settings.smartbillDueDays} zile` : "Fără"}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Stoc:</span>
-                  <p className="font-medium">
-                    {settings.smartbillUseStock 
-                      ? (settings.smartbillWarehouseName || <span className="text-status-warning">Gestiune nesetată!</span>)
-                      : "Dezactivat"}
-                  </p>
-                </div>
-              </div>
-              {smartbillData?.cacheUpdated && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  Date SmartBill încărcate: {formatDate(new Date(smartbillData.cacheUpdated))}
+            <CardContent className="space-y-4">
+              <div className="bg-status-info/10 border border-status-info/30 rounded-lg p-4">
+                <p className="text-sm">
+                  <strong>Setările de facturare au fost mutate la nivel de firmă.</strong>
                 </p>
-              )}
+                <p className="text-sm text-muted-foreground mt-2">
+                  Fiecare firmă poate avea propriile credențiale Facturis. Când se emite o factură pentru o comandă,
+                  se folosesc credențialele firmei asociate cu magazinul din care provine comanda.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="default"
+                  onClick={() => window.location.href = "/settings/companies"}
+                >
+                  <Store className="h-4 w-4 mr-2" />
+                  Configurează firmele
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => window.location.href = "/settings/invoice-series"}
+                >
+                  <Calculator className="h-4 w-4 mr-2" />
+                  Gestionează serii facturi
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
-          <div className="flex justify-end">
-            <Button onClick={() => saveMutation.mutate(settings)} disabled={saveMutation.isPending}>
-              <Save className="h-4 w-4 mr-2" />
-              {saveMutation.isPending ? "Se salvează..." : "Salvează Setări Contabilitate"}
-            </Button>
-          </div>
+          <Card className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/20">
+            <CardContent className="pt-6">
+              <div className="flex gap-4">
+                <div className="p-3 bg-green-500/20 rounded-lg h-fit">
+                  <CheckCircle2 className="h-6 w-6 text-green-500" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-semibold">Cum funcționează?</h3>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>1. Configurează firmele tale în pagina Firme</li>
+                    <li>2. Adaugă credențialele Facturis pentru fiecare firmă</li>
+                    <li>3. Asociază magazinele cu firmele corespunzătoare</li>
+                    <li>4. Facturile vor fi emise automat pe firma corectă</li>
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* TAB: Curieri (FanCourier) */}
@@ -1869,6 +1551,69 @@ export default function SettingsPage() {
               disabled={!newStore.name || !newStore.shopifyDomain || !newStore.accessToken || addStoreMutation.isPending}
             >
               {addStoreMutation.isPending ? "Se conectează..." : "Conectează"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Editează magazin - Asociere cu firmă */}
+      <Dialog open={editStoreDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setEditStoreDialogOpen(false);
+          setEditingStore(null);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editează magazin</DialogTitle>
+            <DialogDescription>
+              Asociază magazinul {editingStore?.name} cu o firmă pentru facturare
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Magazin</Label>
+              <Input value={editingStore?.name || ""} disabled />
+            </div>
+            <div className="grid gap-2">
+              <Label>Firmă de facturare</Label>
+              <Select
+                value={editStoreCompanyId || "none"}
+                onValueChange={(value) => setEditStoreCompanyId(value === "none" ? null : value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selectează firma" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Nicio firmă —</SelectItem>
+                  {companies.map((company) => (
+                    <SelectItem key={company.id} value={company.id}>
+                      {company.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Comenzile din acest magazin vor fi facturate pe firma selectată
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditStoreDialogOpen(false)}>
+              Anulează
+            </Button>
+            <Button
+              onClick={() => {
+                if (editingStore) {
+                  updateStoreMutation.mutate({
+                    storeId: editingStore.id,
+                    companyId: editStoreCompanyId,
+                  });
+                }
+              }}
+              disabled={updateStoreMutation.isPending}
+            >
+              {updateStoreMutation.isPending ? "Se salvează..." : "Salvează"}
             </Button>
           </DialogFooter>
         </DialogContent>

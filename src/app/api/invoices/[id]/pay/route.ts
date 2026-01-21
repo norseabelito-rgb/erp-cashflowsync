@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { createSmartBillClient } from "@/lib/smartbill";
 import { logPaymentReceived } from "@/lib/activity-log";
 
 export async function POST(
@@ -45,49 +44,16 @@ export async function POST(
 
     if (!invoice.smartbillNumber || !invoice.smartbillSeries) {
       return NextResponse.json(
-        { success: false, error: "Factura nu are număr SmartBill valid" },
+        { success: false, error: "Factura nu are număr valid" },
         { status: 400 }
       );
-    }
-
-    // Încearcă să înregistreze plata în SmartBill
-    let smartbillPaymentSuccess = false;
-    let smartbillError = null;
-
-    try {
-      const smartbill = await createSmartBillClient();
-      
-      // Determină tipul de încasare pentru SmartBill
-      const paymentTypeMap: Record<string, string> = {
-        cash: "Numerar",
-        card: "Card",
-        transfer: "Ordin de plata",
-        ramburs: "Numerar",
-      };
-      
-      const result = await smartbill.registerPayment({
-        invoiceSeries: invoice.smartbillSeries,
-        invoiceNumber: invoice.smartbillNumber,
-        paymentType: paymentTypeMap[method] || "Numerar",
-        value: amount,
-        paymentDate: new Date().toISOString().split("T")[0],
-      });
-
-      if (result.success) {
-        smartbillPaymentSuccess = true;
-      } else {
-        smartbillError = result.error;
-      }
-    } catch (err: any) {
-      console.error("Eroare la înregistrarea plății în SmartBill:", err);
-      smartbillError = err.message;
     }
 
     // Calculează noul status de plată
     const totalPrice = Number(invoice.order.totalPrice);
     const previousPaid = Number(invoice.paidAmount || 0);
     const newPaidAmount = previousPaid + amount;
-    
+
     let newPaymentStatus = "unpaid";
     if (newPaidAmount >= totalPrice) {
       newPaymentStatus = "paid";
@@ -116,19 +82,12 @@ export async function POST(
     });
 
     // Construiește mesajul de răspuns
-    let message = `Plata de ${amount} RON a fost înregistrată.`;
-    if (smartbillPaymentSuccess) {
-      message += " Plata a fost sincronizată și în SmartBill.";
-    } else if (smartbillError) {
-      message += ` ⚠️ Atenție: plata NU a fost înregistrată în SmartBill (${smartbillError}). Verifică manual.`;
-    }
+    const message = `Plata de ${amount} RON a fost înregistrată.`;
 
     return NextResponse.json({
       success: true,
       message,
       invoice: updatedInvoice,
-      smartbillSync: smartbillPaymentSuccess,
-      smartbillError,
     });
   } catch (error: any) {
     console.error("Eroare la înregistrarea plății:", error);

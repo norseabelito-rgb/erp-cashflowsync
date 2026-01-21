@@ -365,9 +365,15 @@ export class FacturisAPI {
           ? responseData.error
           : responseData.error?.message || responseData.error?.msg || JSON.stringify(responseData.error);
 
-        // Eroare de autentificare
-        if (responseData.success === 4 || (typeof errorMessage === "string" && errorMessage.toLowerCase().includes("autentificare"))) {
-          throw new FacturisAuthError(errorMessage || "Autentificare eșuată");
+        // Eroare de autentificare (codurile 4 și 1004 sunt erori de autentificare în Facturis)
+        if (
+          responseData.success === 4 ||
+          responseData.success === 1004 ||
+          (typeof errorMessage === "string" && errorMessage.toLowerCase().includes("autentificare"))
+        ) {
+          throw new FacturisAuthError(
+            "Autentificare eșuată. Verifică API Key, Username și Parola să fie corecte pentru contul Facturis."
+          );
         }
 
         // Alte erori

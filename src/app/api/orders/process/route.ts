@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
-import { issueInvoiceForOrder, createSmartBillClient } from "@/lib/smartbill";
+import { issueInvoiceForOrder } from "@/lib/invoice-service";
 import { createAWBForOrder } from "@/lib/fancourier";
 import { v4 as uuidv4 } from "uuid";
 
@@ -283,21 +283,9 @@ async function createPickingListFromAWBs(params: {
     return null;
   }
 
-  // Obținem rețetele din SmartBill
-  let recipes = new Map<string, any>();
-  try {
-    const smartbill = await createSmartBillClient();
-    const allSkus = new Set<string>();
-    for (const awb of awbs) {
-      for (const item of awb.order.lineItems) {
-        if (item.sku) allSkus.add(item.sku);
-      }
-    }
-    recipes = await smartbill.getProductRecipesRecursive(Array.from(allSkus));
-  } catch (error) {
-    console.error("Eroare la obținerea rețetelor din SmartBill:", error);
-    // Continuăm fără rețete
-  }
+  // Rețete produse - funcționalitatea SmartBill a fost dezactivată
+  // TODO: Implementare rețete locale sau din Facturis când va fi disponibil
+  const recipes = new Map<string, any>();
 
   // Agregăm produsele și expandăm rețetele
   const productMap = new Map<string, {

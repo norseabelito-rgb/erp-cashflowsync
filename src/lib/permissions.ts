@@ -80,7 +80,7 @@ export const PERMISSIONS: PermissionDefinition[] = [
   // ==================== INVENTAR ====================
   { code: "inventory.view", name: "Vizualizare inventar", description: "Poate vedea stocurile", category: "inventory", sortOrder: 600 },
   { code: "inventory.adjust", name: "Ajustare stoc", description: "Poate face ajustări manuale de stoc", category: "inventory", sortOrder: 601 },
-  { code: "inventory.sync", name: "Sincronizare stoc", description: "Poate sincroniza stocul cu SmartBill", category: "inventory", sortOrder: 602 },
+  { code: "inventory.sync", name: "Sincronizare stoc", description: "Poate sincroniza stocul cu sisteme externe", category: "inventory", sortOrder: 602 },
 
   // ==================== DEPOZITE ====================
   { code: "warehouses.view", name: "Vizualizare depozite", description: "Poate vedea lista depozitelor și stocurile per depozit", category: "warehouses", sortOrder: 620 },

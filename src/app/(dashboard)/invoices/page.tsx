@@ -296,7 +296,7 @@ export default function InvoicesPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Facturi</h1>
           <p className="text-muted-foreground mt-1 text-sm md:text-base">
-            Gestionează facturile emise prin SmartBill
+            Gestionează facturile emise prin Facturis
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -553,7 +553,7 @@ export default function InvoicesPage() {
                                     className="flex items-center"
                                   >
                                     <ExternalLink className="h-4 w-4 mr-2" />
-                                    Deschide în SmartBill
+                                    Deschide în Facturis
                                   </a>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
@@ -636,7 +636,7 @@ export default function InvoicesPage() {
                 <AlertTriangle className="h-5 w-5 text-status-warning mt-0.5" />
                 <div className="text-sm text-status-warning">
                   <p className="font-medium">Atenție!</p>
-                  <p>Această acțiune va emite o factură de stornare în SmartBill. Ambele facturi vor rămâne în sistem pentru evidența contabilă.</p>
+                  <p>Această acțiune va emite o factură de stornare în Facturis. Ambele facturi vor rămâne în sistem pentru evidența contabilă.</p>
                 </div>
               </div>
             </div>
@@ -705,7 +705,7 @@ export default function InvoicesPage() {
                   <CheckCircle2 className="h-5 w-5 text-status-success mt-0.5" />
                   <div>
                     <p className="font-medium text-status-success">Emisă (issued)</p>
-                    <p className="text-sm text-status-success/80">Factura a fost emisă cu succes în SmartBill și are un număr valid.</p>
+                    <p className="text-sm text-status-success/80">Factura a fost emisă cu succes în Facturis și are un număr valid.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-status-warning/10 rounded-lg border border-status-warning/20">
@@ -726,14 +726,14 @@ export default function InvoicesPage() {
                   <Ban className="h-5 w-5 text-status-warning mt-0.5" />
                   <div>
                     <p className="font-medium text-status-warning">Anulată (cancelled)</p>
-                    <p className="text-sm text-status-warning/80">Factura a fost anulată. Dacă a fost stornată în SmartBill, va exista o factură de stornare.</p>
+                    <p className="text-sm text-status-warning/80">Factura a fost anulată. Dacă a fost stornată în Facturis, va exista o factură de stornare.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <XCircle className="h-5 w-5 text-gray-600 mt-0.5" />
                   <div>
                     <p className="font-medium text-gray-800">Ștearsă (deleted)</p>
-                    <p className="text-sm text-gray-700">Factura a fost ștearsă din SmartBill (posibil manual sau prin sincronizare).</p>
+                    <p className="text-sm text-gray-700">Factura a fost ștearsă din Facturis (posibil manual sau prin sincronizare).</p>
                   </div>
                 </div>
               </div>
@@ -750,7 +750,7 @@ export default function InvoicesPage() {
                   <CheckCircle2 className="h-5 w-5 text-status-success mt-0.5" />
                   <div>
                     <p className="font-medium text-status-success">Plătită (paid)</p>
-                    <p className="text-sm text-status-success/80">Factura a fost încasată integral. Plata este înregistrată și în SmartBill.</p>
+                    <p className="text-sm text-status-success/80">Factura a fost încasată integral. Plata este înregistrată și în Facturis.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-status-warning/10 rounded-lg border border-status-warning/20">
@@ -800,11 +800,11 @@ export default function InvoicesPage() {
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-status-success" />
-                  <span><strong>Marchează ca plătită</strong> - Înregistrează plata în sistem și în SmartBill</span>
+                  <span><strong>Marchează ca plătită</strong> - Înregistrează plata în sistem și în Facturis</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Ban className="h-4 w-4 text-status-error" />
-                  <span><strong>Anulează factura</strong> - Creează stornare în SmartBill și marchează ca anulată</span>
+                  <span><strong>Anulează factura</strong> - Creează stornare în Facturis și marchează ca anulată</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Download className="h-4 w-4 text-status-info" />
@@ -883,7 +883,7 @@ export default function InvoicesPage() {
             </div>
 
             <div className="bg-status-warning/10 border border-status-warning/20 rounded-lg p-3 text-sm text-status-warning">
-              <p>💡 Plata va fi înregistrată și în SmartBill automat.</p>
+              <p>💡 Plata va fi înregistrată și în Facturis automat.</p>
             </div>
           </div>
 
