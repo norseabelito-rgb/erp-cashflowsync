@@ -159,7 +159,11 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Error fetching orders:", error);
     return NextResponse.json(
-      { error: "Eroare la încărcarea comenzilor" },
+      {
+        error: "Eroare la încărcarea comenzilor",
+        details: error?.message || String(error),
+        stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+      },
       { status: 500 }
     );
   }
