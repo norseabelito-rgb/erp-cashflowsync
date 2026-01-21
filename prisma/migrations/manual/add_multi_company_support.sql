@@ -112,7 +112,7 @@ ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "intercompanyStatus" TEXT;
 -- 6. Add new columns to invoices
 ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "invoiceSeriesId" TEXT;
-ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "invoiceProvider" TEXT DEFAULT 'smartbill';
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "invoiceProvider" TEXT DEFAULT 'facturis';
 ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "facturisId" TEXT;
 
 -- 7. Add new columns to awbs

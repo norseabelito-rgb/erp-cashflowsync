@@ -549,6 +549,7 @@ model Invoice {
   @@index([companyId])
   @@index([invoiceSeriesId])
   @@index([invoiceProvider])
+  @@index([facturisId])
   @@map("invoices")
 }
 
