@@ -81,27 +81,38 @@ interface NavItem {
   }[];
 }
 
+// =====================================================
+// MENIU ORGANIZAT PE FLUX OPERAȚIONAL
+// Vânzări → Catalog & Inventar → Logistică →
+// Marketplace & Ads → Monitorizare → Sistem
+// =====================================================
+
 const navigation: NavItem[] = [
+  // ─────────────────────────────────────────────────────
+  // 📊 VÂNZĂRI - Procesul principal de vânzare
+  // ─────────────────────────────────────────────────────
   {
-    name: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-    // Dashboard - toți au acces
-  },
-  {
-    name: "Comenzi",
-    href: "/orders",
+    name: "Vânzări",
     icon: ShoppingCart,
-    permissions: ["orders.view"],
+    permissions: ["orders.view", "invoices.view"],
+    children: [
+      { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { name: "Comenzi", href: "/orders", icon: ShoppingCart, permissions: ["orders.view"] },
+      { name: "Facturi", href: "/invoices", icon: FileText, permissions: ["invoices.view"] },
+    ],
   },
+
+  // ─────────────────────────────────────────────────────
+  // 📦 CATALOG & INVENTAR - Produse și stocuri
+  // ─────────────────────────────────────────────────────
   {
-    name: "Produse",
+    name: "Catalog",
     icon: Package,
     permissions: ["products.view", "categories.view"],
     children: [
       { name: "Produse", href: "/products", icon: Package, permissions: ["products.view"] },
-      { name: "Mapare Inventar", href: "/products/inventory-mapping", icon: Link2, permissions: ["products.edit"] },
       { name: "Categorii", href: "/categories", icon: FolderTree, permissions: ["categories.view"] },
+      { name: "Mapare Stocuri", href: "/products/inventory-mapping", icon: Link2, permissions: ["products.edit"] },
     ],
   },
   {
@@ -109,97 +120,94 @@ const navigation: NavItem[] = [
     icon: Warehouse,
     permissions: ["inventory.view", "transfers.view"],
     children: [
-      { name: "Articole", href: "/inventory", icon: Package, permissions: ["inventory.view"] },
+      { name: "Stocuri", href: "/inventory", icon: Package, permissions: ["inventory.view"] },
       { name: "Transferuri", href: "/inventory/transfers", icon: ArrowLeftRight, permissions: ["transfers.view"] },
-      { name: "Rețetar", href: "/inventory/recipes", icon: ChefHat, permissions: ["inventory.view"] },
-      { name: "Furnizori", href: "/inventory/suppliers", icon: Building2, permissions: ["inventory.view"] },
-      { name: "Recepții", href: "/inventory/receipts", icon: ClipboardList, permissions: ["inventory.view"] },
-      { name: "Mișcări stoc", href: "/inventory/movements", icon: ArrowDownUp, permissions: ["inventory.view"] },
+      { name: "Recepții (NIR)", href: "/inventory/receipts", icon: ClipboardList, permissions: ["inventory.view"] },
+      { name: "Mișcări", href: "/inventory/movements", icon: ArrowDownUp, permissions: ["inventory.view"] },
       { name: "Ajustări", href: "/inventory/movements/adjustments", icon: Wrench, permissions: ["inventory.edit"] },
       { name: "Raport stoc", href: "/inventory/reports/stock", icon: FileBarChart, permissions: ["inventory.view"] },
     ],
   },
   {
-    name: "Marketplace-uri",
-    icon: Globe,
-    permissions: ["marketplace.view"],
+    name: "Producție",
+    icon: Beaker,
+    permissions: ["inventory.view"],
     children: [
-      { name: "Trendyol", href: "/trendyol", icon: ShoppingBag, permissions: ["marketplace.view"] },
+      { name: "Rețetar", href: "/inventory/recipes", icon: ChefHat, permissions: ["inventory.view"] },
+      { name: "Furnizori", href: "/inventory/suppliers", icon: Building2, permissions: ["inventory.view"] },
     ],
   },
-  {
-    name: "Facturi",
-    href: "/invoices",
-    icon: FileText,
-    permissions: ["invoices.view"],
-  },
+
+  // ─────────────────────────────────────────────────────
+  // 📮 LOGISTICĂ - Livrări și expediție
+  // ─────────────────────────────────────────────────────
   {
     name: "Logistică",
-    icon: BoxesIcon,
+    icon: Truck,
     permissions: ["awb.view", "picking.view", "handover.view"],
     children: [
-      { name: "Tracking AWB", href: "/tracking", icon: Truck, permissions: ["awb.view"] },
-      { name: "Picking List", href: "/picking", icon: ClipboardList, permissions: ["picking.view"] },
+      { name: "AWB-uri", href: "/tracking", icon: Truck, permissions: ["awb.view"] },
+      { name: "Picking Lists", href: "/picking", icon: ClipboardList, permissions: ["picking.view"] },
       { name: "Predare Curier", href: "/handover", icon: PackageCheck, permissions: ["handover.view"] },
     ],
   },
+
+  // ─────────────────────────────────────────────────────
+  // 🌐 MARKETPLACE & ADS - Canale externe și publicitate
+  // ─────────────────────────────────────────────────────
   {
-    name: "Advertising",
+    name: "Marketing",
     icon: Megaphone,
-    permissions: ["ads.view"],
+    permissions: ["marketplace.view", "ads.view"],
     children: [
-      { name: "Dashboard", href: "/ads", icon: BarChart3, permissions: ["ads.view"] },
+      { name: "Trendyol", href: "/trendyol", icon: ShoppingBag, permissions: ["marketplace.view"] },
+      { name: "Ads Dashboard", href: "/ads", icon: BarChart3, permissions: ["ads.view"] },
       { name: "Campanii", href: "/ads/campaigns", icon: Megaphone, permissions: ["ads.view"] },
       { name: "Per SKU", href: "/ads/products", icon: Package, permissions: ["ads.view"] },
       { name: "Pixeli", href: "/ads/pixels", icon: Zap, permissions: ["ads.view"] },
-      { name: "Conturi", href: "/ads/accounts", icon: Plug, permissions: ["ads.view"] },
+      { name: "Conturi Ads", href: "/ads/accounts", icon: Plug, permissions: ["ads.view"] },
       { name: "Alerte", href: "/ads/alerts", icon: Bell, permissions: ["ads.alerts"] },
-      { name: "Setări", href: "/ads/settings", icon: Settings, permissions: ["ads.accounts"] },
     ],
   },
+
+  // ─────────────────────────────────────────────────────
+  // 📋 MONITORIZARE - Erori, log-uri și rapoarte
+  // ─────────────────────────────────────────────────────
   {
-    name: "Erori Procesare",
-    href: "/processing-errors",
-    icon: AlertTriangle,
-    permissions: ["processing.errors.view"],
-  },
-  {
-    name: "Log-uri",
-    icon: ScrollText,
-    permissions: ["logs.sync", "logs.activity", "picking.logs"],
+    name: "Monitorizare",
+    icon: Activity,
+    permissions: ["processing.errors.view", "logs.sync", "logs.activity", "picking.logs", "intercompany.view"],
     children: [
+      { name: "Erori Procesare", href: "/processing-errors", icon: AlertTriangle, permissions: ["processing.errors.view"] },
+      { name: "Log Activitate", href: "/activity", icon: Activity, permissions: ["logs.activity"] },
       { name: "Istoric Sync", href: "/sync-history", icon: History, permissions: ["logs.sync"] },
-      { name: "Activitate", href: "/activity", icon: Activity, permissions: ["logs.activity"] },
       { name: "Log Picking", href: "/picking/logs", icon: ClipboardList, permissions: ["picking.logs"] },
+      { name: "Decontări", href: "/intercompany", icon: ArrowLeftRight, permissions: ["intercompany.view"] },
     ],
   },
+
+  // ─────────────────────────────────────────────────────
+  // ⚙️ SISTEM - Configurare și administrare
+  // ─────────────────────────────────────────────────────
   {
-    name: "Decontări",
-    href: "/intercompany",
-    icon: ArrowLeftRight,
-    permissions: ["intercompany.view"],
-  },
-  {
-    name: "Setări",
+    name: "Sistem",
     icon: Settings,
-    permissions: ["settings.view", "invoices.series", "printers.view", "users.view", "admin.roles", "admin.groups", "admin.audit", "warehouses.view", "companies.view"],
+    permissions: ["settings.view", "companies.view", "warehouses.view", "invoices.series", "printers.view", "users.view", "admin.roles", "admin.groups", "admin.audit"],
     children: [
-      { name: "General", href: "/settings", icon: Settings, permissions: ["settings.view"] },
+      // Configurare
+      { name: "Setări Generale", href: "/settings", icon: Settings, permissions: ["settings.view"] },
       { name: "Firme", href: "/settings/companies", icon: Building2, permissions: ["companies.view"] },
-      { name: "Depozite", href: "/settings/warehouses", icon: Building2, permissions: ["warehouses.view"] },
-      { name: "Serii Facturare", href: "/settings/invoice-series", icon: FileText, permissions: ["invoices.series"] },
+      { name: "Depozite", href: "/settings/warehouses", icon: Warehouse, permissions: ["warehouses.view"] },
+      { name: "Serii Facturi", href: "/settings/invoice-series", icon: FileText, permissions: ["invoices.series"] },
       { name: "Imprimante", href: "/settings/printers", icon: Printer, permissions: ["printers.view"] },
+      // Acces
       { name: "Utilizatori", href: "/settings/users", icon: Users, permissions: ["users.view"] },
       { name: "Roluri", href: "/settings/roles", icon: Shield, permissions: ["admin.roles"] },
       { name: "Grupuri", href: "/settings/groups", icon: UserCog, permissions: ["admin.groups"] },
       { name: "Audit Log", href: "/settings/audit", icon: ScrollText, permissions: ["admin.audit"] },
+      // Documentație
+      { name: "Documentație", href: "/docs", icon: BookOpen },
     ],
-  },
-  {
-    name: "Documentație",
-    href: "/docs",
-    icon: BookOpen,
-    // Toți au acces la documentație
   },
 ];
 

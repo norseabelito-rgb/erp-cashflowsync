@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Save, Eye, EyeOff, CheckCircle2, AlertCircle, RefreshCw,
-  Store, Calculator, Truck, Plus, Trash2, Copy,
+  Store, Calculator, Truck, Plus, Trash2, Copy, Edit2,
   Download, Apple, Monitor, Package, FolderOpen, Wifi, WifiOff,
   ShoppingBag, Search, ExternalLink, Sparkles, Brain, Clock, Zap,
   HardDrive, Upload, Database
