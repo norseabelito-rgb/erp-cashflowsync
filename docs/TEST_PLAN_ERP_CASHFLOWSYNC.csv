@@ -1,0 +1,398 @@
+"Test ID","Module","Category","Sub-Category","Test Case Name","Description","Preconditions","Test Steps","Expected Result","Priority","Severity","Test Type","Status","Notes"
+"AUTH-001","Authentication","Login","Email/Password","Login cu email și parolă validă","Verifică autentificarea cu credențiale corecte","Utilizator existent în bază","1. Navighează la /login
+2. Completează email valid
+3. Completează parolă corectă
+4. Click 'Login'","Redirect la dashboard, sesiune creată","Critical","Critical","Functional","Pending",""
+"AUTH-002","Authentication","Login","Email/Password","Login cu email invalid","Verifică respingerea email-ului invalid","","1. Navighează la /login
+2. Completează email invalid (fără @)
+3. Click 'Login'","Mesaj de eroare 'Email invalid'","High","Medium","Functional","Pending",""
+"AUTH-003","Authentication","Login","Email/Password","Login cu parolă greșită","Verifică respingerea parolei incorecte","Utilizator existent","1. Navighează la /login
+2. Completează email valid
+3. Completează parolă greșită
+4. Click 'Login'","Mesaj de eroare 'Credențiale incorecte'","Critical","High","Functional","Pending",""
+"AUTH-004","Authentication","Login","Rate Limiting","Protecție brute force","Verifică blocarea după încercări multiple eșuate","","1. Încearcă login de 5 ori cu parolă greșită
+2. Notează comportamentul","Cont/IP blocat temporar după 5 încercări","Critical","Critical","Security","Pending",""
+"AUTH-005","Authentication","Logout","Session","Logout corect","Verifică delogarea și ștergerea sesiunii","Utilizator autentificat","1. Click pe meniul user
+2. Click 'Logout'
+3. Încearcă să accesezi dashboard","Redirect la login, sesiune invalidată","High","High","Functional","Pending",""
+"AUTH-006","Authentication","Session","Timeout","Expirare sesiune automată","Verifică timeout-ul sesiunii","SESSION_TIMEOUT_MINUTES setat","1. Autentifică-te
+2. Așteaptă perioada de timeout
+3. Încearcă o acțiune","Redirect la login cu mesaj de sesiune expirată","Medium","Medium","Functional","Pending",""
+"AUTH-007","Authentication","Signup","Registration","Înregistrare utilizator nou","Verifică crearea contului nou","","1. Navighează la /signup
+2. Completează toate câmpurile
+3. Submit formularul","Cont creat, email de confirmare trimis","High","High","Functional","Pending",""
+"AUTH-008","Authentication","Invitation","Onboarding","Acceptare invitație","Verifică procesul de invitație","Invitație trimisă","1. Accesează link-ul de invitație
+2. Completează datele
+3. Creează cont","Cont creat cu rolurile atribuite","High","High","Functional","Pending",""
+"AUTH-009","Authentication","403","Access Denied","Acces pagină fără permisiuni","Verifică afișarea paginii 403","Utilizator fără permisiuni","1. Încearcă să accesezi o pagină restricționată","Afișare pagină 403 cu mesaj corespunzător","Medium","Medium","Functional","Pending",""
+"AUTH-010","Authentication","Session","Monitor","Session monitor funcționează","Verifică componenta session-monitor","Utilizator autentificat","1. Deschide consola browser
+2. Verifică activitatea la inactivitate","Console logs în development, logout la expirare","Low","Low","Functional","Pending",""
+"DASH-001","Dashboard","Main","Overview","Încărcare dashboard","Verifică încărcarea paginii principale","Utilizator autentificat","1. Navighează la /dashboard
+2. Așteaptă încărcarea","Dashboard încărcat cu statistici, grafice","Critical","Critical","Functional","Pending",""
+"DASH-002","Dashboard","Main","Statistics","Afișare statistici corecte","Verifică corectitudinea cifrelor afișate","Comenzi existente în sistem","1. Verifică numărul de comenzi
+2. Compară cu baza de date","Statisticile corespund cu realitatea","High","High","Functional","Pending",""
+"DASH-003","Dashboard","Main","Filters","Filtrare pe perioadă","Verifică funcționarea filtrelor de dată","","1. Selectează perioadă custom
+2. Aplică filtrul","Statisticile se actualizează pentru perioada selectată","Medium","Medium","Functional","Pending",""
+"DASH-004","Dashboard","Main","Charts","Afișare grafice","Verifică randarea corectă a graficelor","Date existente","1. Vizualizează graficele
+2. Hover pentru tooltip","Graficele se încarcă și afișează corect","Medium","Low","Functional","Pending",""
+"ORD-001","Orders","List","View","Vizualizare listă comenzi","Verifică afișarea listei de comenzi","Comenzi existente","1. Navighează la /orders
+2. Verifică tabelul","Lista de comenzi afișată cu coloane corecte","Critical","Critical","Functional","Pending",""
+"ORD-002","Orders","List","Pagination","Paginare comenzi","Verifică paginarea listei","50+ comenzi existente","1. Navighează la pagina 2
+2. Verifică URL și conținut","Comenzile diferite pe fiecare pagină","High","Medium","Functional","Pending",""
+"ORD-003","Orders","List","Search","Căutare comenzi","Verifică funcția de căutare","Comenzi existente","1. Introdu termen de căutare
+2. Verifică rezultatele","Rezultate filtrate corect (număr comandă, client, SKU)","High","High","Functional","Pending",""
+"ORD-004","Orders","List","Filter Status","Filtrare pe status","Verifică filtrarea pe status comandă","Comenzi cu statusuri diferite","1. Selectează status 'PENDING'
+2. Verifică rezultatele","Doar comenzile cu status PENDING afișate","High","Medium","Functional","Pending",""
+"ORD-005","Orders","List","Filter Store","Filtrare pe magazin","Verifică filtrarea pe store","Multiple stores configurate","1. Selectează un magazin
+2. Verifică rezultatele","Doar comenzile din magazinul selectat afișate","Medium","Medium","Functional","Pending",""
+"ORD-006","Orders","List","Filter Date","Filtrare pe dată","Verifică filtrarea pe interval de date","","1. Setează interval de date
+2. Aplică filtrul","Comenzile din intervalul selectat afișate","Medium","Medium","Functional","Pending",""
+"ORD-007","Orders","List","Filter SKU","Filtrare pe SKU","Verifică filtrarea după SKU produs","","1. Introdu SKU în filtrul 'Contains SKU'
+2. Aplică","Doar comenzile care conțin SKU-ul afișate","Medium","Medium","Functional","Pending",""
+"ORD-008","Orders","List","Filter AWB","Filtrare comenzi cu/fără AWB","Verifică filtrul hasAwb","","1. Selectează 'Cu AWB'
+2. Verifică rezultatele","Doar comenzile cu AWB creat afișate","Medium","Medium","Functional","Pending",""
+"ORD-009","Orders","Detail","View","Vizualizare detalii comandă","Verifică pagina de detalii","Comandă existentă","1. Click pe o comandă
+2. Verifică informațiile","Toate detaliile comenzii afișate corect","Critical","Critical","Functional","Pending",""
+"ORD-010","Orders","Detail","Customer Info","Informații client","Verifică afișarea datelor clientului","","1. Vizualizează secțiunea client","Nume, email, telefon, adresă afișate corect","High","Medium","Functional","Pending",""
+"ORD-011","Orders","Detail","Line Items","Produse comandate","Verifică lista de produse","","1. Vizualizează lista de produse","SKU, titlu, cantitate, preț pentru fiecare produs","High","High","Functional","Pending",""
+"ORD-012","Orders","Detail","Status History","Istoric statusuri","Verifică afișarea istoricului","Comandă procesată","1. Vizualizează istoricul statusurilor","Timeline cu toate schimbările de status","Medium","Medium","Functional","Pending",""
+"ORD-013","Orders","Detail","Activity Log","Activity log comandă","Verifică log-ul de activitate","Acțiuni făcute pe comandă","1. Click pe tab 'Activity'","Lista cronologică a acțiunilor pe comandă","Medium","Low","Functional","Pending",""
+"ORD-014","Orders","Process","Single","Procesare comandă singulară","Verifică procesarea unei comenzi","Comandă în status PENDING","1. Selectează comanda
+2. Click 'Procesează'
+3. Confirmă","AWB și factură generate, status actualizat","Critical","Critical","Functional","Pending",""
+"ORD-015","Orders","Process","Batch","Procesare comenzi în batch","Verifică procesarea multiplă","Multiple comenzi PENDING","1. Selectează mai multe comenzi
+2. Click 'Procesează toate'","Toate comenzile procesate, raport afișat","Critical","Critical","Functional","Pending",""
+"ORD-016","Orders","Process","Validation Failed","Procesare cu date invalide","Verifică comportamentul cu date lipsă","Comandă cu telefon invalid","1. Procesează comanda
+2. Verifică rezultatul","Eroare clară despre validarea eșuată","High","High","Functional","Pending",""
+"ORD-017","Orders","Export","Excel","Export comenzi Excel","Verifică exportul în Excel","Comenzi existente","1. Selectează filtru
+2. Click 'Export'","Fișier Excel descărcat cu datele corecte","Medium","Medium","Functional","Pending",""
+"ORD-018","Orders","API","GET /api/orders","API listă comenzi","Verifică API-ul de listare","Auth token valid","1. GET /api/orders
+2. Verifică răspunsul","JSON cu lista de comenzi și metadata","High","High","API","Pending",""
+"ORD-019","Orders","API","GET /api/orders/[id]","API detalii comandă","Verifică API-ul de detalii","Comandă existentă","1. GET /api/orders/{id}
+2. Verifică răspunsul","JSON cu toate detaliile comenzii","High","High","API","Pending",""
+"ORD-020","Orders","Security","Authorization","Acces comenzi fără permisiune","Verifică restricția de acces","User fără orders.view","1. Încearcă acces la /orders","Redirect la 403 sau mesaj de eroare","Critical","Critical","Security","Pending",""
+"INV-001","Invoices","Issue","Single","Emitere factură singulară","Verifică emiterea unei facturi","Comandă gata de facturare, credențiale Facturis","1. Selectează comanda
+2. Click 'Emite factură'
+3. Confirmă","Factură emisă în Facturis, PDF disponibil","Critical","Critical","Functional","Pending",""
+"INV-002","Invoices","Issue","Batch","Emitere facturi în batch","Verifică emiterea multiplă","Multiple comenzi gata","1. Selectează comenzile
+2. Click 'Emite toate'","Toate facturile emise, raport cu succese/erori","Critical","Critical","Functional","Pending",""
+"INV-003","Invoices","Issue","Number Sequence","Verificare numerotare secvențială","Verifică că numerele sunt consecutive","Serie configurată","1. Emite 3 facturi consecutiv
+2. Verifică numerele","Numerele sunt consecutive fără gap-uri","Critical","Critical","Functional","Pending",""
+"INV-004","Invoices","Issue","Rollback","Rollback număr la eroare","Verifică rollback-ul la eșec","","1. Simulează eroare Facturis
+2. Verifică numărul curent","Numărul revine la valoarea anterioară","High","High","Functional","Pending",""
+"INV-005","Invoices","Issue","Transaction","Atomicitate operație","Verifică tranzacția DB","","1. Simulează eroare după salvare
+2. Verifică starea DB","Toate operațiile anulate sau toate făcute","Critical","Critical","Functional","Pending",""
+"INV-006","Invoices","View","List","Listă facturi","Verifică afișarea listei","Facturi existente","1. Navighează la /invoices
+2. Verifică tabelul","Lista facturilor cu toate coloanele","High","High","Functional","Pending",""
+"INV-007","Invoices","View","PDF","Vizualizare PDF factură","Verifică afișarea PDF-ului","Factură cu PDF","1. Click pe factură
+2. Click 'Vezi PDF'","PDF-ul se deschide/descarcă corect","High","Medium","Functional","Pending",""
+"INV-008","Invoices","Cancel","Single","Anulare factură","Verifică anularea facturii","Factură emisă","1. Selectează factura
+2. Click 'Anulează'
+3. Confirmă","Factura anulată în Facturis și local","High","High","Functional","Pending",""
+"INV-009","Invoices","Payment","Mark Paid","Marchează factură ca plătită","Verifică marcarea plății","Factură emisă","1. Selectează factura
+2. Click 'Marchează plătit'","Status actualizat la 'paid'","Medium","Medium","Functional","Pending",""
+"INV-010","Invoices","Series","Create","Creare serie factură","Verifică crearea seriei","Companie configurată","1. Navighează la Settings > Invoice Series
+2. Adaugă serie nouă","Serie creată cu prefixul și numărul inițial","High","High","Functional","Pending",""
+"INV-011","Invoices","Series","Edit","Editare serie","Verifică editarea seriei","Serie existentă","1. Editează seria
+2. Salvează","Modificările aplicate corect","Medium","Medium","Functional","Pending",""
+"INV-012","Invoices","API","POST /api/invoices/issue","API emitere factură","Verifică API-ul de emitere","Auth + orderId valid","1. POST /api/invoices/issue
+2. Verifică răspunsul","JSON cu detalii factură sau eroare","Critical","Critical","API","Pending",""
+"INV-013","Invoices","Integration","Facturis","Integrare Facturis","Verifică comunicarea cu Facturis","Credențiale valide","1. Emite factură
+2. Verifică în Facturis","Factura apare în sistemul Facturis","Critical","Critical","Integration","Pending",""
+"INV-014","Invoices","Security","Auth Required","Emitere fără autentificare","Verifică protecția API","","1. POST /api/invoices/issue fără token","401 Unauthorized","Critical","Critical","Security","Pending",""
+"AWB-001","AWB","Create","Single","Creare AWB singular","Verifică crearea unui AWB","Comandă cu factură, credențiale FanCourier","1. Selectează comanda
+2. Click 'Creează AWB'
+3. Confirmă","AWB creat, număr returnat","Critical","Critical","Functional","Pending",""
+"AWB-002","AWB","Create","Batch","Creare AWB-uri în batch","Verifică crearea multiplă","Multiple comenzi","1. Selectează comenzile
+2. Click 'Creează AWB-uri'","Toate AWB-urile create, raport afișat","Critical","Critical","Functional","Pending",""
+"AWB-003","AWB","Create","Idempotency","Idempotență la creare","Verifică prevenirea duplicatelor","AWB deja creat","1. Încearcă crearea AWB pentru aceeași comandă","Mesaj de eroare că AWB-ul există deja","High","High","Functional","Pending",""
+"AWB-004","AWB","Create","COD","AWB cu ramburs","Verifică setarea rambursului","Comandă cu plată la livrare","1. Creează AWB
+2. Verifică suma ramburs","AWB cu suma ramburs corectă","Critical","Critical","Functional","Pending",""
+"AWB-005","AWB","Create","Validation","Validare date destinatar","Verifică validarea telefon/adresă","Comandă cu telefon invalid","1. Încearcă crearea AWB","Eroare specifică despre câmpul invalid","High","High","Functional","Pending",""
+"AWB-006","AWB","View","List","Listă AWB-uri","Verifică afișarea listei","AWB-uri existente","1. Navighează la /awb
+2. Verifică tabelul","Lista AWB-urilor cu statusuri","High","High","Functional","Pending",""
+"AWB-007","AWB","View","Detail","Detalii AWB","Verifică pagina de detalii","AWB existent","1. Click pe un AWB","Toate informațiile AWB afișate","High","Medium","Functional","Pending",""
+"AWB-008","AWB","View","Tracking","Urmărire colet","Verifică afișarea tracking-ului","AWB cu istoric","1. Vizualizează tracking history","Evenimente în ordine cronologică","Medium","Medium","Functional","Pending",""
+"AWB-009","AWB","Status","Sync","Sincronizare status AWB","Verifică actualizarea statusului","AWB activ","1. Rulează sync AWB
+2. Verifică statusul","Status actualizat din FanCourier","High","High","Functional","Pending",""
+"AWB-010","AWB","Status","Delivered","Marcare livrat","Verifică detectarea livrării","AWB livrat în FanCourier","1. Sincronizează AWB-urile
+2. Verifică comanda","Status comandă actualizat la DELIVERED","High","High","Functional","Pending",""
+"AWB-011","AWB","Status","isCollected","Flag isCollected pentru COD","Verifică setarea flag-ului la livrare","AWB COD livrat","1. Sincronizează AWB-urile
+2. Verifică flag-ul","isCollected = true pentru AWB-uri livrate cu ramburs","High","High","Functional","Pending",""
+"AWB-012","AWB","Comments","Add","Adăugare comentariu","Verifică adăugarea comentariului","AWB existent, utilizator autentificat","1. Navighează la AWB
+2. Adaugă comentariu","Comentariu salvat și afișat","Medium","Medium","Functional","Pending",""
+"AWB-013","AWB","Print","Label","Printare etichetă AWB","Verifică printarea etichetei","AWB creat, printer configurat","1. Click 'Print'
+2. Verifică printarea","Etichetă trimisă la printer","Medium","Medium","Functional","Pending",""
+"AWB-014","AWB","Integration","FanCourier","Integrare FanCourier","Verifică comunicarea cu FanCourier","Credențiale valide","1. Creează AWB
+2. Verifică în FanCourier","AWB apare în sistemul FanCourier","Critical","Critical","Integration","Pending",""
+"AWB-015","AWB","API","POST /api/awb/create","API creare AWB","Verifică API-ul de creare","Auth + orderId valid","1. POST /api/awb/create
+2. Verifică răspunsul","JSON cu awbNumber sau eroare","Critical","Critical","API","Pending",""
+"HAND-001","Handover","List","Today","Listă azi","Verifică lista pentru azi","AWB-uri create azi","1. Navighează la /handover
+2. Verifică lista","Toate AWB-urile de azi afișate","Critical","Critical","Functional","Pending",""
+"HAND-002","Handover","List","Not Handed","Listă nepredare","Verifică AWB-urile nepredare","AWB-uri din zile anterioare","1. Navighează la /handover/not-handed","AWB-uri nepredare afișate","High","High","Functional","Pending",""
+"HAND-003","Handover","Scan","Single","Scanare AWB singular","Verifică scanarea unui AWB","AWB în listă","1. Scanează codul AWB
+2. Verifică feedback","AWB marcat ca predat, ora înregistrată","Critical","Critical","Functional","Pending",""
+"HAND-004","Handover","Scan","Duplicate","Scanare AWB deja scanat","Verifică comportament duplicat","AWB deja scanat","1. Scanează același AWB din nou","Mesaj informativ că e deja scanat","Medium","Low","Functional","Pending",""
+"HAND-005","Handover","Scan","Invalid","Scanare AWB inexistent","Verifică comportament invalid","","1. Scanează cod invalid","Mesaj de eroare clar","Medium","Medium","Functional","Pending",""
+"HAND-006","Handover","Finalize","Submit","Finalizare predare","Verifică finalizarea sesiunii","AWB-uri scanate","1. Click 'Finalizează'
+2. Confirmă","Sesiune închisă, raport generat","Critical","Critical","Functional","Pending",""
+"HAND-007","Handover","Reopen","Session","Redeschidere sesiune","Verifică redeschiderea","Sesiune finalizată","1. Click 'Redeschide'
+2. Confirmă","Sesiune redeschisă pentru editare","Medium","Medium","Functional","Pending",""
+"HAND-008","Handover","Report","Generate","Generare raport","Verifică generarea raportului","Sesiune finalizată","1. Click 'Raport'
+2. Verifică conținutul","Raport cu toate AWB-urile și detaliile","High","High","Functional","Pending",""
+"HAND-009","Handover","Report","Export","Export raport","Verifică exportul","Raport generat","1. Click 'Export Excel'","Fișier descărcat cu datele corecte","Medium","Medium","Functional","Pending",""
+"HAND-010","Handover","C0 Alert","Check","Verificare alerte C0","Verifică alertele de ridicare","AWB-uri cu C0 neconfirmat","1. Navighează la alerte
+2. Verifică lista","AWB-uri cu scan C0 dar fără confirmare FanCourier","High","High","Functional","Pending",""
+"HAND-011","Handover","Cron","Auto Finalize","Auto-finalizare seară","Verifică cron-ul de finalizare","Sesiune deschisă, ora > 20:00","1. Așteaptă executarea cron-ului
+2. Verifică sesiunea","Sesiune închisă automat","Medium","Medium","Functional","Pending",""
+"PICK-001","Picking","Create","New","Creare picking list","Verifică crearea listei","Comenzi gata de picking","1. Navighează la /picking/create
+2. Selectează comenzi
+3. Creează lista","Lista creată cu toate produsele agregate","High","High","Functional","Pending",""
+"PICK-002","Picking","View","List","Vizualizare liste","Verifică afișarea listelor","Liste existente","1. Navighează la /picking","Lista de picking lists afișată","High","Medium","Functional","Pending",""
+"PICK-003","Picking","View","Detail","Detalii picking","Verifică pagina de detalii","Lista existentă","1. Click pe o listă","Toate produsele și cantitățile afișate","High","Medium","Functional","Pending",""
+"PICK-004","Picking","Item","Scan","Scanare produs","Verifică scanarea produselor","Listă activă","1. Scanează barcode produs
+2. Verifică starea","Produs marcat ca ridicat, cantitate actualizată","High","High","Functional","Pending",""
+"PICK-005","Picking","Item","Manual","Marcare manuală","Verifică marcarea manuală","Listă activă","1. Click pe produs
+2. Click 'Marcat ridicat'","Produs marcat ca ridicat","Medium","Medium","Functional","Pending",""
+"PICK-006","Picking","Print","Slip","Printare bon de picking","Verifică printarea","Listă activă","1. Click 'Print'","Bon trimis la printer cu toate produsele","Medium","Medium","Functional","Pending",""
+"PICK-007","Picking","Aggregate","Multiple","Agregare mai multe liste","Verifică agregarea","Multiple liste active","1. Selectează liste
+2. Click 'Agregează'","Lista agregată cu produse combinate","Medium","Medium","Functional","Pending",""
+"PICK-008","Picking","Complete","All","Finalizare completă","Verifică finalizarea","Toate produsele ridicate","1. Ridică toate produsele
+2. Finalizează","Status actualizat, comenzile pregătite","High","High","Functional","Pending",""
+"INV-ITEM-001","Inventory Items","Create","New","Creare articol nou","Verifică adăugarea articolului","","1. Navighează la /inventory/new
+2. Completează formularul
+3. Salvează","Articol creat în sistem","High","High","Functional","Pending",""
+"INV-ITEM-002","Inventory Items","View","List","Vizualizare listă","Verifică afișarea listei","Articole existente","1. Navighează la /inventory","Lista articolelor afișată","High","Medium","Functional","Pending",""
+"INV-ITEM-003","Inventory Items","Edit","Update","Editare articol","Verifică modificarea","Articol existent","1. Click pe articol
+2. Click 'Edit'
+3. Modifică și salvează","Modificările aplicate","Medium","Medium","Functional","Pending",""
+"INV-ITEM-004","Inventory Items","Delete","Single","Ștergere articol","Verifică ștergerea","Articol fără stoc","1. Selectează articol
+2. Click 'Șterge'
+3. Confirmă","Articol șters din sistem","Medium","Medium","Functional","Pending",""
+"INV-ITEM-005","Inventory Items","Import","Excel","Import din Excel","Verifică importul bulk","Fișier Excel valid","1. Click 'Import'
+2. Încarcă fișier
+3. Confirmă mapping-ul","Articolele importate corect","High","High","Functional","Pending",""
+"INV-ITEM-006","Inventory Items","Export","Excel","Export în Excel","Verifică exportul","Articole existente","1. Click 'Export'
+2. Selectează opțiunile","Fișier Excel descărcat cu toate datele","Medium","Medium","Functional","Pending",""
+"INV-ITEM-007","Inventory Items","Recipe","Create","Creare rețetă compozit","Verifică crearea rețetei","Articole componente existente","1. Navighează la articolul compozit
+2. Adaugă componente
+3. Salvează","Rețeta creată cu cantitățile corecte","High","High","Functional","Pending",""
+"INV-ITEM-008","Inventory Items","Stock","Adjust","Ajustare stoc","Verifică ajustarea manuală","Articol cu stoc","1. Navighează la articol
+2. Click 'Ajustare'
+3. Introdu cantitate și motiv","Stocul ajustat, mișcare înregistrată","High","High","Functional","Pending",""
+"STOCK-001","Stock Movements","View","List","Vizualizare mișcări","Verifică afișarea istoricului","Mișcări existente","1. Navighează la /inventory/movements","Lista mișcărilor afișată cronologic","High","Medium","Functional","Pending",""
+"STOCK-002","Stock Movements","Filter","Type","Filtrare pe tip","Verifică filtrarea","","1. Selectează tip 'OUT'
+2. Verifică rezultatele","Doar mișcările de tip OUT afișate","Medium","Medium","Functional","Pending",""
+"STOCK-003","Stock Movements","Deduct","Order","Descărcare la comandă","Verifică descărcarea automată","Comandă procesată, stoc existent","1. Procesează comandă
+2. Verifică mișcările","Stocul redus, mișcare OUT înregistrată","Critical","Critical","Functional","Pending",""
+"STOCK-004","Stock Movements","Validation","Negative","Prevenire stoc negativ","Verifică validarea","Stoc insuficient","1. Încearcă descărcare mai mare decât stocul","Eroare: stoc insuficient","High","High","Functional","Pending",""
+"STOCK-005","Stock Movements","Transaction","Atomic","Atomicitate operație","Verifică tranzacția","","1. Simulează eroare în mijlocul operației
+2. Verifică starea","Toate operațiile anulate sau făcute complet","High","High","Functional","Pending",""
+"TRANSFER-001","Stock Transfers","Create","New","Creare transfer","Verifică inițierea transferului","2+ depozite, stoc în sursă","1. Navighează la /inventory/transfers/new
+2. Selectează sursă/destinație
+3. Adaugă articole
+4. Salvează","Transfer creat în status PENDING","High","High","Functional","Pending",""
+"TRANSFER-002","Stock Transfers","Execute","Process","Executare transfer","Verifică executarea","Transfer PENDING","1. Click 'Execută'
+2. Confirmă","Stocul mutat, transfer COMPLETED","High","High","Functional","Pending",""
+"TRANSFER-003","Stock Transfers","Cancel","Abort","Anulare transfer","Verifică anularea","Transfer PENDING","1. Click 'Anulează'
+2. Confirmă","Transfer anulat, stocul neschimbat","Medium","Medium","Functional","Pending",""
+"TRANSFER-004","Stock Transfers","Auto","Propose","Propunere automată","Verifică propunerea automată pentru comenzi","Comandă cu stoc în alt depozit","1. Procesează comandă fără stoc în operațional
+2. Verifică propunerea","Transfer propus din depozitul cu stoc","High","High","Functional","Pending",""
+"TRANSFER-005","Stock Transfers","Preview","Impact","Preview impact","Verifică preview-ul","Transfer creat","1. Click 'Preview'
+2. Verifică informațiile","Stocuri înainte/după afișate corect","Medium","Medium","Functional","Pending",""
+"RECEIPT-001","Goods Receipts","Create","New","Creare recepție","Verifică crearea recepției","Furnizor, depozit configurate","1. Navighează la /inventory/receipts/new
+2. Completează detaliile
+3. Adaugă articole
+4. Salvează","Recepție creată în sistem","High","High","Functional","Pending",""
+"RECEIPT-002","Goods Receipts","Complete","Process","Finalizare recepție","Verifică finalizarea","Recepție draft","1. Click 'Finalizează'
+2. Confirmă","Stocul adăugat, mișcări înregistrate","High","High","Functional","Pending",""
+"RECEIPT-003","Goods Receipts","View","Detail","Detalii recepție","Verifică vizualizarea","Recepție existentă","1. Click pe recepție","Toate informațiile și articolele afișate","Medium","Medium","Functional","Pending",""
+"WAREHOUSE-001","Warehouses","Create","New","Creare depozit","Verifică adăugarea","","1. Navighează la Settings > Warehouses
+2. Click 'Adaugă'
+3. Completează și salvează","Depozit creat în sistem","High","High","Functional","Pending",""
+"WAREHOUSE-002","Warehouses","Set Primary","Config","Setare depozit primar","Verifică setarea primarului","Depozit existent","1. Click 'Setează primar'","Depozitul devine primar, vechiul e dezactivat","High","High","Functional","Pending",""
+"WAREHOUSE-003","Warehouses","Set Operational","Config","Setare depozit operațional","Verifică setarea operaționalului","Depozit existent","1. Click 'Setează operațional'","Depozitul devine operațional pentru picking","High","High","Functional","Pending",""
+"WAREHOUSE-004","Warehouses","View Stock","Report","Vizualizare stoc depozit","Verifică raportul de stoc","Depozit cu stoc","1. Click pe depozit
+2. Vizualizează stocul","Lista articolelor cu cantitățile din depozit","Medium","Medium","Functional","Pending",""
+"WAREHOUSE-005","Warehouses","Edit","Update","Editare depozit","Verifică modificarea","Depozit existent","1. Click 'Edit'
+2. Modifică datele
+3. Salvează","Modificările aplicate","Medium","Medium","Functional","Pending",""
+"PROD-001","Products","Create","New","Creare produs","Verifică adăugarea produsului","","1. Navighează la /products
+2. Click 'Adaugă'
+3. Completează formularul","Produs creat cu SKU unic","High","High","Functional","Pending",""
+"PROD-002","Products","Edit","Update","Editare produs","Verifică modificarea","Produs existent","1. Click pe produs
+2. Click 'Edit'
+3. Modifică și salvează","Modificările aplicate","Medium","Medium","Functional","Pending",""
+"PROD-003","Products","Delete","Single","Ștergere produs","Verifică ștergerea","Produs fără comenzi","1. Click 'Șterge'
+2. Confirmă","Produsul șters din sistem","Medium","Medium","Functional","Pending",""
+"PROD-004","Products","Auth","Permission","Verificare autorizare DELETE","Verifică că DELETE necesită auth","User fără products.delete","1. DELETE /api/products/{id}","403 Forbidden","Critical","Critical","Security","Pending",""
+"PROD-005","Products","Auth","Permission PUT","Verificare autorizare PUT","Verifică că PUT necesită auth","User fără products.edit","1. PUT /api/products/{id}","403 Forbidden","Critical","Critical","Security","Pending",""
+"PROD-006","Products","Duplicate","SKU","Prevenire SKU duplicat","Verifică validarea SKU unic","Produs cu SKU existent","1. Creează produs cu același SKU","409 Conflict, mesaj de eroare","High","High","Functional","Pending",""
+"PROD-007","Products","Recipe","Create","Creare produs compozit","Verifică crearea rețetei","Produse componente existente","1. Creează produs
+2. Marchează ca compozit
+3. Adaugă componente","Rețetă salvată corect","High","High","Functional","Pending",""
+"PROD-008","Products","Mapping","Inventory","Mapare cu inventar","Verifică maparea","Articol inventar existent","1. Click 'Inventory Mapping'
+2. Selectează articolul
+3. Salvează","Produsul legat de articolul de inventar","High","High","Functional","Pending",""
+"PROD-009","Products","Channel","Sync","Sincronizare canal","Verifică sincronizarea cu Shopify","Store configurat","1. Click 'Sync to Shopify'","Produsul sincronizat în Shopify","Medium","Medium","Functional","Pending",""
+"PROD-010","Products","Import","Bulk","Import produse bulk","Verifică importul din Excel","Fișier Excel valid","1. Click 'Import'
+2. Încarcă fișier
+3. Confirmă","Produsele importate corect","High","High","Functional","Pending",""
+"COMPANY-001","Companies","Create","New","Creare companie","Verifică adăugarea firmei","","1. Navighează la Settings > Companies
+2. Click 'Adaugă'
+3. Completează CUI, date","Companie creată în sistem","High","High","Functional","Pending",""
+"COMPANY-002","Companies","Config","Facturis","Configurare Facturis","Verifică setarea credențialelor","Companie existentă","1. Editează compania
+2. Adaugă credențiale Facturis
+3. Salvează","Credențiale salvate","High","High","Functional","Pending",""
+"COMPANY-003","Companies","Test","Facturis","Test credențiale Facturis","Verifică testul de conexiune","Credențiale configurate","1. Click 'Test Facturis'","Mesaj de succes sau eroare specifică","High","High","Functional","Pending",""
+"COMPANY-004","Companies","Config","FanCourier","Configurare FanCourier","Verifică setarea credențialelor","Companie existentă","1. Editează compania
+2. Adaugă credențiale FanCourier
+3. Salvează","Credențiale salvate","High","High","Functional","Pending",""
+"COMPANY-005","Companies","Test","FanCourier","Test credențiale FanCourier","Verifică testul de conexiune","Credențiale configurate","1. Click 'Test FanCourier'","Mesaj de succes sau eroare specifică","High","High","Functional","Pending",""
+"COMPANY-006","Companies","Primary","Set","Setare companie primară","Verifică setarea primarei","Companii existente","1. Click 'Setează primară'","Compania devine primară pentru intercompany","High","High","Functional","Pending",""
+"COMPANY-007","Companies","CUI Lookup","ANAF","Căutare CUI în ANAF","Verifică integrarea ANAF","CUI valid","1. Introdu CUI
+2. Click 'Caută'","Date companie completate automat din ANAF","Medium","Medium","Functional","Pending",""
+"COMPANY-008","Companies","Token Isolation","Multi-tenant","Izolare token FanCourier per companie","Verifică izolarea","2 companii cu FanCourier","1. Generează AWB pentru compania A
+2. Generează AWB pentru compania B","Fiecare folosește propriul token","Critical","Critical","Security","Pending",""
+"INTERCO-001","Intercompany","Preview","Generate","Generare preview decontare","Verifică preview-ul","Comenzi cu intercompanyStatus='pending'","1. Navighează la /intercompany
+2. Selectează compania secundară
+3. Click 'Preview'","Lista comenzilor și calculul markup afișate","High","High","Functional","Pending",""
+"INTERCO-002","Intercompany","Invoice","Generate","Generare factură intercompany","Verifică generarea","Preview valid","1. Review preview
+2. Click 'Generează factură'","Factură intercompany creată, comenzi marcate 'settled'","Critical","Critical","Functional","Pending",""
+"INTERCO-003","Intercompany","Transaction","Atomic","Atomicitate operație","Verifică tranzacția","","1. Simulează eroare în procesare
+2. Verifică starea","Toate operațiile anulate sau făcute complet","Critical","Critical","Functional","Pending",""
+"INTERCO-004","Intercompany","Payment","Mark","Marcare plată","Verifică marcarea plății","Factură generată","1. Click 'Marchează plătit'","Status actualizat la 'paid'","Medium","Medium","Functional","Pending",""
+"INTERCO-005","Intercompany","isCollected","Eligible","Verificare eligibilitate","Verifică că doar comenzile cu isCollected sunt eligibile","Comenzi cu/fără isCollected","1. Verifică lista de eligibile","Doar comenzile cu AWB livrat și încasat sunt afișate","High","High","Functional","Pending",""
+"INTERCO-006","Intercompany","Calculation","Markup","Calcul markup corect","Verifică calculele financiare","Comenzi cu produse","1. Generează preview
+2. Verifică totalurile","Markup calculat corect, fără erori de floating point","High","High","Functional","Pending",""
+"STORE-001","Stores","Create","Shopify","Adăugare store Shopify","Verifică conectarea","Credențiale Shopify valide","1. Click 'Adaugă store'
+2. Configurează Shopify
+3. Salvează","Store conectat, sync inițial pornit","High","High","Functional","Pending",""
+"STORE-002","Stores","Edit","Update","Editare store","Verifică modificarea","Store existent","1. Click pe store
+2. Modifică setările
+3. Salvează","Modificările aplicate","Medium","Medium","Functional","Pending",""
+"STORE-003","Stores","Sync","Manual","Sincronizare manuală","Verifică sync-ul manual","Store activ","1. Click 'Sync acum'","Comenzile noi importate","High","High","Functional","Pending",""
+"STORE-004","Stores","Company","Link","Legare store de companie","Verifică asocierea","Store și companie existente","1. Editează store
+2. Selectează compania
+3. Salvează","Store-ul folosește compania pentru facturare/AWB","High","High","Functional","Pending",""
+"CRON-001","Cron Jobs","Auth","Secret Required","CRON_SECRET obligatoriu","Verifică protecția cron","CRON_SECRET lipsă","1. Apelează cron fără secret","500 Server Error: CRON_SECRET not set","Critical","Critical","Security","Pending",""
+"CRON-002","Cron Jobs","Auth","Invalid Secret","Secret invalid","Verifică respingerea","Secret greșit","1. Apelează cron cu secret greșit","401 Unauthorized","Critical","Critical","Security","Pending",""
+"CRON-003","Cron Jobs","Lock","Overlap Prevention","Prevenire execuție simultană","Verifică lock-ul","","1. Pornește cron job
+2. Pornește din nou simultan","Al doilea apel returează 'skipped'","High","High","Functional","Pending",""
+"CRON-004","Cron Jobs","Sync Orders","Execute","Sincronizare comenzi","Verifică cron-ul de sync","Comenzi noi în Shopify","1. Apelează POST /api/cron/sync-orders","Comenzile noi importate, raport returnat","High","High","Functional","Pending",""
+"CRON-005","Cron Jobs","Sync AWB","Execute","Sincronizare AWB","Verifică cron-ul de sync AWB","AWB-uri active","1. Apelează POST /api/cron/sync-awb","Statusurile actualizate, schimbări raportate","High","High","Functional","Pending",""
+"CRON-006","Cron Jobs","Backup","Execute","Backup automat","Verifică cron-ul de backup","","1. Apelează POST /api/cron/backup","Backup creat cu succes","Medium","Medium","Functional","Pending",""
+"CRON-007","Cron Jobs","Settlement","Execute","Decontare automată","Verifică cron-ul de decontare","Comenzi eligibile","1. Apelează POST /api/cron/intercompany-settlement","Decontări procesate, raport returnat","High","High","Functional","Pending",""
+"RBAC-001","RBAC","User","Create","Creare utilizator","Verifică adăugarea","Admin autentificat","1. Navighează la Settings > Users
+2. Click 'Invită'
+3. Completează și trimite","Invitație trimisă","High","High","Functional","Pending",""
+"RBAC-002","RBAC","Role","Create","Creare rol","Verifică crearea rolului","","1. Navighează la Settings > Roles
+2. Click 'Adaugă'
+3. Configurează permisiuni
+4. Salvează","Rol creat cu permisiunile selectate","High","High","Functional","Pending",""
+"RBAC-003","RBAC","Role","Assign","Atribuire rol","Verifică atribuirea","User și rol existente","1. Editează utilizatorul
+2. Adaugă rolul
+3. Salvează","Utilizatorul are permisiunile rolului","High","High","Functional","Pending",""
+"RBAC-004","RBAC","Permission","Check","Verificare permisiune","Verifică verificarea permisiunii","User cu rol limitat","1. Încearcă acțiune fără permisiune","Acces refuzat cu mesaj clar","Critical","Critical","Security","Pending",""
+"RBAC-005","RBAC","SuperAdmin","Access","Acces SuperAdmin","Verifică accesul complet","User SuperAdmin","1. Accesează orice funcționalitate","Acces permis la tot","High","High","Functional","Pending",""
+"RBAC-006","RBAC","Audit","Trail","Înregistrare acțiuni","Verifică audit trail-ul","Acțiuni făcute","1. Navighează la Settings > Audit
+2. Verifică log-urile","Toate acțiunile înregistrate cu user, timestamp, detalii","Medium","Medium","Functional","Pending",""
+"ADS-001","Ads","Account","Connect Meta","Conectare cont Meta","Verifică OAuth","Cont Meta Business","1. Click 'Connect Meta'
+2. Autorizează
+3. Verifică conexiunea","Cont conectat, access token salvat","High","High","Functional","Pending",""
+"ADS-002","Ads","Account","Connect TikTok","Conectare cont TikTok","Verifică OAuth","Cont TikTok Ads","1. Click 'Connect TikTok'
+2. Autorizează","Cont conectat, access token salvat","High","High","Functional","Pending",""
+"ADS-003","Ads","Campaign","Create","Creare campanie","Verifică crearea campaniei","Cont conectat","1. Navighează la /ads/campaigns/create
+2. Completează formularul
+3. Salvează","Campanie creată în sistem","High","High","Functional","Pending",""
+"ADS-004","Ads","Campaign","Sync","Sincronizare insights","Verifică sincronizarea","Campanie activă","1. Click 'Refresh'","Insights actualizate (ROAS, CPC, etc.)","High","High","Functional","Pending",""
+"ADS-005","Ads","Campaign","Compare","Comparare campanii","Verifică compararea","2+ campanii","1. Selectează campanii
+2. Click 'Compare'","Side-by-side cu metrici","Medium","Medium","Functional","Pending",""
+"ADS-006","Ads","Alert","Create Rule","Creare regulă alertă","Verifică crearea","","1. Navighează la /ads/alerts/rules
+2. Adaugă regulă
+3. Salvează","Regulă salvată și activă","Medium","Medium","Functional","Pending",""
+"ADS-007","Ads","Alert","Trigger","Declanșare alertă","Verifică notificarea","Regulă setată, condiție îndeplinită","1. Așteaptă sincronizarea
+2. Verifică alertele","Alertă generată când condiția e îndeplinită","Medium","Medium","Functional","Pending",""
+"ADS-008","Ads","Pixel","Configure","Configurare pixel","Verifică configurarea","","1. Navighează la /ads/pixels
+2. Adaugă pixel
+3. Configurează","Pixel configurat pentru tracking","Medium","Medium","Functional","Pending",""
+"AI-001","AI Insights","Analyze","Run","Rulare analiză AI","Verifică generarea insights","Date pentru analiză","1. Navighează la secțiunea AI
+2. Click 'Analizează'","Insights generate cu recomandări","Medium","Medium","Functional","Pending",""
+"AI-002","AI Insights","View","Display","Afișare insights","Verifică afișarea","Insights existente","1. Vizualizează componenta AI Insights","Insights afișate cu acțiuni recomandate","Medium","Medium","Functional","Pending",""
+"AI-003","AI Insights","Error","Handle","Gestionare erori","Verifică error handling","","1. Simulează eroare API AI
+2. Verifică comportamentul","Mesaj de eroare user-friendly afișat","Medium","Medium","Functional","Pending",""
+"TRENDYOL-001","Trendyol","Connect","Setup","Configurare integrare","Verifică configurarea","Credențiale Trendyol","1. Navighează la /trendyol
+2. Configurează credențialele
+3. Salvează","Integrare configurată","High","High","Functional","Pending",""
+"TRENDYOL-002","Trendyol","Orders","Sync","Sincronizare comenzi","Verifică sincronizarea","Comenzi în Trendyol","1. Click 'Sync Orders'","Comenzile importate în sistem","High","High","Functional","Pending",""
+"TRENDYOL-003","Trendyol","Mapping","Category","Mapare categorii","Verifică maparea","Produse și categorii","1. Navighează la /trendyol/mapping
+2. Configurează maparea
+3. Salvează","Categoriile mapate pentru publicare","Medium","Medium","Functional","Pending",""
+"TRENDYOL-004","Trendyol","Publish","Product","Publicare produs","Verifică publicarea","Mapare configurată","1. Selectează produsul
+2. Click 'Publish'","Produsul publicat în Trendyol","Medium","Medium","Functional","Pending",""
+"PRINT-001","Printing","Printer","Add","Adăugare printer","Verifică adăugarea","","1. Navighează la Settings > Printers
+2. Adaugă printer nou","Printer înregistrat cu token unic","Medium","Medium","Functional","Pending",""
+"PRINT-002","Printing","Job","Send","Trimitere job de print","Verifică printarea","Printer activ, client conectat","1. Generează document (AWB/picking)
+2. Click 'Print'","Job trimis și procesat de client","Medium","Medium","Functional","Pending",""
+"PRINT-003","Printing","Client","Connect","Conectare client","Verifică conectarea clientului","Token printer valid","1. Pornește print client
+2. Autentifică cu token","Client conectat și gata de print","Medium","Medium","Functional","Pending",""
+"NOTIF-001","Notifications","View","List","Vizualizare notificări","Verifică lista","Notificări existente","1. Click pe icon notificări","Lista notificărilor afișată","Medium","Medium","Functional","Pending",""
+"NOTIF-002","Notifications","Mark","Read","Marcare citită","Verifică marcarea","Notificare necitită","1. Click pe notificare","Notificarea marcată ca citită","Low","Low","Functional","Pending",""
+"NOTIF-003","Notifications","Filter","Type","Filtrare pe tip","Verifică filtrarea","","1. Selectează filtru tip
+2. Verifică lista","Doar notificările de tipul selectat afișate","Low","Low","Functional","Pending",""
+"BACKUP-001","Backup","Create","Manual","Creare backup manual","Verifică backup-ul","Permisiuni admin","1. Navighează la Settings > Backup
+2. Click 'Creează backup'","Backup creat, fișier disponibil","Medium","Medium","Functional","Pending",""
+"BACKUP-002","Backup","Restore","Process","Restaurare backup","Verifică restaurarea","Fișier backup valid","1. Încarcă fișierul backup
+2. Confirmă restaurarea","Datele restaurate corect","High","Critical","Functional","Pending",""
+"BACKUP-003","Backup","Validate","Schema","Validare schemă JSON","Verifică validarea","Fișier JSON corrupt","1. Încearcă restaurare cu JSON invalid","Eroare de validare clară","Medium","Medium","Functional","Pending",""
+"UPLOAD-001","Upload","File","Image","Upload imagine","Verifică upload-ul","","1. Selectează imagine
+2. Upload","Imagine salvată, URL returnat","Medium","Medium","Functional","Pending",""
+"UPLOAD-002","Upload","Security","Extension","Validare extensie","Verifică sanitizarea","Fișier cu extensie periculoasă","1. Încearcă upload fișier .exe.jpg","Extensia sanitizată la una permisă","High","High","Security","Pending",""
+"UPLOAD-003","Upload","Size","Limit","Limită dimensiune","Verifică limita","Fișier prea mare","1. Încearcă upload fișier > limit","Eroare: fișier prea mare","Medium","Medium","Functional","Pending",""
+"PERF-001","Performance","API","Response Time","Timp răspuns API","Verifică performanța","Load normal","1. Măsoară timpul de răspuns pentru GET /api/orders","< 500ms pentru listă, < 200ms pentru detalii","Medium","Medium","Performance","Pending",""
+"PERF-002","Performance","Page","Load Time","Timp încărcare pagină","Verifică încărcarea","","1. Măsoară Time to First Byte
+2. Măsoară Largest Contentful Paint","TTFB < 200ms, LCP < 2.5s","Medium","Medium","Performance","Pending",""
+"PERF-003","Performance","DB","N+1 Query","Verificare N+1","Verifică optimizarea","","1. Monitorizează query-uri la GET /api/orders
+2. Verifică numărul","Fără N+1 queries, număr constant de queries","High","Medium","Performance","Pending",""
+"PERF-004","Performance","Batch","Processing","Procesare batch","Verifică performanța batch","100 comenzi","1. Procesează 100 comenzi simultan
+2. Măsoară timpul","Timp acceptabil, fără timeout","Medium","Medium","Performance","Pending",""
+"PERF-005","Performance","Cron","Lock Cleanup","Cleanup locks expirate","Verifică cleanup-ul","Locks expirate în DB","1. Verifică tabelul CronLock
+2. Așteaptă cleanup","Locks-urile expirate sunt curățate","Low","Low","Performance","Pending",""
+"SEC-001","Security","XSS","Stored","XSS în date utilizator","Verifică sanitizarea","","1. Introdu <script>alert(1)</script> în nume client
+2. Verifică afișarea","Scriptul nu se execută, e escaped","Critical","Critical","Security","Pending",""
+"SEC-002","Security","SQL","Injection","SQL Injection în search","Verifică protecția","","1. Introdu payload SQL în câmpul de căutare
+2. Verifică comportamentul","Query-ul e parametrizat, fără injecție","Critical","Critical","Security","Pending",""
+"SEC-003","Security","CSRF","Token","Protecție CSRF","Verifică token-ul","","1. Încearcă request POST fără token valid
+2. Verifică răspunsul","Request refuzat","High","High","Security","Pending",""
+"SEC-004","Security","Auth","JWT Validation","Validare JWT","Verifică validarea token-ului","Token expirat/invalid","1. Trimite request cu JWT invalid
+2. Verifică răspunsul","401 Unauthorized","Critical","Critical","Security","Pending",""
+"SEC-005","Security","File","Path Traversal","Path traversal în upload","Verifică protecția","","1. Încearcă upload cu path ../../../etc/passwd
+2. Verifică comportamentul","Path sanitizat, eroare returnată","Critical","Critical","Security","Pending",""
+"SEC-006","Security","Rate","Limiting","Rate limiting API","Verifică limitarea","","1. Trimite 100 requesturi în 1 secundă
+2. Verifică răspunsul","Rate limit aplicat, 429 returnat","High","High","Security","Pending",""
+"SEC-007","Security","Headers","Security Headers","Headere de securitate","Verifică headerele","","1. Inspectează headerele răspunsului","X-Frame-Options, CSP, etc. prezente","Medium","Medium","Security","Pending",""
+"SEC-008","Security","Secrets","Env Vars","Secretele nu sunt expuse","Verifică protecția","","1. Verifică răspunsurile API
+2. Verifică frontend bundle","Nicio variabilă de environment expusă","Critical","Critical","Security","Pending",""
+"INT-001","Integration","Shopify","Webhook Orders","Webhook comenzi noi","Verifică webhookul","Webhook configurat","1. Plasează comandă în Shopify
+2. Verifică în ERP","Comanda apare automat în ERP","High","High","Integration","Pending",""
+"INT-002","Integration","Shopify","Webhook Cancel","Webhook anulare","Verifică anularea","Comandă existentă","1. Anulează comanda în Shopify
+2. Verifică în ERP","Status actualizat la CANCELLED","High","High","Integration","Pending",""
+"INT-003","Integration","Facturis","Invoice Create","Creare factură în Facturis","Verifică integrarea","Credențiale valide","1. Emite factură
+2. Verifică în Facturis","Factura apare în sistemul Facturis","Critical","Critical","Integration","Pending",""
+"INT-004","Integration","FanCourier","AWB Create","Creare AWB în FanCourier","Verifică integrarea","Credențiale valide","1. Creează AWB
+2. Verifică în FanCourier","AWB-ul apare în sistemul FanCourier","Critical","Critical","Integration","Pending",""
+"INT-005","Integration","FanCourier","Tracking Sync","Sincronizare tracking","Verifică sincronizarea","AWB activ","1. Rulează sync
+2. Verifică evenimentele","Evenimentele de tracking importate","High","High","Integration","Pending",""
+"INT-006","Integration","ANAF","CUI Lookup","Căutare CUI","Verifică integrarea ANAF","CUI valid","1. Caută CUI
+2. Verifică rezultatul","Date companie returnate din ANAF","Medium","Medium","Integration","Pending",""
+"INT-007","Integration","Meta","OAuth","Autentificare Meta","Verifică OAuth","Cont Meta Business","1. Click 'Connect'
+2. Autorizează
+3. Verifică token","Token salvat, cont conectat","High","High","Integration","Pending",""
+"INT-008","Integration","Meta","Insights","Sync insights","Verifică sincronizarea","Campanie activă","1. Refresh insights
+2. Verifică datele","Metrici actualizate din Meta","Medium","Medium","Integration","Pending",""
+"E2E-001","E2E","Order Flow","Complete","Flux complet comandă","Verifică fluxul end-to-end","Setup complet","1. Comandă nouă → Sync → Transfer stoc → AWB → Factură → Handover","Toate etapele completate cu succes","Critical","Critical","E2E","Pending",""
+"E2E-002","E2E","Intercompany","Complete","Flux complet intercompany","Verifică decontarea completă","Setup multi-company","1. Comandă secundar → Procesare → Decontare → Plată","Fluxul intercompany complet funcțional","High","High","E2E","Pending",""
+"E2E-003","E2E","Inventory","Complete","Flux complet inventar","Verifică gestionarea stocului","Depozite configurate","1. Recepție → Transfer → Descărcare → Raport","Stocul corect în toate etapele","High","High","E2E","Pending",""
+"E2E-004","E2E","Multi-store","Order","Comenzi multiple magazine","Verifică procesarea","Multiple stores active","1. Comenzi din stores diferite
+2. Procesare","Fiecare comandă folosește compania corectă","High","High","E2E","Pending",""
+"E2E-005","E2E","User Journey","Operator","Jurney operator zilnic","Verifică fluxul zilnic","User cu rol operator","1. Login → Picking → Scanare → Handover → Logout","Toate operațiunile accesibile și funcționale","Medium","Medium","E2E","Pending",""
