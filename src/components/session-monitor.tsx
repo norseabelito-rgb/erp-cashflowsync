@@ -27,7 +27,9 @@ export function SessionMonitor() {
     
     if (timeSinceActivity >= INACTIVITY_TIMEOUT) {
       // Sesiune expirată din cauza inactivității
-      console.log("Session expired due to inactivity");
+      if (process.env.NODE_ENV === "development") {
+        console.log("Session expired due to inactivity");
+      }
       
       // Setează mesajul pentru pagina de login
       if (typeof window !== 'undefined') {
@@ -46,7 +48,9 @@ export function SessionMonitor() {
       const data = await res.json();
       
       if (!data || !data.user) {
-        console.log("Session no longer valid on server");
+        if (process.env.NODE_ENV === "development") {
+          console.log("Session no longer valid on server");
+        }
         
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('session_expired', 'expired');
@@ -55,7 +59,9 @@ export function SessionMonitor() {
         router.push('/login?expired=true');
       }
     } catch (error) {
-      console.error("Error checking session:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Error checking session:", error);
+      }
     }
   }, [status, router]);
 

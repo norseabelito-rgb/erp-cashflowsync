@@ -35,7 +35,12 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Construiește where clause
-    const where: any = {};
+    const where: {
+      OR?: Array<{ sku?: { contains: string; mode: "insensitive" }; title?: { contains: string; mode: "insensitive" }; tags?: { has: string } }>;
+      categoryId?: string;
+      category?: { trendyolCategoryId: { not: null } };
+      channels?: { some: { channelId: string } };
+    } = {};
 
     if (search) {
       where.OR = [
@@ -215,7 +220,7 @@ export async function POST(request: NextRequest) {
     if (existing) {
       return NextResponse.json(
         { success: false, error: "Există deja un produs cu acest SKU" },
-        { status: 400 }
+        { status: 409 } // 409 Conflict for duplicates
       );
     }
 
@@ -275,6 +280,24 @@ export async function POST(request: NextRequest) {
 // PUT - Actualizează produs master
 export async function PUT(request: NextRequest) {
   try {
+    // Verificăm autentificarea
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: "Trebuie să fii autentificat" },
+        { status: 401 }
+      );
+    }
+
+    // Verificăm permisiunea de editare produse
+    const canEdit = await hasPermission(session.user.id, "products.edit");
+    if (!canEdit) {
+      return NextResponse.json(
+        { success: false, error: "Nu ai permisiunea de a edita produse" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const {
       id,
@@ -353,6 +376,24 @@ export async function PUT(request: NextRequest) {
 // DELETE - Șterge produs (și din toate canalele)
 export async function DELETE(request: NextRequest) {
   try {
+    // Verificăm autentificarea
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: "Trebuie să fii autentificat" },
+        { status: 401 }
+      );
+    }
+
+    // Verificăm permisiunea de ștergere produse
+    const canDelete = await hasPermission(session.user.id, "products.delete");
+    if (!canDelete) {
+      return NextResponse.json(
+        { success: false, error: "Nu ai permisiunea de a șterge produse" },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 

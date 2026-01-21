@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runWeeklySettlement } from "@/lib/intercompany-service";
+import { withCronLock } from "@/lib/cron-lock";
 
 /**
  * POST /api/cron/intercompany-settlement - Cron job pentru decontare săptămânală
@@ -9,11 +10,18 @@ import { runWeeklySettlement } from "@/lib/intercompany-service";
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verificăm secretul pentru cron jobs
+    // Verificăm secretul pentru cron jobs (MANDATORY)
     const authHeader = request.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!cronSecret) {
+      console.error("[INTERCOMPANY CRON] CRON_SECRET environment variable not configured");
+      return NextResponse.json(
+        { success: false, error: "Server configuration error: CRON_SECRET not set" },
+        { status: 500 }
+      );
+    }
+    if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
@@ -25,14 +33,27 @@ export async function POST(request: NextRequest) {
     console.log("=".repeat(60));
     console.log(`📅 Data: ${new Date().toISOString()}`);
 
-    const result = await runWeeklySettlement();
+    // Use cron lock to prevent concurrent execution (critical for preventing duplicate invoices)
+    const lockResult = await withCronLock("intercompany-settlement", async () => {
+      const result = await runWeeklySettlement();
+      console.log("\n" + "=".repeat(60));
+      console.log("📊 REZULTAT CRON JOB:");
+      console.log(`   ✅ Procesate: ${result.processed}`);
+      console.log(`   ❌ Erori: ${result.failed}`);
+      console.log("=".repeat(60) + "\n");
+      return result;
+    }, 30 * 60 * 1000); // 30 minute TTL for settlement jobs
 
-    console.log("\n" + "=".repeat(60));
-    console.log("📊 REZULTAT CRON JOB:");
-    console.log(`   ✅ Procesate: ${result.processed}`);
-    console.log(`   ❌ Erori: ${result.failed}`);
-    console.log("=".repeat(60) + "\n");
+    if (lockResult.skipped) {
+      console.log(`[INTERCOMPANY CRON] Skipped: ${lockResult.reason}`);
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        reason: lockResult.reason,
+      });
+    }
 
+    const result = lockResult.result!;
     return NextResponse.json({
       success: true,
       processed: result.processed,

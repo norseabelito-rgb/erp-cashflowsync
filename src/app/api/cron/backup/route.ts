@@ -17,9 +17,13 @@ const CRON_SECRET = process.env.CRON_SECRET;
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verify cron secret
+    // Verify cron secret (MANDATORY)
     const authHeader = request.headers.get("authorization");
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+    if (!CRON_SECRET) {
+      console.error("[Backup Cron] CRON_SECRET environment variable not configured");
+      return NextResponse.json({ error: "Server configuration error: CRON_SECRET not set" }, { status: 500 });
+    }
+    if (authHeader !== `Bearer ${CRON_SECRET}`) {
       console.warn("[Backup Cron] Called without valid secret");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

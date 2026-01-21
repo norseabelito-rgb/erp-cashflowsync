@@ -98,7 +98,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Generăm un nume unic pentru fișier
-    const fileExtension = file.name.split(".").pop() || "jpg";
+    // C2: Sanitize file extension - only allow known safe image extensions
+    const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp", "heic", "heif"];
+    const rawExtension = file.name.split(".").pop()?.toLowerCase() || "";
+    const fileExtension = ALLOWED_EXTENSIONS.includes(rawExtension) ? rawExtension : "jpg";
     const uniqueFilename = `${randomUUID()}.${fileExtension}`;
 
     // Organizăm în foldere per AWB

@@ -15,12 +15,15 @@ import { checkAutoFinalize } from "@/lib/handover";
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verificăm autorizarea (pentru Vercel Cron sau servicii externe)
+    // Verificăm autorizarea (MANDATORY)
     const authHeader = request.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
 
-    // Dacă avem un secret configurat, verificăm header-ul
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!cronSecret) {
+      console.error("[HANDOVER CRON] CRON_SECRET environment variable not configured");
+      return NextResponse.json({ error: "Server configuration error: CRON_SECRET not set" }, { status: 500 });
+    }
+    if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

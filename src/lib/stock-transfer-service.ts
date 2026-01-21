@@ -77,24 +77,75 @@ export async function checkStockForOrder(orderId: string): Promise<StockCheckRes
     missingItems: [],
   };
 
-  for (const lineItem of order.lineItems) {
-    // Căutăm item-ul în inventar pe baza SKU sau masterProductId
-    let inventoryItem = null;
+  // OPTIMIZATION: Batch load all inventory items to avoid N+1 queries
+  const masterProductIds = order.lineItems
+    .filter((li) => li.masterProductId)
+    .map((li) => li.masterProductId as string);
+  const skus = order.lineItems
+    .filter((li) => li.sku && !li.masterProductId)
+    .map((li) => li.sku as string);
 
-    if (lineItem.masterProductId) {
-      inventoryItem = await prisma.inventoryItem.findFirst({
-        where: { masterProductId: lineItem.masterProductId },
-      });
+  // Load all inventory items in 2 queries max instead of N queries
+  const [inventoryByMasterProduct, inventoryBySku] = await Promise.all([
+    masterProductIds.length > 0
+      ? prisma.inventoryItem.findMany({
+          where: { masterProductId: { in: masterProductIds } },
+        })
+      : Promise.resolve([]),
+    skus.length > 0
+      ? prisma.inventoryItem.findMany({
+          where: { sku: { in: skus } },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  // Create lookup maps
+  const inventoryByMasterProductMap = new Map(
+    inventoryByMasterProduct.map((i) => [i.masterProductId, i])
+  );
+  const inventoryBySkuMap = new Map(inventoryBySku.map((i) => [i.sku, i]));
+
+  // Collect all inventory item IDs for warehouse stock lookup
+  const allInventoryItemIds = [
+    ...inventoryByMasterProduct.map((i) => i.id),
+    ...inventoryBySku.map((i) => i.id),
+  ];
+
+  // OPTIMIZATION: Batch load all warehouse stocks
+  const allWarehouseStocks = allInventoryItemIds.length > 0
+    ? await prisma.warehouseStock.findMany({
+        where: { itemId: { in: allInventoryItemIds } },
+        include: { warehouse: true },
+      })
+    : [];
+
+  // Create lookup maps for warehouse stocks
+  const operationalStockMap = new Map(
+    allWarehouseStocks
+      .filter((s) => s.warehouseId === operationalWarehouse.id)
+      .map((s) => [s.itemId, s])
+  );
+  const alternativeStocksByItem = new Map<string, typeof allWarehouseStocks>();
+  for (const stock of allWarehouseStocks) {
+    if (stock.warehouseId !== operationalWarehouse.id && stock.warehouse.isActive && Number(stock.currentStock) > 0) {
+      const existing = alternativeStocksByItem.get(stock.itemId) || [];
+      existing.push(stock);
+      alternativeStocksByItem.set(stock.itemId, existing);
     }
+  }
+
+  // Now process line items using the preloaded data (no N+1)
+  for (const lineItem of order.lineItems) {
+    // Find inventory item from preloaded data
+    let inventoryItem = lineItem.masterProductId
+      ? inventoryByMasterProductMap.get(lineItem.masterProductId)
+      : undefined;
 
     if (!inventoryItem && lineItem.sku) {
-      inventoryItem = await prisma.inventoryItem.findFirst({
-        where: { sku: lineItem.sku },
-      });
+      inventoryItem = inventoryBySkuMap.get(lineItem.sku);
     }
 
     if (!inventoryItem) {
-      // Produsul nu există în inventar - considerăm că nu avem stoc
       result.hasAllStock = false;
       result.missingItems.push({
         sku: lineItem.sku || "N/A",
@@ -107,37 +158,20 @@ export async function checkStockForOrder(orderId: string): Promise<StockCheckRes
       continue;
     }
 
-    // Verificăm stocul în depozitul operațional
-    const stockInOperational = await prisma.warehouseStock.findUnique({
-      where: {
-        warehouseId_itemId: {
-          warehouseId: operationalWarehouse.id,
-          itemId: inventoryItem.id,
-        },
-      },
-    });
-
+    // Get stock from preloaded data
+    const stockInOperational = operationalStockMap.get(inventoryItem.id);
     const availableInOperational = Number(stockInOperational?.currentStock || 0);
     const requiredQuantity = lineItem.quantity;
 
     if (availableInOperational >= requiredQuantity) {
-      // Stocul e suficient
       continue;
     }
 
-    // Stocul e insuficient - căutăm în alte depozite
     result.hasAllStock = false;
 
-    const alternativeStock = await prisma.warehouseStock.findMany({
-      where: {
-        itemId: inventoryItem.id,
-        currentStock: { gt: 0 },
-        warehouseId: { not: operationalWarehouse.id },
-        warehouse: { isActive: true },
-      },
-      include: { warehouse: true },
-      orderBy: { currentStock: "desc" },
-    });
+    // Get alternative stocks from preloaded data
+    const alternativeStock = (alternativeStocksByItem.get(inventoryItem.id) || [])
+      .sort((a, b) => Number(b.currentStock) - Number(a.currentStock));
 
     result.missingItems.push({
       sku: lineItem.sku || inventoryItem.sku,

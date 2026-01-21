@@ -84,16 +84,23 @@ export async function createAWBForOrder(
   options?: AWBOptions
 ): Promise<CreateAWBResult> {
   try {
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        store: {
-          include: { company: true },
+    // B10: Use row-level lock to prevent duplicate AWB creation
+    // This ensures idempotency when concurrent requests try to create AWB for same order
+    const order = await prisma.$transaction(async (tx) => {
+      // Lock the order row using raw SQL FOR UPDATE to prevent concurrent AWB creation
+      await tx.$executeRaw`SELECT id FROM "orders" WHERE id = ${orderId} FOR UPDATE`;
+
+      return tx.order.findUnique({
+        where: { id: orderId },
+        include: {
+          store: {
+            include: { company: true },
+          },
+          awb: true,
+          lineItems: true,
+          billingCompany: true,
         },
-        awb: true,
-        lineItems: true,
-        billingCompany: true,
-      },
+      });
     });
 
     if (!order) {

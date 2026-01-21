@@ -7,6 +7,7 @@
  */
 
 import prisma from "./db";
+import { Prisma } from "@prisma/client";
 import {
   FacturisAPI,
   FacturisInvoiceData,
@@ -19,6 +20,9 @@ import {
   hasFacturisCredentials,
 } from "./facturis";
 import { getNextInvoiceNumber, getInvoiceSeriesForCompany } from "./invoice-series";
+
+// Tip pentru transaction client
+type PrismaTransactionClient = Prisma.TransactionClient;
 
 // ============================================================================
 // TIPURI ȘI INTERFEȚE
@@ -77,22 +81,28 @@ async function rollbackInvoiceNumber(
 
 /**
  * Salvează factura în baza de date
+ * @param params - Parametrii facturii
+ * @param tx - Optional transaction client pentru operații atomice
  */
-async function saveInvoiceToDatabase(params: {
-  orderId: string;
-  companyId: string;
-  invoiceSeriesId: string;
-  invoiceNumber: number;
-  invoiceSeries: string;
-  facturisKey?: string;
-  pdfUrl?: string;
-  pdfData?: Buffer | null;
-  isPaid: boolean;
-  totalPrice: number | any; // Decimal from Prisma
-}): Promise<void> {
+async function saveInvoiceToDatabase(
+  params: {
+    orderId: string;
+    companyId: string;
+    invoiceSeriesId: string;
+    invoiceNumber: number;
+    invoiceSeries: string;
+    facturisKey?: string;
+    pdfUrl?: string;
+    pdfData?: Buffer | null;
+    isPaid: boolean;
+    totalPrice: number | any; // Decimal from Prisma
+  },
+  tx?: PrismaTransactionClient
+): Promise<void> {
+  const db = tx || prisma;
   const paymentStatus = params.isPaid ? "paid" : "unpaid";
 
-  await prisma.invoice.upsert({
+  await db.invoice.upsert({
     where: { orderId: params.orderId },
     create: {
       orderId: params.orderId,
@@ -408,40 +418,43 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
       }
     }
 
-    // 12. Salvăm factura în baza de date
+    // 12. Salvăm factura și actualizăm comanda în tranzacție atomică
     const isPaid = order.financialStatus === "paid";
 
-    await saveInvoiceToDatabase({
-      orderId: order.id,
-      companyId: company.id,
-      invoiceSeriesId: invoiceSeries.id,
-      invoiceNumber: nextNumber.number,
-      invoiceSeries: nextNumber.prefix,
-      facturisKey: invoiceKey,
-      pdfUrl: result.pdfUrl,
-      pdfData,
-      isPaid,
-      totalPrice: order.totalPrice,
-    });
+    await prisma.$transaction(async (tx) => {
+      // Salvăm factura în baza de date
+      await saveInvoiceToDatabase({
+        orderId: order.id,
+        companyId: company.id,
+        invoiceSeriesId: invoiceSeries.id,
+        invoiceNumber: nextNumber.number,
+        invoiceSeries: nextNumber.prefix,
+        facturisKey: invoiceKey,
+        pdfUrl: result.pdfUrl,
+        pdfData,
+        isPaid,
+        totalPrice: order.totalPrice,
+      }, tx);
 
-    // 13. Actualizăm statusul comenzii
-    await prisma.order.update({
-      where: { id: order.id },
-      data: {
-        status: "INVOICED",
-        billingCompanyId: company.id,
-      },
-    });
-
-    // 14. Dacă firma NU e primară → marchează pentru decontare intercompany
-    if (!company.isPrimary) {
-      await prisma.order.update({
+      // Actualizăm statusul comenzii
+      await tx.order.update({
         where: { id: order.id },
-        data: { intercompanyStatus: "pending" },
+        data: {
+          status: "INVOICED",
+          billingCompanyId: company.id,
+        },
       });
-    }
 
-    // 15. Logăm în ActivityLog
+      // Dacă firma NU e primară → marchează pentru decontare intercompany
+      if (!company.isPrimary) {
+        await tx.order.update({
+          where: { id: order.id },
+          data: { intercompanyStatus: "pending" },
+        });
+      }
+    });
+
+    // 13. Logăm în ActivityLog (outside transaction - non-critical)
     await logInvoiceIssuedActivity({
       orderId: order.id,
       orderNumber: order.shopifyOrderNumber || order.id,
