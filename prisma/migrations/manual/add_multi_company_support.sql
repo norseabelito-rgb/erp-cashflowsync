@@ -213,7 +213,26 @@ ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "defaultVatRate" INTEGER DEFAULT
 ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "invoiceNumber" TEXT;
 ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "invoiceSeriesName" TEXT;
 
--- 15. Add missing columns for InvoiceSeries
+-- 15. Invoice: coloane pentru tracking plăți și anulări
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "errorMessage" TEXT;
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "dueDate" TIMESTAMP(3);
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "paymentStatus" TEXT DEFAULT 'unpaid';
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "paidAmount" DECIMAL(10,2) DEFAULT 0;
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "paidAt" TIMESTAMP(3);
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "cancelledAt" TIMESTAMP(3);
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "cancelReason" TEXT;
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "stornoNumber" TEXT;
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "stornoSeries" TEXT;
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "pdfUrl" TEXT;
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "pdfData" BYTEA;
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "issuedAt" TIMESTAMP(3);
+
+-- 16. InvoiceSeries: coloane pentru Facturis
+ALTER TABLE "invoice_series" ADD COLUMN IF NOT EXISTS "startNumber" INTEGER DEFAULT 1;
+ALTER TABLE "invoice_series" ADD COLUMN IF NOT EXISTS "syncToFacturis" BOOLEAN DEFAULT false;
+ALTER TABLE "invoice_series" ADD COLUMN IF NOT EXISTS "facturisSeries" TEXT;
+
+-- Legacy SmartBill columns (deprecated)
 ALTER TABLE "invoice_series" ADD COLUMN IF NOT EXISTS "sync_to_smartbill" BOOLEAN DEFAULT false;
 ALTER TABLE "invoice_series" ADD COLUMN IF NOT EXISTS "smartbill_series" TEXT;
 
