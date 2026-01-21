@@ -635,7 +635,7 @@ export function Sidebar() {
                 <Package className="h-4 w-4 mr-2 text-status-success" />
                 <div className="flex flex-col">
                   <span className="font-medium">Sincronizează stocuri</span>
-                  <span className="text-xs text-muted-foreground">Din SmartBill</span>
+                  <span className="text-xs text-muted-foreground">Din inventar local</span>
                 </div>
               </DropdownMenuItem>
             </DropdownMenuContent>

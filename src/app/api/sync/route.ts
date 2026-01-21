@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { syncAllStoresOrders } from "@/lib/shopify";
-import { syncInvoicesFromSmartBill } from "@/lib/smartbill";
 import { syncAWBsFromFanCourier } from "@/lib/fancourier";
 import { hasPermission } from "@/lib/permissions";
 
@@ -30,14 +29,9 @@ export async function POST() {
     console.log("📦 Pas 1: Sincronizare comenzi din Shopify...");
     const shopifyResult = await syncAllStoresOrders();
 
-    // 2. Sincronizare bilaterală facturi din SmartBill
-    console.log("\n🧾 Pas 2: Sincronizare bilaterală facturi SmartBill...");
-    let invoicesResult = null;
-    try {
-      invoicesResult = await syncInvoicesFromSmartBill();
-    } catch (error: any) {
-      console.error("Eroare sincronizare facturi:", error.message);
-    }
+    // 2. Sincronizare bilaterală facturi - dezactivată (Facturis nu suportă sync bilateral)
+    console.log("\n🧾 Pas 2: Sincronizare facturi dezactivată (credențiale per firmă)");
+    const invoicesResult = null;
 
     // 3. Sincronizare bilaterală AWB-uri din FanCourier
     console.log("\n🚚 Pas 3: Sincronizare bilaterală AWB-uri FanCourier...");
@@ -52,24 +46,15 @@ export async function POST() {
     console.log("✅ SINCRONIZARE COMPLETĂ - FINALIZATĂ");
     console.log("=".repeat(70));
     console.log(`📦 Comenzi Shopify: ${shopifyResult.synced} sincronizate`);
-    if (invoicesResult) {
-      console.log(`🧾 Facturi SmartBill: ${invoicesResult.checked} verificate, ${invoicesResult.deleted} modificate`);
-    }
     if (awbsResult) {
       console.log(`🚚 AWB-uri FanCourier: ${awbsResult.checked} verificate, ${awbsResult.statusChanges} modificate`);
     }
     console.log("=".repeat(70) + "\n");
 
     // Combinăm toate modificările
-    const bilateralChanges = [];
-    if (invoicesResult?.details) {
-      bilateralChanges.push(...invoicesResult.details.map(d => ({
-        type: 'invoice',
-        ...d
-      })));
-    }
+    const bilateralChanges: any[] = [];
     if (awbsResult?.details) {
-      bilateralChanges.push(...awbsResult.details.map(d => ({
+      bilateralChanges.push(...awbsResult.details.map((d: any) => ({
         type: 'awb',
         ...d
       })));
@@ -78,11 +63,7 @@ export async function POST() {
     return NextResponse.json({
       ...shopifyResult,
       bilateral: {
-        invoices: invoicesResult ? {
-          checked: invoicesResult.checked,
-          deleted: invoicesResult.deleted,
-          errors: invoicesResult.errors,
-        } : null,
+        invoices: invoicesResult,
         awbs: awbsResult ? {
           checked: awbsResult.checked,
           updated: awbsResult.updated,

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 
-export async function PATCH(
+async function updateStore(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  storeId: string
 ) {
   try {
     const body = await request.json();
-    const { name, shopifyDomain, accessToken, isActive } = body;
+    const { name, shopifyDomain, accessToken, isActive, companyId } = body;
 
     const updateData: any = {};
 
@@ -15,20 +15,44 @@ export async function PATCH(
     if (shopifyDomain !== undefined) updateData.shopifyDomain = shopifyDomain;
     if (accessToken) updateData.accessToken = accessToken;
     if (isActive !== undefined) updateData.isActive = isActive;
+    // companyId poate fi null pentru a dezasocia
+    if (companyId !== undefined) updateData.companyId = companyId;
 
     const store = await prisma.store.update({
-      where: { id: params.id },
+      where: { id: storeId },
       data: updateData,
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
 
-    return NextResponse.json({ store });
+    return NextResponse.json({ store, success: true });
   } catch (error: any) {
     console.error("Error updating store:", error);
     return NextResponse.json(
-      { error: "Eroare la actualizarea magazinului" },
+      { error: "Eroare la actualizarea magazinului", success: false },
       { status: 500 }
     );
   }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  return updateStore(request, params.id);
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  return updateStore(request, params.id);
 }
 
 export async function DELETE(

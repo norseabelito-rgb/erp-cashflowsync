@@ -66,7 +66,7 @@ interface InvoiceSeries {
   currentNumber: number;
   isDefault: boolean;
   isActive: boolean;
-  syncToSmartBill: boolean;
+  syncToFacturis: boolean;
   smartBillSeries: string | null;
   stores: { id: string; name: string }[];
 }
@@ -86,7 +86,7 @@ interface SeriesFormData {
   type: string;
   startNumber: number;
   isDefault: boolean;
-  syncToSmartBill: boolean;
+  syncToFacturis: boolean;
   smartBillSeries: string;
 }
 
@@ -97,7 +97,7 @@ const initialFormData: SeriesFormData = {
   type: "f",
   startNumber: 1,
   isDefault: false,
-  syncToSmartBill: false,
+  syncToFacturis: false,
   smartBillSeries: "",
 };
 
@@ -252,7 +252,7 @@ export default function InvoiceSeriesPage() {
       type: s.type,
       startNumber: s.startNumber,
       isDefault: s.isDefault,
-      syncToSmartBill: s.syncToSmartBill,
+      syncToFacturis: s.syncToFacturis,
       smartBillSeries: s.smartBillSeries || "",
     });
     setIsEditing(true);
@@ -344,16 +344,16 @@ export default function InvoiceSeriesPage() {
                               Default
                             </Badge>
                           )}
-                          {s.syncToSmartBill && (
+                          {s.syncToFacturis && (
                             <Tooltip>
                               <TooltipTrigger>
                                 <Badge variant="outline" className="text-status-info border-status-info/50">
                                   <Settings2 className="h-3 w-3 mr-1" />
-                                  SmartBill
+                                  Facturis
                                 </Badge>
                               </TooltipTrigger>
                               <TooltipContent>
-                                Sincronizat cu seria SmartBill: {s.smartBillSeries || s.prefix}
+                                Sincronizat cu seria Facturis: {s.smartBillSeries || s.prefix}
                               </TooltipContent>
                             </Tooltip>
                           )}
@@ -613,20 +613,20 @@ export default function InvoiceSeriesPage() {
               <div className="border-t pt-4">
                 <div className="flex items-center justify-between py-2">
                   <div className="space-y-0.5">
-                    <Label>Sincronizează cu SmartBill</Label>
+                    <Label>Sincronizează cu Facturis</Label>
                     <p className="text-xs text-muted-foreground">
-                      Folosește aceeași serie și în SmartBill la emiterea facturii
+                      Folosește aceeași serie și în Facturis la emiterea facturii
                     </p>
                   </div>
                   <Switch
-                    checked={formData.syncToSmartBill}
-                    onCheckedChange={(v) => setFormData({ ...formData, syncToSmartBill: v })}
+                    checked={formData.syncToFacturis}
+                    onCheckedChange={(v) => setFormData({ ...formData, syncToFacturis: v })}
                   />
                 </div>
 
-                {formData.syncToSmartBill && (
+                {formData.syncToFacturis && (
                   <div className="space-y-2 mt-3">
-                    <Label>Seria SmartBill</Label>
+                    <Label>Seria Facturis</Label>
                     <Input
                       value={formData.smartBillSeries}
                       onChange={(e) =>
@@ -635,7 +635,7 @@ export default function InvoiceSeriesPage() {
                       placeholder={formData.prefix || "Ex: CFG"}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Lasă gol pentru a folosi prefixul ca nume de serie SmartBill
+                      Lasă gol pentru a folosi prefixul ca nume de serie Facturis
                     </p>
                   </div>
                 )}

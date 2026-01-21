@@ -132,7 +132,7 @@ export async function POST(
 
     if (error instanceof FacturisAuthError) {
       return NextResponse.json(
-        { success: false, error: "Autentificare eșuată. Verifică API Key, Username și Parola." },
+        { success: false, error: "Autentificare eșuată. Verifică: 1) API Key să fie corect, 2) Username și Parola să corespundă contului Facturis, 3) CIF-ul firmei să fie valid." },
         { status: 401 }
       );
     }

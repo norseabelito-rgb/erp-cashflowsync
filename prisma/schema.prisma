@@ -322,7 +322,7 @@ model Store {
   @@map("stores")
 }
 
-// Serii de facturare (gestionate local, independente de SmartBill/Facturis)
+// Serii de facturare (gestionate local)
 model InvoiceSeries {
   id            String   @id @default(cuid())
   name          String   @unique  // Numele complet afișat (ex: "Serie Shopify RO", "Trendyol TR")
@@ -339,17 +339,17 @@ model InvoiceSeries {
   isDefault     Boolean  @default(false)  // Seria default pentru canale fără serie setată
   isActive      Boolean  @default(true)
 
-  // NOU: Firma asociată (fiecare firmă are propriile serii)
+  // Firma asociată (fiecare firmă are propriile serii)
   companyId     String?
   company       Company? @relation(fields: [companyId], references: [id])
-
-  // Opțiune de sincronizare cu SmartBill (depreciat - migrăm la Facturis)
-  syncToSmartBill  Boolean  @default(false)
-  smartBillSeries  String?
 
   // Sincronizare cu Facturis
   syncToFacturis   Boolean  @default(false)
   facturisSeries   String?  // Numele seriei în Facturis (dacă diferit)
+
+  // DEPRECATED: câmpuri vechi (vor fi șterse în versiuni viitoare)
+  syncToSmartBill  Boolean  @default(false) @map("sync_to_smartbill")
+  smartBillSeries  String?  @map("smartbill_series")
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -498,30 +498,34 @@ model LineItem {
   @@map("line_items")
 }
 
-// Facturile emise (Facturis sau SmartBill)
+// Facturile emise (prin Facturis)
 model Invoice {
   id                String   @id @default(cuid())
   orderId           String   @unique
   order             Order    @relation(fields: [orderId], references: [id])
 
-  // NOU: Firma care a emis factura
+  // Firma care a emis factura
   companyId         String?
   company           Company? @relation(fields: [companyId], references: [id])
 
-  // NOU: Seria de facturare folosită (pentru tracking numerotare locală)
+  // Seria de facturare folosită (pentru tracking numerotare locală)
   invoiceSeriesId   String?
   invoiceSeries     InvoiceSeries? @relation(fields: [invoiceSeriesId], references: [id])
 
-  // NOU: Provider factură (pentru migrare graduală)
-  invoiceProvider   String   @default("smartbill") // "smartbill", "facturis"
+  // Provider factură
+  invoiceProvider   String   @default("facturis") // "facturis"
 
-  // Număr și serie (păstrate pentru compatibilitate)
-  smartbillNumber   String?  // Numărul facturii
-  smartbillSeries   String?  // Seria facturii
-  smartbillId       String?  // ID-ul intern (SmartBill sau Facturis)
+  // Număr și serie factură
+  invoiceNumber     String?  // Numărul facturii
+  invoiceSeriesName String?  // Seria/prefixul facturii
 
-  // NOU: ID Facturis (pentru referință)
+  // ID extern în Facturis
   facturisId        String?
+
+  // DEPRECATED: câmpuri vechi pentru compatibilitate (vor fi migrate)
+  smartbillNumber   String?  @map("smartbill_number")
+  smartbillSeries   String?  @map("smartbill_series")
+  smartbillId       String?  @map("smartbill_id")
 
   status            String   @default("pending") // pending, issued, cancelled, error
   errorMessage      String?  // Mesajul de eroare
@@ -692,24 +696,26 @@ enum HandoverSessionStatus {
 // Setări globale ale aplicației
 model Settings {
   id                    String   @id @default("default")
-  
-  // SmartBill
-  smartbillEmail        String?
-  smartbillToken        String?
-  smartbillCompanyCif   String?
-  smartbillSeriesName   String?
-  smartbillWarehouseName String?  // Numele gestiunii pentru descărcare stoc
-  smartbillUseStock     Boolean  @default(false)  // Activează descărcarea din stoc
-  smartbillTaxName      String?  // Numele cotei TVA (ex: "Normala", "19%", "TVA 19")
-  smartbillTaxPercent   Int      @default(21)  // Procentul TVA default (21% din 2024)
-  smartbillDueDays      Int      @default(0)   // Zile scadență (0 = fără scadență)
-  
-  // SmartBill - Cache auto-fetch (serializat JSON)
-  smartbillSeriesCache  String?  @db.Text  // JSON cu seriile disponibile
-  smartbillTaxesCache   String?  @db.Text  // JSON cu cotele TVA disponibile
-  smartbillWarehousesCache String? @db.Text  // JSON cu gestiunile disponibile
-  smartbillCacheUpdated DateTime?          // Ultima actualizare cache
-  
+
+  // Setări generale facturare
+  defaultVatRate        Int      @default(19)  // Procentul TVA default
+  defaultDueDays        Int      @default(0)   // Zile scadență (0 = fără scadență)
+
+  // DEPRECATED: câmpuri SmartBill vechi (menținute pentru compatibilitate)
+  smartbillEmail        String?  @map("smartbill_email")
+  smartbillToken        String?  @map("smartbill_token")
+  smartbillCompanyCif   String?  @map("smartbill_company_cif")
+  smartbillSeriesName   String?  @map("smartbill_series_name")
+  smartbillWarehouseName String? @map("smartbill_warehouse_name")
+  smartbillUseStock     Boolean  @default(false) @map("smartbill_use_stock")
+  smartbillTaxName      String?  @map("smartbill_tax_name")
+  smartbillTaxPercent   Int      @default(21) @map("smartbill_tax_percent")
+  smartbillDueDays      Int      @default(0) @map("smartbill_due_days")
+  smartbillSeriesCache  String?  @db.Text @map("smartbill_series_cache")
+  smartbillTaxesCache   String?  @db.Text @map("smartbill_taxes_cache")
+  smartbillWarehousesCache String? @db.Text @map("smartbill_warehouses_cache")
+  smartbillCacheUpdated DateTime? @map("smartbill_cache_updated")
+
   // FanCourier
   fancourierClientId    String?
   fancourierUsername    String?
@@ -992,7 +998,7 @@ enum ActionType {
   DELETE
   CANCEL
   SYNC
-  SYNC_SMARTBILL
+  SYNC_FACTURIS
   SYNC_FANCOURIER
   ISSUE_INVOICE
   CANCEL_INVOICE
@@ -1208,7 +1214,7 @@ model MasterProduct {
   categoryId        String?
   category          Category? @relation(fields: [categoryId], references: [id])
   
-  // Stoc (din SmartBill - read only în context PIM)
+  // Stoc (sincronizat din sistem)
   stock             Int       @default(0)
   stockLastSyncedAt DateTime?
   
@@ -2569,7 +2575,7 @@ model TrendyolCampaignProduct {
 // INVENTORY SYSTEM - NEW
 // ==========================================
 
-// Articole în inventar (gestiunea locală independentă de SmartBill)
+// Articole în inventar (gestiune locală)
 model InventoryItem {
   id                String   @id @default(cuid())
   sku               String   @unique

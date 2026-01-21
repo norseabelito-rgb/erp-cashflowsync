@@ -2,7 +2,7 @@
  * Invoice Service
  *
  * Serviciu unificat pentru emiterea facturilor.
- * Suportă multiple provideri: Facturis (principal) și SmartBill (legacy).
+ * Folosește Facturis pentru emiterea facturilor.
  * Folosește credențiale per firmă și numerotare locală.
  */
 
@@ -99,11 +99,13 @@ async function saveInvoiceToDatabase(params: {
       companyId: params.companyId,
       invoiceSeriesId: params.invoiceSeriesId,
       invoiceProvider: "facturis",
-      // Folosim smartbillNumber/smartbillSeries pentru compatibilitate cu schema existentă
-      // TODO: Migrare la câmpuri generice (invoiceNumber, invoiceSeries)
+      // Noile câmpuri
+      invoiceNumber: params.invoiceNumber.toString(),
+      invoiceSeriesName: params.invoiceSeries,
+      facturisId: params.facturisKey,
+      // Câmpuri vechi pentru compatibilitate (până la migrare completă)
       smartbillNumber: params.invoiceNumber.toString(),
       smartbillSeries: params.invoiceSeries,
-      facturisId: params.facturisKey,
       status: "issued",
       pdfUrl: params.pdfUrl || null,
       pdfData: params.pdfData || null,
@@ -116,9 +118,11 @@ async function saveInvoiceToDatabase(params: {
       companyId: params.companyId,
       invoiceSeriesId: params.invoiceSeriesId,
       invoiceProvider: "facturis",
+      invoiceNumber: params.invoiceNumber.toString(),
+      invoiceSeriesName: params.invoiceSeries,
+      facturisId: params.facturisKey,
       smartbillNumber: params.invoiceNumber.toString(),
       smartbillSeries: params.invoiceSeries,
-      facturisId: params.facturisKey,
       status: "issued",
       pdfUrl: params.pdfUrl || null,
       pdfData: params.pdfData || null,
@@ -184,8 +188,8 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
 
     // 2. Verifică dacă factura a fost deja emisă
     if (order.invoice?.status === "issued") {
-      const existingNumber = order.invoice.smartbillSeries && order.invoice.smartbillNumber
-        ? `${order.invoice.smartbillSeries}${order.invoice.smartbillNumber}`
+      const existingNumber = order.invoice.invoiceSeriesName && order.invoice.invoiceNumber
+        ? `${order.invoice.invoiceSeriesName}${order.invoice.invoiceNumber}`
         : order.invoice.facturisId || "necunoscut";
       return {
         success: false,

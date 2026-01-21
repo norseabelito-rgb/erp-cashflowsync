@@ -72,7 +72,7 @@ const modules = [
   { id: "architecture", name: "Arhitectura Sistem", icon: Server },
   { id: "orders", name: "Comenzi si Procesare", icon: ShoppingCart },
   { id: "products", name: "Produse si Inventar", icon: Package },
-  { id: "invoices", name: "Facturare SmartBill", icon: FileText },
+  { id: "invoices", name: "Facturare Facturis", icon: FileText },
   { id: "shipping", name: "Livrare si AWB", icon: Truck },
   { id: "picking", name: "Picking si Predare", icon: ClipboardList },
   { id: "handover", name: "Predare Curier", icon: Hand },
@@ -216,14 +216,14 @@ function OverviewContent() {
       <div className="prose max-w-none">
         <p className="text-lg text-muted-foreground">
           ERP CashFlowSync este o platforma enterprise pentru gestionarea completa a operatiunilor
-          e-commerce: comenzi multi-canal, inventar cu sistem dual de stoc, facturare automata SmartBill,
+          e-commerce: comenzi multi-canal, inventar cu sistem dual de stoc, facturare automata Facturis,
           livrare FanCourier, picking warehouse si advertising Meta/TikTok.
         </p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="Permisiuni RBAC" value="124" description="Control granular acces" icon={<Shield className="h-5 w-5" />} />
-        <StatCard label="Integrari" value="8" description="Shopify, SmartBill, FanCourier..." icon={<GitBranch className="h-5 w-5" />} />
+        <StatCard label="Integrari" value="8" description="Shopify, Facturis, FanCourier..." icon={<GitBranch className="h-5 w-5" />} />
         <StatCard label="Tabele DB" value="80+" description="PostgreSQL + Prisma ORM" icon={<Database className="h-5 w-5" />} />
         <StatCard label="Statusuri Comanda" value="14" description="Flux complet de viata" icon={<Workflow className="h-5 w-5" />} />
       </div>
@@ -239,9 +239,9 @@ function OverviewContent() {
         />
         <FeatureCard
           icon={<FileText className="h-5 w-5" />}
-          title="Facturare SmartBill"
+          title="Facturare Facturis"
           description="Emitere facturi automate cu serii configurabile (FCT, PRF). Suport persoana fizica/juridica, calcul TVA, PDF storage, storno facturi."
-          badges={["SmartBill API", "Serii Multiple", "PDF Auto", "Storno"]}
+          badges={["Facturis API", "Serii Multiple", "PDF Auto", "Storno"]}
         />
         <FeatureCard
           icon={<Truck className="h-5 w-5" />}
@@ -252,8 +252,8 @@ function OverviewContent() {
         <FeatureCard
           icon={<Package className="h-5 w-5" />}
           title="Inventar Dual System"
-          description="Sistem dual: MasterProduct (catalog) + InventoryItem (stoc avansat). Suport retete/composite, sincronizare SmartBill, alerte stoc scazut."
-          badges={["Dual Stock", "Retete", "SmartBill Sync", "Alerte"]}
+          description="Sistem dual: MasterProduct (catalog) + InventoryItem (stoc avansat). Suport retete/composite, sincronizare Facturis, alerte stoc scazut."
+          badges={["Dual Stock", "Retete", "Facturis Sync", "Alerte"]}
         />
         <FeatureCard
           icon={<ClipboardList className="h-5 w-5" />}
@@ -276,7 +276,7 @@ function OverviewContent() {
           {[
             { step: "Import", desc: "Shopify/Trendyol" },
             { step: "Validare", desc: "Tel/Adresa/Judet" },
-            { step: "Facturare", desc: "SmartBill API" },
+            { step: "Facturare", desc: "Facturis API" },
             { step: "AWB", desc: "FanCourier API" },
             { step: "Picking", desc: "Lista + Scanare" },
             { step: "Handover", desc: "Predare C0" },
@@ -306,7 +306,7 @@ function OverviewContent() {
         {[
           { name: "Shopify", type: "E-commerce", color: "text-success" },
           { name: "Trendyol", type: "Marketplace", color: "text-warning" },
-          { name: "SmartBill", type: "Facturare", color: "text-primary" },
+          { name: "Facturis", type: "Facturare", color: "text-primary" },
           { name: "FanCourier", type: "Curierat", color: "text-accent-foreground" },
           { name: "Meta Ads", type: "Advertising", color: "text-primary" },
           { name: "TikTok Ads", type: "Advertising", color: "text-destructive" },
@@ -356,7 +356,7 @@ function ArchitectureContent() {
 │   │   └── ui/                 # shadcn/ui
 │   ├── lib/                    # Business logic
 │   │   ├── shopify.ts          # Client Shopify
-│   │   ├── smartbill.ts        # Facturare
+│   │   ├── facturis.ts         # Facturare
 │   │   ├── fancourier.ts       # AWB/Livrare
 │   │   └── permissions.ts      # RBAC
 │   └── hooks/                  # React hooks
@@ -479,7 +479,7 @@ function OrdersContent() {
           { status: "VALIDATION_FAILED", color: "bg-destructive/10 border-destructive/30", desc: "Date invalide", next: "PENDING (dupa corectie)" },
           { status: "INVOICE_PENDING", color: "bg-warning/10 border-warning/30", desc: "In curs de facturare", next: "INVOICED / INVOICE_FAILED" },
           { status: "INVOICED", color: "bg-success/10 border-success/30", desc: "Factura emisa", next: "AWB_PENDING" },
-          { status: "INVOICE_FAILED", color: "bg-destructive/10 border-destructive/30", desc: "Eroare SmartBill", next: "INVOICE_PENDING (retry)" },
+          { status: "INVOICE_FAILED", color: "bg-destructive/10 border-destructive/30", desc: "Eroare Facturis", next: "INVOICE_PENDING (retry)" },
           { status: "AWB_PENDING", color: "bg-warning/10 border-warning/30", desc: "In curs de generare AWB", next: "AWB_CREATED / AWB_FAILED" },
           { status: "AWB_CREATED", color: "bg-success/10 border-success/30", desc: "AWB generat", next: "PICKING" },
           { status: "AWB_FAILED", color: "bg-destructive/10 border-destructive/30", desc: "Eroare FanCourier", next: "AWB_PENDING (retry)" },
@@ -612,7 +612,7 @@ function ProductsContent() {
         <p className="text-lg text-muted-foreground">
           Sistemul dual de inventar combina MasterProduct (catalog produse cu SKU/barcode)
           cu InventoryItem (stoc avansat cu retete si loturi). Sincronizare bidirectionala
-          cu SmartBill pentru stoc si preturi.
+          cu Facturis pentru stoc si preturi.
         </p>
       </div>
 
@@ -621,7 +621,7 @@ function ProductsContent() {
       <InfoBox variant="info" title="De ce doua sisteme?">
         <strong>MasterProduct</strong> este sistemul original pentru catalog cu SKU si barcode.
         <strong>InventoryItem</strong> a fost adaugat pentru features avansate: retete/composite,
-        loturi cu expirare, sincronizare SmartBill. Relatia este 1:1 prin <code>inventoryItemId</code>.
+        loturi cu expirare, sincronizare Facturis. Relatia este 1:1 prin <code>inventoryItemId</code>.
       </InfoBox>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -648,7 +648,7 @@ function ProductsContent() {
           </CardHeader>
           <CardContent>
             <ul className="text-sm space-y-2 text-muted-foreground">
-              <li><strong className="text-foreground">smartbillCode:</strong> Cod SmartBill sync</li>
+              <li><strong className="text-foreground">facturisCode:</strong> Cod Facturis sync</li>
               <li><strong className="text-foreground">isComposite:</strong> Flag produs compus</li>
               <li><strong className="text-foreground">recipeItems:</strong> Lista componente reteta</li>
               <li><strong className="text-foreground">costPrice:</strong> Pret achizitie furnizor</li>
@@ -679,21 +679,21 @@ function ProductsContent() {
         </CardContent>
       </Card>
 
-      <SectionTitle icon={<RefreshCw className="h-6 w-6" />}>Sincronizare SmartBill</SectionTitle>
+      <SectionTitle icon={<RefreshCw className="h-6 w-6" />}>Sincronizare Facturis</SectionTitle>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ArrowRight className="h-5 w-5" />
-              Import din SmartBill
+              Import din Facturis
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="text-sm space-y-1 text-muted-foreground">
-              <li><strong>Endpoint:</strong> /api/inventory/sync-smartbill</li>
+              <li><strong>Endpoint:</strong> /api/inventory/sync-facturis</li>
               <li><strong>Date importate:</strong> Stoc, pret achizitie, TVA</li>
-              <li><strong>Mapare:</strong> smartbillCode = cod produs SB</li>
+              <li><strong>Mapare:</strong> facturisCode = cod produs Facturis</li>
               <li><strong>Frecventa:</strong> Manual sau CRON zilnic</li>
             </ul>
           </CardContent>
@@ -725,7 +725,7 @@ function ProductsContent() {
           { method: "GET", path: "/api/inventory-items", desc: "Lista InventoryItems cu stoc" },
           { method: "POST", path: "/api/inventory-items", desc: "Creare articol inventar nou" },
           { method: "PUT", path: "/api/inventory-items/[id]", desc: "Update stoc, pret, reteta" },
-          { method: "POST", path: "/api/inventory/sync-smartbill", desc: "Sincronizare stoc SmartBill" },
+          { method: "POST", path: "/api/inventory/sync-facturis", desc: "Sincronizare stoc Facturis" },
           { method: "POST", path: "/api/inventory/adjust", desc: "Ajustare manuala stoc cu motiv" },
           { method: "GET", path: "/api/inventory/movements", desc: "Istoric miscari stoc" },
           { method: "GET", path: "/api/inventory/alerts", desc: "Produse sub stoc minim" },
@@ -748,7 +748,7 @@ function InvoicesContent() {
     <div className="space-y-8">
       <div className="prose max-w-none">
         <p className="text-lg text-muted-foreground">
-          Integrare completa cu SmartBill Cloud pentru facturare electronica. Suport pentru
+          Integrare completa cu Facturis Cloud pentru facturare electronica. Suport pentru
           persoane fizice si juridice, multiple serii de facturi, TVA diferentiat,
           PDF automat si stornare facturi.
         </p>
@@ -761,7 +761,7 @@ function InvoicesContent() {
           {[
             { step: "1. Comanda Validata", desc: "Status VALIDATED" },
             { step: "2. Pregatire Date", desc: "Client + Produse" },
-            { step: "3. SmartBill API", desc: "POST /invoice" },
+            { step: "3. Facturis API", desc: "POST /invoice" },
             { step: "4. PDF Download", desc: "GET /invoice/pdf" },
             { step: "5. Salvare Local", desc: "Storage + DB" },
             { step: "6. Update Status", desc: "INVOICED" }
@@ -841,12 +841,12 @@ function InvoicesContent() {
         </Card>
       </div>
 
-      <SectionTitle icon={<Code className="h-6 w-6" />}>SmartBill API Integration</SectionTitle>
+      <SectionTitle icon={<Code className="h-6 w-6" />}>Facturis API Integration</SectionTitle>
 
       <CodeBlock
-        title="Configurare SmartBill (lib/smartbill.ts)"
+        title="Configurare Facturis (lib/facturis.ts)"
         code={`// Autentificare
-const SMARTBILL_API_URL = "https://ws.smartbill.ro/SBORO/api"
+const FACTURIS_API_URL = "https://api.facturis-online.ro/api/"
 const headers = {
   "Authorization": "Basic " + base64(email:token),
   "Content-Type": "application/json"
@@ -1662,7 +1662,7 @@ function IntegrationsContent() {
         {[
           { name: "Shopify", desc: "E-commerce platform - comenzi, produse, stoc", color: "border-success/30" },
           { name: "Trendyol", desc: "Marketplace turcesc - comenzi, produse", color: "border-warning/30" },
-          { name: "SmartBill", desc: "Facturare electronica - emitere, storno", color: "border-primary/30" },
+          { name: "Facturis", desc: "Facturare electronica - emitere, storno", color: "border-primary/30" },
           { name: "FanCourier", desc: "Curierat - AWB, tracking, ramburs", color: "border-accent-foreground/30" },
           { name: "Meta Ads", desc: "Advertising - campanii, metrici, ROAS", color: "border-primary/30" },
           { name: "TikTok Ads", desc: "Advertising - campanii, metrici", color: "border-destructive/30" },

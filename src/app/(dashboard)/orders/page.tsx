@@ -395,7 +395,7 @@ export default function OrdersPage() {
           });
         }
       } else {
-        toast({ title: "Eroare facturare", description: data.error || "Verifică setările SmartBill", variant: "destructive" });
+        toast({ title: "Eroare facturare", description: data.error || "Verifică setările Facturis", variant: "destructive" });
         // Actualizăm și la eroare pentru a vedea mesajul
         if (viewOrder && variables.includes(viewOrder.id)) {
           fetch(`/api/orders/${viewOrder.id}`).then(res => res.json()).then(orderData => {
@@ -555,7 +555,7 @@ export default function OrdersPage() {
         if (data.bilateral.invoices) {
           const inv = data.bilateral.invoices;
           if (inv.deleted > 0) {
-            messages.push(`🧾 ${inv.deleted} facturi șterse/anulate în SmartBill`);
+            messages.push(`🧾 ${inv.deleted} facturi șterse/anulate în Facturis`);
           }
         }
         if (data.bilateral.awbs) {
@@ -1169,9 +1169,9 @@ export default function OrdersPage() {
                           order.invoice.status === "issued" ? (
                             <Badge variant="success">{order.invoice.smartbillSeries}{order.invoice.smartbillNumber}</Badge>
                           ) : order.invoice.status === "deleted" ? (
-                            <Badge variant="neutral" title={order.invoice.errorMessage || "Factură ștearsă în SmartBill"}>🗑️ Ștearsă</Badge>
+                            <Badge variant="neutral" title={order.invoice.errorMessage || "Factură ștearsă în Facturis"}>🗑️ Ștearsă</Badge>
                           ) : order.invoice.status === "cancelled" ? (
-                            <Badge variant="warning" title={order.invoice.errorMessage || "Factură anulată în SmartBill"}>❌ Anulată</Badge>
+                            <Badge variant="warning" title={order.invoice.errorMessage || "Factură anulată în Facturis"}>❌ Anulată</Badge>
                           ) : order.invoice.status === "error" ? (
                             <Badge variant="destructive" title={order.invoice.errorMessage || ""}>Eroare</Badge>
                           ) : (
