@@ -224,6 +224,43 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
       };
     }
 
+    // 5a. Verificăm CIF-ul pentru Facturis
+    const facturisCif = company.facturisCompanyCif || company.cif;
+    if (!facturisCif) {
+      return {
+        success: false,
+        error: `CIF-ul Facturis nu este configurat pentru firma "${company.name}". Setează facturisCompanyCif sau CIF-ul companiei în Setări > Firme.`,
+        errorCode: "NO_FACTURIS_CIF",
+      };
+    }
+
+    // 5b. Verificăm dacă comanda are produse
+    if (!order.lineItems || order.lineItems.length === 0) {
+      return {
+        success: false,
+        error: "Comanda nu are produse. Nu se poate emite factură fără articole.",
+        errorCode: "NO_LINE_ITEMS",
+      };
+    }
+
+    // 5c. Validăm fiecare produs
+    for (const item of order.lineItems) {
+      if (item.quantity <= 0) {
+        return {
+          success: false,
+          error: `Produsul "${item.title}" are cantitate invalidă (${item.quantity}). Cantitatea trebuie să fie mai mare decât 0.`,
+          errorCode: "INVALID_ITEM_QUANTITY",
+        };
+      }
+      if (Number(item.price) < 0) {
+        return {
+          success: false,
+          error: `Produsul "${item.title}" are preț negativ (${item.price}). Prețul nu poate fi negativ.`,
+          errorCode: "INVALID_ITEM_PRICE",
+        };
+      }
+    }
+
     // 6. Obținem seria de facturare pentru această firmă
     const invoiceSeries = await getInvoiceSeriesForCompany(company.id);
 
@@ -468,6 +505,7 @@ export async function canIssueInvoice(orderId: string): Promise<InvoiceCanIssueR
       invoice: true,
       billingCompany: true,
       requiredTransfer: true,
+      lineItems: true,
     },
   });
 
@@ -483,6 +521,11 @@ export async function canIssueInvoice(orderId: string): Promise<InvoiceCanIssueR
     return { canIssue: false, reason: "Transferul de stoc nu a fost finalizat" };
   }
 
+  // Verificăm dacă comanda are produse
+  if (!order.lineItems || order.lineItems.length === 0) {
+    return { canIssue: false, reason: "Comanda nu are produse" };
+  }
+
   const company = order.billingCompany || order.store?.company;
 
   if (!company) {
@@ -493,6 +536,15 @@ export async function canIssueInvoice(orderId: string): Promise<InvoiceCanIssueR
     return {
       canIssue: false,
       reason: `Credențialele Facturis nu sunt configurate pentru ${company.name}`,
+    };
+  }
+
+  // Verificăm CIF-ul pentru Facturis
+  const facturisCif = company.facturisCompanyCif || company.cif;
+  if (!facturisCif) {
+    return {
+      canIssue: false,
+      reason: `CIF-ul Facturis nu este configurat pentru ${company.name}`,
     };
   }
 
