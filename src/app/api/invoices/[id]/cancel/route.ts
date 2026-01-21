@@ -43,7 +43,7 @@ export async function POST(
       );
     }
 
-    if (!invoice.smartbillNumber || !invoice.smartbillSeries) {
+    if (!invoice.invoiceNumber) {
       return NextResponse.json(
         { success: false, error: "Factura nu a fost emisă în Facturis" },
         { status: 400 }
@@ -70,7 +70,7 @@ export async function POST(
     console.log("\n" + "=".repeat(60));
     console.log("🚫 FACTURIS - ANULARE FACTURĂ");
     console.log("=".repeat(60));
-    console.log(`Factură: ${invoice.smartbillSeries}${invoice.smartbillNumber}`);
+    console.log(`Factură: ${invoice.invoiceSeriesName || ''}${invoice.invoiceNumber || ''}`);
     console.log(`Comandă: #${invoice.order.shopifyOrderNumber}`);
     console.log(`Firma: ${company.name}`);
     console.log(`Motiv: ${reason || "Nespecificat"}`);
@@ -79,8 +79,8 @@ export async function POST(
     // Anulăm factura în Facturis
     const facturisClient = createFacturisClient(company);
 
-    // Folosim facturisId (smartbillId în DB) dacă există
-    const facturisKey = invoice.smartbillId || invoice.facturisId;
+    // Folosim facturisId dacă există
+    const facturisKey = invoice.facturisId;
 
     if (!facturisKey) {
       // Dacă nu avem key, anulăm doar local
@@ -120,8 +120,8 @@ export async function POST(
     await logInvoiceCancelled({
       orderId: invoice.orderId,
       orderNumber: invoice.order.shopifyOrderNumber,
-      invoiceNumber: invoice.smartbillNumber,
-      invoiceSeries: invoice.smartbillSeries,
+      invoiceNumber: invoice.invoiceNumber || '',
+      invoiceSeries: invoice.invoiceSeriesName || '',
       reason,
     });
 

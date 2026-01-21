@@ -54,8 +54,9 @@ import { formatCurrency, formatDate, cn } from "@/lib/utils";
 
 interface Invoice {
   id: string;
-  smartbillNumber: string | null;
-  smartbillSeries: string | null;
+  invoiceNumber: string | null;
+  invoiceSeriesName: string | null;
+  facturisId: string | null;
   status: string;
   errorMessage: string | null;
   pdfUrl: string | null;
@@ -461,8 +462,8 @@ export default function InvoicesPage() {
                               "font-mono font-semibold",
                               invoice.status === "cancelled" && "line-through"
                             )}>
-                              {invoice.smartbillSeries}
-                              {invoice.smartbillNumber}
+                              {invoice.invoiceSeriesName}
+                              {invoice.invoiceNumber}
                             </span>
                           ) : (
                             <span className="text-muted-foreground">-</span>
@@ -623,8 +624,8 @@ export default function InvoicesPage() {
             <DialogDescription>
               Ești sigur că vrei să anulezi factura{" "}
               <strong>
-                {cancelDialog.invoice?.smartbillSeries}
-                {cancelDialog.invoice?.smartbillNumber}
+                {cancelDialog.invoice?.invoiceSeriesName}
+                {cancelDialog.invoice?.invoiceNumber}
               </strong>
               ?
             </DialogDescription>
@@ -836,8 +837,8 @@ export default function InvoicesPage() {
             <DialogDescription>
               Marchează factura{" "}
               <strong>
-                {payDialog.invoice?.smartbillSeries}
-                {payDialog.invoice?.smartbillNumber}
+                {payDialog.invoice?.invoiceSeriesName}
+                {payDialog.invoice?.invoiceNumber}
               </strong>
               {" "}ca plătită
             </DialogDescription>

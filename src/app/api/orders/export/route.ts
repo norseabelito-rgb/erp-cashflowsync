@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         store: { select: { name: true } },
-        invoice: { select: { smartbillNumber: true, smartbillSeries: true, status: true } },
+        invoice: { select: { invoiceNumber: true, invoiceSeriesName: true, status: true } },
         awb: { select: { awbNumber: true, currentStatus: true, serviceType: true } },
         lineItems: {
           select: {
@@ -100,8 +100,8 @@ export async function GET(request: NextRequest) {
         .map((li) => `${li.sku || "-"}: ${li.title} x${li.quantity}`)
         .join("; ");
 
-      const invoiceNumber = o.invoice?.smartbillNumber
-        ? `${o.invoice.smartbillSeries || ""}${o.invoice.smartbillNumber}`
+      const invoiceNumber = o.invoice?.invoiceNumber
+        ? `${o.invoice.invoiceSeriesName || ""}${o.invoice.invoiceNumber}`
         : "";
 
       return [

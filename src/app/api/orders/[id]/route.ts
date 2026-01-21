@@ -127,7 +127,7 @@ export async function PUT(
           error: "Comanda are documente emise",
           hasInvoice,
           hasAwb,
-          invoiceNumber: hasInvoice ? `${order.invoice!.smartbillSeries}${order.invoice!.smartbillNumber}` : null,
+          invoiceNumber: hasInvoice ? `${order.invoice!.invoiceSeriesName || ''}${order.invoice!.invoiceNumber || ''}` : null,
           awbNumber: hasAwb ? order.awb!.awbNumber : null,
           requiresAcknowledgement: true,
         },
