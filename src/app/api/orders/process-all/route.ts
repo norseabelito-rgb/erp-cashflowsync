@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
       } else {
         // Factura există deja și e validă
         result.invoiceSuccess = true;
-        result.invoiceNumber = `${order.invoice!.smartbillSeries}${order.invoice!.smartbillNumber}`;
+        result.invoiceNumber = `${order.invoice!.invoiceSeriesName || ''}${order.invoice!.invoiceNumber || ''}`;
         console.log(`ℹ️ Factură existentă: ${result.invoiceNumber}`);
       }
 

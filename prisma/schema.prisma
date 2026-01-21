@@ -522,11 +522,6 @@ model Invoice {
   // ID extern în Facturis
   facturisId        String?
 
-  // DEPRECATED: câmpuri vechi pentru compatibilitate (vor fi migrate)
-  smartbillNumber   String?  @map("smartbill_number")
-  smartbillSeries   String?  @map("smartbill_series")
-  smartbillId       String?  @map("smartbill_id")
-
   status            String   @default("pending") // pending, issued, cancelled, error
   errorMessage      String?  // Mesajul de eroare
 

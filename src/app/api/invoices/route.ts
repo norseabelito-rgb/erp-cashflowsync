@@ -41,8 +41,8 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       where.OR = [
-        { smartbillNumber: { contains: search, mode: "insensitive" } },
-        { smartbillSeries: { contains: search, mode: "insensitive" } },
+        { invoiceNumber: { contains: search, mode: "insensitive" } },
+        { invoiceSeriesName: { contains: search, mode: "insensitive" } },
         {
           order: {
             shopifyOrderNumber: { contains: search, mode: "insensitive" },
@@ -65,9 +65,9 @@ export async function GET(request: NextRequest) {
       where,
       select: {
         id: true,
-        smartbillNumber: true,
-        smartbillSeries: true,
-        smartbillId: true,
+        invoiceNumber: true,
+        invoiceSeriesName: true,
+        facturisId: true,
         status: true,
         errorMessage: true,
         dueDate: true,

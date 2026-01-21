@@ -99,13 +99,9 @@ async function saveInvoiceToDatabase(params: {
       companyId: params.companyId,
       invoiceSeriesId: params.invoiceSeriesId,
       invoiceProvider: "facturis",
-      // Noile câmpuri
       invoiceNumber: params.invoiceNumber.toString(),
       invoiceSeriesName: params.invoiceSeries,
       facturisId: params.facturisKey,
-      // Câmpuri vechi pentru compatibilitate (până la migrare completă)
-      smartbillNumber: params.invoiceNumber.toString(),
-      smartbillSeries: params.invoiceSeries,
       status: "issued",
       pdfUrl: params.pdfUrl || null,
       pdfData: params.pdfData || null,
@@ -121,8 +117,6 @@ async function saveInvoiceToDatabase(params: {
       invoiceNumber: params.invoiceNumber.toString(),
       invoiceSeriesName: params.invoiceSeries,
       facturisId: params.facturisKey,
-      smartbillNumber: params.invoiceNumber.toString(),
-      smartbillSeries: params.invoiceSeries,
       status: "issued",
       pdfUrl: params.pdfUrl || null,
       pdfData: params.pdfData || null,

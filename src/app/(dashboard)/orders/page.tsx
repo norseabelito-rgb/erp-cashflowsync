@@ -101,7 +101,7 @@ interface Order {
   addressValidation: string;
   addressValidationMsg: string | null;
   createdAt: string;
-  invoice: { id: string; smartbillNumber: string; smartbillSeries: string; status: string; errorMessage: string | null } | null;
+  invoice: { id: string; invoiceNumber: string | null; invoiceSeriesName: string | null; facturisId: string | null; status: string; errorMessage: string | null } | null;
   awb: { id: string; awbNumber: string; currentStatus: string; currentStatusDate: string | null; errorMessage: string | null } | null;
   lineItems?: Array<{
     id: string;
@@ -793,7 +793,7 @@ export default function OrdersPage() {
       shippingZip: order.shippingZip || "",
       hasInvoice: !!(order.invoice && order.invoice.status === "issued"),
       hasAwb: !!(order.awb && order.awb.awbNumber),
-      invoiceNumber: order.invoice ? `${order.invoice.smartbillSeries}${order.invoice.smartbillNumber}` : null,
+      invoiceNumber: order.invoice ? `${order.invoice.invoiceSeriesName || ''}${order.invoice.invoiceNumber || ''}` : null,
       awbNumber: order.awb?.awbNumber || null,
       acknowledgeDocumentsIssued: false,
     });
@@ -1167,7 +1167,7 @@ export default function OrdersPage() {
                       <td className="p-4">
                         {order.invoice ? (
                           order.invoice.status === "issued" ? (
-                            <Badge variant="success">{order.invoice.smartbillSeries}{order.invoice.smartbillNumber}</Badge>
+                            <Badge variant="success">{order.invoice.invoiceSeriesName}{order.invoice.invoiceNumber}</Badge>
                           ) : order.invoice.status === "deleted" ? (
                             <Badge variant="neutral" title={order.invoice.errorMessage || "Factură ștearsă în Facturis"}>🗑️ Ștearsă</Badge>
                           ) : order.invoice.status === "cancelled" ? (
@@ -1689,7 +1689,7 @@ export default function OrdersPage() {
                   <h4 className="font-semibold mb-2">Factură</h4>
                   {viewOrder.invoice ? (
                     viewOrder.invoice.status === "issued" ? (
-                      <Badge variant="success">{viewOrder.invoice.smartbillSeries}{viewOrder.invoice.smartbillNumber}</Badge>
+                      <Badge variant="success">{viewOrder.invoice.invoiceSeriesName}{viewOrder.invoice.invoiceNumber}</Badge>
                     ) : viewOrder.invoice.status === "deleted" ? (
                       <div className="space-y-2">
                         <Badge variant="neutral">🗑️ Ștearsă</Badge>

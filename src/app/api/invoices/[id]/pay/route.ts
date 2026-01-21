@@ -42,7 +42,7 @@ export async function POST(
       );
     }
 
-    if (!invoice.smartbillNumber || !invoice.smartbillSeries) {
+    if (!invoice.invoiceNumber) {
       return NextResponse.json(
         { success: false, error: "Factura nu are număr valid" },
         { status: 400 }
@@ -75,8 +75,8 @@ export async function POST(
     await logPaymentReceived({
       orderId: invoice.orderId,
       orderNumber: invoice.order.shopifyOrderNumber,
-      invoiceNumber: invoice.smartbillNumber,
-      invoiceSeries: invoice.smartbillSeries,
+      invoiceNumber: invoice.invoiceNumber || '',
+      invoiceSeries: invoice.invoiceSeriesName || '',
       amount,
       method,
     });

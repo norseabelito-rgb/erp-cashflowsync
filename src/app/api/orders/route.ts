@@ -123,8 +123,9 @@ export async function GET(request: NextRequest) {
         invoice: {
           select: {
             id: true,
-            smartbillNumber: true,
-            smartbillSeries: true,
+            invoiceNumber: true,
+            invoiceSeriesName: true,
+            facturisId: true,
             status: true,
             errorMessage: true,
           },

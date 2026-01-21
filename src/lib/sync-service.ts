@@ -646,8 +646,8 @@ async function syncInvoiceStatus(
   
   stats.invoicesChecked++;
   
-  const invoiceNumber = invoice.smartbillSeries && invoice.smartbillNumber 
-    ? `${invoice.smartbillSeries}${invoice.smartbillNumber}`
+  const invoiceNumber = invoice.invoiceSeriesName && invoice.invoiceNumber
+    ? `${invoice.invoiceSeriesName}${invoice.invoiceNumber}`
     : 'N/A';
   
   await addLogEntry(syncLogId, {
@@ -657,10 +657,10 @@ async function syncInvoiceStatus(
     orderId: order.id,
     orderNumber: order.shopifyOrderNumber,
     invoiceNumber,
-    details: { 
-      status: invoice.status, 
-      series: invoice.smartbillSeries,
-      number: invoice.smartbillNumber,
+    details: {
+      status: invoice.status,
+      series: invoice.invoiceSeriesName,
+      number: invoice.invoiceNumber,
       issuedAt: invoice.issuedAt,
       errorMessage: invoice.errorMessage,
     },

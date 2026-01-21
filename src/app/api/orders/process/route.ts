@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       } else {
         // Factura există deja
         result.invoiceSuccess = true;
-        result.invoiceNumber = order.invoice.smartbillNumber || undefined;
+        result.invoiceNumber = order.invoice.invoiceNumber || undefined;
       }
 
       // PASUL 2: Emitere AWB (doar dacă factura a reușit și nu există AWB)
