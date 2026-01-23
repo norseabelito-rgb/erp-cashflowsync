@@ -171,6 +171,50 @@ export async function validateSeriesForCompany(
 }
 
 /**
+ * Validate that a series can be assigned to a store
+ * Series must belong to the store's company and be active
+ * @param seriesId - The series ID to validate
+ * @param storeId - The store ID
+ * @returns Object with valid boolean and error message if invalid
+ */
+export async function validateSeriesForStore(
+  seriesId: string,
+  storeId: string
+): Promise<{ valid: boolean; error?: string }> {
+  // Get store with its company
+  const store = await prisma.store.findUnique({
+    where: { id: storeId },
+    select: { companyId: true, name: true }
+  });
+
+  if (!store) {
+    return { valid: false, error: "Magazinul nu a fost gasit" };
+  }
+
+  if (!store.companyId) {
+    return { valid: false, error: "Magazinul nu are o firma asociata. Seteaza firma inainte de a configura seria." };
+  }
+
+  // Verify series exists, belongs to company, and is active
+  const series = await prisma.invoiceSeries.findFirst({
+    where: {
+      id: seriesId,
+      companyId: store.companyId,
+      isActive: true,
+    }
+  });
+
+  if (!series) {
+    return {
+      valid: false,
+      error: "Seria selectata nu apartine firmei magazinului sau este inactiva"
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
  * Preview next invoice number without incrementing
  * @param seriesId - The series ID
  * @returns The next number that would be assigned
