@@ -455,6 +455,7 @@ model Order {
   processingErrors    ProcessingError[]
   trendyolOrder       TrendyolOrder?
   intercompanyLink    IntercompanyOrderLink?
+  failedInvoiceAttempts FailedInvoiceAttempt[]
 
   @@unique([shopifyOrderId, storeId])
   @@index([status])
@@ -548,6 +549,41 @@ model Invoice {
   @@index([invoiceProvider])
   @@index([facturisId])
   @@map("invoices")
+}
+
+// Incercari esuate de emitere factura (pentru retry ulterior)
+model FailedInvoiceAttempt {
+  id           String   @id @default(cuid())
+  orderId      String
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // Detalii eroare
+  errorCode    String   // Codul erorii (ex: NO_SERIES, FACTURIS_ERROR)
+  errorMessage String   // Mesajul de eroare complet
+
+  // Context
+  storeId      String?
+  storeName    String?
+  companyId    String?
+  companyName  String?
+  seriesId     String?
+  seriesName   String?
+
+  // Status
+  status       String   @default("pending") // pending, retried, resolved
+  retriedAt    DateTime?
+  resolvedAt   DateTime?
+
+  // Tracking
+  attemptNumber Int     @default(1)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("failed_invoice_attempts")
 }
 
 // AWB-urile create prin FanCourier
