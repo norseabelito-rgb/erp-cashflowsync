@@ -355,8 +355,11 @@ export class FacturisAPI {
           );
         }
 
+        // Normalizăm codul de răspuns (poate veni ca string sau number)
+        const successCode = Number(responseData.success);
+
         // Verifică codul de succes
-        if (responseData.success === SUCCESS_CODE) {
+        if (successCode === SUCCESS_CODE) {
           return responseData;
         }
 
@@ -367,7 +370,7 @@ export class FacturisAPI {
 
         // Eroare de autentificare (codul 4 este eroare de autentificare în Facturis)
         if (
-          responseData.success === 4 ||
+          successCode === 4 ||
           (typeof errorMessage === "string" && errorMessage.toLowerCase().includes("autentificare"))
         ) {
           throw new FacturisAuthError(
@@ -376,7 +379,7 @@ export class FacturisAPI {
         }
 
         // Eroare 1004: Serie de facturare invalidă sau inexistentă
-        if (responseData.success === 1004) {
+        if (successCode === 1004) {
           throw new FacturisApiError(
             `Seria de facturare nu există în Facturis. Verifică că seria configurată în ERP corespunde exact cu cea din contul Facturis (case-sensitive). Eroare: ${errorMessage || "Serie invalidă"}`,
             1004,
@@ -386,8 +389,8 @@ export class FacturisAPI {
 
         // Alte erori
         throw new FacturisApiError(
-          errorMessage || `Eroare Facturis (cod ${responseData.success})`,
-          responseData.success,
+          errorMessage || `Eroare Facturis (cod ${successCode})`,
+          successCode,
           false
         );
 
