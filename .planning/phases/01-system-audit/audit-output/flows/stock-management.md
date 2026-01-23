@@ -1,8 +1,13 @@
 # Flow: Gestiune Stoc (Stock Management)
 
 **Auditat:** 2026-01-23
-**Status:** Complet Documentat
+**Status:** Complet Documentat - VERIFICAT DE USER
 **Implementare:** IMPLEMENTAT - Sistem dual (Product + InventoryItem)
+
+> **User Verification (2026-01-23):**
+> - **Rezervare stoc:** NU se foloseste actualmente, dar ar fi "nice to have" (future enhancement)
+> - **Transfer inter-depozite:** DA, functionalitatea TREBUIE sa existe
+> - **Sync Shopify:** NU E NECESAR - vanzare fara tracking inventar in Shopify
 
 ## Rezumat
 
@@ -166,6 +171,7 @@ await recordStockMovement({
 ### Etapa 2: Rezervare la Comanda
 
 **Status curent:** NU IMPLEMENTAT
+**User feedback:** "Nice to have" - nu e prioritate, dar ar fi utila in viitor
 
 **Comportament actual:**
 - Cand vine comanda din Shopify, stocul NU se rezerva
@@ -176,10 +182,12 @@ await recordStockMovement({
 - `checkOrderStock()` - poate verifica disponibilitate
 - `checkInventoryItemStockInWarehouse()` - per depozit
 
-**Recomandare:**
+**Recomandare (future enhancement):**
 - Implementare rezervare la import comanda
 - Status: Reserved pana la facturare
 - Eliberare la anulare
+
+> **Nota:** User a confirmat ca NU este prioritate actuala, dar ramane pe lista pentru imbunatatiri viitoare.
 
 ---
 
@@ -281,9 +289,13 @@ model TransferSheet {
 
 ### Etapa 5: Sync Stoc cu Shopify
 
+**Status:** EXISTA dar NU E NECESAR conform user
+
+> **User feedback (2026-01-23):** Sync-ul stocului cu Shopify NU este necesar. Echipa vinde fara tracking de inventar in Shopify - stocul se gestioneaza doar intern in ERP.
+
 **Trigger:** Cron periodic sau buton manual "Sync Stock"
 
-**Flow:**
+**Flow (implementat dar neutilizat):**
 1. Pentru fiecare MasterProduct activ
 2. Calculeaza stoc disponibil (currentStock - rezervari)
 3. Apel Shopify API pentru actualizare inventory level
@@ -293,6 +305,11 @@ model TransferSheet {
 - Sync se face inline in request handler
 - Pentru multi-produse, blocheaza UI
 - Recomandat: background job
+
+**Implicatie pentru dezvoltare:**
+- Functionalitatea poate fi pastrata dar nu e prioritara pentru optimizare
+- Nu se investeste timp in fixing sync issues cu Shopify
+- Focus pe gestiune stoc interna
 
 ---
 
@@ -398,13 +415,22 @@ for (const item of lineItems) {
 
 ### Phase 4 - Reliability
 - Transaction handling pentru stock movements (partial implementat)
-- Retry logic pentru sync Shopify
+- **Transfer inter-depozite:** Asigura ca functionalitatea e robusta (user a confirmat ca TREBUIE sa existe)
 
 ### Phase 5 - Code Cleanup
 - Evaluare unificare Product vs InventoryItem
 - Cleanup N+1 queries ramase
+- ~~Sync Shopify~~ - NU e prioritar (user nu foloseste tracking inventar in Shopify)
 
 ### Phase 6 - Automation
-- Rezervare automata la import comanda
-- Background job pentru sync Shopify
+- Rezervare automata la import comanda (nice-to-have, nu prioritate)
+- ~~Background job pentru sync Shopify~~ - NU E NECESAR
 - Alerte email pentru stoc scazut
+
+### Clarificari User (2026-01-23)
+
+| Functionalitate | Status | Prioritate |
+|-----------------|--------|------------|
+| Transfer inter-depozite | NECESAR | **Must have** |
+| Rezervare stoc | Nice to have | Low |
+| Sync Shopify | NU E NECESAR | None |

@@ -1,8 +1,14 @@
 # Flow: Decontare Interna (Internal Settlement)
 
 **Auditat:** 2026-01-23
-**Status:** Complet Documentat
-**Implementare:** PARTIAL - Logica exista, UI/cron necesita verificare
+**Status:** Complet Documentat - VERIFICAT DE USER
+**Implementare:** NU SE FOLOSESTE INCA - dar ESENTIAL de implementat
+
+> **User Verification (2026-01-23):**
+> - **Firma secundara:** CONSTRUIM DESTINE S.R.L.
+> - **Markup confirmat:** 10%
+> - **Status actual:** Fluxul NU este folosit in prezent
+> - **Prioritate:** ESENTIAL de implementat - prioritate pentru Phase 3
 
 ## Rezumat
 
@@ -221,22 +227,23 @@ interface SettlementPreview {
 | Export factura PDF | LIPSESTE | Doar date in DB, fara document |
 | Integrare Facturis | LIPSESTE | Factura interna nu se emite in Facturis |
 
-### Intrebari pentru User:
+### Raspunsuri User (2026-01-23):
 
 1. **Este acest flow folosit activ?**
-   - Se ruleaza decontarea saptamanala?
-   - Exista UI unde se vede?
+   - **NU** - nu se foloseste in prezent
+   - Dar este **ESENTIAL** de implementat
 
 2. **Care este firma secundara?**
-   - Nume exact
-   - Markup-ul e 10% sau altul?
+   - **CONSTRUIM DESTINE S.R.L.**
+   - Markup confirmat: **10%**
 
-3. **Cum se proceseaza factura interna?**
-   - Se emite si in Facturis sau doar intern?
-   - Exista document PDF?
+3. **Prioritate:** Phase 3 - Dashboard Enhancement va include implementarea completa a acestui flux
 
-4. **Cron job-ul ruleaza?**
-   - Vercel cron sau manual?
+**Implicatii pentru dezvoltare:**
+- Logica backend exista (intercompany-service.ts)
+- Trebuie verificat daca e functionala
+- UI de vizualizare si management necesar
+- Cron job de rulare saptamanala de configurat
 
 ---
 
@@ -262,14 +269,19 @@ interface SettlementPreview {
 
 ## Note pentru Faze Urmatoare
 
-### Phase 3 - Dashboard Enhancement
-- Adaugare widget pentru decontari pending
-- Lista facturi intercompany
+### Phase 3 - Dashboard Enhancement (PRIORITATE)
+- **Implementare completa decontare interna** - user a confirmat ca este ESENTIAL
+- UI pentru vizualizare comenzi eligibile pentru decontare
+- UI pentru generare si management facturi intercompany
+- Widget dashboard pentru status decontari
+- Firma secundara: CONSTRUIM DESTINE S.R.L. (10% markup)
 
 ### Phase 6 - Automation
-- Verificare/configurare cron job
-- Notificari pentru decontare
+- Verificare/configurare cron job saptamanal
+- Notificari pentru decontare pending
+- Alertare cand suma de decontat depaseste prag
 
 ### Phase 9 - Reporting
 - Rapoarte decontare per firma
 - Export facturi interne
+- Reconciliere intre firme

@@ -1,8 +1,10 @@
 # Flow: Comanda la Livrare (Order-to-Delivery)
 
 **Auditat:** 2026-01-23
-**Status:** Complet Documentat
+**Status:** Complet Documentat - VERIFICAT DE USER
 **Relevanta:** CRITICA - Fluxul zilnic principal
+
+> **User Verification (2026-01-23):** Flow-ul a fost aprobat. User a solicitat documentarea COMPLETA a tuturor codurilor de status FanCourier pentru tracking - aceasta va fi adresata in fazele urmatoare (vezi nota la finalul documentului).
 
 ## Rezumat
 
@@ -527,3 +529,23 @@ Selectia automata a seriei (prima serie activa) cauzeaza erori cand:
 ### Phase 5 - Code Cleanup
 - Cod duplicat intre `invoice-service.ts` si route.ts
 - Verificari redundante in canIssueInvoice vs issueInvoiceForOrder
+
+---
+
+## Solicitari User pentru Faze Urmatoare
+
+### FanCourier Status Codes - Documentare Completa
+
+**Solicitare user (2026-01-23):** Documentarea TUTUROR codurilor de status FanCourier pentru tracking.
+
+**Motivatie:** Sistemul actual listeaza doar statusurile principale (C0, C1, H0-H17, S1-S16, S50). User doreste o lista completa cu toate codurile posibile pentru:
+- Debugging probleme tracking
+- Mapare corecta status AWB -> status Order
+- Intelegere comportament curier in toate scenariile
+
+**De adresat in:** Phase 4 (Reliability) sau Phase 6 (Automation) cand se lucreaza la tracking improvements.
+
+**Actiune necesara:**
+1. Documentare toate codurile status FanCourier din API oficial
+2. Mapare fiecare cod la comportamentul sistemului
+3. Actualizare tabel "Coduri Status FanCourier" cu lista completa
