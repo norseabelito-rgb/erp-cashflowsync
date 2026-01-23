@@ -13,6 +13,8 @@ export async function getNextInvoiceNumber(seriesId: string): Promise<{
   seriesId: string;
   padding: number;
   facturisSeries: string | null;
+  correctionApplied: boolean;
+  correctionMessage: string | null;
 } | null> {
   // Use transaction for atomic increment
   const result = await prisma.$transaction(async (tx) => {
@@ -24,15 +26,24 @@ export async function getNextInvoiceNumber(seriesId: string): Promise<{
       return null;
     }
 
-    // Fix: Ensure currentNumber is at least 1 (fix for legacy data with 0)
     let currentNumber = series.currentNumber;
+    let correctionApplied = false;
+    let correctionMessage: string | null = null;
+
+    // Fix: Ensure currentNumber is at least 1 (fix for legacy data with 0 or negative)
     if (currentNumber < 1) {
-      currentNumber = Math.max(1, series.startNumber || 1);
-      // Also fix it in the database for future use
+      const newNumber = Math.max(1, series.startNumber || 1);
+      correctionApplied = true;
+      correctionMessage = `Numarul seriei a fost corectat automat de la ${currentNumber} la ${newNumber}`;
+      currentNumber = newNumber;
+
+      // Update in database
       await tx.invoiceSeries.update({
         where: { id: seriesId },
         data: { currentNumber: currentNumber },
       });
+
+      console.log(`[InvoiceSeries] Auto-corectie: seria ${series.prefix} de la ${series.currentNumber} la ${currentNumber}`);
     }
 
     const padding = series.numberPadding || 6;
@@ -50,6 +61,8 @@ export async function getNextInvoiceNumber(seriesId: string): Promise<{
       seriesId: series.id,
       padding,
       facturisSeries: series.facturisSeries,
+      correctionApplied,
+      correctionMessage,
     };
   });
 
