@@ -105,7 +105,17 @@ interface StoreType {
   createdAt: string;
   companyId: string | null;
   company: { id: string; name: string } | null;
+  invoiceSeriesId: string | null;
+  invoiceSeries: { id: string; name: string; prefix: string } | null;
   _count?: { orders: number };
+}
+
+interface InvoiceSeriesOption {
+  id: string;
+  name: string;
+  prefix: string;
+  companyId: string;
+  isDefault: boolean;
 }
 
 interface CompanyOption {
@@ -130,6 +140,7 @@ export default function SettingsPage() {
   const [editStoreDialogOpen, setEditStoreDialogOpen] = useState(false);
   const [editingStore, setEditingStore] = useState<StoreType | null>(null);
   const [editStoreCompanyId, setEditStoreCompanyId] = useState<string | null>(null);
+  const [editStoreSeriesId, setEditStoreSeriesId] = useState<string | null>(null);
 
   const [settings, setSettings] = useState<Settings>({
     fancourierClientId: "",
@@ -195,6 +206,17 @@ export default function SettingsPage() {
     },
   });
   const companies: CompanyOption[] = companiesData?.companies || [];
+
+  // Fetch invoice series for store edit dialog
+  const { data: seriesData } = useQuery({
+    queryKey: ["invoice-series-list"],
+    queryFn: async () => {
+      const res = await fetch("/api/invoice-series");
+      if (!res.ok) throw new Error("Failed to fetch series");
+      return res.json();
+    },
+  });
+  const allSeries: InvoiceSeriesOption[] = seriesData?.series || [];
 
   useEffect(() => {
     if (settingsData?.settings) {
@@ -328,22 +350,26 @@ export default function SettingsPage() {
     },
   });
 
-  // Update store (pentru asociere cu firmă)
+  // Update store (pentru asociere cu firma si serie)
   const updateStoreMutation = useMutation({
-    mutationFn: async (data: { storeId: string; companyId: string | null }) => {
+    mutationFn: async (data: { storeId: string; companyId: string | null; invoiceSeriesId?: string | null }) => {
       const res = await fetch(`/api/stores/${data.storeId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyId: data.companyId }),
+        body: JSON.stringify({
+          companyId: data.companyId,
+          invoiceSeriesId: data.invoiceSeriesId ?? null,
+        }),
       });
       return res.json();
     },
     onSuccess: (data) => {
       if (data.success) {
         queryClient.invalidateQueries({ queryKey: ["stores-list"] });
+        queryClient.invalidateQueries({ queryKey: ["invoice-series-list"] });
         setEditStoreDialogOpen(false);
         setEditingStore(null);
-        toast({ title: "Magazin actualizat", description: "Firma a fost asociată cu succes" });
+        toast({ title: "Magazin actualizat", description: "Firma si seria au fost asociate cu succes" });
       } else {
         toast({ title: "Eroare", description: data.error, variant: "destructive" });
       }
@@ -353,6 +379,7 @@ export default function SettingsPage() {
   const openEditStoreDialog = (store: StoreType) => {
     setEditingStore(store);
     setEditStoreCompanyId(store.companyId);
+    setEditStoreSeriesId(store.invoiceSeriesId);
     setEditStoreDialogOpen(true);
   };
 
@@ -1576,16 +1603,19 @@ export default function SettingsPage() {
               <Input value={editingStore?.name || ""} disabled />
             </div>
             <div className="grid gap-2">
-              <Label>Firmă de facturare</Label>
+              <Label>Firma de facturare</Label>
               <Select
                 value={editStoreCompanyId || "none"}
-                onValueChange={(value) => setEditStoreCompanyId(value === "none" ? null : value)}
+                onValueChange={(value) => {
+                  setEditStoreCompanyId(value === "none" ? null : value);
+                  setEditStoreSeriesId(null); // Clear series when company changes
+                }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selectează firma" />
+                  <SelectValue placeholder="Selecteaza firma" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">— Nicio firmă —</SelectItem>
+                  <SelectItem value="none">-- Nicio firma --</SelectItem>
                   {companies.map((company) => (
                     <SelectItem key={company.id} value={company.id}>
                       {company.name}
@@ -1594,13 +1624,47 @@ export default function SettingsPage() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Comenzile din acest magazin vor fi facturate pe firma selectată
+                Comenzile din acest magazin vor fi facturate pe firma selectata
               </p>
             </div>
+            {/* Serie de facturare - doar daca firma este selectata */}
+            {editStoreCompanyId && (
+              <div className="grid gap-2">
+                <Label htmlFor="store-series">Serie de facturare</Label>
+                <Select
+                  value={editStoreSeriesId || "default"}
+                  onValueChange={(value) => setEditStoreSeriesId(value === "default" ? null : value)}
+                >
+                  <SelectTrigger id="store-series">
+                    <SelectValue placeholder="Selecteaza seria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">
+                      <span className="text-muted-foreground">
+                        Foloseste seria default a firmei
+                      </span>
+                    </SelectItem>
+                    {allSeries
+                      .filter((s: InvoiceSeriesOption) => s.companyId === editStoreCompanyId)
+                      .map((series: InvoiceSeriesOption) => (
+                        <SelectItem key={series.id} value={series.id}>
+                          {series.prefix} - {series.name}
+                          {series.isDefault && (
+                            <Badge variant="outline" className="ml-2 text-xs">Default</Badge>
+                          )}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Toate facturile din acest magazin vor folosi aceasta serie
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditStoreDialogOpen(false)}>
-              Anulează
+              Anuleaza
             </Button>
             <Button
               onClick={() => {
@@ -1608,12 +1672,13 @@ export default function SettingsPage() {
                   updateStoreMutation.mutate({
                     storeId: editingStore.id,
                     companyId: editStoreCompanyId,
+                    invoiceSeriesId: editStoreSeriesId,
                   });
                 }
               }}
               disabled={updateStoreMutation.isPending}
             >
-              {updateStoreMutation.isPending ? "Se salvează..." : "Salvează"}
+              {updateStoreMutation.isPending ? "Se salveaza..." : "Salveaza"}
             </Button>
           </DialogFooter>
         </DialogContent>
