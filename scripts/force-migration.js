@@ -50,18 +50,39 @@ async function runMigration() {
     const sql = fs.readFileSync(sqlPath, 'utf8');
 
     // Împarte SQL-ul în statements individuale
-    // IMPORTANT: Eliminăm comentariile ÎNAINTE de split, altfel statements
-    // precedate de comentarii (-- comment\nALTER TABLE...) ar fi filtrate greșit
-    const statements = sql
-      // Elimină comentariile single-line (-- comment)
+    // IMPORTANT: Gestionăm blocurile DO $$ separat pentru că conțin ; interior
+    const statements = [];
+
+    // Elimină comentariile
+    let cleanSql = sql
       .replace(/--.*$/gm, '')
-      // Elimină comentariile multi-line (/* comment */)
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      // Split pe ;
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+
+    // Extrage blocurile DO $$ ... $$; ca statements complete
+    const doBlockRegex = /DO\s*\$\$[\s\S]*?\$\$\s*;/gi;
+    const doBlocks = cleanSql.match(doBlockRegex) || [];
+
+    // Înlocuiește blocurile DO cu placeholder pentru a nu le sparge
+    doBlocks.forEach((block, index) => {
+      cleanSql = cleanSql.replace(block, `__DO_BLOCK_${index}__`);
+    });
+
+    // Split restul pe ;
+    const regularStatements = cleanSql
       .split(';')
-      // Trim și filtrează linii goale
       .map(s => s.trim())
       .filter(s => s.length > 0);
+
+    // Reconstruiește statements cu blocurile DO restaurate
+    regularStatements.forEach(stmt => {
+      const doBlockMatch = stmt.match(/__DO_BLOCK_(\d+)__/);
+      if (doBlockMatch) {
+        const blockIndex = parseInt(doBlockMatch[1]);
+        statements.push(doBlocks[blockIndex].replace(/;\s*$/, '')); // Remove trailing ;
+      } else {
+        statements.push(stmt);
+      }
+    });
 
     console.log(`📋 Se execută ${statements.length} statements SQL...`);
     console.log('');
