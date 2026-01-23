@@ -237,6 +237,20 @@ ALTER TABLE "invoice_series" ADD COLUMN IF NOT EXISTS "facturisSeries" TEXT;
 ALTER TABLE "invoice_series" ADD COLUMN IF NOT EXISTS "sync_to_smartbill" BOOLEAN DEFAULT false;
 ALTER TABLE "invoice_series" ADD COLUMN IF NOT EXISTS "smartbill_series" TEXT;
 
+-- 17. Add AWB_CREATED status to OrderStatus enum
+-- This runs after AWB is successfully created but before courier pickup
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_enum
+        WHERE enumlabel = 'AWB_CREATED'
+        AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'OrderStatus')
+    ) THEN
+        ALTER TYPE "OrderStatus" ADD VALUE 'AWB_CREATED' AFTER 'AWB_PENDING';
+    END IF;
+END
+$$;
+
 -- Done!
 -- After running this migration, run: npx prisma generate (if cache permits)
 -- Or manually restart the application to pick up schema changes
