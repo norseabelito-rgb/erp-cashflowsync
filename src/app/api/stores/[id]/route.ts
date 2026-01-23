@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { validateSeriesForStore } from "@/lib/invoice-series";
 
 async function updateStore(
   request: NextRequest,
@@ -7,7 +8,7 @@ async function updateStore(
 ) {
   try {
     const body = await request.json();
-    const { name, shopifyDomain, accessToken, isActive, companyId } = body;
+    const { name, shopifyDomain, accessToken, isActive, companyId, invoiceSeriesId } = body;
 
     const updateData: any = {};
 
@@ -18,6 +19,24 @@ async function updateStore(
     // companyId poate fi null pentru a dezasocia
     if (companyId !== undefined) updateData.companyId = companyId;
 
+    // Handle invoiceSeriesId with validation
+    if (invoiceSeriesId !== undefined) {
+      if (invoiceSeriesId === null) {
+        // Allow clearing the series to use company default
+        updateData.invoiceSeriesId = null;
+      } else {
+        // Validate series belongs to store's company
+        const validation = await validateSeriesForStore(invoiceSeriesId, storeId);
+        if (!validation.valid) {
+          return NextResponse.json(
+            { error: validation.error, success: false },
+            { status: 400 }
+          );
+        }
+        updateData.invoiceSeriesId = invoiceSeriesId;
+      }
+    }
+
     const store = await prisma.store.update({
       where: { id: storeId },
       data: updateData,
@@ -26,6 +45,13 @@ async function updateStore(
           select: {
             id: true,
             name: true,
+          },
+        },
+        invoiceSeries: {
+          select: {
+            id: true,
+            name: true,
+            prefix: true,
           },
         },
       },
