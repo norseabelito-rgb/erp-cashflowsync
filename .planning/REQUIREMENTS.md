@@ -9,11 +9,11 @@ Requirements pentru stabilizarea si imbunatatirea sistemului curent.
 
 ### Audit
 
-- [ ] **AUDIT-01**: Audit complet al fiecarei pagini din dashboard
-- [ ] **AUDIT-02**: Audit fiecare API endpoint (functionalitate, validare, erori)
-- [ ] **AUDIT-03**: Audit flows E2E (comanda > factura > AWB > livrare > incasare)
-- [ ] **AUDIT-04**: Audit cod si arhitectura (identificare tech debt, refactoring necesar)
-- [ ] **AUDIT-05**: Documentare discrepante intre cod si comportament asteptat
+- [x] **AUDIT-01**: Audit complet al fiecarei pagini din dashboard
+- [x] **AUDIT-02**: Audit fiecare API endpoint (functionalitate, validare, erori)
+- [x] **AUDIT-03**: Audit flows E2E (comanda > factura > AWB > livrare > incasare)
+- [x] **AUDIT-04**: Audit cod si arhitectura (identificare tech debt, refactoring necesar)
+- [x] **AUDIT-05**: Documentare discrepante intre cod si comportament asteptat
 
 ### Facturare
 
@@ -96,11 +96,11 @@ Deferred pentru dupa stabilizare.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUDIT-01 | Phase 1: System Audit | Pending |
-| AUDIT-02 | Phase 1: System Audit | Pending |
-| AUDIT-03 | Phase 1: System Audit | Pending |
-| AUDIT-04 | Phase 1: System Audit | Pending |
-| AUDIT-05 | Phase 1: System Audit | Pending |
+| AUDIT-01 | Phase 1: System Audit | Complete |
+| AUDIT-02 | Phase 1: System Audit | Complete |
+| AUDIT-03 | Phase 1: System Audit | Complete |
+| AUDIT-04 | Phase 1: System Audit | Complete |
+| AUDIT-05 | Phase 1: System Audit | Complete |
 | INV-01 | Phase 2: Invoice Series Fix | Pending |
 | INV-02 | Phase 2: Invoice Series Fix | Pending |
 | INV-08 | Phase 2: Invoice Series Fix | Pending |

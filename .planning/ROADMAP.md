@@ -10,7 +10,7 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
 - Integer phases (1, 2, 3...): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: System Audit** - Complete understanding of current state before making changes
+- [x] **Phase 1: System Audit** - Complete understanding of current state before making changes
 - [ ] **Phase 2: Invoice Series Fix** - Fix Facturis integration and series selection logic (biggest pain point)
 - [ ] **Phase 3: Internal Settlement** - Implement decontare interna flow for secondary company orders
 - [ ] **Phase 4: Flow Integrity** - Ensure data consistency with transfer blocking and AWB routing
@@ -36,10 +36,10 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
   5. Discrepancies between expected behavior and actual behavior are documented with severity
 
 Plans:
-- [ ] 01-01-PLAN.md — Dashboard pages audit (Orders priority, all UI elements documented)
-- [ ] 01-02-PLAN.md — API endpoints audit (auth, validation, known issues cataloged)
-- [ ] 01-03-PLAN.md — E2E business flows audit (order-to-delivery, internal settlement, stock)
-- [ ] 01-04-PLAN.md — Architecture and tech debt audit (extends CONCERNS.md, dead code)
+- [x] 01-01-PLAN.md — Dashboard pages audit (Orders priority, all UI elements documented)
+- [x] 01-02-PLAN.md — API endpoints audit (auth, validation, known issues cataloged)
+- [x] 01-03-PLAN.md — E2E business flows audit (order-to-delivery, internal settlement, stock)
+- [x] 01-04-PLAN.md — Architecture and tech debt audit (extends CONCERNS.md, dead code)
 
 ### Phase 2: Invoice Series Fix
 **Goal**: Invoices automatically use the correct series based on store/company mapping
@@ -219,7 +219,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. System Audit | 0/4 | Planned | - |
+| 1. System Audit | 4/4 | ✓ Complete | 2026-01-24 |
 | 2. Invoice Series Fix | 0/4 | Not started | - |
 | 3. Internal Settlement | 0/4 | Not started | - |
 | 4. Flow Integrity | 0/3 | Not started | - |
