@@ -256,15 +256,9 @@ async function exportDatabase() {
     prisma.settings.findMany({
       select: {
         id: true,
-        // SmartBill (non-sensitive)
-        smartbillEmail: true,
-        smartbillCompanyCif: true,
-        smartbillSeriesName: true,
-        smartbillWarehouseName: true,
-        smartbillUseStock: true,
-        smartbillTaxName: true,
-        smartbillTaxPercent: true,
-        smartbillDueDays: true,
+        // Setări generale facturare
+        defaultVatRate: true,
+        defaultDueDays: true,
         // AWB defaults
         defaultWeight: true,
         defaultServiceType: true,
@@ -300,7 +294,7 @@ async function exportDatabase() {
         backupLastAt: true,
         createdAt: true,
         updatedAt: true,
-        // Exclude: smartbillToken, fancourierPassword, googleDriveCredentials,
+        // Exclude: fancourierPassword, googleDriveCredentials,
         // trendyolApiKey, trendyolApiSecret, aiApiKey
       },
     }),

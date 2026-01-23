@@ -61,7 +61,6 @@ export async function GET() {
       settings: {
         ...settings,
         // Mascăm token-urile dar arătăm că există
-        smartbillToken: settings.smartbillToken ? "••••••••" : "",
         fancourierPassword: settings.fancourierPassword ? "••••••••" : "",
         googleDriveCredentials: maskedDriveCredentials,
         trendyolApiSecret: settings.trendyolApiSecret ? "••••••••" : "",
@@ -93,11 +92,8 @@ export async function POST(request: NextRequest) {
 
     // Curățăm câmpurile care nu trebuie actualizate dacă sunt mascate
     const updateData: any = { ...body };
-    
+
     // Nu actualizăm token-urile dacă sunt mascate
-    if (updateData.smartbillToken === "••••••••") {
-      delete updateData.smartbillToken;
-    }
     if (updateData.fancourierPassword === "••••••••") {
       delete updateData.fancourierPassword;
     }
@@ -119,7 +115,7 @@ export async function POST(request: NextRequest) {
         // Nu e JSON valid, probabil e nou - îl păstrăm
       }
     }
-    
+
     // Eliminăm câmpurile sistem
     delete updateData.id;
     delete updateData.createdAt;
@@ -134,14 +130,6 @@ export async function POST(request: NextRequest) {
     }
     if (updateData.trendyolCurrencyRate) {
       updateData.trendyolCurrencyRate = parseFloat(updateData.trendyolCurrencyRate) || 5.0;
-    }
-    // DEPRECATED: SmartBill fields - replaced by Facturis per-company credentials
-    // Keeping for backward compatibility with existing DB records
-    if (updateData.smartbillTaxPercent !== undefined) {
-      updateData.smartbillTaxPercent = parseInt(updateData.smartbillTaxPercent) || 21;
-    }
-    if (updateData.smartbillDueDays !== undefined) {
-      updateData.smartbillDueDays = parseInt(updateData.smartbillDueDays) || 0;
     }
 
     const settings = await prisma.settings.upsert({
@@ -168,7 +156,6 @@ export async function POST(request: NextRequest) {
       success: true,
       settings: {
         ...settings,
-        smartbillToken: settings.smartbillToken ? "••••••••" : "",
         fancourierPassword: settings.fancourierPassword ? "••••••••" : "",
         googleDriveCredentials: settings.googleDriveCredentials ? "••••••••" : "",
         trendyolApiSecret: settings.trendyolApiSecret ? "••••••••" : "",
