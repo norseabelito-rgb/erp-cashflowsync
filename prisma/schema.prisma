@@ -373,8 +373,9 @@ enum OrderStatus {
   PICKING           // În proces de picking
   PACKED            // Împachetat, gata de expediere
   AWB_PENDING       // Așteaptă AWB
+  AWB_CREATED       // AWB generat cu succes
   AWB_ERROR         // Eroare la emiterea AWB
-  SHIPPED           // AWB emis, în curs de livrare
+  SHIPPED           // În curs de livrare (preluat de curier)
   DELIVERED         // Livrat
   RETURNED          // Returnat
   CANCELLED         // Anulat
