@@ -27,6 +27,7 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
 **Goal**: Complete understanding of every page, API, and business flow before making changes
 **Depends on**: Nothing (first phase)
 **Requirements**: AUDIT-01, AUDIT-02, AUDIT-03, AUDIT-04, AUDIT-05
+**Plans**: 4 plans
 **Success Criteria** (what must be TRUE):
   1. Every dashboard page has been visited and documented with its current functionality
   2. Every API endpoint has been cataloged with its purpose, inputs, outputs, and validation status
@@ -34,13 +35,11 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
   4. Tech debt and refactoring needs have been identified and prioritized
   5. Discrepancies between expected behavior and actual behavior are documented with severity
 
-**Plans**: TBD
-
 Plans:
-- [ ] 01-01: Dashboard pages audit
-- [ ] 01-02: API endpoints audit
-- [ ] 01-03: E2E business flows audit
-- [ ] 01-04: Architecture and tech debt audit
+- [ ] 01-01-PLAN.md — Dashboard pages audit (Orders priority, all UI elements documented)
+- [ ] 01-02-PLAN.md — API endpoints audit (auth, validation, known issues cataloged)
+- [ ] 01-03-PLAN.md — E2E business flows audit (order-to-delivery, internal settlement, stock)
+- [ ] 01-04-PLAN.md — Architecture and tech debt audit (extends CONCERNS.md, dead code)
 
 ### Phase 2: Invoice Series Fix
 **Goal**: Invoices automatically use the correct series based on store/company mapping
@@ -220,7 +219,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. System Audit | 0/4 | Not started | - |
+| 1. System Audit | 0/4 | Planned | - |
 | 2. Invoice Series Fix | 0/4 | Not started | - |
 | 3. Internal Settlement | 0/4 | Not started | - |
 | 4. Flow Integrity | 0/3 | Not started | - |
@@ -233,4 +232,5 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 
 ---
 *Roadmap created: 2026-01-23*
+*Phase 1 planned: 2026-01-23*
 *Depth: comprehensive (10 phases, 40 planned plans)*
