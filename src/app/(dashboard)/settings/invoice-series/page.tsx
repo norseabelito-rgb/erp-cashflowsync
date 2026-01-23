@@ -14,6 +14,7 @@ import {
   Hash,
   Settings2,
   AlertCircle,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,7 +69,16 @@ interface InvoiceSeries {
   isActive: boolean;
   syncToFacturis: boolean;
   facturisSeries: string | null;
+  companyId: string | null;
+  company: { id: string; name: string; code: string } | null;
   stores: { id: string; name: string }[];
+}
+
+interface Company {
+  id: string;
+  name: string;
+  code: string;
+  isActive: boolean;
 }
 
 interface StoreWithSeries {
@@ -88,6 +98,7 @@ interface SeriesFormData {
   isDefault: boolean;
   syncToFacturis: boolean;
   facturisSeries: string;
+  companyId: string;
 }
 
 const initialFormData: SeriesFormData = {
@@ -99,6 +110,7 @@ const initialFormData: SeriesFormData = {
   isDefault: false,
   syncToFacturis: false,
   facturisSeries: "",
+  companyId: "",
 };
 
 export default function InvoiceSeriesPage() {
@@ -128,7 +140,18 @@ export default function InvoiceSeriesPage() {
     },
   });
 
+  // Fetch companies
+  const { data: companiesData } = useQuery({
+    queryKey: ["companies"],
+    queryFn: async () => {
+      const res = await fetch("/api/companies");
+      if (!res.ok) return { companies: [] };
+      return res.json();
+    },
+  });
+
   const series: InvoiceSeries[] = data?.series || [];
+  const companies: Company[] = companiesData?.companies || [];
   const stores: StoreWithSeries[] = storesData?.stores || [];
   const trendyolSeries = data?.trendyolSeries;
 
@@ -254,6 +277,7 @@ export default function InvoiceSeriesPage() {
       isDefault: s.isDefault,
       syncToFacturis: s.syncToFacturis,
       facturisSeries: s.facturisSeries || "",
+      companyId: s.companyId || "",
     });
     setIsEditing(true);
     setIsFormOpen(true);
@@ -270,6 +294,14 @@ export default function InvoiceSeriesPage() {
       toast({
         title: "Eroare",
         description: "Numele și prefixul sunt obligatorii",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!formData.companyId) {
+      toast({
+        title: "Eroare",
+        description: "Trebuie să selectezi o firmă de facturare",
         variant: "destructive",
       });
       return;
@@ -356,6 +388,17 @@ export default function InvoiceSeriesPage() {
                                 Sincronizat cu seria Facturis: {s.facturisSeries || s.prefix}
                               </TooltipContent>
                             </Tooltip>
+                          )}
+                          {s.company ? (
+                            <Badge variant="secondary">
+                              <Building2 className="h-3 w-3 mr-1" />
+                              {s.company.name}
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Fără firmă
+                            </Badge>
                           )}
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
@@ -571,6 +614,29 @@ export default function InvoiceSeriesPage() {
               </div>
 
               <div className="space-y-2">
+                <Label>Firma de facturare *</Label>
+                <Select
+                  value={formData.companyId || "none"}
+                  onValueChange={(v) => setFormData({ ...formData, companyId: v === "none" ? "" : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selectează firma" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">-- Selectează firma --</SelectItem>
+                    {companies.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name} ({c.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Seria va fi folosită pentru facturile emise de această firmă
+                </p>
+              </div>
+
+              <div className="space-y-2">
                 <Label>Descriere (opțional)</Label>
                 <Textarea
                   value={formData.description}
@@ -647,7 +713,7 @@ export default function InvoiceSeriesPage() {
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={!formData.name || !formData.prefix || saveMutation.isPending}
+                disabled={!formData.name || !formData.prefix || !formData.companyId || saveMutation.isPending}
               >
                 {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 {isEditing ? "Salvează" : "Creează"}
