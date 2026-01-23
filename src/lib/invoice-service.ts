@@ -342,11 +342,14 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
     const billingVatNumber = order.billingCompany?.cif || null;
     const billingRegNumber = order.billingCompany?.regCom || null;
 
+    // Seria pentru Facturis: folosim facturisSeries dacă există, altfel prefix
+    const facturisSeriesName = nextNumber.facturisSeries || nextNumber.prefix;
+
     // Construim datele facturii în format Facturis
     const invoiceData: FacturisInvoiceData = {
       // Header
       facturi_data: formatDateForFacturis(new Date()),
-      facturi_serie: nextNumber.prefix,
+      facturi_serie: facturisSeriesName,
       facturi_numar: nextNumber.number,
       facturi_moneda: order.currency || "RON",
       facturi_cota_tva: `${vatRate}%`,
