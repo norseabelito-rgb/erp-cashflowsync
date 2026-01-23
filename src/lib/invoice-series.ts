@@ -12,6 +12,7 @@ export async function getNextInvoiceNumber(seriesId: string): Promise<{
   formatted: string;
   seriesId: string;
   padding: number;
+  facturisSeries: string | null;
 } | null> {
   // Use transaction for atomic increment
   const result = await prisma.$transaction(async (tx) => {
@@ -38,6 +39,7 @@ export async function getNextInvoiceNumber(seriesId: string): Promise<{
       formatted: `${series.prefix}${currentNumber.toString().padStart(padding, "0")}`,
       seriesId: series.id,
       padding,
+      facturisSeries: series.facturisSeries,
     };
   });
 
