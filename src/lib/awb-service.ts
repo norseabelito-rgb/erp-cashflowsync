@@ -317,8 +317,8 @@ export async function createAWBForOrder(
 
     // Logăm în ActivityLog
     try {
-      const { logAwbCreated } = await import("./activity-log");
-      await logAwbCreated({
+      const { logAWBCreated } = await import("./activity-log");
+      await logAWBCreated({
         orderId: order.id,
         orderNumber: order.shopifyOrderNumber || order.id,
         awbNumber: result.awb,
