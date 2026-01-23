@@ -49,6 +49,12 @@ Recent decisions affecting current work:
 - **01-01:** Ads module and Trendyol: keep until explicit user confirmation
 - **01-02:** API audit uses structured tables per endpoint with CONCERNS.md cross-refs
 - **01-02:** Security gaps flagged for early attention (missing permission checks)
+- **01-03:** Order-to-Delivery flow verified by user - matches production behavior
+- **01-03:** Internal Settlement: CONSTRUIM DESTINE S.R.L. is secondary company, 10% markup confirmed
+- **01-03:** Internal Settlement: NOT in use currently but ESSENTIAL to implement (Phase 3 priority)
+- **01-03:** Stock Management: Shopify sync NOT needed - no inventory tracking in Shopify
+- **01-03:** Stock Management: Inter-warehouse transfers MUST exist
+- **01-03:** FanCourier status codes: User requested complete documentation for future phases
 - **01-04:** FreshSales/BaseLinker not in src/ - only doc cleanup needed
 - **01-04:** Tech debt prioritized: 4 items marked "Blocheaza munca" (TD-01 to TD-04)
 - **01-04:** Database schema documented: Order->Store->Company chain critical for invoice series
@@ -87,8 +93,8 @@ From codebase analysis (CONCERNS.md) and Phase 1 audit:
 
 ## Session Continuity
 
-Last session: 2026-01-23 22:20 UTC
-Stopped at: Completed 01-04-PLAN.md - Phase 1 Complete
+Last session: 2026-01-23 22:27 UTC
+Stopped at: Completed 01-03-PLAN.md (user checkpoint continuation) - All Phase 1 summaries now complete
 Resume file: None
 
 ## Phase 1 Deliverables
@@ -105,4 +111,4 @@ Resume file: None
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-23 (01-04 complete, Phase 1 finished)*
+*Last updated: 2026-01-23 (01-03 summary added with user decisions, all Phase 1 summaries complete)*
