@@ -36,6 +36,7 @@ export interface IssueInvoiceResult {
   invoiceKey?: string; // Cheia Facturis pentru referință
   companyId?: string;
   companyName?: string;
+  seriesSource?: "store" | "company_default"; // Indicates whether store-specific or company default series was used
   error?: string;
   errorCode?: string;
 }
@@ -275,15 +276,18 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
 
     // 6. Obținem seria de facturare - prioritate: store > company default
     let invoiceSeries = null;
+    let seriesSource: "store" | "company_default" = "company_default";
 
     // Priority 1: Store-specific series (already loaded in order.store.invoiceSeries)
     if (order.store?.invoiceSeries && order.store.invoiceSeries.isActive) {
       invoiceSeries = order.store.invoiceSeries;
+      seriesSource = "store";
       console.log(`[Invoice] Folosesc seria magazinului: ${invoiceSeries.prefix} (${invoiceSeries.name})`);
     }
     // Priority 2: Company default series (existing behavior)
     else if (company) {
       invoiceSeries = await getInvoiceSeriesForCompany(company.id);
+      seriesSource = "company_default";
       if (invoiceSeries) {
         console.log(`[Invoice] Folosesc seria default a firmei: ${invoiceSeries.prefix} (${invoiceSeries.name})`);
       }
@@ -493,6 +497,7 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
       invoiceKey,
       companyId: company.id,
       companyName: company.name,
+      seriesSource,
     };
 
   } catch (error: any) {
