@@ -208,6 +208,7 @@ CREATE INDEX IF NOT EXISTS "warehouses_isOperational_idx" ON "warehouses"("isOpe
 
 -- 13. Add missing columns for Settings (needed for Prisma schema compatibility)
 ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "defaultVatRate" INTEGER DEFAULT 19;
+ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "defaultDueDays" INTEGER DEFAULT 0;
 
 -- 14. Add Facturis invoice columns
 ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "invoiceNumber" TEXT;
