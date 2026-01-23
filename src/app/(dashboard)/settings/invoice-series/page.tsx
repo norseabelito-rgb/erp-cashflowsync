@@ -15,6 +15,8 @@ import {
   Settings2,
   AlertCircle,
   Building2,
+  Info,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +49,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -86,6 +96,12 @@ interface StoreWithSeries {
   name: string;
   shopifyDomain: string;
   invoiceSeriesId: string | null;
+  invoiceSeries: { id: string; name: string; prefix: string } | null;
+  companyId: string | null;
+  company: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 interface SeriesFormData {
@@ -334,12 +350,22 @@ export default function InvoiceSeriesPage() {
           </Button>
         </div>
 
-        {/* Info */}
+        {/* Guidance note about series creation */}
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Important:</strong> Seriile de facturare trebuie create manual in ERP pentru a corespunde
+            exact cu cele din contul Facturis (case-sensitive). Facturis nu ofera un API pentru listarea
+            seriilor - acestea trebuie verificate direct in contul Facturis.
+          </AlertDescription>
+        </Alert>
+
+        {/* Info - empty state */}
         {series.length === 0 && (
-          <Alert>
+          <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Nu ai nicio serie de facturare. Creează una pentru a putea emite facturi.
+              Nu ai nicio serie de facturare. Creeaza una pentru a putea emite facturi.
             </AlertDescription>
           </Alert>
         )}
@@ -533,7 +559,7 @@ export default function InvoiceSeriesPage() {
                 </div>
                 <div>
                   <p className="font-medium">Trendyol</p>
-                  <p className="text-sm text-muted-foreground">Marketplace internațional</p>
+                  <p className="text-sm text-muted-foreground">Marketplace international</p>
                 </div>
               </div>
               <Select
@@ -543,19 +569,92 @@ export default function InvoiceSeriesPage() {
                 }
               >
                 <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Selectează seria" />
+                  <SelectValue placeholder="Selecteaza seria" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Fără serie (folosește default)</SelectItem>
+                  <SelectItem value="none">Fara serie (foloseste default)</SelectItem>
                   {series.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
                       {s.prefix} - {s.name}
-                      {s.isDefault && " ⭐"}
+                      {s.isDefault && " *"}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Sumar mapari - Overview table */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Store className="h-5 w-5" />
+              Sumar mapari
+            </CardTitle>
+            <CardDescription>
+              Configuratia curenta per magazin - verifica ca fiecare magazin are serie configurata
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {stores.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">
+                Nu ai magazine configurate
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Magazin</TableHead>
+                    <TableHead>Firma</TableHead>
+                    <TableHead>Serie</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stores.map((store) => {
+                    // Determine effective series (store-specific or company default)
+                    const effectiveSeries = store.invoiceSeries
+                      || series.find((s) => s.companyId === store.companyId && s.isDefault);
+                    const hasValidMapping = !!effectiveSeries;
+                    const isStoreSpecific = !!store.invoiceSeries;
+
+                    return (
+                      <TableRow key={store.id}>
+                        <TableCell className="font-medium">{store.name}</TableCell>
+                        <TableCell>
+                          {store.company?.name || (
+                            <Badge variant="destructive">Neasociat</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {effectiveSeries ? (
+                            <span className="flex items-center gap-2">
+                              {effectiveSeries.prefix} - {effectiveSeries.name}
+                              {!isStoreSpecific && (
+                                <Badge variant="outline" className="text-xs">Default firma</Badge>
+                              )}
+                            </span>
+                          ) : (
+                            <Badge variant="destructive">Lipsa</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {hasValidMapping ? (
+                            <Badge className="bg-green-500">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              OK
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">Configureaza</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
 
