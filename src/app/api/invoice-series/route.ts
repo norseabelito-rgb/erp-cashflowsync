@@ -61,9 +61,8 @@ export async function POST(request: NextRequest) {
       type = "f",
       startNumber = 1,
       isDefault = false,
-      // DEPRECATED: SmartBill fields - replaced by Facturis per-company credentials
-      syncToSmartBill = false,
-      smartBillSeries,
+      syncToFacturis = false,
+      facturisSeries,
     } = body;
 
     // Validări
@@ -100,8 +99,8 @@ export async function POST(request: NextRequest) {
         startNumber: Math.max(1, startNumber),
         currentNumber: Math.max(1, startNumber),
         isDefault,
-        syncToSmartBill,
-        smartBillSeries: syncToSmartBill ? (smartBillSeries || prefix.toUpperCase()) : null,
+        syncToFacturis,
+        facturisSeries: syncToFacturis ? (facturisSeries || prefix.toUpperCase()) : null,
       },
     });
 
@@ -135,9 +134,8 @@ export async function PUT(request: NextRequest) {
       startNumber,
       isDefault,
       isActive,
-      // DEPRECATED: SmartBill fields - replaced by Facturis per-company credentials
-      syncToSmartBill,
-      smartBillSeries,
+      syncToFacturis,
+      facturisSeries,
       storeId,
       seriesId,
       trendyolSeries,
@@ -208,8 +206,8 @@ export async function PUT(request: NextRequest) {
       }
       if (isDefault !== undefined) updateData.isDefault = isDefault;
       if (isActive !== undefined) updateData.isActive = isActive;
-      if (syncToSmartBill !== undefined) updateData.syncToSmartBill = syncToSmartBill;
-      if (smartBillSeries !== undefined) updateData.smartBillSeries = smartBillSeries || null;
+      if (syncToFacturis !== undefined) updateData.syncToFacturis = syncToFacturis;
+      if (facturisSeries !== undefined) updateData.facturisSeries = facturisSeries || null;
 
       const series = await prisma.invoiceSeries.update({
         where: { id },
