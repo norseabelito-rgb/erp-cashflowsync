@@ -20,6 +20,7 @@ import {
   hasFacturisCredentials,
 } from "./facturis";
 import { getNextInvoiceNumber, getInvoiceSeriesForCompany } from "./invoice-series";
+import { getInvoiceErrorMessage } from "./invoice-errors";
 
 // Tip pentru transaction client
 type PrismaTransactionClient = Prisma.TransactionClient;
@@ -178,6 +179,7 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
         store: {
           include: {
             company: true,
+            invoiceSeries: true,
           },
         },
         invoice: true,
@@ -187,7 +189,7 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
     });
 
     if (!order) {
-      return { success: false, error: "Comanda nu a fost găsită", errorCode: "ORDER_NOT_FOUND" };
+      return { success: false, error: getInvoiceErrorMessage("ORDER_NOT_FOUND"), errorCode: "ORDER_NOT_FOUND" };
     }
 
     // 2. Verifică dacă factura a fost deja emisă
@@ -197,7 +199,7 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
         : order.invoice.facturisId || "necunoscut";
       return {
         success: false,
-        error: `Factura a fost deja emisă: ${existingNumber}`,
+        error: getInvoiceErrorMessage("ALREADY_ISSUED", `Factura a fost deja emisa: ${existingNumber}`),
         errorCode: "ALREADY_ISSUED",
       };
     }
@@ -207,7 +209,7 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
       if (order.requiredTransfer.status !== "COMPLETED") {
         return {
           success: false,
-          error: "Transferul de stoc nu a fost finalizat. Nu se poate emite factura până la închiderea transferului.",
+          error: getInvoiceErrorMessage("TRANSFER_PENDING"),
           errorCode: "TRANSFER_PENDING",
         };
       }
@@ -220,7 +222,7 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
     if (!company) {
       return {
         success: false,
-        error: "Comanda nu are o firmă de facturare asociată. Configurează firma pentru magazinul sau setează billingCompany.",
+        error: getInvoiceErrorMessage("NO_COMPANY"),
         errorCode: "NO_COMPANY",
       };
     }
@@ -229,7 +231,7 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
     if (!hasFacturisCredentials(company)) {
       return {
         success: false,
-        error: `Credențialele Facturis nu sunt configurate pentru firma "${company.name}". Configurează-le în Setări > Firme.`,
+        error: getInvoiceErrorMessage("NO_CREDENTIALS"),
         errorCode: "NO_CREDENTIALS",
       };
     }
@@ -239,7 +241,7 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
     if (!facturisCif) {
       return {
         success: false,
-        error: `CIF-ul Facturis nu este configurat pentru firma "${company.name}". Setează facturisCompanyCif sau CIF-ul companiei în Setări > Firme.`,
+        error: getInvoiceErrorMessage("NO_FACTURIS_CIF"),
         errorCode: "NO_FACTURIS_CIF",
       };
     }
@@ -248,7 +250,7 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
     if (!order.lineItems || order.lineItems.length === 0) {
       return {
         success: false,
-        error: "Comanda nu are produse. Nu se poate emite factură fără articole.",
+        error: getInvoiceErrorMessage("NO_LINE_ITEMS"),
         errorCode: "NO_LINE_ITEMS",
       };
     }
@@ -258,26 +260,41 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
       if (item.quantity <= 0) {
         return {
           success: false,
-          error: `Produsul "${item.title}" are cantitate invalidă (${item.quantity}). Cantitatea trebuie să fie mai mare decât 0.`,
+          error: getInvoiceErrorMessage("INVALID_ITEM_QUANTITY", `Produsul "${item.title}" are cantitate invalida (${item.quantity}).`),
           errorCode: "INVALID_ITEM_QUANTITY",
         };
       }
       if (Number(item.price) < 0) {
         return {
           success: false,
-          error: `Produsul "${item.title}" are preț negativ (${item.price}). Prețul nu poate fi negativ.`,
+          error: getInvoiceErrorMessage("INVALID_ITEM_PRICE", `Produsul "${item.title}" are pret negativ (${item.price}).`),
           errorCode: "INVALID_ITEM_PRICE",
         };
       }
     }
 
-    // 6. Obținem seria de facturare pentru această firmă
-    const invoiceSeries = await getInvoiceSeriesForCompany(company.id);
+    // 6. Obținem seria de facturare - prioritate: store > company default
+    let invoiceSeries = null;
+
+    // Priority 1: Store-specific series (already loaded in order.store.invoiceSeries)
+    if (order.store?.invoiceSeries && order.store.invoiceSeries.isActive) {
+      invoiceSeries = order.store.invoiceSeries;
+      console.log(`[Invoice] Folosesc seria magazinului: ${invoiceSeries.prefix} (${invoiceSeries.name})`);
+    }
+    // Priority 2: Company default series (existing behavior)
+    else if (company) {
+      invoiceSeries = await getInvoiceSeriesForCompany(company.id);
+      if (invoiceSeries) {
+        console.log(`[Invoice] Folosesc seria default a firmei: ${invoiceSeries.prefix} (${invoiceSeries.name})`);
+      }
+    }
 
     if (!invoiceSeries) {
+      const storeName = order.store?.name || "necunoscut";
       return {
         success: false,
-        error: `Nu există serie de facturare configurată pentru firma "${company.name}". Adaugă o serie în Setări > Serii Facturare.`,
+        error: getInvoiceErrorMessage("NO_SERIES",
+          `Magazinul "${storeName}" nu are serie de facturare configurata. Mergi la Setari > Magazine pentru a configura.`),
         errorCode: "NO_SERIES",
       };
     }
@@ -290,7 +307,7 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
     if (!nextNumber) {
       return {
         success: false,
-        error: "Nu s-a putut obține următorul număr de factură. Seria poate fi inactivă.",
+        error: getInvoiceErrorMessage("NO_NUMBER"),
         errorCode: "NO_NUMBER",
       };
     }
@@ -324,7 +341,7 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
       await rollbackInvoiceNumber(invoiceSeries.id, previousNumber);
       return {
         success: false,
-        error: "Nu s-a putut crea clientul Facturis. Verifică credențialele.",
+        error: getInvoiceErrorMessage("CLIENT_ERROR"),
         errorCode: "CLIENT_ERROR",
       };
     }
