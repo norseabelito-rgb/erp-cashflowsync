@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 2 of 10 (Invoice Series Fix)
-Plan: 2 of 4 in current phase
+Plan: 3 of 5 in current phase
 Status: In progress
-Last activity: 2026-01-24 - Completed 02-02-PLAN.md (Store-Series Mapping UI)
+Last activity: 2026-01-24 - Completed 02-03-PLAN.md (Invoice Service Series Integration)
 
-Progress: [█████████████░░░░░░░] 15.6%
+Progress: [████████████████░░░░] 17.8%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
+- Total plans completed: 7
 - Average duration: ~6 minutes
-- Total execution time: ~37 minutes
+- Total execution time: ~41 minutes
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-system-audit | 4/4 | ~28 min | ~7 min |
-| 02-invoice-series-fix | 2/4 | ~9 min | ~4.5 min |
+| 02-invoice-series-fix | 3/5 | ~13 min | ~4.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-03 (flows), 01-04 (tech-debt), 02-01 (store-api), 02-02 (ui-mapping)
-- Trend: UI-only changes very fast (~1 min), API changes moderate (~8 min)
+- Last 5 plans: 01-04 (tech-debt), 02-01 (store-api), 02-02 (ui-mapping), 02-03 (series-integration)
+- Trend: API integration changes fast (~4 min), UI changes very fast (~1 min)
 
 *Updated after each plan completion*
 
@@ -65,10 +65,13 @@ Recent decisions affecting current work:
 - **02-02:** Series selection auto-clears when company changes for data consistency
 - **02-02:** Mapping overview shows effective series (store-specific or company default)
 - **02-02:** Manual series creation required - Facturis API has no series endpoint
+- **02-03:** Store-specific series takes priority over company default when active
+- **02-03:** seriesSource field added to IssueInvoiceResult for debugging/transparency
+- **02-03:** All invoice error messages use getInvoiceErrorMessage for consistency
 
 ### Pending Todos
 
-None - Plan 02-02 complete, ready for 02-03.
+None - Plan 02-03 complete, ready for 02-04.
 
 ### Blockers/Concerns
 
@@ -101,7 +104,7 @@ From codebase analysis (CONCERNS.md) and Phase 1 audit:
 ## Session Continuity
 
 Last session: 2026-01-24
-Stopped at: Completed 02-02-PLAN.md (Store-Series Mapping UI)
+Stopped at: Completed 02-03-PLAN.md (Invoice Service Series Integration)
 Resume file: None
 
 ## Phase 1 Deliverables
@@ -118,4 +121,4 @@ Resume file: None
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-24 (02-02 complete: Store-Series Mapping UI with dropdown and overview table)*
+*Last updated: 2026-01-24 (02-03 complete: Invoice service uses store-specific series with fallback to company default)*
