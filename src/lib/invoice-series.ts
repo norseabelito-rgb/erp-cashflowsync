@@ -24,7 +24,17 @@ export async function getNextInvoiceNumber(seriesId: string): Promise<{
       return null;
     }
 
-    const currentNumber = series.currentNumber;
+    // Fix: Ensure currentNumber is at least 1 (fix for legacy data with 0)
+    let currentNumber = series.currentNumber;
+    if (currentNumber < 1) {
+      currentNumber = Math.max(1, series.startNumber || 1);
+      // Also fix it in the database for future use
+      await tx.invoiceSeries.update({
+        where: { id: seriesId },
+        data: { currentNumber: currentNumber },
+      });
+    }
+
     const padding = series.numberPadding || 6;
 
     // Increment the number for the next invoice

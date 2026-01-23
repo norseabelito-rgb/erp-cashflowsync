@@ -220,6 +220,11 @@ export async function PUT(request: NextRequest) {
       if (facturisSeries !== undefined) updateData.facturisSeries = facturisSeries || null;
       if (companyId !== undefined) updateData.companyId = companyId || null;
 
+      // Fix: Always ensure currentNumber >= 1 (fix for legacy data with 0)
+      if (existingSeries.currentNumber < 1) {
+        updateData.currentNumber = Math.max(1, existingSeries.startNumber || 1);
+      }
+
       const series = await prisma.invoiceSeries.update({
         where: { id },
         data: updateData,
