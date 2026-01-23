@@ -304,12 +304,16 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
       invoiceSeries.numberPadding
     );
 
+    // Seria pentru Facturis: folosim facturisSeries dacă există, altfel prefix
+    const facturisSeriesName = nextNumber.facturisSeries || nextNumber.prefix;
+
     console.log("\n" + "=".repeat(60));
     console.log("EMITERE FACTURA - FACTURIS");
     console.log("=".repeat(60));
     console.log(`Comanda: ${order.shopifyOrderNumber || order.id}`);
     console.log(`Firma: ${company.name} (${company.code})`);
-    console.log(`Serie: ${nextNumber.prefix} | Numar: ${nextNumber.number}`);
+    console.log(`Serie locală: ${nextNumber.prefix} | Numar: ${nextNumber.number}`);
+    console.log(`Serie Facturis: ${facturisSeriesName} (${nextNumber.facturisSeries ? "configurat" : "fallback la prefix"})`);
     console.log(`Factura: ${formattedInvoice}`);
     console.log("=".repeat(60));
 
@@ -341,9 +345,6 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
     const billingCompanyName = order.billingCompany?.name || null;
     const billingVatNumber = order.billingCompany?.cif || null;
     const billingRegNumber = order.billingCompany?.regCom || null;
-
-    // Seria pentru Facturis: folosim facturisSeries dacă există, altfel prefix
-    const facturisSeriesName = nextNumber.facturisSeries || nextNumber.prefix;
 
     // Construim datele facturii în format Facturis
     const invoiceData: FacturisInvoiceData = {
