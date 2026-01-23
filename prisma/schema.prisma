@@ -697,21 +697,6 @@ model Settings {
   defaultVatRate        Int      @default(19)  // Procentul TVA default
   defaultDueDays        Int      @default(0)   // Zile scadență (0 = fără scadență)
 
-  // DEPRECATED: câmpuri SmartBill vechi (menținute pentru compatibilitate)
-  smartbillEmail        String?  @map("smartbill_email")
-  smartbillToken        String?  @map("smartbill_token")
-  smartbillCompanyCif   String?  @map("smartbill_company_cif")
-  smartbillSeriesName   String?  @map("smartbill_series_name")
-  smartbillWarehouseName String? @map("smartbill_warehouse_name")
-  smartbillUseStock     Boolean  @default(false) @map("smartbill_use_stock")
-  smartbillTaxName      String?  @map("smartbill_tax_name")
-  smartbillTaxPercent   Int      @default(21) @map("smartbill_tax_percent")
-  smartbillDueDays      Int      @default(0) @map("smartbill_due_days")
-  smartbillSeriesCache  String?  @db.Text @map("smartbill_series_cache")
-  smartbillTaxesCache   String?  @db.Text @map("smartbill_taxes_cache")
-  smartbillWarehousesCache String? @db.Text @map("smartbill_warehouses_cache")
-  smartbillCacheUpdated DateTime? @map("smartbill_cache_updated")
-
   // FanCourier
   fancourierClientId    String?
   fancourierUsername    String?
