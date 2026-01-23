@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 2 of 10 (Invoice Series Fix)
-Plan: 3 of 5 in current phase
+Plan: 4 of 5 in current phase
 Status: In progress
-Last activity: 2026-01-24 - Completed 02-03-PLAN.md (Invoice Service Series Integration)
+Last activity: 2026-01-24 - Completed 02-04-PLAN.md (Edge Cases and Failed Invoice Tracking)
 
-Progress: [████████████████░░░░] 17.8%
+Progress: [██████████████████░░] 20.0%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 8
 - Average duration: ~6 minutes
-- Total execution time: ~41 minutes
+- Total execution time: ~49 minutes
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-system-audit | 4/4 | ~28 min | ~7 min |
-| 02-invoice-series-fix | 3/5 | ~13 min | ~4.3 min |
+| 02-invoice-series-fix | 4/5 | ~21 min | ~5.25 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-04 (tech-debt), 02-01 (store-api), 02-02 (ui-mapping), 02-03 (series-integration)
-- Trend: API integration changes fast (~4 min), UI changes very fast (~1 min)
+- Last 5 plans: 02-01 (store-api), 02-02 (ui-mapping), 02-03 (series-integration), 02-04 (edge-cases)
+- Trend: API integration changes fast (~4-8 min), UI changes very fast (~1 min)
 
 *Updated after each plan completion*
 
@@ -68,10 +68,13 @@ Recent decisions affecting current work:
 - **02-03:** Store-specific series takes priority over company default when active
 - **02-03:** seriesSource field added to IssueInvoiceResult for debugging/transparency
 - **02-03:** All invoice error messages use getInvoiceErrorMessage for consistency
+- **02-04:** Edge case auto-correction targets max(1, startNumber) when currentNumber < 1
+- **02-04:** FailedInvoiceAttempt stores full context (store/company/series) for debugging
+- **02-04:** Correction tracking pattern: functions return correctionApplied/correctionMessage
 
 ### Pending Todos
 
-None - Plan 02-03 complete, ready for 02-04.
+None - Plan 02-04 complete, ready for 02-05.
 
 ### Blockers/Concerns
 
@@ -81,7 +84,7 @@ From codebase analysis (CONCERNS.md) and Phase 1 audit:
 - TD-01: Order processing no transaction - partial failures cause inconsistent data
 - TD-02: `/invoices/[id]/cancel` and `/pay` have no permission checks
 - TD-03: `/products/bulk` and `/sync-images` have no permission checks
-- TD-04: Invoice series edge cases - wrong numbers possible
+- ~~TD-04: Invoice series edge cases - wrong numbers possible~~ (RESOLVED in 02-04)
 
 **High Priority (Deranjaza):**
 - TD-05: No Zod validation on orders/process
@@ -104,7 +107,7 @@ From codebase analysis (CONCERNS.md) and Phase 1 audit:
 ## Session Continuity
 
 Last session: 2026-01-24
-Stopped at: Completed 02-03-PLAN.md (Invoice Service Series Integration)
+Stopped at: Completed 02-04-PLAN.md (Edge Cases and Failed Invoice Tracking)
 Resume file: None
 
 ## Phase 1 Deliverables
@@ -121,4 +124,4 @@ Resume file: None
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-24 (02-03 complete: Invoice service uses store-specific series with fallback to company default)*
+*Last updated: 2026-01-24 (02-04 complete: Edge case auto-correction with notification, FailedInvoiceAttempt model, failed invoices API)*
