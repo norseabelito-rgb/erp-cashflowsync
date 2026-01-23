@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 2 of 10 (Invoice Series Fix)
-Plan: 1 of 4 in current phase
+Plan: 2 of 4 in current phase
 Status: In progress
-Last activity: 2026-01-24 - Completed 02-01-PLAN.md (Store API and Error Messages)
+Last activity: 2026-01-24 - Completed 02-02-PLAN.md (Store-Series Mapping UI)
 
-Progress: [████████████░░░░░░░░] 12.5%
+Progress: [█████████████░░░░░░░] 15.6%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: ~7 minutes
-- Total execution time: ~36 minutes
+- Total plans completed: 6
+- Average duration: ~6 minutes
+- Total execution time: ~37 minutes
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-system-audit | 4/4 | ~28 min | ~7 min |
-| 02-invoice-series-fix | 1/4 | ~8 min | ~8 min |
+| 02-invoice-series-fix | 2/4 | ~9 min | ~4.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (api), 01-03 (flows), 01-04 (tech-debt), 02-01 (store-api)
-- Trend: Consistent pace, code changes take slightly longer than doc-only
+- Last 5 plans: 01-03 (flows), 01-04 (tech-debt), 02-01 (store-api), 02-02 (ui-mapping)
+- Trend: UI-only changes very fast (~1 min), API changes moderate (~8 min)
 
 *Updated after each plan completion*
 
@@ -61,10 +61,14 @@ Recent decisions affecting current work:
 - **01-04:** Database schema documented: Order->Store->Company chain critical for invoice series
 - **02-01:** Romanian error messages established as pattern for user-facing errors
 - **02-01:** Validation functions return { valid: boolean; error?: string } for richer error info
+- **02-02:** Series dropdown filtered by company - prevents invalid cross-company assignments
+- **02-02:** Series selection auto-clears when company changes for data consistency
+- **02-02:** Mapping overview shows effective series (store-specific or company default)
+- **02-02:** Manual series creation required - Facturis API has no series endpoint
 
 ### Pending Todos
 
-None - Plan 02-01 complete, ready for 02-02.
+None - Plan 02-02 complete, ready for 02-03.
 
 ### Blockers/Concerns
 
@@ -97,7 +101,7 @@ From codebase analysis (CONCERNS.md) and Phase 1 audit:
 ## Session Continuity
 
 Last session: 2026-01-24
-Stopped at: Completed 02-01-PLAN.md (Store API and Error Messages)
+Stopped at: Completed 02-02-PLAN.md (Store-Series Mapping UI)
 Resume file: None
 
 ## Phase 1 Deliverables
@@ -114,4 +118,4 @@ Resume file: None
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-24 (02-01 complete: Store API invoiceSeriesId + Romanian error messages)*
+*Last updated: 2026-01-24 (02-02 complete: Store-Series Mapping UI with dropdown and overview table)*
