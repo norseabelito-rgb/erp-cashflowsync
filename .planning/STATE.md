@@ -45,6 +45,8 @@ Recent decisions affecting current work:
 - Roadmap: Audit phase first before any fixes (understand before changing)
 - Roadmap: Invoice series fix prioritized as biggest pain point (Phase 2)
 - Roadmap: Task management after core fixes (Phases 7-8)
+- **01-01:** User confirmed: FreshSales and BaseLinker are DEAD CODE - remove in Phase 5
+- **01-01:** Ads module and Trendyol: keep until explicit user confirmation
 - **01-02:** API audit uses structured tables per endpoint with CONCERNS.md cross-refs
 - **01-02:** Security gaps flagged for early attention (missing permission checks)
 - **01-02:** Dead code (FreshSales, BaseLinker) flagged for Phase 5
@@ -77,9 +79,9 @@ From 01-02:
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Completed 01-02-PLAN.md
+Stopped at: Completed 01-01-PLAN.md checkpoint (user approved dead code removal)
 Resume file: None
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-23 (01-02 complete)*
+*Last updated: 2026-01-23 (01-01 checkpoint approved, summary created)*

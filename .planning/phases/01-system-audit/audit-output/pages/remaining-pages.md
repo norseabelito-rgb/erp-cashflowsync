@@ -116,55 +116,58 @@ Acest document acopera paginile secundare din dashboard care nu au audit individ
 
 ---
 
-## Dead Code Candidates - FLAGGED
+## Dead Code Decisions - CONFIRMED
 
-### FreshSales Integration
+**User review:** 2026-01-23
+**Verdict:** FreshSales si BaseLinker confirmate pentru STERGERE
+
+### FreshSales Integration - STERGE
 **Mentionat in:** CONCERNS.md, ANALYSIS
 **Gasit in UI:** **NU** - Nu apare in Settings sau alte pagini dashboard
-**Recomandare:** Verificat backend (API routes, lib/) pentru cleanup
+**User decision:** CONFIRMAT PENTRU STERGERE
+**Action:** Cleanup in Phase 5 (Technical Debt)
 
-### BaseLinker Integration
+### BaseLinker Integration - STERGE
 **Mentionat in:** CONCERNS.md
 **Gasit in UI:** **NU** - Nu apare in Settings sau alte pagini dashboard
-**Recomandare:** Verificat backend pentru cleanup
+**User decision:** CONFIRMAT PENTRU STERGERE
+**Action:** Cleanup in Phase 5 (Technical Debt)
 
-### Ads Module (/ads)
+### Ads Module (/ads) - NECESITA CONFIRMARE
 **Dimensiune:** 418 linii
 **Integrare:** Meta Ads, Google Ads
 **UI Status:** Complet implementat
 **Problema:** CONCERNS.md mentioneaza "~80KB of code, usage unclear"
-**Recomandare:** CONFIRMARE UTILIZATOR - Este folosit activ?
+**User response:** Nespecificat
+**Status:** PASTREAZA pana la confirmare explicita
 
-### Trendyol Integration (/trendyol + Settings tab)
+### Trendyol Integration (/trendyol + Settings tab) - NECESITA CONFIRMARE
 **Dimensiune:** 378 linii (pagina) + ~300 linii (Settings tab)
 **Integrare:** Trendyol Marketplace API
 **UI Status:** Complet implementat (produse, comenzi, sync)
 **Problema:** Status neclar - testing sau productie?
-**Recomandare:** CONFIRMARE UTILIZATOR - Este live cu comenzi reale?
+**User response:** Nespecificat
+**Status:** PASTREAZA pana la confirmare explicita
 
 ---
 
-## Sumar pentru User Review
+## Sumar Dead Code Decisions
 
-### Intrebari pentru Utilizator:
+| Integration | Status | User Decision | Action |
+|-------------|--------|---------------|--------|
+| FreshSales | Dead code | STERGE | Cleanup Phase 5 |
+| BaseLinker | Dead code | STERGE | Cleanup Phase 5 |
+| Ads Module | Neclar | Nespecificat | Pastreaza |
+| Trendyol | Neclar | Nespecificat | Pastreaza |
 
-1. **Ads module (/ads)**
-   - Este folosit zilnic/saptamanal pentru monitorizare campanii?
-   - Sau este experimental/nefolosit?
+### Intrebari Ramase (pentru viitor):
 
-2. **Trendyol integration (/trendyol)**
-   - Exista comenzi reale de pe Trendyol?
-   - Este in mod test sau productie?
-
-3. **Documentatie (/docs)**
-   - Este actualizata si utila?
-   - Sau poate fi stearsa/simplificata?
-
-4. **Redundante posibile**
-   - /stores vs Settings > Magazine - prefer una?
-   - /processing-errors vs Orders > Tab Erori - prefer una?
-   - /tracking vs /awb - diferenta intentionata?
+1. **Ads module (/ads)** - Status utilizare?
+2. **Trendyol integration (/trendyol)** - Live sau test?
+3. **Documentatie (/docs)** - Actualizata?
+4. **Redundante** - /stores vs Settings, /processing-errors vs Orders tab
 
 ---
 
 *Audit complet: 2026-01-23*
+*User review: 2026-01-23 - FreshSales/BaseLinker confirmate pentru stergere*
