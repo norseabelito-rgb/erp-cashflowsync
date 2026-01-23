@@ -99,6 +99,7 @@ const navigation: NavItem[] = [
       { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { name: "Comenzi", href: "/orders", icon: ShoppingCart, permissions: ["orders.view"] },
       { name: "Facturi", href: "/invoices", icon: FileText, permissions: ["invoices.view"] },
+      { name: "Facturi Eșuate", href: "/invoices/failed", icon: AlertTriangle, permissions: ["invoices.view"] },
     ],
   },
 

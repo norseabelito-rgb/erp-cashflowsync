@@ -159,6 +159,66 @@ async function logInvoiceIssuedActivity(params: {
   }
 }
 
+/**
+ * Salvează o încercare eșuată de emitere factură pentru retry ulterior
+ */
+async function saveFailedInvoiceAttempt(params: {
+  orderId: string;
+  errorCode: string;
+  errorMessage: string;
+  storeId?: string | null;
+  storeName?: string | null;
+  companyId?: string | null;
+  companyName?: string | null;
+  seriesId?: string | null;
+  seriesName?: string | null;
+}): Promise<void> {
+  try {
+    // Verificăm dacă există deja o încercare pending pentru această comandă
+    const existingAttempt = await prisma.failedInvoiceAttempt.findFirst({
+      where: {
+        orderId: params.orderId,
+        status: "pending",
+      },
+    });
+
+    if (existingAttempt) {
+      // Actualizăm încercarea existentă
+      await prisma.failedInvoiceAttempt.update({
+        where: { id: existingAttempt.id },
+        data: {
+          errorCode: params.errorCode,
+          errorMessage: params.errorMessage,
+          attemptNumber: { increment: 1 },
+          retriedAt: new Date(),
+        },
+      });
+      console.log(`[Invoice] Actualizat încercare eșuată existentă pentru comanda ${params.orderId}`);
+    } else {
+      // Creăm o încercare nouă
+      await prisma.failedInvoiceAttempt.create({
+        data: {
+          orderId: params.orderId,
+          errorCode: params.errorCode,
+          errorMessage: params.errorMessage,
+          storeId: params.storeId,
+          storeName: params.storeName,
+          companyId: params.companyId,
+          companyName: params.companyName,
+          seriesId: params.seriesId,
+          seriesName: params.seriesName,
+          status: "pending",
+          attemptNumber: 1,
+        },
+      });
+      console.log(`[Invoice] Salvat încercare eșuată pentru comanda ${params.orderId}: ${params.errorCode}`);
+    }
+  } catch (saveError) {
+    console.error("[Invoice] Eroare la salvarea încercării eșuate:", saveError);
+    // Nu aruncăm eroarea - salvarea eșecului nu trebuie să blocheze fluxul
+  }
+}
+
 // ============================================================================
 // FUNCȚII PRINCIPALE
 // ============================================================================
@@ -419,9 +479,24 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
         errorCode = `FACTURIS_${result.errorCode}`;
       }
 
+      const errorMessage = result.error || "Eroare la emiterea facturii în Facturis";
+
+      // Salvăm încercarea eșuată pentru retry
+      await saveFailedInvoiceAttempt({
+        orderId: order.id,
+        errorCode,
+        errorMessage,
+        storeId: order.store?.id,
+        storeName: order.store?.name,
+        companyId: company.id,
+        companyName: company.name,
+        seriesId: invoiceSeries.id,
+        seriesName: `${invoiceSeries.prefix} - ${invoiceSeries.name}`,
+      });
+
       return {
         success: false,
-        error: result.error || "Eroare la emiterea facturii în Facturis",
+        error: errorMessage,
         errorCode,
       };
     }
@@ -520,6 +595,15 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
       errorMessage = "Autentificare eșuată la Facturis. Verifică credențialele.";
     } else if (error instanceof FacturisApiError) {
       errorCode = `API_ERROR_${error.code || "UNKNOWN"}`;
+    }
+
+    // Salvăm încercarea eșuată pentru retry (dacă e eroare Facturis)
+    if (error instanceof FacturisApiError || error instanceof FacturisAuthError) {
+      await saveFailedInvoiceAttempt({
+        orderId,
+        errorCode,
+        errorMessage,
+      });
     }
 
     return {
