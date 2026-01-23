@@ -20,6 +20,13 @@ export async function GET() {
             name: true,
           },
         },
+        company: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
       },
       orderBy: { name: "asc" },
     });
@@ -63,6 +70,7 @@ export async function POST(request: NextRequest) {
       isDefault = false,
       syncToFacturis = false,
       facturisSeries,
+      companyId,
     } = body;
 
     // Validări
@@ -101,6 +109,7 @@ export async function POST(request: NextRequest) {
         isDefault,
         syncToFacturis,
         facturisSeries: syncToFacturis ? (facturisSeries || prefix.toUpperCase()) : null,
+        companyId: companyId || null,
       },
     });
 
@@ -136,6 +145,7 @@ export async function PUT(request: NextRequest) {
       isActive,
       syncToFacturis,
       facturisSeries,
+      companyId,
       storeId,
       seriesId,
       trendyolSeries,
@@ -208,6 +218,7 @@ export async function PUT(request: NextRequest) {
       if (isActive !== undefined) updateData.isActive = isActive;
       if (syncToFacturis !== undefined) updateData.syncToFacturis = syncToFacturis;
       if (facturisSeries !== undefined) updateData.facturisSeries = facturisSeries || null;
+      if (companyId !== undefined) updateData.companyId = companyId || null;
 
       const series = await prisma.invoiceSeries.update({
         where: { id },
