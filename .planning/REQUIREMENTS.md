@@ -1,79 +1,84 @@
 # Requirements: CashFlowSync ERP
 
 **Defined:** 2026-01-23
-**Core Value:** Facturare corectă și AWB-uri emise fără erori pentru fiecare comandă, cu trasabilitate completă
+**Core Value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
 
 ## v1 Requirements
 
-Requirements pentru stabilizarea și îmbunătățirea sistemului curent.
+Requirements pentru stabilizarea si imbunatatirea sistemului curent.
 
 ### Audit
 
-- [ ] **AUDIT-01**: Audit complet al fiecărei pagini din dashboard
-- [ ] **AUDIT-02**: Audit fiecare API endpoint (funcționalitate, validare, erori)
-- [ ] **AUDIT-03**: Audit flows E2E (comandă → factură → AWB → livrare → încasare)
-- [ ] **AUDIT-04**: Audit cod și arhitectură (identificare tech debt, refactoring necesar)
-- [ ] **AUDIT-05**: Documentare discrepanțe între cod și comportament așteptat
+- [ ] **AUDIT-01**: Audit complet al fiecarei pagini din dashboard
+- [ ] **AUDIT-02**: Audit fiecare API endpoint (functionalitate, validare, erori)
+- [ ] **AUDIT-03**: Audit flows E2E (comanda > factura > AWB > livrare > incasare)
+- [ ] **AUDIT-04**: Audit cod si arhitectura (identificare tech debt, refactoring necesar)
+- [ ] **AUDIT-05**: Documentare discrepante intre cod si comportament asteptat
 
 ### Facturare
 
-- [ ] **INV-01**: Serii facturare definite în Facturis, selectate automat per magazin/firmă
-- [ ] **INV-02**: Mapare corectă magazin → firmă → serie facturare
-- [ ] **INV-03**: Logică decontare internă: comenzi firmă secundară → tracking separat
-- [ ] **INV-04**: Selecție comenzi firmă secundară cu status "încasat" pentru decontare
-- [ ] **INV-05**: Calcul automat cumul produse la preț achiziție + 10% adaos
-- [ ] **INV-06**: Generare factură internă Aquaterra → firmă secundară (săptămânal)
-- [ ] **INV-07**: AWB emis pe contul firmei care facturează (user dedicat per firmă în SelfAWB)
-- [ ] **INV-08**: Verificare și fix pentru edge cases în auto-correct serii
+- [ ] **INV-01**: Serii facturare definite in Facturis, selectate automat per magazin/firma
+- [ ] **INV-02**: Mapare corecta magazin > firma > serie facturare
+- [ ] **INV-03**: Logica decontare interna: comenzi firma secundara > tracking separat
+- [ ] **INV-04**: Selectie comenzi firma secundara cu status "incasat" pentru decontare
+- [ ] **INV-05**: Calcul automat cumul produse la pret achizitie + 10% adaos
+- [ ] **INV-06**: Generare factura interna Aquaterra > firma secundara (saptamanal)
+- [ ] **INV-07**: AWB emis pe contul firmei care factureaza (user dedicat per firma in SelfAWB)
+- [ ] **INV-08**: Verificare si fix pentru edge cases in auto-correct serii
+
+### Flow Integrity
+
+- [ ] **FLOW-01**: Blocare emitere factura pana la inchidere fisa transfer
+- [ ] **FLOW-02**: AWB emis pe contul firmei care factureaza
 
 ### UX/Design
 
-- [ ] **UX-01**: Tooltips descriptive pe toate butoanele și acțiunile
-- [ ] **UX-02**: Consistență vizuală (culori, spațiere, fonturi, shadows)
-- [ ] **UX-03**: Îmbunătățiri responsive pentru mobile și tablet
-- [ ] **UX-04**: Loading states clare și feedback vizual pentru toate operațiunile
+- [ ] **UX-01**: Tooltips descriptive pe toate butoanele si actiunile
+- [ ] **UX-02**: Consistenta vizuala (culori, spatiere, fonturi, shadows)
+- [ ] **UX-03**: Imbunatatiri responsive pentru mobile si tablet
+- [ ] **UX-04**: Loading states clare si feedback vizual pentru toate operatiunile
 - [ ] **UX-05**: Error states clare cu mesaje actionable
 - [ ] **UX-06**: Empty states cu call-to-action
 
 ### Task Management
 
 - [ ] **TASK-01**: Model de date pentru task-uri (titlu, descriere, tip, prioritate, deadline, assignee)
-- [ ] **TASK-02**: UI pentru vizualizare și management task-uri
-- [ ] **TASK-03**: Task-uri operaționale zilnice pentru depozit (picking, verificare, expediere)
+- [ ] **TASK-02**: UI pentru vizualizare si management task-uri
+- [ ] **TASK-03**: Task-uri operationale zilnice pentru depozit (picking, verificare, expediere)
 - [ ] **TASK-04**: To-do-uri business (proiecte, deadline-uri, responsabili)
-- [ ] **TASK-05**: Sistem notificări și remindere pentru deadline-uri
-- [ ] **TASK-06**: Rapoarte activitate (cine a făcut ce, când)
-- [ ] **TASK-07**: Auto-creare task-uri din evenimente sistem (ex: tură AWB → task picking)
+- [ ] **TASK-05**: Sistem notificari si remindere pentru deadline-uri
+- [ ] **TASK-06**: Rapoarte activitate (cine a facut ce, cand)
+- [ ] **TASK-07**: Auto-creare task-uri din evenimente sistem (ex: tura AWB > task picking)
 - [ ] **TASK-08**: Auto-asignare task-uri la persoanele responsabile
-- [ ] **TASK-09**: Auto-confirmare task-uri când sistemul detectează completare
+- [ ] **TASK-09**: Auto-confirmare task-uri cand sistemul detecteaza completare
 
-### Documentație
+### Documentatie
 
-- [ ] **DOC-01**: Pagină documentație actualizată în aplicație
+- [ ] **DOC-01**: Pagina documentatie actualizata in aplicatie
 - [ ] **DOC-02**: Documentare flows de business (cu diagrame)
-- [ ] **DOC-03**: Documentare configurări și setări
+- [ ] **DOC-03**: Documentare configurari si setari
 - [ ] **DOC-04**: Ghid utilizare pentru fiecare modul
 
 ### Quality Assurance
 
-- [ ] **QA-01**: Verificare finală toate flows funcționează corect
-- [ ] **QA-02**: Fix pentru toate bugs identificate în audit
+- [ ] **QA-01**: Verificare finala toate flows functioneaza corect
+- [ ] **QA-02**: Fix pentru toate bugs identificate in audit
 - [ ] **QA-03**: Test coverage pentru flows critice (facturare, AWB)
-- [ ] **QA-04**: Performance check pentru operațiuni frecvente
+- [ ] **QA-04**: Performance check pentru operatiuni frecvente
 
 ## v2 Requirements
 
-Deferred pentru după stabilizare.
+Deferred pentru dupa stabilizare.
 
-### Integrări Noi
+### Integrari Noi
 
 - **INT-01**: Integrare Temu (import comenzi, push produse)
-- **INT-02**: Consolidare și îmbunătățire integrare Trendyol
-- **INT-03**: Alte marketplace-uri (EMAG îmbunătățit, eMAG Marketplace)
+- **INT-02**: Consolidare si imbunatatire integrare Trendyol
+- **INT-03**: Alte marketplace-uri (EMAG imbunatatit, eMAG Marketplace)
 
-### Îmbunătățiri Avansate
+### Imbunatatiri Avansate
 
-- **ADV-01**: Job queue pentru operațiuni async (sync-uri mari)
+- **ADV-01**: Job queue pentru operatiuni async (sync-uri mari)
 - **ADV-02**: Rate limiting pe API endpoints
 - **ADV-03**: Backup verification automatizat
 - **ADV-04**: GDPR data export feature
@@ -83,7 +88,7 @@ Deferred pentru după stabilizare.
 | Feature | Reason |
 |---------|--------|
 | Mobile app | Web-first, responsive e suficient pentru acum |
-| Multi-language | Doar română pentru echipa internă |
+| Multi-language | Doar romana pentru echipa interna |
 | Public API | Sistem intern, nu expunem API extern |
 | Real-time collaboration | Nu e necesar pentru workflow-ul curent |
 
@@ -91,48 +96,50 @@ Deferred pentru după stabilizare.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUDIT-01 | Phase 1 | Pending |
-| AUDIT-02 | Phase 1 | Pending |
-| AUDIT-03 | Phase 1 | Pending |
-| AUDIT-04 | Phase 1 | Pending |
-| AUDIT-05 | Phase 1 | Pending |
-| INV-01 | Phase 2 | Pending |
-| INV-02 | Phase 2 | Pending |
-| INV-03 | Phase 2 | Pending |
-| INV-04 | Phase 2 | Pending |
-| INV-05 | Phase 2 | Pending |
-| INV-06 | Phase 2 | Pending |
-| INV-07 | Phase 2 | Pending |
-| INV-08 | Phase 2 | Pending |
-| UX-01 | Phase 3 | Pending |
-| UX-02 | Phase 3 | Pending |
-| UX-03 | Phase 3 | Pending |
-| UX-04 | Phase 3 | Pending |
-| UX-05 | Phase 3 | Pending |
-| UX-06 | Phase 3 | Pending |
-| TASK-01 | Phase 4 | Pending |
-| TASK-02 | Phase 4 | Pending |
-| TASK-03 | Phase 4 | Pending |
-| TASK-04 | Phase 4 | Pending |
-| TASK-05 | Phase 4 | Pending |
-| TASK-06 | Phase 4 | Pending |
-| TASK-07 | Phase 4 | Pending |
-| TASK-08 | Phase 4 | Pending |
-| TASK-09 | Phase 4 | Pending |
-| DOC-01 | Phase 5 | Pending |
-| DOC-02 | Phase 5 | Pending |
-| DOC-03 | Phase 5 | Pending |
-| DOC-04 | Phase 5 | Pending |
-| QA-01 | Phase 6 | Pending |
-| QA-02 | Phase 6 | Pending |
-| QA-03 | Phase 6 | Pending |
-| QA-04 | Phase 6 | Pending |
+| AUDIT-01 | Phase 1: System Audit | Pending |
+| AUDIT-02 | Phase 1: System Audit | Pending |
+| AUDIT-03 | Phase 1: System Audit | Pending |
+| AUDIT-04 | Phase 1: System Audit | Pending |
+| AUDIT-05 | Phase 1: System Audit | Pending |
+| INV-01 | Phase 2: Invoice Series Fix | Pending |
+| INV-02 | Phase 2: Invoice Series Fix | Pending |
+| INV-08 | Phase 2: Invoice Series Fix | Pending |
+| INV-03 | Phase 3: Internal Settlement | Pending |
+| INV-04 | Phase 3: Internal Settlement | Pending |
+| INV-05 | Phase 3: Internal Settlement | Pending |
+| INV-06 | Phase 3: Internal Settlement | Pending |
+| INV-07 | Phase 4: Flow Integrity | Pending |
+| FLOW-01 | Phase 4: Flow Integrity | Pending |
+| FLOW-02 | Phase 4: Flow Integrity | Pending |
+| QA-02 | Phase 5: Known Bug Fixes | Pending |
+| UX-01 | Phase 6: UX Foundation | Pending |
+| UX-02 | Phase 6: UX Foundation | Pending |
+| UX-03 | Phase 6: UX Foundation | Pending |
+| UX-04 | Phase 6: UX Foundation | Pending |
+| UX-05 | Phase 6: UX Foundation | Pending |
+| UX-06 | Phase 6: UX Foundation | Pending |
+| TASK-01 | Phase 7: Task Management Core | Pending |
+| TASK-02 | Phase 7: Task Management Core | Pending |
+| TASK-03 | Phase 7: Task Management Core | Pending |
+| TASK-04 | Phase 7: Task Management Core | Pending |
+| TASK-05 | Phase 8: Task Management Advanced | Pending |
+| TASK-06 | Phase 8: Task Management Advanced | Pending |
+| TASK-07 | Phase 8: Task Management Advanced | Pending |
+| TASK-08 | Phase 8: Task Management Advanced | Pending |
+| TASK-09 | Phase 8: Task Management Advanced | Pending |
+| DOC-01 | Phase 9: Documentation | Pending |
+| DOC-02 | Phase 9: Documentation | Pending |
+| DOC-03 | Phase 9: Documentation | Pending |
+| DOC-04 | Phase 9: Documentation | Pending |
+| QA-01 | Phase 10: Quality Assurance | Pending |
+| QA-03 | Phase 10: Quality Assurance | Pending |
+| QA-04 | Phase 10: Quality Assurance | Pending |
 
 **Coverage:**
-- v1 requirements: 32 total
-- Mapped to phases: 32
-- Unmapped: 0 ✓
+- v1 requirements: 35 total
+- Mapped to phases: 35
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-23*
-*Last updated: 2026-01-23 after initial definition*
+*Last updated: 2026-01-23 after roadmap creation*
