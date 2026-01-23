@@ -52,13 +52,13 @@ Plans:
   4. Edge cases (zero/negative currentNumber, missing series) are handled gracefully with clear error messages
   5. No manual series selection required during normal invoice generation
 
-**Plans**: TBD
+**Plans**: 4 plans in 3 waves
 
 Plans:
-- [ ] 02-01: Series synchronization from Facturis
-- [ ] 02-02: Store-company-series mapping UI and persistence
-- [ ] 02-03: Automatic series selection in invoice generation
-- [ ] 02-04: Edge case handling and error recovery
+- [ ] 02-01-PLAN.md — API validation and Romanian error messages (Wave 1)
+- [ ] 02-02-PLAN.md — Store-series mapping UI and overview table (Wave 1)
+- [ ] 02-03-PLAN.md — Automatic series selection in invoice generation (Wave 2)
+- [ ] 02-04-PLAN.md — Edge case handling and failed invoices page (Wave 3)
 
 ### Phase 3: Internal Settlement
 **Goal**: Secondary company orders are tracked and settled weekly via internal invoicing
@@ -220,7 +220,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. System Audit | 4/4 | ✓ Complete | 2026-01-24 |
-| 2. Invoice Series Fix | 0/4 | Not started | - |
+| 2. Invoice Series Fix | 0/4 | Planned | - |
 | 3. Internal Settlement | 0/4 | Not started | - |
 | 4. Flow Integrity | 0/3 | Not started | - |
 | 5. Known Bug Fixes | 0/4 | Not started | - |
