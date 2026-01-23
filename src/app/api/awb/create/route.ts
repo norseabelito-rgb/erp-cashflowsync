@@ -75,6 +75,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Trimite AWB-urile la printare automată (dacă există imprimante cu autoPrint)
+    if (results.awbIds.length > 0) {
+      try {
+        await sendAWBsToPrint(results.awbIds);
+      } catch (printError: any) {
+        console.error("Error sending AWBs to print:", printError);
+        // Nu returnăm eroare - AWB-urile au fost create cu succes
+      }
+    }
+
     return NextResponse.json({
       success: results.created > 0,
       created: results.created,
@@ -214,4 +224,43 @@ async function createPickingListFromAWBs(params: {
   console.log(`📋 Picking list creat automat: ${code} cu ${totalItems} produse (${totalQuantity} bucăți)`);
 
   return pickingList;
+}
+
+// Funcție pentru trimiterea AWB-urilor la printare automată
+async function sendAWBsToPrint(awbIds: string[]) {
+  // Verificăm dacă există imprimante cu autoPrint
+  const autoPrintPrinter = await prisma.printer.findFirst({
+    where: { isActive: true, autoPrint: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (!autoPrintPrinter) {
+    console.log("ℹ️ Nu există imprimante cu autoPrint activat");
+    return;
+  }
+
+  // Obținem AWB-urile
+  const awbs = await prisma.aWB.findMany({
+    where: { id: { in: awbIds } },
+    include: { order: true },
+  });
+
+  // Creăm joburi de printare pentru fiecare AWB
+  for (const awb of awbs) {
+    if (awb.awbNumber) {
+      await prisma.printJob.create({
+        data: {
+          printerId: autoPrintPrinter.id,
+          documentType: "awb",
+          documentId: awb.awbNumber,
+          documentNumber: awb.awbNumber,
+          orderId: awb.order.id,
+          orderNumber: awb.order.shopifyOrderNumber,
+          status: "PENDING",
+        },
+      });
+    }
+  }
+
+  console.log(`🖨️ ${awbs.length} AWB-uri trimise la printare automată`);
 }
