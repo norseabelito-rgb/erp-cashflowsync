@@ -347,10 +347,6 @@ model InvoiceSeries {
   syncToFacturis   Boolean  @default(false)
   facturisSeries   String?  // Numele seriei în Facturis (dacă diferit)
 
-  // DEPRECATED: câmpuri vechi (vor fi șterse în versiuni viitoare)
-  syncToSmartBill  Boolean  @default(false) @map("sync_to_smartbill")
-  smartBillSeries  String?  @map("smartbill_series")
-
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

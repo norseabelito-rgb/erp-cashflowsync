@@ -67,7 +67,7 @@ interface InvoiceSeries {
   isDefault: boolean;
   isActive: boolean;
   syncToFacturis: boolean;
-  smartBillSeries: string | null;
+  facturisSeries: string | null;
   stores: { id: string; name: string }[];
 }
 
@@ -87,7 +87,7 @@ interface SeriesFormData {
   startNumber: number;
   isDefault: boolean;
   syncToFacturis: boolean;
-  smartBillSeries: string;
+  facturisSeries: string;
 }
 
 const initialFormData: SeriesFormData = {
@@ -98,7 +98,7 @@ const initialFormData: SeriesFormData = {
   startNumber: 1,
   isDefault: false,
   syncToFacturis: false,
-  smartBillSeries: "",
+  facturisSeries: "",
 };
 
 export default function InvoiceSeriesPage() {
@@ -253,7 +253,7 @@ export default function InvoiceSeriesPage() {
       startNumber: s.startNumber,
       isDefault: s.isDefault,
       syncToFacturis: s.syncToFacturis,
-      smartBillSeries: s.smartBillSeries || "",
+      facturisSeries: s.facturisSeries || "",
     });
     setIsEditing(true);
     setIsFormOpen(true);
@@ -353,7 +353,7 @@ export default function InvoiceSeriesPage() {
                                 </Badge>
                               </TooltipTrigger>
                               <TooltipContent>
-                                Sincronizat cu seria Facturis: {s.smartBillSeries || s.prefix}
+                                Sincronizat cu seria Facturis: {s.facturisSeries || s.prefix}
                               </TooltipContent>
                             </Tooltip>
                           )}
@@ -628,9 +628,9 @@ export default function InvoiceSeriesPage() {
                   <div className="space-y-2 mt-3">
                     <Label>Seria Facturis</Label>
                     <Input
-                      value={formData.smartBillSeries}
+                      value={formData.facturisSeries}
                       onChange={(e) =>
-                        setFormData({ ...formData, smartBillSeries: e.target.value.toUpperCase() })
+                        setFormData({ ...formData, facturisSeries: e.target.value.toUpperCase() })
                       }
                       placeholder={formData.prefix || "Ex: CFG"}
                     />
