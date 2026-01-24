@@ -380,6 +380,9 @@ export class FacturisAPI {
 
         // Eroare 1004: Serie de facturare invalidă sau inexistentă
         if (successCode === 1004) {
+          console.error("[Facturis] Eroare 1004 - Serie invalidă!");
+          console.error(`  - Răspuns complet: ${JSON.stringify(responseData)}`);
+          console.error(`  - Mesaj eroare: ${errorMessage}`);
           throw new FacturisApiError(
             `Seria de facturare nu există în Facturis. Verifică că seria configurată în ERP corespunde exact cu cea din contul Facturis (case-sensitive). Eroare: ${errorMessage || "Serie invalidă"}`,
             1004,
@@ -520,6 +523,14 @@ export class FacturisAPI {
           ...(prod.prod_cod1 && { prod_cod1: prod.prod_cod1 }),
         })),
       });
+
+      // Debug logging pentru erori 1004
+      console.log("[Facturis] Request payload pentru factură:");
+      console.log(`  - Serie: "${data.facturi_serie}"`);
+      console.log(`  - Numar: ${data.facturi_numar}`);
+      console.log(`  - Client: ${data.facturi_nume_client}`);
+      console.log(`  - API Key: ${this.apiKey?.substring(0, 8)}...`);
+      console.log(`  - CIF Firma: ${this.companyCif}`);
 
       const response = await this.executeRequest<FacturisInvoiceResult>(payload);
 
