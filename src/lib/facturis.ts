@@ -433,6 +433,13 @@ export class FacturisAPI {
    */
   async testConnection(): Promise<FacturisTestResult> {
     try {
+      // Debug: afișăm credențialele folosite
+      console.log("[Facturis] Test conexiune cu:");
+      console.log(`  - API Key: ${this.credentials.apiKey?.substring(0, 8)}...`);
+      console.log(`  - Username: ${this.credentials.username}`);
+      console.log(`  - CIF original: ${this.credentials.companyTaxCode}`);
+      console.log(`  - CIF trimis: ${this.credentials.companyTaxCode.replace(/\s/g, '')}`);
+
       // Încercăm să obținem lista de clienți (limitat la 1)
       const payload = this.buildAuthPayload("Clienti", "Get", {
         limit: 1,
