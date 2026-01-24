@@ -305,7 +305,7 @@ export class FacturisAPI {
       APIkey: this.credentials.apiKey,
       u: this.credentials.username,
       p: this.credentials.password,
-      c: this.credentials.companyTaxCode,
+      c: this.credentials.companyTaxCode.replace(/\s/g, ''), // Normalizează CIF (elimină spațiile)
       met: method,
       act: action,
       ...additionalData,
