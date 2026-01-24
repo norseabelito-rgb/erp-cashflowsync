@@ -355,6 +355,9 @@ export class FacturisAPI {
           );
         }
 
+        // DEBUG: Afișăm răspunsul complet de la Facturis
+        console.log("[Facturis] Răspuns brut:", JSON.stringify(responseData));
+
         // Normalizăm codul de răspuns (poate veni ca string sau number)
         const successCode = Number(responseData.success);
 
