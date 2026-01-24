@@ -529,8 +529,8 @@ export class FacturisAPI {
       console.log(`  - Serie: "${data.facturi_serie}"`);
       console.log(`  - Numar: ${data.facturi_numar}`);
       console.log(`  - Client: ${data.facturi_nume_client}`);
-      console.log(`  - API Key: ${this.apiKey?.substring(0, 8)}...`);
-      console.log(`  - CIF Firma: ${this.companyCif}`);
+      console.log(`  - API Key: ${this.credentials.apiKey?.substring(0, 8)}...`);
+      console.log(`  - CIF Firma: ${this.credentials.companyTaxCode}`);
 
       const response = await this.executeRequest<FacturisInvoiceResult>(payload);
 
