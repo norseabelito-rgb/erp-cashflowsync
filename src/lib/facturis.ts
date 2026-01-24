@@ -305,7 +305,7 @@ export class FacturisAPI {
       APIkey: this.credentials.apiKey,
       u: this.credentials.username,
       p: this.credentials.password,
-      c: this.credentials.companyTaxCode.replace(/\s/g, ''), // Normalizează CIF (elimină spațiile)
+      c: this.credentials.companyTaxCode, // CIF-ul trebuie să fie EXACT ca în Facturis (cu spațiu dacă așa e salvat)
       met: method,
       act: action,
       ...additionalData,
@@ -437,8 +437,7 @@ export class FacturisAPI {
       console.log("[Facturis] Test conexiune cu:");
       console.log(`  - API Key: ${this.credentials.apiKey?.substring(0, 8)}...`);
       console.log(`  - Username: ${this.credentials.username}`);
-      console.log(`  - CIF original: ${this.credentials.companyTaxCode}`);
-      console.log(`  - CIF trimis: ${this.credentials.companyTaxCode.replace(/\s/g, '')}`);
+      console.log(`  - CIF trimis: "${this.credentials.companyTaxCode}"`);
 
       // Încercăm să obținem lista de clienți (limitat la 1)
       const payload = this.buildAuthPayload("Clienti", "Get", {
@@ -537,7 +536,7 @@ export class FacturisAPI {
       console.log(`  - Numar: ${data.facturi_numar}`);
       console.log(`  - Client: ${data.facturi_nume_client}`);
       console.log(`  - API Key: ${this.credentials.apiKey?.substring(0, 8)}...`);
-      console.log(`  - CIF Firma: ${this.credentials.companyTaxCode.replace(/\s/g, '')} (trimis la API)`);
+      console.log(`  - CIF Firma: "${this.credentials.companyTaxCode}"`);
 
       const response = await this.executeRequest<FacturisInvoiceResult>(payload);
 
