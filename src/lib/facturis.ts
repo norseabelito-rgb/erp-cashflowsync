@@ -530,7 +530,7 @@ export class FacturisAPI {
       console.log(`  - Numar: ${data.facturi_numar}`);
       console.log(`  - Client: ${data.facturi_nume_client}`);
       console.log(`  - API Key: ${this.credentials.apiKey?.substring(0, 8)}...`);
-      console.log(`  - CIF Firma: ${this.credentials.companyTaxCode}`);
+      console.log(`  - CIF Firma: ${this.credentials.companyTaxCode.replace(/\s/g, '')} (trimis la API)`);
 
       const response = await this.executeRequest<FacturisInvoiceResult>(payload);
 
