@@ -77,6 +77,7 @@ import { RequirePermission, usePermissions } from "@/hooks/use-permissions";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FILTER_BAR } from "@/lib/design-system";
+import { TransferWarningModal } from "@/components/orders/transfer-warning-modal";
 
 interface Order {
   id: string;
@@ -328,6 +329,17 @@ export default function OrdersPage() {
   const [errorsDialogOpen, setErrorsDialogOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
+  // State pentru transfer warning modal
+  const [transferWarningOpen, setTransferWarningOpen] = useState(false);
+  const [pendingInvoiceOrderIds, setPendingInvoiceOrderIds] = useState<string[]>([]);
+  const [transferWarnings, setTransferWarnings] = useState<{
+    orderId: string;
+    orderNumber: string;
+    transferNumber: string;
+    transferStatus: string;
+  }[]>([]);
+  const [isIssuingWithAcknowledgment, setIsIssuingWithAcknowledgment] = useState(false);
+
   // State pentru tab-ul activ și erori persistente
   const [activeTab, setActiveTab] = useState<string>("all");
   const [dbErrorStatusFilter, setDbErrorStatusFilter] = useState<string>("all");
@@ -373,21 +385,38 @@ export default function OrdersPage() {
   });
 
   const invoiceMutation = useMutation({
-    mutationFn: async (orderIds: string[]) => {
+    mutationFn: async ({ orderIds, acknowledgeTransferWarning }: { orderIds: string[]; acknowledgeTransferWarning?: boolean }) => {
       const res = await fetch("/api/invoices/issue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderIds }),
+        body: JSON.stringify({ orderIds, acknowledgeTransferWarning }),
       });
       return res.json();
     },
     onSuccess: (data, variables) => {
+      // Check if we need user confirmation for transfer warnings
+      if (data.needsConfirmation && data.warnings?.length > 0) {
+        // Store the order IDs and show warning modal
+        setPendingInvoiceOrderIds(variables.orderIds);
+        setTransferWarnings(
+          data.warnings.map((w: { orderId: string; warning: { orderNumber?: string; transferNumber: string; transferStatus: string } }) => ({
+            orderId: w.orderId,
+            orderNumber: w.warning?.orderNumber || w.orderId,
+            transferNumber: w.warning?.transferNumber || "?",
+            transferStatus: w.warning?.transferStatus || "?",
+          }))
+        );
+        setTransferWarningOpen(true);
+        setIsIssuingWithAcknowledgment(false);
+        return;
+      }
+
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       if (data.success) {
         toast({ title: "Succes", description: `${data.issued} facturi emise` });
-        // Actualizăm viewOrder dacă e deschis
-        if (viewOrder && variables.includes(viewOrder.id)) {
-          // Reîncărcăm datele comenzii
+        // Actualizam viewOrder daca e deschis
+        if (viewOrder && variables.orderIds.includes(viewOrder.id)) {
+          // Reincarcam datele comenzii
           fetch(`/api/orders/${viewOrder.id}`).then(res => res.json()).then(orderData => {
             if (orderData.order) {
               setViewOrder(orderData.order);
@@ -395,9 +424,9 @@ export default function OrdersPage() {
           });
         }
       } else {
-        toast({ title: "Eroare facturare", description: data.error || "Verifică setările Facturis", variant: "destructive" });
-        // Actualizăm și la eroare pentru a vedea mesajul
-        if (viewOrder && variables.includes(viewOrder.id)) {
+        toast({ title: "Eroare facturare", description: data.error || "Verifica setarile Oblio", variant: "destructive" });
+        // Actualizam si la eroare pentru a vedea mesajul
+        if (viewOrder && variables.orderIds.includes(viewOrder.id)) {
           fetch(`/api/orders/${viewOrder.id}`).then(res => res.json()).then(orderData => {
             if (orderData.order) {
               setViewOrder(orderData.order);
@@ -406,9 +435,11 @@ export default function OrdersPage() {
         }
       }
       setSelectedOrders([]);
+      setIsIssuingWithAcknowledgment(false);
     },
     onError: (error: any) => {
       toast({ title: "Eroare", description: error.message || "Eroare la emiterea facturii", variant: "destructive" });
+      setIsIssuingWithAcknowledgment(false);
     },
   });
 
@@ -826,10 +857,25 @@ export default function OrdersPage() {
 
   const handleIssueInvoices = () => {
     if (selectedOrders.length === 0) {
-      toast({ title: "Selectează comenzi", description: "Selectează cel puțin o comandă", variant: "destructive" });
+      toast({ title: "Selecteaza comenzi", description: "Selecteaza cel putin o comanda", variant: "destructive" });
       return;
     }
-    invoiceMutation.mutate(selectedOrders);
+    invoiceMutation.mutate({ orderIds: selectedOrders });
+  };
+
+  // Handler for transfer warning modal confirmation
+  const handleTransferWarningConfirm = () => {
+    setTransferWarningOpen(false);
+    setIsIssuingWithAcknowledgment(true);
+    // Retry with acknowledgment flag
+    invoiceMutation.mutate({ orderIds: pendingInvoiceOrderIds, acknowledgeTransferWarning: true });
+  };
+
+  // Handler for transfer warning modal cancel
+  const handleTransferWarningCancel = () => {
+    setTransferWarningOpen(false);
+    setPendingInvoiceOrderIds([]);
+    setTransferWarnings([]);
   };
 
   const handleOpenAwbModal = (orderId?: string) => {
@@ -1178,7 +1224,7 @@ export default function OrdersPage() {
                             <Badge variant="neutral" title={order.invoice.errorMessage || ""}>În așteptare</Badge>
                           )
                         ) : (
-                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); invoiceMutation.mutate([order.id]); }} disabled={invoiceMutation.isPending}><FileText className="h-4 w-4" /></Button>
+                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); invoiceMutation.mutate({ orderIds: [order.id] }); }} disabled={invoiceMutation.isPending}><FileText className="h-4 w-4" /></Button>
                         )}
                       </td>
                       <td className="p-4" onClick={(e) => e.stopPropagation()}>
@@ -1694,11 +1740,11 @@ export default function OrdersPage() {
                       <div className="space-y-2">
                         <Badge variant="neutral">🗑️ Ștearsă</Badge>
                         <p className="text-sm text-muted-foreground">{viewOrder.invoice.errorMessage}</p>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="outline"
                           onClick={() => {
-                            invoiceMutation.mutate([viewOrder.id]);
+                            invoiceMutation.mutate({ orderIds: [viewOrder.id] });
                           }}
                           disabled={invoiceMutation.isPending}
                         >
@@ -1708,13 +1754,13 @@ export default function OrdersPage() {
                       </div>
                     ) : viewOrder.invoice.status === "cancelled" ? (
                       <div className="space-y-2">
-                        <Badge variant="warning">❌ Anulată</Badge>
+                        <Badge variant="warning">Anulata</Badge>
                         <p className="text-sm text-muted-foreground">{viewOrder.invoice.errorMessage}</p>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="outline"
                           onClick={() => {
-                            invoiceMutation.mutate([viewOrder.id]);
+                            invoiceMutation.mutate({ orderIds: [viewOrder.id] });
                           }}
                           disabled={invoiceMutation.isPending}
                         >
@@ -1730,29 +1776,29 @@ export default function OrdersPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => {
-                            invoiceMutation.mutate([viewOrder.id]);
+                            invoiceMutation.mutate({ orderIds: [viewOrder.id] });
                           }}
                           disabled={invoiceMutation.isPending}
                         >
                           <RefreshCw className="h-3 w-3 mr-1" />
-                          Încearcă din nou
+                          Incearca din nou
                         </Button>
                       </div>
                     )
                   ) : (
                     <div className="space-y-2">
-                      <span className="text-muted-foreground">Nu a fost emisă</span>
+                      <span className="text-muted-foreground">Nu a fost emisa</span>
                       <RequirePermission permission="invoices.create">
                         <div>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             onClick={() => {
-                              invoiceMutation.mutate([viewOrder.id]);
+                              invoiceMutation.mutate({ orderIds: [viewOrder.id] });
                             }}
                             disabled={invoiceMutation.isPending}
                           >
                             <FileText className="h-3 w-3 mr-1" />
-                            Emite factură
+                            Emite factura
                           </Button>
                         </div>
                       </RequirePermission>
@@ -2081,14 +2127,14 @@ export default function OrdersPage() {
       <AlertDialog open={deleteAwbDialogOpen} onOpenChange={setDeleteAwbDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ștergi AWB-ul?</AlertDialogTitle>
+            <AlertDialogTitle>Stergi AWB-ul?</AlertDialogTitle>
             <AlertDialogDescription>
-              Ești sigur că vrei să ștergi AWB-ul {awbToDelete?.awbNumber}?
-              Această acțiune este ireversibilă.
+              Esti sigur ca vrei sa stergi AWB-ul {awbToDelete?.awbNumber}?
+              Aceasta actiune este ireversibila.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Anulează</AlertDialogCancel>
+            <AlertDialogCancel>Anuleaza</AlertDialogCancel>
             <AlertDialogAction
               className="bg-status-error hover:bg-status-error/90"
               onClick={() => {
@@ -2099,13 +2145,23 @@ export default function OrdersPage() {
                 setAwbToDelete(null);
               }}
             >
-              Șterge AWB
+              Sterge AWB
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Dialog pentru editare comandă */}
+      {/* Transfer Warning Modal */}
+      <TransferWarningModal
+        open={transferWarningOpen}
+        onOpenChange={setTransferWarningOpen}
+        transfers={transferWarnings}
+        onConfirm={handleTransferWarningConfirm}
+        onCancel={handleTransferWarningCancel}
+        isLoading={isIssuingWithAcknowledgment || invoiceMutation.isPending}
+      />
+
+      {/* Dialog pentru editare comanda */}
       <Dialog open={editOrderDialogOpen} onOpenChange={(open) => {
         setEditOrderDialogOpen(open);
         if (!open) setEditOrderData(null);
