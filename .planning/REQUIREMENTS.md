@@ -33,12 +33,12 @@ Requirements pentru stabilizarea si imbunatatirea sistemului curent.
 
 ### UX/Design
 
-- [ ] **UX-01**: Tooltips descriptive pe toate butoanele si actiunile
-- [ ] **UX-02**: Consistenta vizuala (culori, spatiere, fonturi, shadows)
-- [ ] **UX-03**: Imbunatatiri responsive pentru mobile si tablet
-- [ ] **UX-04**: Loading states clare si feedback vizual pentru toate operatiunile
-- [ ] **UX-05**: Error states clare cu mesaje actionable
-- [ ] **UX-06**: Empty states cu call-to-action
+- [x] **UX-01**: Tooltips descriptive pe toate butoanele si actiunile
+- [x] **UX-02**: Consistenta vizuala (culori, spatiere, fonturi, shadows)
+- [x] **UX-03**: Imbunatatiri responsive pentru mobile si tablet
+- [x] **UX-04**: Loading states clare si feedback vizual pentru toate operatiunile
+- [x] **UX-05**: Error states clare cu mesaje actionable
+- [x] **UX-06**: Empty states cu call-to-action
 
 ### Task Management
 
@@ -112,12 +112,12 @@ Deferred pentru dupa stabilizare.
 | FLOW-01 | Phase 4: Flow Integrity | Complete |
 | FLOW-02 | Phase 4: Flow Integrity | Complete |
 | QA-02 | Phase 5: Known Bug Fixes | Complete |
-| UX-01 | Phase 6: UX Foundation | Pending |
-| UX-02 | Phase 6: UX Foundation | Pending |
-| UX-03 | Phase 6: UX Foundation | Pending |
-| UX-04 | Phase 6: UX Foundation | Pending |
-| UX-05 | Phase 6: UX Foundation | Pending |
-| UX-06 | Phase 6: UX Foundation | Pending |
+| UX-01 | Phase 6: UX Foundation | Complete |
+| UX-02 | Phase 6: UX Foundation | Complete |
+| UX-03 | Phase 6: UX Foundation | Complete |
+| UX-04 | Phase 6: UX Foundation | Complete |
+| UX-05 | Phase 6: UX Foundation | Complete |
+| UX-06 | Phase 6: UX Foundation | Complete |
 | TASK-01 | Phase 7: Task Management Core | Pending |
 | TASK-02 | Phase 7: Task Management Core | Pending |
 | TASK-03 | Phase 7: Task Management Core | Pending |
@@ -142,4 +142,4 @@ Deferred pentru dupa stabilizare.
 
 ---
 *Requirements defined: 2026-01-23*
-*Last updated: 2026-01-25 (Phase 4 + Phase 5 complete)*
+*Last updated: 2026-01-25 (Phase 6 complete)*

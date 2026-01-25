@@ -15,7 +15,7 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
 - [x] **Phase 3: Internal Settlement** - Implement decontare interna flow for secondary company orders
 - [x] **Phase 4: Flow Integrity** - Ensure data consistency with transfer blocking and AWB routing
 - [x] **Phase 5: Known Bug Fixes** - Address documented bugs from codebase analysis
-- [ ] **Phase 6: UX Foundation** - Consistent design, tooltips, and feedback across all pages
+- [x] **Phase 6: UX Foundation** - Consistent design, tooltips, and feedback across all pages
 - [ ] **Phase 7: Task Management Core** - Data model and basic UI for task tracking
 - [ ] **Phase 8: Task Management Advanced** - Automation, notifications, and reporting
 - [ ] **Phase 9: Documentation** - In-app documentation for all modules
@@ -140,7 +140,7 @@ Plans:
 - [x] 06-03-PLAN.md — Visual consistency: design tokens and table striping (Wave 2)
 - [x] 06-04-PLAN.md — Loading states and useErrorModal hook for key pages (Wave 2)
 - [x] 06-05-PLAN.md — Empty state configurations and context-aware display (Wave 3)
-- [ ] 06-06-PLAN.md — Gap closure: Apply ActionTooltip to all dashboard buttons (Wave 4)
+- [x] 06-06-PLAN.md — Gap closure: Apply ActionTooltip to all dashboard buttons (Wave 4)
 
 ### Phase 7: Task Management Core
 **Goal**: Basic task management available for operational and business tracking
@@ -229,7 +229,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 | 3. Internal Settlement | 5/5 | ✓ Complete | 2026-01-25 |
 | 4. Flow Integrity | 4/4 | ✓ Complete | 2026-01-25 |
 | 5. Known Bug Fixes | 4/4 | ✓ Complete | 2026-01-25 |
-| 6. UX Foundation | 5/6 | In progress | - |
+| 6. UX Foundation | 6/6 | ✓ Complete | 2026-01-25 |
 | 7. Task Management Core | 0/4 | Not started | - |
 | 8. Task Management Advanced | 0/4 | Not started | - |
 | 9. Documentation | 0/4 | Not started | - |
