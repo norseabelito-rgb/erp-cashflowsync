@@ -83,22 +83,23 @@ Plans:
 - [x] 03-05-PLAN.md — Gap closure: wire order selection to generate endpoint (Wave 1)
 
 ### Phase 4: Flow Integrity
-**Goal**: Data consistency ensured through transfer blocking and correct AWB routing
+**Goal**: Data consistency ensured through transfer warning system and correct AWB routing
 **Depends on**: Phase 2 (company mapping must be correct)
 **Requirements**: INV-07, FLOW-01, FLOW-02
 **Success Criteria** (what must be TRUE):
-  1. Invoice generation is blocked when there's an open transfer sheet for the order
-  2. User sees clear message explaining why invoice is blocked and what action is needed
+  1. User sees warning when invoicing order with pending transfer (not hard block)
+  2. User can proceed with explicit acknowledgment, which is logged for audit
   3. AWB is generated using the courier account of the company that will issue the invoice
   4. Each company has its dedicated SelfAWB user configured in settings
-  5. Mismatched AWB/invoice company combinations are prevented
+  5. Company mismatches (billingCompany vs store.company) are warned but allowed
 
-**Plans**: TBD
+**Plans**: 4 plans in 3 waves
 
 Plans:
-- [ ] 04-01: Transfer sheet blocking logic
-- [ ] 04-02: Per-company courier account configuration
-- [ ] 04-03: AWB generation routing based on invoicing company
+- [ ] 04-01-PLAN.md — Transfer warning service and audit logging (Wave 1)
+- [ ] 04-02-PLAN.md — AWB mismatch detection and company credentials UI (Wave 1)
+- [ ] 04-03-PLAN.md — Transfer check API endpoints (Wave 2)
+- [ ] 04-04-PLAN.md — Transfer warning modal and orders page integration (Wave 3)
 
 ### Phase 5: Known Bug Fixes
 **Goal**: Documented bugs from codebase analysis are resolved
@@ -225,7 +226,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 | 1. System Audit | 4/4 | ✓ Complete | 2026-01-24 |
 | 2. Invoice Series Fix | 5/5 | ✓ Complete | 2026-01-25 |
 | 3. Internal Settlement | 5/5 | ✓ Complete | 2026-01-25 |
-| 4. Flow Integrity | 0/3 | Not started | - |
+| 4. Flow Integrity | 0/4 | Planned | - |
 | 5. Known Bug Fixes | 0/4 | Not started | - |
 | 6. UX Foundation | 0/5 | Not started | - |
 | 7. Task Management Core | 0/4 | Not started | - |
@@ -236,4 +237,5 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 ---
 *Roadmap created: 2026-01-23*
 *Phase 1 planned: 2026-01-23*
-*Depth: comprehensive (10 phases, 41 planned plans)*
+*Phase 4 planned: 2026-01-25*
+*Depth: comprehensive (10 phases, 42 planned plans)*
