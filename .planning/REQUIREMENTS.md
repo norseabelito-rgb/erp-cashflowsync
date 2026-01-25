@@ -23,13 +23,13 @@ Requirements pentru stabilizarea si imbunatatirea sistemului curent.
 - [x] **INV-04**: Selectie comenzi firma secundara cu status "incasat" pentru decontare
 - [x] **INV-05**: Calcul automat cumul produse la pret achizitie + 10% adaos
 - [x] **INV-06**: Generare factura interna Aquaterra > firma secundara (saptamanal)
-- [ ] **INV-07**: AWB emis pe contul firmei care factureaza (user dedicat per firma in SelfAWB)
+- [x] **INV-07**: AWB emis pe contul firmei care factureaza (user dedicat per firma in SelfAWB)
 - [x] **INV-08**: Verificare si fix pentru edge cases in auto-correct serii
 
 ### Flow Integrity
 
-- [ ] **FLOW-01**: Blocare emitere factura pana la inchidere fisa transfer
-- [ ] **FLOW-02**: AWB emis pe contul firmei care factureaza
+- [x] **FLOW-01**: Blocare emitere factura pana la inchidere fisa transfer
+- [x] **FLOW-02**: AWB emis pe contul firmei care factureaza
 
 ### UX/Design
 

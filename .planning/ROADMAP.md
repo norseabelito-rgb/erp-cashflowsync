@@ -13,7 +13,7 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
 - [x] **Phase 1: System Audit** - Complete understanding of current state before making changes
 - [x] **Phase 2: Invoice Series Fix** - Oblio integration with automatic series selection (migrated from Facturis)
 - [x] **Phase 3: Internal Settlement** - Implement decontare interna flow for secondary company orders
-- [ ] **Phase 4: Flow Integrity** - Ensure data consistency with transfer blocking and AWB routing
+- [x] **Phase 4: Flow Integrity** - Ensure data consistency with transfer blocking and AWB routing
 - [ ] **Phase 5: Known Bug Fixes** - Address documented bugs from codebase analysis
 - [ ] **Phase 6: UX Foundation** - Consistent design, tooltips, and feedback across all pages
 - [ ] **Phase 7: Task Management Core** - Data model and basic UI for task tracking
@@ -96,10 +96,10 @@ Plans:
 **Plans**: 4 plans in 3 waves
 
 Plans:
-- [ ] 04-01-PLAN.md — Transfer warning service and audit logging (Wave 1)
-- [ ] 04-02-PLAN.md — AWB mismatch detection and company credentials UI (Wave 1)
-- [ ] 04-03-PLAN.md — Transfer check API endpoints (Wave 2)
-- [ ] 04-04-PLAN.md — Transfer warning modal and orders page integration (Wave 3)
+- [x] 04-01-PLAN.md — Transfer warning service and audit logging (Wave 1)
+- [x] 04-02-PLAN.md — AWB mismatch detection and company credentials UI (Wave 1)
+- [x] 04-03-PLAN.md — Transfer check API endpoints (Wave 2)
+- [x] 04-04-PLAN.md — Transfer warning modal and orders page integration (Wave 3)
 
 ### Phase 5: Known Bug Fixes
 **Goal**: Documented bugs from codebase analysis are resolved
@@ -226,7 +226,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 | 1. System Audit | 4/4 | ✓ Complete | 2026-01-24 |
 | 2. Invoice Series Fix | 5/5 | ✓ Complete | 2026-01-25 |
 | 3. Internal Settlement | 5/5 | ✓ Complete | 2026-01-25 |
-| 4. Flow Integrity | 0/4 | Planned | - |
+| 4. Flow Integrity | 4/4 | ✓ Complete | 2026-01-25 |
 | 5. Known Bug Fixes | 0/4 | Not started | - |
 | 6. UX Foundation | 0/5 | Not started | - |
 | 7. Task Management Core | 0/4 | Not started | - |
