@@ -51,6 +51,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
+import { SkeletonTableRow } from "@/components/ui/skeleton";
+import { useErrorModal } from "@/hooks/use-error-modal";
 
 interface Invoice {
   id: string;
@@ -85,6 +87,7 @@ interface Invoice {
 export default function InvoicesPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { showError, ErrorModalComponent } = useErrorModal();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
@@ -291,7 +294,9 @@ export default function InvoicesPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 lg:p-8">
+    <>
+      <ErrorModalComponent />
+      <div className="p-4 md:p-6 lg:p-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
         <div>
@@ -432,12 +437,15 @@ export default function InvoicesPage() {
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr>
-                    <td colSpan={8} className="p-8 text-center">
-                      <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
-                      <p className="text-muted-foreground">Se încarcă...</p>
-                    </td>
-                  </tr>
+                  <>
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <tr key={i} className="border-b">
+                        <td colSpan={8} className="p-0">
+                          <SkeletonTableRow cols={8} />
+                        </td>
+                      </tr>
+                    ))}
+                  </>
                 ) : invoices.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="p-8 text-center">
@@ -924,5 +932,6 @@ export default function InvoicesPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }
