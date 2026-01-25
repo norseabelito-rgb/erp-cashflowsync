@@ -5,53 +5,60 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 2 - Invoice Series Fix - DEBUGGING FACTURIS CONNECTION
+**Current focus:** Phase 2 - Invoice Series Fix - MIGRARE FACTURIS → OBLIO
 
 ## Current Position
 
 Phase: 2 of 10 (Invoice Series Fix)
 Plan: 5 of 5 in current phase (02-05 in progress)
-Status: **BLOCKED** - Facturis connection error 1004
-Last activity: 2026-01-24 - Debugging Facturis credentials not being passed correctly
+Status: **IN PROGRESS** - Migrare Oblio în curs
+Last activity: 2026-01-24 - Înlocuit Facturis cu Oblio
 
 Progress: [██████████████████░░] 20.0%
 
-## ACTIVE DEBUG SESSION
+## MIGRARE FACTURIS → OBLIO
 
-### Problem: Facturis Error 1004
+### Ce s-a făcut:
 
-**Symptoms:**
-- Invoice generation fails with error 1004 (series not found)
-- Log shows: `API Key: undefined...` and `CIF Firma: undefined`
-- User confirmed credentials ARE saved in database
-- Test connection button also fails with 1004
+1. ✅ **Creat `src/lib/oblio.ts`** - Client API Oblio cu OAuth 2.0
+2. ✅ **Actualizat schema Prisma** - Câmpuri: oblioEmail, oblioSecretToken, oblioCif
+3. ✅ **Actualizat invoice-service.ts** - Folosește Oblio în loc de Facturis
+4. ✅ **Redenumit test-facturis → test-oblio** - Endpoint pentru testare conexiune
+5. ✅ **Actualizat UI companiilor** - Tab "Oblio" în loc de "Facturis"
+6. ✅ **Șters facturis.ts** - Cod vechi eliminat
+7. ✅ **Commit și push** - `6e4b8c3`
 
-**Root Cause (suspected):**
-- Facturis credentials (facturisApiKey, facturisUsername, facturisPassword, facturisCompanyCif) are saved in DB
-- But NOT being passed correctly to Facturis API client
-- Either API endpoint doesn't return credentials, or test endpoint doesn't use them correctly
+### Ce rămâne de făcut:
 
-**Files to investigate:**
-1. `src/app/api/companies/[id]/route.ts` - Check if credentials are returned
-2. `src/app/api/companies/[id]/test-facturis/route.ts` - Check how test works
-3. `src/lib/facturis.ts` - createFacturisClient function (line ~862)
+1. ⏳ **RULEAZĂ MIGRAREA SQL** în Railway Database:
+   ```
+   prisma/migrations/manual/migrate_facturis_to_oblio.sql
+   ```
 
-**Logs from failed attempt:**
-```
-Firma: AQUATERRA MOBILI S.R.L. (AMS)
-Serie locală: ERPAMBF24H | Numar: 1
-Serie Facturis: ERPAMBF24H (configurat)
-[Facturis] Request payload pentru factură:
-  - Serie: "ERPAMBF24H"
-  - Numar: 1
-  - API Key: undefined...
-  - CIF Firma: undefined
-```
+2. ⏳ **Configurează Oblio** în ERP:
+   - Setări → Firme → Editează → Tab Oblio
+   - Email: email-ul de login Oblio
+   - Token Secret: din Oblio Setări → Date Cont
+   - Testează conexiunea
 
-**Next steps:**
-1. Check companies API - does GET return facturisApiKey etc?
-2. Check test-facturis endpoint - how does it get credentials?
-3. Verify company object passed to createFacturisClient has all fields
+3. ⏳ **Testează emitere factură** - retry pe o factură eșuată
+
+### Cum să rulezi migrarea SQL în Railway:
+
+1. Mergi la Railway Dashboard → Proiectul tău
+2. Click pe serviciul PostgreSQL
+3. Click pe tab-ul "Data" sau "Query"
+4. Copiază și lipește SQL-ul din:
+   `prisma/migrations/manual/migrate_facturis_to_oblio.sql`
+5. Execută query-ul
+
+### Credențiale Oblio necesare:
+
+| Câmp | De unde | Exemplu |
+|------|---------|---------|
+| Email | Email-ul cu care te loghezi în Oblio | admin@firma.ro |
+| Token Secret | Oblio → Setări → Date Cont | abc123xyz... |
+| CIF (opțional) | Dacă diferă de CIF-ul general | RO12345678 |
 
 ---
 
@@ -75,36 +82,29 @@ Serie Facturis: ERPAMBF24H (configurat)
 
 Recent decisions affecting current work:
 
-- **02-01:** Romanian error messages established as pattern for user-facing errors
-- **02-02:** Series dropdown filtered by company - prevents invalid cross-company assignments
-- **02-02:** Manual series creation required - Facturis API has no series endpoint
-- **02-03:** Store-specific series takes priority over company default when active
-- **02-03:** seriesSource field added to IssueInvoiceResult for debugging/transparency
+- **02-05:** Înlocuit Facturis cu Oblio - autentificare simplă OAuth 2.0 (email + token)
 - **02-04:** FailedInvoiceAttempt stores full context (store/company/series) for debugging
-- **02-04:** TD-04 (Invoice series edge cases) RESOLVED
+- **02-03:** Store-specific series takes priority over company default when active
+- **02-02:** Series dropdown filtered by company - prevents invalid cross-company assignments
+- **02-01:** Romanian error messages established as pattern for user-facing errors
 
 ### Blockers/Concerns
 
-**CURRENT BLOCKER:**
-- Facturis credentials not being passed to API client (undefined)
-- Must fix before Phase 2 verification can complete
+**CURRENT TASK:**
+- Rulează migrarea SQL în Railway
+- Configurează credențiale Oblio în ERP
+- Testează emitere factură
 
 **CRITICAL (Blocheaza munca):**
 - TD-01: Order processing no transaction - partial failures cause inconsistent data
 - TD-02: `/invoices/[id]/cancel` and `/pay` have no permission checks
 - TD-03: `/products/bulk` and `/sync-images` have no permission checks
 
-### Open Questions
-
-1. Trendyol integration - actively used or in testing?
-2. Ads module (Meta/TikTok) - in production or future feature?
-3. AI Insights module - actively used?
-
 ## Session Continuity
 
 Last session: 2026-01-24
-Stopped at: Debugging Facturis 1004 error - credentials undefined
-Resume command: `/gsd:debug` or manual investigation of API endpoints
+Stopped at: Migrare Oblio - SQL migration pending
+Resume command: `/gsd:debug` sau citește STATE.md
 
 ## Phase 2 Progress
 
@@ -114,16 +114,16 @@ Resume command: `/gsd:debug` or manual investigation of API endpoints
 | 02-02 | ✓ Complete | Store edit dialog series dropdown, mapping overview table |
 | 02-03 | ✓ Complete | Invoice service uses store-specific series, seriesSource field |
 | 02-04 | ✓ Complete | Edge case auto-correction, FailedInvoiceAttempt model, API |
-| 02-05 | ◆ Blocked | Failed invoices page done, but verification blocked by 1004 error |
+| 02-05 | ◆ In Progress | Failed invoices page done, Oblio migration done, testing pending |
 
-## Recent Commits (Phase 2)
+## Recent Commits
 
-- `a9aacae` debug(02): add detailed logging for Facturis 1004 error
-- `21b9230` chore(02): add migration for FailedInvoiceAttempt table
-- `76fbd17` fix(02): save failed invoice attempts and add sidebar link
-- `1b48cc7` feat(02-05): create failed invoices page with retry capability
+- `6e4b8c3` feat: replace Facturis with Oblio for invoicing
+- `2a65d57` debug(02): log full Facturis API response
+- `39b6418` fix(02): revert CIF normalization - Facturis needs exact match
+- `99ba7a8` debug(02): add detailed logging to testConnection
 - Earlier commits for plans 02-01 through 02-04
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-24 (BLOCKED: Facturis credentials not passed to API - investigating)*
+*Last updated: 2026-01-24 (Migrare Oblio - waiting for SQL migration)*
