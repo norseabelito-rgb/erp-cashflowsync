@@ -34,6 +34,8 @@ export async function GET() {
           select: {
             id: true,
             name: true,
+            oblioEmail: true,
+            oblioSecretToken: true,
           },
         },
       },
@@ -42,7 +44,17 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ stores });
+    // Adaugă flag pentru hasOblioCredentials la fiecare store
+    const storesWithFlags = stores.map(store => ({
+      ...store,
+      hasOblioCredentials: !!(store.company?.oblioEmail && store.company?.oblioSecretToken),
+      company: store.company ? {
+        id: store.company.id,
+        name: store.company.name,
+      } : null,
+    }));
+
+    return NextResponse.json({ stores: storesWithFlags });
   } catch (error: any) {
     console.error("Error fetching stores:", error);
     return NextResponse.json(
@@ -191,6 +203,57 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(
       { error: error.message || "Eroare la adăugarea magazinului" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PUT /api/stores - Actualizează un magazin (oblioSeriesName, companyId, etc.)
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const canManage = await hasPermission(session.user.id, "stores.manage");
+    if (!canManage) {
+      return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { id, oblioSeriesName, companyId, invoiceSeriesId } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "ID-ul magazinului este obligatoriu" }, { status: 400 });
+    }
+
+    // Verificăm că magazinul există
+    const existing = await prisma.store.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Magazinul nu a fost găsit" }, { status: 404 });
+    }
+
+    // Construim obiectul de update
+    const updateData: any = {};
+    if (oblioSeriesName !== undefined) updateData.oblioSeriesName = oblioSeriesName || null;
+    if (companyId !== undefined) updateData.companyId = companyId || null;
+    if (invoiceSeriesId !== undefined) updateData.invoiceSeriesId = invoiceSeriesId || null;
+
+    const store = await prisma.store.update({
+      where: { id },
+      data: updateData,
+    });
+
+    console.log(`[Store] Updated store ${id}:`, updateData);
+
+    return NextResponse.json({ store, success: true });
+  } catch (error: any) {
+    console.error("Error updating store:", error);
+    return NextResponse.json(
+      { error: error.message || "Eroare la actualizarea magazinului" },
       { status: 500 }
     );
   }

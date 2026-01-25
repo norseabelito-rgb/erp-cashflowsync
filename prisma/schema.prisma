@@ -304,8 +304,11 @@ model Store {
   isActive         Boolean  @default(true)
 
   // Facturare
-  invoiceSeriesId  String?  // Seria de facturare asociată
+  invoiceSeriesId  String?  // Seria de facturare asociată (legacy - pentru compatibilitate)
   invoiceSeries    InvoiceSeries? @relation(fields: [invoiceSeriesId], references: [id])
+
+  // Seria Oblio - numele seriei din contul Oblio (ex: "AQT24", "BF24H")
+  oblioSeriesName  String?  // Seria de facturare din Oblio
 
   // NOU: Firma de facturare asociată magazinului
   companyId        String?

@@ -242,12 +242,16 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
             company: true,
             invoiceSeries: true,
           },
+          // Include oblioSeriesName direct
         },
         invoice: true,
         billingCompany: true,
         requiredTransfer: true,
       },
     });
+
+    // Type assertion pentru a include oblioSeriesName (adăugat recent la schema)
+    const storeWithOblio = order?.store as typeof order.store & { oblioSeriesName?: string | null };
 
     if (!order) {
       return { success: false, error: getInvoiceErrorMessage("ORDER_NOT_FOUND"), errorCode: "ORDER_NOT_FOUND" };
@@ -334,75 +338,107 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
       }
     }
 
-    // 6. Obținem seria de facturare - prioritate: store > company default
-    let invoiceSeries = null;
-    let seriesSource: "store" | "company_default" = "company_default";
+    // 6. Determinăm seria de facturare
+    // PRIORITATE: 1) oblioSeriesName din store (nou - serie direct din Oblio)
+    //             2) invoiceSeries din store (legacy)
+    //             3) invoiceSeries default din company (legacy)
 
-    // Priority 1: Store-specific series (already loaded in order.store.invoiceSeries)
-    if (order.store?.invoiceSeries && order.store.invoiceSeries.isActive) {
+    let oblioSeriesName: string;
+    let invoiceSeries: any = null;
+    let seriesSource: "oblio_direct" | "store" | "company_default" = "company_default";
+    let useOblioNumbering = false; // Dacă e true, Oblio generează numărul
+
+    // Priority 1: Serie Oblio configurată direct pe store (NOU - recomandat)
+    if (storeWithOblio?.oblioSeriesName) {
+      oblioSeriesName = storeWithOblio.oblioSeriesName;
+      seriesSource = "oblio_direct";
+      useOblioNumbering = true; // Oblio va genera numărul automat
+      console.log(`[Invoice] Folosesc seria Oblio directă: ${oblioSeriesName}`);
+    }
+    // Priority 2: Store-specific series (legacy - serie locală cu sync Oblio)
+    else if (order.store?.invoiceSeries && order.store.invoiceSeries.isActive) {
       invoiceSeries = order.store.invoiceSeries;
+      oblioSeriesName = invoiceSeries.oblioSeries || invoiceSeries.prefix;
       seriesSource = "store";
       console.log(`[Invoice] Folosesc seria magazinului: ${invoiceSeries.prefix} (${invoiceSeries.name})`);
     }
-    // Priority 2: Company default series (existing behavior)
+    // Priority 3: Company default series (legacy)
     else if (company) {
       invoiceSeries = await getInvoiceSeriesForCompany(company.id);
-      seriesSource = "company_default";
       if (invoiceSeries) {
+        oblioSeriesName = invoiceSeries.oblioSeries || invoiceSeries.prefix;
+        seriesSource = "company_default";
         console.log(`[Invoice] Folosesc seria default a firmei: ${invoiceSeries.prefix} (${invoiceSeries.name})`);
       }
     }
 
-    if (!invoiceSeries) {
+    // Verificăm că avem o serie configurată
+    if (!oblioSeriesName!) {
       const storeName = order.store?.name || "necunoscut";
       return {
         success: false,
         error: getInvoiceErrorMessage("NO_SERIES",
-          `Magazinul "${storeName}" nu are serie de facturare configurata. Mergi la Setari > Magazine pentru a configura.`),
+          `Magazinul "${storeName}" nu are serie de facturare configurata. Mergi la Setari > Serii Facturare si selecteaza o serie Oblio.`),
         errorCode: "NO_SERIES",
       };
     }
 
-    invoiceSeriesId = invoiceSeries.id;
-
-    // 7. Obținem următorul număr (local, atomic)
-    const nextNumber = await getNextInvoiceNumber(invoiceSeries.id);
-
-    if (!nextNumber) {
-      return {
-        success: false,
-        error: getInvoiceErrorMessage("NO_NUMBER"),
-        errorCode: "NO_NUMBER",
-      };
+    if (invoiceSeries) {
+      invoiceSeriesId = invoiceSeries.id;
     }
 
-    // Salvăm numărul anterior pentru rollback
-    previousNumber = nextNumber.number - 1;
+    // 7. Obținem numărul local doar dacă NU folosim numerotarea Oblio
+    let nextNumber: { number: number; prefix: string; oblioSeries: string | null } | null = null;
+    let formattedInvoice = "";
 
-    const formattedInvoice = formatInvoiceNumber(
-      nextNumber.prefix,
-      nextNumber.number,
-      invoiceSeries.numberPadding
-    );
+    if (!useOblioNumbering && invoiceSeries) {
+      nextNumber = await getNextInvoiceNumber(invoiceSeries.id);
 
-    // Seria pentru Oblio: folosim oblioSeries dacă există, altfel prefix
-    const oblioSeriesName = nextNumber.oblioSeries || nextNumber.prefix;
+      if (!nextNumber) {
+        return {
+          success: false,
+          error: getInvoiceErrorMessage("NO_NUMBER"),
+          errorCode: "NO_NUMBER",
+        };
+      }
+
+      // Salvăm numărul anterior pentru rollback
+      previousNumber = nextNumber.number - 1;
+
+      formattedInvoice = formatInvoiceNumber(
+        nextNumber.prefix,
+        nextNumber.number,
+        invoiceSeries.numberPadding
+      );
+    } else {
+      // Când folosim Oblio direct, numărul va fi generat de Oblio
+      formattedInvoice = `${oblioSeriesName}[auto]`;
+    }
 
     console.log("\n" + "=".repeat(60));
     console.log("EMITERE FACTURA - OBLIO");
     console.log("=".repeat(60));
     console.log(`Comanda: ${order.shopifyOrderNumber || order.id}`);
     console.log(`Firma: ${company.name} (${company.code})`);
-    console.log(`Serie locală: ${nextNumber.prefix} | Numar: ${nextNumber.number}`);
-    console.log(`Serie Oblio: ${oblioSeriesName} (${nextNumber.oblioSeries ? "configurat" : "fallback la prefix"})`);
-    console.log(`Factura: ${formattedInvoice}`);
+    if (useOblioNumbering) {
+      console.log(`Serie Oblio (direct): ${oblioSeriesName}`);
+      console.log(`Numerotare: Gestionata de Oblio`);
+    } else {
+      console.log(`Serie locală: ${nextNumber?.prefix} | Numar: ${nextNumber?.number}`);
+      console.log(`Serie Oblio: ${oblioSeriesName}`);
+      console.log(`Factura: ${formattedInvoice}`);
+    }
+    console.log(`Sursa serie: ${seriesSource}`);
     console.log("=".repeat(60));
 
     // 8. Creăm clientul Oblio
     const oblio = createOblioClient(company);
 
     if (!oblio) {
-      await rollbackInvoiceNumber(invoiceSeries.id, previousNumber);
+      // Rollback doar dacă avem serie locală
+      if (invoiceSeriesId && previousNumber !== null) {
+        await rollbackInvoiceNumber(invoiceSeriesId, previousNumber);
+      }
       return {
         success: false,
         error: getInvoiceErrorMessage("CLIENT_ERROR"),
@@ -473,8 +509,10 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
     const result = await oblio.createInvoice(invoiceData);
 
     if (!result.success) {
-      // Rollback numărul facturii
-      await rollbackInvoiceNumber(invoiceSeries.id, previousNumber);
+      // Rollback numărul facturii doar dacă avem serie locală
+      if (invoiceSeriesId && previousNumber !== null) {
+        await rollbackInvoiceNumber(invoiceSeriesId, previousNumber);
+      }
 
       // Determinăm codul de eroare
       let errorCode = "OBLIO_ERROR";
@@ -493,8 +531,8 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
         storeName: order.store?.name,
         companyId: company.id,
         companyName: company.name,
-        seriesId: invoiceSeries.id,
-        seriesName: `${invoiceSeries.prefix} - ${invoiceSeries.name}`,
+        seriesId: invoiceSeriesId,
+        seriesName: invoiceSeries ? `${invoiceSeries.prefix} - ${invoiceSeries.name}` : oblioSeriesName,
       });
 
       return {
@@ -524,14 +562,22 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
     // 12. Salvăm factura și actualizăm comanda în tranzacție atomică
     const isPaid = order.financialStatus === "paid";
 
+    // Folosim datele de la Oblio când avem numerotare automată, sau cele locale
+    const finalInvoiceNumber = useOblioNumbering
+      ? parseInt(result.invoiceNumber || "0", 10)
+      : nextNumber?.number || 0;
+    const finalInvoiceSeries = useOblioNumbering
+      ? (result.invoiceSeries || oblioSeriesName)
+      : (nextNumber?.prefix || oblioSeriesName);
+
     await prisma.$transaction(async (tx) => {
       // Salvăm factura în baza de date
       await saveInvoiceToDatabase({
         orderId: order.id,
         companyId: company.id,
-        invoiceSeriesId: invoiceSeries.id,
-        invoiceNumber: nextNumber.number,
-        invoiceSeries: nextNumber.prefix,
+        invoiceSeriesId: invoiceSeriesId, // Poate fi null dacă folosim Oblio direct
+        invoiceNumber: finalInvoiceNumber,
+        invoiceSeries: finalInvoiceSeries,
         oblioKey: invoiceKey,
         pdfUrl: result.link,
         pdfData,
@@ -561,17 +607,18 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
     await logInvoiceIssuedActivity({
       orderId: order.id,
       orderNumber: order.shopifyOrderNumber || order.id,
-      invoiceNumber: nextNumber.number.toString(),
-      invoiceSeries: nextNumber.prefix,
+      invoiceNumber: finalInvoiceNumber.toString(),
+      invoiceSeries: finalInvoiceSeries,
       total: Number(order.totalPrice),
     });
 
-    console.log(`[Invoice] Factura emisa cu succes: ${formattedInvoice}`);
+    const finalFormattedInvoice = `${finalInvoiceSeries}${String(finalInvoiceNumber).padStart(6, "0")}`;
+    console.log(`[Invoice] Factura emisa cu succes: ${finalFormattedInvoice}`);
 
     return {
       success: true,
-      invoiceNumber: nextNumber.number.toString(),
-      invoiceSeries: nextNumber.prefix,
+      invoiceNumber: finalInvoiceNumber.toString(),
+      invoiceSeries: finalInvoiceSeries,
       invoiceKey,
       companyId: company.id,
       companyName: company.name,

@@ -102,6 +102,13 @@ interface StoreWithSeries {
     id: string;
     name: string;
   } | null;
+  oblioSeriesName: string | null;
+  hasOblioCredentials?: boolean;
+}
+
+interface OblioSeries {
+  name: string;
+  type: string;
 }
 
 interface SeriesFormData {
@@ -275,6 +282,51 @@ export default function InvoiceSeriesPage() {
       toast({ title: "Eroare", description: error.message, variant: "destructive" });
     },
   });
+
+  // ============ OBLIO SERIES ============
+  // State pentru seriile Oblio per firmă
+  const [oblioSeriesMap, setOblioSeriesMap] = useState<Record<string, OblioSeries[]>>({});
+  const [loadingOblioSeries, setLoadingOblioSeries] = useState<string | null>(null);
+
+  // Funcție pentru a încărca seriile Oblio pentru o firmă
+  const loadOblioSeries = async (companyId: string) => {
+    if (oblioSeriesMap[companyId]) return; // Deja încărcate
+
+    setLoadingOblioSeries(companyId);
+    try {
+      const res = await fetch(`/api/companies/${companyId}/oblio-series`);
+      const data = await res.json();
+      if (data.success && data.series) {
+        setOblioSeriesMap(prev => ({ ...prev, [companyId]: data.series }));
+      }
+    } catch (error) {
+      console.error("Error loading Oblio series:", error);
+    } finally {
+      setLoadingOblioSeries(null);
+    }
+  };
+
+  // Mutation pentru actualizarea oblioSeriesName la un store
+  const updateStoreOblioMutation = useMutation({
+    mutationFn: async ({ storeId, oblioSeriesName }: { storeId: string; oblioSeriesName: string | null }) => {
+      const res = await fetch("/api/stores", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: storeId, oblioSeriesName }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["stores-with-series"] });
+      toast({ title: "Serie Oblio actualizată" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+    },
+  });
+  // ============ END OBLIO SERIES ============
 
   const handleOpenCreate = () => {
     setFormData(initialFormData);
@@ -537,6 +589,116 @@ export default function InvoiceSeriesPage() {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Oblio Series Mapping - IMPORTANT */}
+        <Card className="border-primary">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Serii Oblio (Facturare)
+            </CardTitle>
+            <CardDescription>
+              Selectează seria din Oblio pentru fiecare magazin. Aceasta este seria care va fi folosită la emiterea facturilor.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {stores.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">
+                Nu ai magazine configurate
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {stores.map((store) => {
+                  const hasOblio = store.hasOblioCredentials;
+                  const companyId = store.companyId;
+                  const oblioSeries = companyId ? oblioSeriesMap[companyId] : null;
+
+                  // Încarcă seriile Oblio când se deschide dropdown-ul
+                  const handleOpenChange = (open: boolean) => {
+                    if (open && companyId && !oblioSeriesMap[companyId]) {
+                      loadOblioSeries(companyId);
+                    }
+                  };
+
+                  return (
+                    <div
+                      key={store.id}
+                      className="flex items-center justify-between p-3 rounded-lg border"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+                          store.oblioSeriesName ? "bg-emerald-500/10" : "bg-status-warning/10"
+                        }`}>
+                          <Store className={`h-5 w-5 ${
+                            store.oblioSeriesName ? "text-emerald-500" : "text-status-warning"
+                          }`} />
+                        </div>
+                        <div>
+                          <p className="font-medium">{store.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {store.company?.name || "Fără firmă"} • {store.shopifyDomain}
+                          </p>
+                          {store.oblioSeriesName && (
+                            <Badge variant="outline" className="mt-1 text-emerald-600">
+                              Serie: {store.oblioSeriesName}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      {!companyId ? (
+                        <p className="text-sm text-muted-foreground">Asociază o firmă întâi</p>
+                      ) : !hasOblio ? (
+                        <p className="text-sm text-status-warning">Configurează Oblio pentru firmă</p>
+                      ) : (
+                        <Select
+                          value={store.oblioSeriesName || "none"}
+                          onValueChange={(v) =>
+                            updateStoreOblioMutation.mutate({
+                              storeId: store.id,
+                              oblioSeriesName: v === "none" ? null : v,
+                            })
+                          }
+                          onOpenChange={handleOpenChange}
+                        >
+                          <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Selectează seria Oblio" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Neselectată</SelectItem>
+                            {loadingOblioSeries === companyId ? (
+                              <SelectItem value="_loading" disabled>
+                                <Loader2 className="h-4 w-4 animate-spin mr-2 inline" />
+                                Se încarcă...
+                              </SelectItem>
+                            ) : oblioSeries && oblioSeries.length > 0 ? (
+                              oblioSeries.map((s) => (
+                                <SelectItem key={s.name} value={s.name}>
+                                  {s.name} ({s.type})
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="_empty" disabled>
+                                Nu sunt serii în Oblio
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="mt-4 p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                Seriile trebuie create în Oblio (Setări → Documente → Serii). ERP-ul le va folosi automat la emiterea facturilor.
+              </p>
+            </div>
           </CardContent>
         </Card>
 
