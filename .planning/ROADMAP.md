@@ -132,14 +132,15 @@ Plans:
   5. Errors display clear, actionable messages (not technical jargon)
   6. Empty states show helpful guidance and relevant call-to-action
 
-**Plans**: 5 plans in 3 waves
+**Plans**: 6 plans in 4 waves (includes gap closure)
 
 Plans:
-- [ ] 06-01-PLAN.md — TooltipProvider, ActionTooltip, and Skeleton components (Wave 1)
-- [ ] 06-02-PLAN.md — ErrorModal and error message mapping (Wave 1)
-- [ ] 06-03-PLAN.md — Visual consistency: design tokens and table striping (Wave 2)
-- [ ] 06-04-PLAN.md — Loading states and useErrorModal hook for key pages (Wave 2)
-- [ ] 06-05-PLAN.md — Empty state configurations and context-aware display (Wave 3)
+- [x] 06-01-PLAN.md — TooltipProvider, ActionTooltip, and Skeleton components (Wave 1)
+- [x] 06-02-PLAN.md — ErrorModal and error message mapping (Wave 1)
+- [x] 06-03-PLAN.md — Visual consistency: design tokens and table striping (Wave 2)
+- [x] 06-04-PLAN.md — Loading states and useErrorModal hook for key pages (Wave 2)
+- [x] 06-05-PLAN.md — Empty state configurations and context-aware display (Wave 3)
+- [ ] 06-06-PLAN.md — Gap closure: Apply ActionTooltip to all dashboard buttons (Wave 4)
 
 ### Phase 7: Task Management Core
 **Goal**: Basic task management available for operational and business tracking
@@ -228,7 +229,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 | 3. Internal Settlement | 5/5 | ✓ Complete | 2026-01-25 |
 | 4. Flow Integrity | 4/4 | ✓ Complete | 2026-01-25 |
 | 5. Known Bug Fixes | 4/4 | ✓ Complete | 2026-01-25 |
-| 6. UX Foundation | 0/5 | Not started | - |
+| 6. UX Foundation | 5/6 | In progress | - |
 | 7. Task Management Core | 0/4 | Not started | - |
 | 8. Task Management Advanced | 0/4 | Not started | - |
 | 9. Documentation | 0/4 | Not started | - |
