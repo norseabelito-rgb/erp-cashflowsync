@@ -83,6 +83,7 @@ import { FILTER_BAR } from "@/lib/design-system";
 import { TransferWarningModal } from "@/components/orders/transfer-warning-modal";
 import { SkeletonTableRow } from "@/components/ui/skeleton";
 import { useErrorModal } from "@/hooks/use-error-modal";
+import { ActionTooltip } from "@/components/ui/action-tooltip";
 
 interface Order {
   id: string;
@@ -1015,17 +1016,17 @@ export default function OrdersPage() {
                 <p>Exportă comenzile filtrate într-un fișier CSV. Respectă filtrele active (status, magazin, dată).</p>
               </TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button onClick={() => syncMutation.mutate()} loading={syncMutation.isPending} size="sm" className="md:size-default">
-                  <RefreshCw className="h-4 w-4 md:mr-2" />
-                  <span className="hidden md:inline">Sincronizare</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-xs">
-                <p>Sincronizează comenzile noi din toate magazinele Shopify. Actualizează statusurile și validează adresele.</p>
-              </TooltipContent>
-            </Tooltip>
+            <ActionTooltip
+              action="Sincronizeaza comenzi"
+              consequence="Se importa comenzile noi din Shopify"
+              disabled={syncMutation.isPending}
+              disabledReason="Sincronizare in curs..."
+            >
+              <Button onClick={() => syncMutation.mutate()} loading={syncMutation.isPending} size="sm" className="md:size-default">
+                <RefreshCw className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Sincronizare</span>
+              </Button>
+            </ActionTooltip>
           </>
         }
       />
@@ -1116,36 +1117,57 @@ export default function OrdersPage() {
           <span className="text-sm font-medium">{selectedOrders.length} comenzi selectate</span>
           <div className="flex gap-2">
             <RequirePermission permission="invoices.create">
-              <Button size="sm" variant="outline" onClick={handleIssueInvoices} disabled={invoiceMutation.isPending}>
-                <FileText className="h-4 w-4 mr-2" />
-                {invoiceMutation.isPending ? "Se emit..." : "Emite Facturi"}
-              </Button>
+              <ActionTooltip
+                action="Emite facturi pentru comenzile selectate"
+                consequence="Se trimit catre Oblio"
+                disabled={invoiceMutation.isPending}
+                disabledReason="Se proceseaza..."
+              >
+                <Button size="sm" variant="outline" onClick={handleIssueInvoices} disabled={invoiceMutation.isPending}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  {invoiceMutation.isPending ? "Se emit..." : "Emite Facturi"}
+                </Button>
+              </ActionTooltip>
             </RequirePermission>
             <RequirePermission permission="awb.create">
-              <Button size="sm" variant="outline" onClick={() => handleOpenAwbModal()} disabled={awbMutation.isPending}>
-                <Truck className="h-4 w-4 mr-2" />
-                {awbMutation.isPending ? "Se creează..." : "Creează AWB"}
-              </Button>
+              <ActionTooltip
+                action="Creeaza AWB-uri pentru comenzile selectate"
+                consequence="Se genereaza in SelfAWB"
+                disabled={awbMutation.isPending}
+                disabledReason="Se proceseaza..."
+              >
+                <Button size="sm" variant="outline" onClick={() => handleOpenAwbModal()} disabled={awbMutation.isPending}>
+                  <Truck className="h-4 w-4 mr-2" />
+                  {awbMutation.isPending ? "Se creează..." : "Creează AWB"}
+                </Button>
+              </ActionTooltip>
             </RequirePermission>
             <RequirePermission permission="orders.process">
-              <Button
-                size="sm"
-                onClick={() => processAllMutation.mutate(selectedOrders)}
+              <ActionTooltip
+                action="Proceseaza complet comenzile selectate"
+                consequence="Factura + AWB pentru fiecare"
                 disabled={processAllMutation.isPending}
-                variant="success"
+                disabledReason="Se proceseaza..."
               >
-                {processAllMutation.isPending ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Procesare...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Emite Tot (Factură + AWB)
-                  </>
-                )}
-              </Button>
+                <Button
+                  size="sm"
+                  onClick={() => processAllMutation.mutate(selectedOrders)}
+                  disabled={processAllMutation.isPending}
+                  variant="success"
+                >
+                  {processAllMutation.isPending ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Procesare...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Emite Tot (Factură + AWB)
+                    </>
+                  )}
+                </Button>
+              </ActionTooltip>
             </RequirePermission>
           </div>
         </div>
@@ -1307,7 +1329,14 @@ export default function OrdersPage() {
                             <Badge variant="neutral" title={order.invoice.errorMessage || ""}>În așteptare</Badge>
                           )
                         ) : (
-                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); invoiceMutation.mutate({ orderIds: [order.id] }); }} disabled={invoiceMutation.isPending}><FileText className="h-4 w-4" /></Button>
+                          <ActionTooltip
+                            action="Genereaza factura"
+                            consequence="Se trimite catre Oblio"
+                            disabled={invoiceMutation.isPending}
+                            disabledReason="Se proceseaza..."
+                          >
+                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); invoiceMutation.mutate({ orderIds: [order.id] }); }} disabled={invoiceMutation.isPending}><FileText className="h-4 w-4" /></Button>
+                          </ActionTooltip>
                         )}
                       </td>
                       <td className="p-4" onClick={(e) => e.stopPropagation()}>
@@ -1348,14 +1377,25 @@ export default function OrdersPage() {
                             Eroare
                           </Badge>
                         ) : (
-                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpenAwbModal(order.id); }} disabled={awbMutation.isPending}><Truck className="h-4 w-4" /></Button>
+                          <ActionTooltip
+                            action="Creeaza AWB"
+                            consequence="Se genereaza AWB in SelfAWB"
+                            disabled={awbMutation.isPending}
+                            disabledReason="Se proceseaza..."
+                          >
+                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpenAwbModal(order.id); }} disabled={awbMutation.isPending}><Truck className="h-4 w-4" /></Button>
+                          </ActionTooltip>
                         )}
                       </td>
                       <td className="p-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1">
-                          <Button size="sm" variant="ghost" onClick={() => handleViewOrder(order)}><Eye className="h-4 w-4" /></Button>
+                          <ActionTooltip action="Vezi detalii comanda">
+                            <Button size="sm" variant="ghost" onClick={() => handleViewOrder(order)}><Eye className="h-4 w-4" /></Button>
+                          </ActionTooltip>
                           <RequirePermission permission="orders.edit">
-                            <Button size="sm" variant="ghost" onClick={() => handleEditOrder(order)}><Pencil className="h-4 w-4" /></Button>
+                            <ActionTooltip action="Editeaza comanda" consequence="Modificarile se salveaza">
+                              <Button size="sm" variant="ghost" onClick={() => handleEditOrder(order)}><Pencil className="h-4 w-4" /></Button>
+                            </ActionTooltip>
                           </RequirePermission>
                         </div>
                       </td>
