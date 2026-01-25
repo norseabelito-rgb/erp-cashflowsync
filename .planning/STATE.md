@@ -5,34 +5,35 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 5 - Known Bug Fixes - **COMPLETE**
+**Current focus:** Phase 6 - UX Foundation - In Progress
 
 ## Current Position
 
-Phase: 5 of 10 (Known Bug Fixes)
-Plan: 4 of 4 complete
-Status: Phase complete
-Last activity: 2026-01-25 - Phase 5 verified complete
+Phase: 6 of 10 (UX Foundation)
+Plan: 1 of 5 complete
+Status: In progress
+Last activity: 2026-01-25 - Completed 06-01-PLAN.md
 
-Progress: [██████████████░░░░░░] 67%
+Progress: [██████████████░░░░░░] 70%
 
-## Phase 5 Progress
+## Phase 6 Progress
 
 | Plan | Status | Summary |
 |------|--------|---------|
-| 05-01 | Complete | Idempotent image sync + grouped SKU dropdown |
-| 05-02 | Complete | Card-based line item display with images and stock check |
-| 05-03 | Complete | Meta webhook deduplication via externalEventId field |
-| 05-04 | Complete | Invoice series auto-correction edge cases |
+| 06-01 | Complete | TooltipProvider + ActionTooltip + Skeleton system |
+| 06-02 | Pending | Error Modal System |
+| 06-03 | Pending | Loading States |
+| 06-04 | Pending | Button States |
+| 06-05 | Pending | Form Feedback |
 
 ---
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 21
+- Total plans completed: 22
 - Average duration: ~6 minutes
-- Total execution time: ~124 minutes
+- Total execution time: ~127 minutes
 
 **By Phase:**
 
@@ -43,6 +44,7 @@ Progress: [██████████████░░░░░░] 67%
 | 03-internal-settlement | 5/5 | ~27 min | ~5.4 min |
 | 04-flow-integrity | 4/4 | ~30 min | ~7.5 min |
 | 05-known-bug-fixes | 4/4 | ~18 min | ~4.5 min |
+| 06-ux-foundation | 1/5 | ~3 min | ~3 min |
 
 ## Accumulated Context
 
@@ -50,6 +52,7 @@ Progress: [██████████████░░░░░░] 67%
 
 Recent decisions affecting current work:
 
+- **06-01:** TooltipProvider as innermost wrapper for maximum availability
 - **05-01:** Image sync uses check-before-create instead of delete-all-recreate
 - **05-01:** Grouped API returns up to 200 items per category for performance
 - **05-01:** Assigned SKUs show product link for quick navigation
@@ -78,7 +81,7 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 **NEXT:**
-- Ready for Phase 6: UX Foundation
+- Continue Phase 6: UX Foundation (plans 02-05)
 
 **CRITICAL (Blocheaza munca):**
 - TD-01: Order processing no transaction - partial failures cause inconsistent data
@@ -88,29 +91,30 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Phase 5 complete - all bug fixes verified
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None
 
-## Phase 5 Complete
+## Phase 6 Features
 
-Known Bug Fixes features:
+UX Foundation components:
 
-- [x] 05-01: Idempotent image sync + grouped SKU dropdown
-- [x] 05-02: Card-based line item display with images and stock check
-- [x] 05-03: Meta webhook deduplication
-- [x] 05-04: Invoice series auto-correction edge cases
+- [x] 06-01: TooltipProvider + ActionTooltip + Skeleton system
+- [ ] 06-02: Error Modal System
+- [ ] 06-03: Loading States
+- [ ] 06-04: Button States
+- [ ] 06-05: Form Feedback
 
 ## Recent Commits
 
+- `d459bfb` feat(06-01): add TooltipProvider with 300ms delay to app providers
+- `e8c53df` feat(06-01): create ActionTooltip component with action/consequence semantics
+- `f7e9e2b` feat(06-01): create Skeleton component system with presets
 - `7093e40` feat(05-01): update SKU dropdown with grouped Available/Assigned sections
 - `37d77b4` feat(05-01): add grouped response to inventory-items API
 - `685e9d3` fix(05-01): make image sync idempotent - skip existing URLs
 - `4fb9938` feat(05-02): transform order line items to card layout
 - `7d8b78b` feat(05-03): add deduplication to Meta webhook handler
-- `df5bcc2` feat(05-03): add externalEventId field for webhook deduplication
-- `efc2088` feat(04-04): wire TransferWarningModal into orders page invoice flow
-- `e6a0b12` feat(04-04): add transfer warning acknowledgment to invoice issue API
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-25 (05-01 complete)*
+*Last updated: 2026-01-25 (06-01 complete)*
