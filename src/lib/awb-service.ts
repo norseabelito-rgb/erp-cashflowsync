@@ -7,6 +7,14 @@
 
 import prisma from "./db";
 import { FanCourierAPI } from "./fancourier";
+import { logWarningOverride, logAWBCreated } from "./activity-log";
+
+export interface AWBWarning {
+  type: "AWB_MISMATCH";
+  storeCompany: string;
+  billingCompany: string;
+  message: string;
+}
 
 export interface CreateAWBResult {
   success: boolean;
@@ -14,6 +22,8 @@ export interface CreateAWBResult {
   companyId?: string;
   companyName?: string;
   error?: string;
+  needsConfirmation?: boolean;
+  warning?: AWBWarning;
 }
 
 export interface AWBOptions {
@@ -23,6 +33,8 @@ export interface AWBOptions {
   packages?: number;
   cashOnDelivery?: number;
   observations?: string;
+  acknowledgeMismatchWarning?: boolean;
+  warningAcknowledgedBy?: string;
 }
 
 /**
@@ -142,6 +154,43 @@ export async function createAWBForOrder(
         success: false,
         error: "Comanda nu are o firmă asociată. Configurează firma pentru magazin sau setează billingCompany.",
       };
+    }
+
+    // Detectăm mismatch între billingCompany și company din store
+    const storeCompany = order.store?.company;
+    const billingCompany = order.billingCompany;
+
+    // Mismatch occurs when billingCompany is set and differs from store's company
+    const hasMismatch = billingCompany && storeCompany &&
+      billingCompany.id !== storeCompany.id;
+
+    if (hasMismatch && !options?.acknowledgeMismatchWarning) {
+      return {
+        success: false,
+        needsConfirmation: true,
+        warning: {
+          type: "AWB_MISMATCH",
+          storeCompany: storeCompany.name,
+          billingCompany: billingCompany.name,
+          message: `AWB-ul va fi emis pe contul firmei "${company.name}" (din ${billingCompany ? 'billingCompany' : 'magazin'}). Verifică că e corect.`,
+        },
+      };
+    }
+
+    if (hasMismatch && options?.acknowledgeMismatchWarning) {
+      await logWarningOverride({
+        orderId,
+        orderNumber: order.shopifyOrderNumber || order.id,
+        warningType: "AWB_MISMATCH",
+        warningDetails: {
+          storeCompanyId: storeCompany.id,
+          storeCompanyName: storeCompany.name,
+          billingCompanyId: billingCompany.id,
+          billingCompanyName: billingCompany.name,
+          usedCompany: company.name,
+        },
+        acknowledgedBy: options.warningAcknowledgedBy || "unknown",
+      });
     }
 
     // Verificăm credențialele FanCourier pentru firmă
@@ -317,7 +366,6 @@ export async function createAWBForOrder(
 
     // Logăm în ActivityLog
     try {
-      const { logAWBCreated } = await import("./activity-log");
       await logAWBCreated({
         orderId: order.id,
         orderNumber: order.shopifyOrderNumber || order.id,

@@ -371,3 +371,37 @@ export async function logOrderDataUpdate(params: {
     source: "manual",
   });
 }
+
+/**
+ * Helper pentru logarea override-urilor de avertismente
+ * Folosit când utilizatorul continuă în ciuda unui avertisment (mismatch, transfer, etc.)
+ */
+export async function logWarningOverride(params: {
+  orderId: string;
+  orderNumber: string;
+  warningType: "AWB_MISMATCH" | "INVOICE_MISMATCH" | "TRANSFER_PENDING" | string;
+  warningDetails: Record<string, any>;
+  acknowledgedBy: string;
+}) {
+  const warningMessages: Record<string, string> = {
+    AWB_MISMATCH: "AWB emis pe firmă diferită de magazin",
+    INVOICE_MISMATCH: "Factură emisă pe firmă diferită de magazin",
+    TRANSFER_PENDING: "Acțiune executată cu transfer nefinalizat",
+  };
+
+  return logActivity({
+    entityType: EntityType.ORDER,
+    entityId: params.orderId,
+    action: ActionType.WARNING_OVERRIDE,
+    description: `⚠️ Avertisment ignorat pentru comanda #${params.orderNumber}: ${warningMessages[params.warningType] || params.warningType} (confirmat de ${params.acknowledgedBy})`,
+    orderId: params.orderId,
+    orderNumber: params.orderNumber,
+    details: {
+      warningType: params.warningType,
+      ...params.warningDetails,
+      acknowledgedBy: params.acknowledgedBy,
+      acknowledgedAt: new Date().toISOString(),
+    },
+    source: "manual",
+  });
+}

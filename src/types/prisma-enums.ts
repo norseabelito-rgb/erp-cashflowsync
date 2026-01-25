@@ -96,6 +96,7 @@ export enum ActionType {
   EXPORT = "EXPORT",
   IMPORT = "IMPORT",
   ERROR = "ERROR",
+  WARNING_OVERRIDE = "WARNING_OVERRIDE",
 }
 
 export enum PrintJobStatus {
