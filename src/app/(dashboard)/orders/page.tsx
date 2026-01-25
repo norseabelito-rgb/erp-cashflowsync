@@ -80,6 +80,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FILTER_BAR } from "@/lib/design-system";
 import { TransferWarningModal } from "@/components/orders/transfer-warning-modal";
+import { SkeletonTableRow } from "@/components/ui/skeleton";
+import { useErrorModal } from "@/hooks/use-error-modal";
 
 interface Order {
   id: string;
@@ -318,6 +320,7 @@ function getAWBStatusInfo(awb: Order['awb']): {
 
 export default function OrdersPage() {
   const queryClient = useQueryClient();
+  const { showError, ErrorModalComponent } = useErrorModal();
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -983,6 +986,7 @@ export default function OrdersPage() {
 
   return (
     <TooltipProvider>
+    <ErrorModalComponent />
     <div className="p-4 md:p-6 lg:p-8">
       <PageHeader
         title="Comenzi"
@@ -1219,7 +1223,15 @@ export default function OrdersPage() {
               </thead>
               <tbody>
                 {ordersLoading ? (
-                  <tr><td colSpan={9} className="p-8 text-center"><RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" /><p className="text-muted-foreground">Se încarcă...</p></td></tr>
+                  <>
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <tr key={i} className="border-b">
+                        <td colSpan={9} className="p-0">
+                          <SkeletonTableRow cols={9} />
+                        </td>
+                      </tr>
+                    ))}
+                  </>
                 ) : orders.length === 0 ? (
                   <tr><td colSpan={9} className="p-8 text-center"><ShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-50" /><p className="text-muted-foreground">Nu există comenzi</p></td></tr>
                 ) : (
