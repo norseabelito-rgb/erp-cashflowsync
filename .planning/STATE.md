@@ -10,17 +10,17 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 5 of 10 (Known Bug Fixes)
-Plan: 3 of ? complete in phase
+Plan: 4 of ? complete in phase
 Status: In progress
-Last activity: 2026-01-25 - Completed 05-02-PLAN.md (Order line items card layout)
+Last activity: 2026-01-25 - Completed 05-01-PLAN.md (Image sync + SKU dropdown fixes)
 
-Progress: [█████████████░░░░░░░] 60%
+Progress: [█████████████░░░░░░░] 62%
 
 ## Phase 5 Progress
 
 | Plan | Status | Summary |
 |------|--------|---------|
-| 05-01 | Pending | - |
+| 05-01 | Complete | Idempotent image sync + grouped SKU dropdown |
 | 05-02 | Complete | Card-based line item display with images and stock check |
 | 05-03 | Complete | Meta webhook deduplication via externalEventId field |
 | 05-04 | Complete | Invoice series auto-correction edge cases |
@@ -30,9 +30,9 @@ Progress: [█████████████░░░░░░░] 60%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 20
+- Total plans completed: 21
 - Average duration: ~6 minutes
-- Total execution time: ~116 minutes
+- Total execution time: ~124 minutes
 
 **By Phase:**
 
@@ -42,7 +42,7 @@ Progress: [█████████████░░░░░░░] 60%
 | 02-invoice-series-fix | 5/5 | ~21 min | ~4.2 min |
 | 03-internal-settlement | 5/5 | ~27 min | ~5.4 min |
 | 04-flow-integrity | 4/4 | ~30 min | ~7.5 min |
-| 05-known-bug-fixes | 3/? | ~10 min | ~3.3 min |
+| 05-known-bug-fixes | 4/? | ~18 min | ~4.5 min |
 
 ## Accumulated Context
 
@@ -50,6 +50,9 @@ Progress: [█████████████░░░░░░░] 60%
 
 Recent decisions affecting current work:
 
+- **05-01:** Image sync uses check-before-create instead of delete-all-recreate
+- **05-01:** Grouped API returns up to 200 items per category for performance
+- **05-01:** Assigned SKUs show product link for quick navigation
 - **05-02:** Stock tooltip uses inventory-items API with 30s cache for performance
 - **05-04:** Gap detection queries last invoice with invoiceNumber not null (skip drafts)
 - **05-04:** Corrections only update DB if value changed (idempotent)
@@ -75,7 +78,7 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 **NEXT:**
-- Continue Phase 5: Known Bug Fixes plans (05-01, 05-02 pending)
+- Continue Phase 5: Additional bug fix plans if any
 
 **CRITICAL (Blocheaza munca):**
 - TD-01: Order processing no transaction - partial failures cause inconsistent data
@@ -85,27 +88,27 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed 05-02-PLAN.md (Order line items card layout)
+Stopped at: Completed 05-01-PLAN.md (Image sync + SKU dropdown fixes)
 Resume file: None
 
 ## Phase 5 Progress (Known Bug Fixes)
 
-- [ ] 05-01: Pending
+- [x] 05-01: Idempotent image sync + grouped SKU dropdown
 - [x] 05-02: Card-based line item display with images and stock check
 - [x] 05-03: Meta webhook deduplication
 - [x] 05-04: Invoice series auto-correction edge cases
 
 ## Recent Commits
 
+- `7093e40` feat(05-01): update SKU dropdown with grouped Available/Assigned sections
+- `37d77b4` feat(05-01): add grouped response to inventory-items API
+- `685e9d3` fix(05-01): make image sync idempotent - skip existing URLs
 - `4fb9938` feat(05-02): transform order line items to card layout
-- `685e9d3` fix(05-01): make image sync idempotent - skip existing URLs (also contains 05-04 changes)
 - `7d8b78b` feat(05-03): add deduplication to Meta webhook handler
 - `df5bcc2` feat(05-03): add externalEventId field for webhook deduplication
 - `efc2088` feat(04-04): wire TransferWarningModal into orders page invoice flow
 - `e6a0b12` feat(04-04): add transfer warning acknowledgment to invoice issue API
-- `ca400d9` feat(04-04): create TransferWarningModal component
-- `0492389` feat(04-03): add batch transfer status check endpoint
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-25 (05-02 complete)*
+*Last updated: 2026-01-25 (05-01 complete)*
