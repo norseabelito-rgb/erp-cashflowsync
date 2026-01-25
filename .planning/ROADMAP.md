@@ -11,7 +11,7 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: System Audit** - Complete understanding of current state before making changes
-- [ ] **Phase 2: Invoice Series Fix** - Fix Facturis integration and series selection logic (biggest pain point)
+- [x] **Phase 2: Invoice Series Fix** - Oblio integration with automatic series selection (migrated from Facturis)
 - [ ] **Phase 3: Internal Settlement** - Implement decontare interna flow for secondary company orders
 - [ ] **Phase 4: Flow Integrity** - Ensure data consistency with transfer blocking and AWB routing
 - [ ] **Phase 5: Known Bug Fixes** - Address documented bugs from codebase analysis
@@ -52,32 +52,34 @@ Plans:
   4. Edge cases (zero/negative currentNumber, missing series) are handled gracefully with clear error messages
   5. No manual series selection required during normal invoice generation
 
-**Plans**: 4 plans in 3 waves
+**Plans**: 5 plans in 4 waves
 
 Plans:
-- [ ] 02-01-PLAN.md — API validation and Romanian error messages (Wave 1)
-- [ ] 02-02-PLAN.md — Store-series mapping UI and overview table (Wave 1)
-- [ ] 02-03-PLAN.md — Automatic series selection in invoice generation (Wave 2)
-- [ ] 02-04-PLAN.md — Edge case handling and failed invoices page (Wave 3)
+- [x] 02-01-PLAN.md — API validation and Romanian error messages (Wave 1)
+- [x] 02-02-PLAN.md — Store-series mapping UI and overview table (Wave 1)
+- [x] 02-03-PLAN.md — Automatic series selection in invoice generation (Wave 2)
+- [x] 02-04-PLAN.md — Edge case handling and FailedInvoiceAttempt model (Wave 3)
+- [x] 02-05-PLAN.md — Failed invoices page and Oblio migration (Wave 4)
 
 ### Phase 3: Internal Settlement
-**Goal**: Secondary company orders are tracked and settled weekly via internal invoicing
-**Depends on**: Phase 2 (series must work correctly first)
+**Goal**: Secondary company orders are tracked and settled weekly via internal invoicing from Aquaterra
+**Depends on**: Phase 2 (Oblio integration must work correctly first)
 **Requirements**: INV-03, INV-04, INV-05, INV-06
 **Success Criteria** (what must be TRUE):
   1. Orders from secondary company stores are flagged automatically for internal settlement tracking
   2. User can view list of secondary company orders with "incasat" (collected) status
-  3. System calculates cumulative value at acquisition price + 10% for selected orders
-  4. User can generate internal invoice from Aquaterra to secondary company with calculated totals
-  5. Settlement history is maintained for audit trail
+  3. System calculates cumulative value at acquisition price (costPrice) + configurable markup
+  4. User can select/exclude specific orders before generating settlement
+  5. User can generate internal invoice from Aquaterra to secondary company in Oblio
+  6. Settlement history is maintained with Oblio invoice reference for audit trail
 
-**Plans**: TBD
+**Plans**: 4 plans in 4 waves
 
 Plans:
-- [ ] 03-01: Secondary company order flagging and tracking
-- [ ] 03-02: Settlement selection UI with status filtering
-- [ ] 03-03: Price calculation logic (acquisition + 10%)
-- [ ] 03-04: Internal invoice generation
+- [ ] 03-01-PLAN.md — Schema extensions and eligible orders API (Wave 1)
+- [ ] 03-02-PLAN.md — Price calculation using costPrice and order selection (Wave 2)
+- [ ] 03-03-PLAN.md — Order selection UI with pre-selection workflow (Wave 3)
+- [ ] 03-04-PLAN.md — Oblio invoice generation for settlements (Wave 4)
 
 ### Phase 4: Flow Integrity
 **Goal**: Data consistency ensured through transfer blocking and correct AWB routing
@@ -220,8 +222,8 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. System Audit | 4/4 | ✓ Complete | 2026-01-24 |
-| 2. Invoice Series Fix | 0/4 | Planned | - |
-| 3. Internal Settlement | 0/4 | Not started | - |
+| 2. Invoice Series Fix | 5/5 | ✓ Complete | 2026-01-25 |
+| 3. Internal Settlement | 0/4 | Planned | - |
 | 4. Flow Integrity | 0/3 | Not started | - |
 | 5. Known Bug Fixes | 0/4 | Not started | - |
 | 6. UX Foundation | 0/5 | Not started | - |
