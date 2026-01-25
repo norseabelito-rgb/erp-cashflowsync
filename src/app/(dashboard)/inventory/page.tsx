@@ -81,6 +81,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
+import { ActionTooltip } from "@/components/ui/action-tooltip";
 
 interface InventoryItem {
   id: string;
@@ -373,18 +374,22 @@ export default function InventoryPage() {
         description="Gestionează articolele din inventar"
         actions={
           <>
-            <Button variant="outline" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Reîncarcă
-            </Button>
+            <ActionTooltip action="Reincarca inventar" consequence="Se actualizeaza lista">
+              <Button variant="outline" onClick={() => refetch()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Reîncarcă
+              </Button>
+            </ActionTooltip>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  <FileSpreadsheet className="h-4 w-4 mr-2" />
-                  Import/Export
-                  <ChevronDown className="h-4 w-4 ml-2" />
-                </Button>
-              </DropdownMenuTrigger>
+              <ActionTooltip action="Importa din CSV" consequence="Se actualizeaza stocurile in bulk">
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    Import/Export
+                    <ChevronDown className="h-4 w-4 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+              </ActionTooltip>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Import / Export</DropdownMenuLabel>
                 <DropdownMenuSeparator />
@@ -402,10 +407,12 @@ export default function InventoryPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button onClick={() => router.push("/inventory/new")}>
-              <Plus className="h-4 w-4 mr-2" />
-              Articol nou
-            </Button>
+            <ActionTooltip action="Adauga articol nou" consequence="Se deschide formularul de creare">
+              <Button onClick={() => router.push("/inventory/new")}>
+                <Plus className="h-4 w-4 mr-2" />
+                Articol nou
+              </Button>
+            </ActionTooltip>
           </>
         }
       />
@@ -631,11 +638,13 @@ export default function InventoryPage() {
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
+                      <ActionTooltip action="Editeaza articolul" consequence="Modificarile se salveaza">
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                      </ActionTooltip>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Acțiuni</DropdownMenuLabel>
                         <DropdownMenuSeparator />

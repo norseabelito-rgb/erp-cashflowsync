@@ -104,6 +104,7 @@ import { formatCurrency, getDriveImageUrl } from "@/lib/utils";
 import { SyncOverlay, useSyncOverlay } from "@/components/ui/sync-overlay";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ActionTooltip } from "@/components/ui/action-tooltip";
 import Link from "next/link";
 
 interface Channel {
@@ -533,27 +534,27 @@ export default function ProductsPage() {
           description="Gestionează produsele și sincronizarea pe canale"
           actions={
             <>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="md:size-default"
-                    onClick={() => syncShopifyMutation.mutate()}
-                    disabled={syncShopifyMutation.isPending}
-                  >
-                    {syncShopifyMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 md:mr-2 animate-spin" />
-                    ) : (
-                      <Upload className="h-4 w-4 md:mr-2" />
-                    )}
-                    <span className="hidden md:inline">Sync Shopify</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-xs">
-                  <p>Trimite toate produsele cu canale Shopify active către Shopify. Creează produse noi și actualizează cele existente (titlu, preț, descriere, imagini).</p>
-                </TooltipContent>
-              </Tooltip>
+              <ActionTooltip
+                action="Sincronizeaza din Shopify"
+                consequence="Se actualizeaza produsele existente"
+                disabled={syncShopifyMutation.isPending}
+                disabledReason="Sincronizare in curs..."
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="md:size-default"
+                  onClick={() => syncShopifyMutation.mutate()}
+                  disabled={syncShopifyMutation.isPending}
+                >
+                  {syncShopifyMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 md:mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 md:mr-2" />
+                  )}
+                  <span className="hidden md:inline">Sync Shopify</span>
+                </Button>
+              </ActionTooltip>
               <Link href="/products/inventory-mapping">
                 <Button variant="outline" size="sm" className="md:size-default">
                   <Package className="h-4 w-4 md:mr-2" />
@@ -561,12 +562,14 @@ export default function ProductsPage() {
                 </Button>
               </Link>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="md:size-default">
-                    <FileSpreadsheet className="h-4 w-4 md:mr-2" />
-                    <span className="hidden md:inline">Import/Export</span>
-                  </Button>
-                </DropdownMenuTrigger>
+                <ActionTooltip action="Import/Export produse" consequence="Importa sau exporta produse in bulk">
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="md:size-default">
+                      <FileSpreadsheet className="h-4 w-4 md:mr-2" />
+                      <span className="hidden md:inline">Import/Export</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                </ActionTooltip>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={handleExport} disabled={isExporting}>
                     <Download className="h-4 w-4 mr-2" />
@@ -578,10 +581,12 @@ export default function ProductsPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button size="sm" className="md:size-default" onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">Produs Nou</span>
-              </Button>
+              <ActionTooltip action="Adauga produs nou" consequence="Se deschide formularul de creare">
+                <Button size="sm" className="md:size-default" onClick={() => setCreateDialogOpen(true)}>
+                  <Plus className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Produs Nou</span>
+                </Button>
+              </ActionTooltip>
             </>
           }
         />
@@ -640,11 +645,13 @@ export default function ProductsPage() {
             </span>
             <div className="flex gap-2 ml-auto">
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    Acțiuni Bulk
-                  </Button>
-                </DropdownMenuTrigger>
+                <ActionTooltip action="Actiuni in bulk" consequence="Aplica actiuni pe selectie">
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      Acțiuni Bulk
+                    </Button>
+                  </DropdownMenuTrigger>
+                </ActionTooltip>
                 <DropdownMenuContent>
                   <DropdownMenuItem onClick={() => { setBulkAction("change-category"); setBulkDialogOpen(true); }}>
                     <FolderTree className="h-4 w-4 mr-2" />
@@ -677,9 +684,11 @@ export default function ProductsPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button variant="ghost" size="sm" onClick={() => setSelectedProducts([])}>
-                Deselectează
-              </Button>
+              <ActionTooltip action="Deselecteaza tot">
+                <Button variant="ghost" size="sm" onClick={() => setSelectedProducts([])}>
+                  Deselectează
+                </Button>
+              </ActionTooltip>
             </div>
           </div>
         )}
@@ -834,11 +843,13 @@ export default function ProductsPage() {
                     })}
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
+                        <ActionTooltip action="Editeaza produsul" consequence="Modificarile se salveaza">
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                        </ActionTooltip>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
                             <Link href={`/products/${product.id}`}>
