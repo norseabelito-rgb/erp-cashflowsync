@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 5 of 10 (Known Bug Fixes)
-Plan: 3 of ? in phase
+Plan: 4 of ? in phase
 Status: In progress
-Last activity: 2026-01-25 - Completed 05-03-PLAN.md (Meta webhook deduplication)
+Last activity: 2026-01-25 - Completed 05-04-PLAN.md (Invoice series auto-correction)
 
-Progress: [█████████████░░░░░░░] 58%
+Progress: [█████████████░░░░░░░] 60%
 
 ## Phase 5 Progress
 
@@ -23,15 +23,16 @@ Progress: [█████████████░░░░░░░] 58%
 | 05-01 | Pending | - |
 | 05-02 | Pending | - |
 | 05-03 | Complete | Meta webhook deduplication via externalEventId field |
+| 05-04 | Complete | Invoice series auto-correction edge cases |
 
 ---
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 18
+- Total plans completed: 19
 - Average duration: ~6 minutes
-- Total execution time: ~110 minutes
+- Total execution time: ~113 minutes
 
 **By Phase:**
 
@@ -41,7 +42,7 @@ Progress: [█████████████░░░░░░░] 58%
 | 02-invoice-series-fix | 5/5 | ~21 min | ~4.2 min |
 | 03-internal-settlement | 5/5 | ~27 min | ~5.4 min |
 | 04-flow-integrity | 4/4 | ~30 min | ~7.5 min |
-| 05-known-bug-fixes | 1/? | ~4 min | ~4 min |
+| 05-known-bug-fixes | 2/? | ~7 min | ~3.5 min |
 
 ## Accumulated Context
 
@@ -49,6 +50,9 @@ Progress: [█████████████░░░░░░░] 58%
 
 Recent decisions affecting current work:
 
+- **05-04:** Gap detection queries last invoice with invoiceNumber not null (skip drafts)
+- **05-04:** Corrections only update DB if value changed (idempotent)
+- **05-04:** extractNumberFromInvoice helper handles prefixes and separators
 - **05-03:** Use composite index not unique constraint for nullable externalEventId
 - **05-03:** Silent skip for duplicates - log and continue, no error
 - **05-03:** MD5 hash fallback for deterministic event ID when no explicit ID
@@ -70,7 +74,7 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 **NEXT:**
-- Continue Phase 5: Known Bug Fixes plans
+- Continue Phase 5: Known Bug Fixes plans (05-01, 05-02 pending)
 
 **CRITICAL (Blocheaza munca):**
 - TD-01: Order processing no transaction - partial failures cause inconsistent data
@@ -80,7 +84,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed 05-03-PLAN.md (Meta webhook deduplication)
+Stopped at: Completed 05-04-PLAN.md (Invoice series auto-correction)
 Resume file: None
 
 ## Phase 5 Progress (Known Bug Fixes)
@@ -88,9 +92,11 @@ Resume file: None
 - [ ] 05-01: Pending
 - [ ] 05-02: Pending
 - [x] 05-03: Meta webhook deduplication
+- [x] 05-04: Invoice series auto-correction edge cases
 
 ## Recent Commits
 
+- `685e9d3` fix(05-01): make image sync idempotent - skip existing URLs (also contains 05-04 changes)
 - `7d8b78b` feat(05-03): add deduplication to Meta webhook handler
 - `df5bcc2` feat(05-03): add externalEventId field for webhook deduplication
 - `efc2088` feat(04-04): wire TransferWarningModal into orders page invoice flow
@@ -101,4 +107,4 @@ Resume file: None
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-25 (05-03 complete)*
+*Last updated: 2026-01-25 (05-04 complete)*
