@@ -68,6 +68,7 @@ interface Company {
   oblioEmail: string | null;
   oblioSecretToken: string | null;
   oblioCif: string | null;
+  intercompanySeriesName: string | null;
   // Credențiale FanCourier (mascate de API)
   fancourierClientId: string | null;
   fancourierUsername: string | null;
@@ -125,6 +126,7 @@ export default function CompaniesPage() {
   const [formOblioEmail, setFormOblioEmail] = useState("");
   const [formOblioSecretToken, setFormOblioSecretToken] = useState("");
   const [formOblioCif, setFormOblioCif] = useState("");
+  const [formIntercompanySeriesName, setFormIntercompanySeriesName] = useState("");
 
   // Form state - FanCourier
   const [formFancourierClientId, setFormFancourierClientId] = useState("");
@@ -302,6 +304,7 @@ export default function CompaniesPage() {
     setFormOblioEmail("");
     setFormOblioSecretToken("");
     setFormOblioCif("");
+    setFormIntercompanySeriesName("");
     setFormFancourierClientId("");
     setFormFancourierUsername("");
     setFormFancourierPassword("");
@@ -347,6 +350,7 @@ export default function CompaniesPage() {
     setFormOblioEmail(company.oblioEmail || "");
     setFormOblioSecretToken(company.oblioSecretToken || "");
     setFormOblioCif(company.oblioCif || "");
+    setFormIntercompanySeriesName(company.intercompanySeriesName || "");
     // Credențialele FanCourier - afișăm valori mascate dacă există
     setFormFancourierClientId(company.fancourierClientId || "");
     setFormFancourierUsername(company.fancourierUsername || "");
@@ -472,6 +476,8 @@ export default function CompaniesPage() {
     if (formOblioCif) {
       data.oblioCif = formOblioCif;
     }
+    // Serie decontare intercompany - poate fi șters (trimite null dacă gol)
+    data.intercompanySeriesName = formIntercompanySeriesName.trim() || null;
 
     // Credențiale FanCourier (doar dacă sunt completate)
     if (formFancourierClientId) {
@@ -921,6 +927,20 @@ export default function CompaniesPage() {
                 />
                 <p className="text-xs text-muted-foreground">
                   Lasă gol dacă CIF-ul este același cu cel din datele generale.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="intercompanySeriesName">Serie Decontare Intercompany</Label>
+                <Input
+                  id="intercompanySeriesName"
+                  value={formIntercompanySeriesName}
+                  onChange={(e) => setFormIntercompanySeriesName(e.target.value)}
+                  placeholder="ex: DEC, DECONT"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Seria din Oblio folosită pentru facturile de decontare internă.
+                  Trebuie creată manual în Oblio înainte de utilizare.
                 </p>
               </div>
 
