@@ -538,6 +538,29 @@ export function formatDateForOblio(date: Date): string {
 }
 
 /**
+ * Mapează rata TVA la denumirea cotei din Oblio
+ * Oblio necesită numele exact al cotei configurate în setări
+ */
+function getOblioVatName(vatRate: number): string {
+  // Mapare cote TVA standard România
+  // Acestea trebuie să corespundă cu ce ai configurat în Oblio > Setări > Cote TVA
+  if (vatRate === 19 || vatRate === 21) {
+    return "Normala"; // Cota standard (19% sau 21% în funcție de configurare)
+  }
+  if (vatRate === 9 || vatRate === 11) {
+    return "Redusa"; // Cota redusă
+  }
+  if (vatRate === 5) {
+    return "Redusa2"; // Cota super-redusă (5%)
+  }
+  if (vatRate === 0) {
+    return "Scutita"; // Scutit de TVA
+  }
+  // Fallback - trimite procentul ca string (poate să nu funcționeze)
+  return `${vatRate}%`;
+}
+
+/**
  * Creează un item de factură pentru Oblio
  */
 export function createOblioInvoiceItem(params: {
@@ -559,7 +582,7 @@ export function createOblioInvoiceItem(params: {
     price: params.price,
     measuringUnit: "buc",
     currency: params.currency || "RON",
-    vatName: params.vatRate === 19 ? "Normala" : `${params.vatRate}%`,
+    vatName: getOblioVatName(params.vatRate),
     vatPercentage: params.vatRate,
     vatIncluded: true, // Prețul include TVA
     quantity: params.quantity,
