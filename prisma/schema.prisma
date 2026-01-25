@@ -2232,6 +2232,9 @@ model AdsWebhookEvent {
   objectId  String? // ID-ul obiectului afectat
   payload   Json // Raw payload de la Meta
 
+  // Deduplication
+  externalEventId String? // Unique event ID from Facebook for deduplication
+
   // Processing
   processed    Boolean   @default(false)
   processedAt  DateTime?
@@ -2241,6 +2244,7 @@ model AdsWebhookEvent {
 
   @@index([platform, eventType])
   @@index([receivedAt])
+  @@index([platform, externalEventId]) // For deduplication lookup
   @@map("ads_webhook_events")
 }
 
