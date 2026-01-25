@@ -11,6 +11,13 @@
 import prisma from "./db";
 import { Prisma } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
+import {
+  createOblioClient,
+  createOblioInvoiceItem,
+  formatDateForOblio,
+  hasOblioCredentials,
+  OblioInvoiceData,
+} from "./oblio";
 
 // Base interface for settlement preview
 interface SettlementPreview {
@@ -556,7 +563,7 @@ export async function generateIntercompanyInvoice(
           lineItems: JSON.stringify(preview.lineItems),
           markupPercent: new Decimal(preview.markup),
           issuedAt: new Date(),
-        },
+        } as any, // Type assertion for fields added after last prisma generate
       });
 
       // Legăm comenzile de factura intercompany și le marcăm ca decontate
@@ -732,4 +739,170 @@ export async function runWeeklySettlement(): Promise<{
   console.log(`Decontare saptamanala completa: ${processed} facturi generate, ${failed} erori`);
 
   return { processed, failed, results };
+}
+
+/**
+ * Build mentions text for settlement invoice
+ */
+function buildSettlementMentions(settlement: {
+  periodStart: Date;
+  periodEnd: Date;
+  invoiceNumber: string;
+}): string {
+  const startDate = settlement.periodStart.toLocaleDateString("ro-RO");
+  const endDate = settlement.periodEnd.toLocaleDateString("ro-RO");
+
+  return `Decontare interna perioada ${startDate} - ${endDate}. Ref: ${settlement.invoiceNumber}`;
+}
+
+/**
+ * Genereaza factura de decontare in Oblio
+ * Apelat dupa ce preview-ul e confirmat si IntercompanyInvoice e creat
+ */
+// Company type with Oblio fields (Prisma types may be stale if not regenerated)
+type CompanyWithOblio = {
+  id: string;
+  name: string;
+  code: string;
+  cif: string | null;
+  regCom: string | null;
+  address: string | null;
+  city: string | null;
+  county: string | null;
+  country: string | null;
+  email: string | null;
+  phone: string | null;
+  oblioEmail?: string | null;
+  oblioSecretToken?: string | null;
+  oblioCif?: string | null;
+  intercompanySeriesName?: string | null;
+};
+
+export async function generateOblioIntercompanyInvoice(
+  intercompanyInvoiceId: string
+): Promise<{
+  success: boolean;
+  oblioInvoiceId?: string;
+  oblioInvoiceNumber?: string;
+  oblioSeriesName?: string;
+  oblioLink?: string;
+  error?: string;
+}> {
+  // 1. Fetch the intercompany invoice with relations
+  const settlement = await prisma.intercompanyInvoice.findUnique({
+    where: { id: intercompanyInvoiceId },
+    include: {
+      issuedByCompany: true, // Aquaterra (primary)
+      receivedByCompany: true, // Secondary company (client on invoice)
+    },
+  });
+
+  if (!settlement) {
+    return { success: false, error: "Factura intercompany nu a fost gasita" };
+  }
+
+  // Cast to include Oblio fields (Prisma types may be stale)
+  const issuingCompany = settlement.issuedByCompany as CompanyWithOblio;
+  const receivingCompany = settlement.receivedByCompany as CompanyWithOblio;
+
+  // 2. Validate Oblio configuration
+  if (!hasOblioCredentials(issuingCompany)) {
+    return {
+      success: false,
+      error: `Firma ${issuingCompany.name} nu are credentiale Oblio configurate`,
+    };
+  }
+
+  const seriesName = issuingCompany.intercompanySeriesName;
+  if (!seriesName) {
+    return {
+      success: false,
+      error: `Firma ${issuingCompany.name} nu are serie de decontare configurata (intercompanySeriesName)`,
+    };
+  }
+
+  // 3. Create Oblio client
+  const oblio = createOblioClient(issuingCompany);
+  if (!oblio) {
+    return { success: false, error: "Nu s-a putut crea clientul Oblio" };
+  }
+
+  // 4. Parse line items from JSON
+  const lineItems = JSON.parse(settlement.lineItems as string) as Array<{
+    sku: string;
+    title: string;
+    quantity: number;
+    unitCost: number;
+    lineTotal: number;
+  }>;
+
+  // 5. Build Oblio invoice data
+  const invoiceData: OblioInvoiceData = {
+    cif: issuingCompany.oblioCif || issuingCompany.cif || "",
+    seriesName: seriesName,
+    client: {
+      name: receivingCompany.name,
+      cif: receivingCompany.cif || undefined,
+      rc: receivingCompany.regCom || undefined,
+      address: receivingCompany.address || undefined,
+      city: receivingCompany.city || undefined,
+      state: receivingCompany.county || undefined,
+      country: receivingCompany.country || "Romania",
+      email: receivingCompany.email || undefined,
+      phone: receivingCompany.phone || undefined,
+      isTaxPayer: true, // B2B - platitor TVA
+      save: false, // Don't save to nomenclator
+    },
+    issueDate: formatDateForOblio(new Date()),
+    products: lineItems.map((item) =>
+      createOblioInvoiceItem({
+        sku: item.sku,
+        title: item.title,
+        quantity: item.quantity,
+        price: item.lineTotal / item.quantity, // Unit price with markup included
+        vatRate: 19, // Standard Romanian VAT
+      })
+    ),
+    mentions: buildSettlementMentions(settlement),
+  };
+
+  // 6. Call Oblio API
+  console.log(
+    `[Intercompany] Generating Oblio invoice for settlement ${settlement.invoiceNumber}`
+  );
+  const result = await oblio.createInvoice(invoiceData);
+
+  if (!result.success) {
+    console.error("[Intercompany] Oblio invoice creation failed:", result.error);
+    return {
+      success: false,
+      error: result.error || "Eroare la crearea facturii in Oblio",
+    };
+  }
+
+  // 7. Update IntercompanyInvoice with Oblio reference
+  // Use type assertion for fields that may not be in stale Prisma types
+  await prisma.intercompanyInvoice.update({
+    where: { id: intercompanyInvoiceId },
+    data: {
+      oblioInvoiceId: result.invoiceId,
+      oblioInvoiceNumber: result.invoiceNumber,
+      oblioSeriesName: result.invoiceSeries || seriesName,
+      oblioLink: result.link,
+      status: "issued", // Mark as issued
+      issuedAt: new Date(),
+    } as any, // Type assertion for fields added after last prisma generate
+  });
+
+  console.log(
+    `[Intercompany] Oblio invoice created: ${result.invoiceSeries}${result.invoiceNumber}`
+  );
+
+  return {
+    success: true,
+    oblioInvoiceId: result.invoiceId,
+    oblioInvoiceNumber: result.invoiceNumber,
+    oblioSeriesName: result.invoiceSeries || seriesName,
+    oblioLink: result.link,
+  };
 }
