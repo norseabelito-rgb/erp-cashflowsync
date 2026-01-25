@@ -73,13 +73,14 @@ Plans:
   5. User can generate internal invoice from Aquaterra to secondary company in Oblio
   6. Settlement history is maintained with Oblio invoice reference for audit trail
 
-**Plans**: 4 plans in 4 waves
+**Plans**: 5 plans in 4 waves (includes gap closure)
 
 Plans:
-- [ ] 03-01-PLAN.md — Schema extensions and eligible orders API (Wave 1)
-- [ ] 03-02-PLAN.md — Price calculation using costPrice and order selection (Wave 2)
-- [ ] 03-03-PLAN.md — Order selection UI with pre-selection workflow (Wave 3)
-- [ ] 03-04-PLAN.md — Oblio invoice generation for settlements (Wave 4)
+- [x] 03-01-PLAN.md — Schema extensions and eligible orders API (Wave 1)
+- [x] 03-02-PLAN.md — Price calculation using costPrice and order selection (Wave 2)
+- [x] 03-03-PLAN.md — Order selection UI with pre-selection workflow (Wave 3)
+- [x] 03-04-PLAN.md — Oblio invoice generation for settlements (Wave 4)
+- [ ] 03-05-PLAN.md — Gap closure: wire order selection to generate endpoint (Wave 1)
 
 ### Phase 4: Flow Integrity
 **Goal**: Data consistency ensured through transfer blocking and correct AWB routing
@@ -223,7 +224,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 |-------|----------------|--------|-----------|
 | 1. System Audit | 4/4 | ✓ Complete | 2026-01-24 |
 | 2. Invoice Series Fix | 5/5 | ✓ Complete | 2026-01-25 |
-| 3. Internal Settlement | 0/4 | Planned | - |
+| 3. Internal Settlement | 4/5 | Gap closure needed | - |
 | 4. Flow Integrity | 0/3 | Not started | - |
 | 5. Known Bug Fixes | 0/4 | Not started | - |
 | 6. UX Foundation | 0/5 | Not started | - |
@@ -235,4 +236,4 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 ---
 *Roadmap created: 2026-01-23*
 *Phase 1 planned: 2026-01-23*
-*Depth: comprehensive (10 phases, 40 planned plans)*
+*Depth: comprehensive (10 phases, 41 planned plans)*
