@@ -5,6 +5,7 @@ import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import { useState } from "react";
 import { GlobalLoadingProvider } from "@/components/global-loading";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -29,7 +30,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
           disableTransitionOnChange
         >
           <GlobalLoadingProvider>
-            {children}
+            <TooltipProvider delayDuration={300} skipDelayDuration={100}>
+              {children}
+            </TooltipProvider>
           </GlobalLoadingProvider>
         </ThemeProvider>
       </QueryClientProvider>
