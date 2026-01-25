@@ -585,31 +585,29 @@ export default function CompaniesPage() {
                 )}
 
                 {/* Integration Status */}
-                <div className="flex gap-2 pt-2">
-                  <Badge
-                    variant={company.hasOblioCredentials ? "default" : "outline"}
-                    className="text-xs"
-                  >
-                    <FileText className="h-3 w-3 mr-1" />
-                    Oblio
-                    {company.hasOblioCredentials ? (
-                      <CheckCircle2 className="h-3 w-3 ml-1 text-green-500" />
-                    ) : (
-                      <XCircle className="h-3 w-3 ml-1 text-red-500" />
-                    )}
-                  </Badge>
-                  <Badge
-                    variant={company.hasFancourierCredentials ? "default" : "outline"}
-                    className="text-xs"
-                  >
-                    <Truck className="h-3 w-3 mr-1" />
-                    FanCourier
-                    {company.hasFancourierCredentials ? (
-                      <CheckCircle2 className="h-3 w-3 ml-1 text-green-500" />
-                    ) : (
-                      <XCircle className="h-3 w-3 ml-1 text-red-500" />
-                    )}
-                  </Badge>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {company.hasOblioCredentials ? (
+                    <Badge variant="outline" className="text-xs text-green-600 border-green-600">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Oblio OK
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs text-amber-600 border-amber-600">
+                      <FileText className="h-3 w-3 mr-1" />
+                      Fara Oblio
+                    </Badge>
+                  )}
+                  {company.hasFancourierCredentials ? (
+                    <Badge variant="outline" className="text-xs text-green-600 border-green-600">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      FanCourier OK
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs text-amber-600 border-amber-600">
+                      <Truck className="h-3 w-3 mr-1" />
+                      Fara FanCourier
+                    </Badge>
+                  )}
                 </div>
 
                 {/* Stats */}

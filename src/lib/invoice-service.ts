@@ -29,8 +29,29 @@ type PrismaTransactionClient = Prisma.TransactionClient;
 // TIPURI ȘI INTERFEȚE
 // ============================================================================
 
+/**
+ * Opțiuni pentru emiterea facturii
+ * Permite confirmarea avertismentelor și identificarea utilizatorului
+ */
+export interface InvoiceOptions {
+  acknowledgeTransferWarning?: boolean; // User confirms proceeding despite pending transfer
+  warningAcknowledgedBy?: string; // userId or user name who acknowledged
+}
+
+/**
+ * Informații despre un avertisment care necesită confirmare
+ */
+export interface InvoiceWarning {
+  type: "TRANSFER_PENDING";
+  transferNumber: string;
+  transferStatus: string;
+  message: string;
+}
+
 export interface IssueInvoiceResult {
   success: boolean;
+  needsConfirmation?: boolean; // Indicates warning needs user acknowledgment before proceeding
+  warning?: InvoiceWarning; // Details about the warning requiring confirmation
   invoiceNumber?: string;
   invoiceSeries?: string;
   invoiceKey?: string; // Cheia Oblio pentru referință (serie + număr)
@@ -226,8 +247,15 @@ async function saveFailedInvoiceAttempt(params: {
 /**
  * Emite o factură pentru o comandă
  * Folosește firma asociată magazinului pentru credențiale și serii
+ *
+ * @param orderId - ID-ul comenzii
+ * @param options - Opțiuni opționale pentru gestionarea avertismentelor
+ * @returns Rezultatul emiterii sau warning dacă necesită confirmare
  */
-export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoiceResult> {
+export async function issueInvoiceForOrder(
+  orderId: string,
+  options?: InvoiceOptions
+): Promise<IssueInvoiceResult> {
   let invoiceSeriesId: string | null = null;
   let previousNumber: number | null = null;
 
@@ -270,13 +298,43 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
     }
 
     // 3. Verificare: Transfer necesar închis?
+    // Dacă transferul nu e finalizat, returnăm warning (nu blocare hard)
+    // Utilizatorul poate confirma pentru a continua
     if (order.requiredTransferId && order.requiredTransfer) {
       if (order.requiredTransfer.status !== "COMPLETED") {
-        return {
-          success: false,
-          error: getInvoiceErrorMessage("TRANSFER_PENDING"),
-          errorCode: "TRANSFER_PENDING",
-        };
+        const transferNumber = order.requiredTransfer.transferNumber || order.requiredTransferId;
+        const transferStatus = order.requiredTransfer.status;
+
+        // Dacă utilizatorul NU a confirmat, returnăm warning
+        if (!options?.acknowledgeTransferWarning) {
+          return {
+            success: false,
+            needsConfirmation: true,
+            warning: {
+              type: "TRANSFER_PENDING",
+              transferNumber,
+              transferStatus,
+              message: `Atenție! Transferul #${transferNumber} nu e finalizat. Risc de eroare la facturare.`,
+            },
+            errorCode: "TRANSFER_PENDING",
+          };
+        }
+
+        // Utilizatorul a confirmat - log override și continuăm
+        // Import dinamic pentru a evita circular dependencies
+        const { logWarningOverride } = await import("./activity-log");
+        await logWarningOverride({
+          orderId,
+          orderNumber: order.shopifyOrderNumber || orderId,
+          warningType: "TRANSFER_PENDING",
+          warningDetails: {
+            transferId: order.requiredTransferId,
+            transferNumber,
+            transferStatus,
+          },
+          acknowledgedBy: options.warningAcknowledgedBy || "unknown",
+        });
+        console.log(`[Invoice] Warning override: transfer ${transferNumber} nefinalizat, utilizator a confirmat`);
       }
     }
 
