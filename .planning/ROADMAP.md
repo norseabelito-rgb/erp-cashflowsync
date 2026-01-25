@@ -132,14 +132,14 @@ Plans:
   5. Errors display clear, actionable messages (not technical jargon)
   6. Empty states show helpful guidance and relevant call-to-action
 
-**Plans**: TBD
+**Plans**: 5 plans in 3 waves
 
 Plans:
-- [ ] 06-01: Tooltip system implementation
-- [ ] 06-02: Design system audit and consistency fixes
-- [ ] 06-03: Responsive layout improvements
-- [ ] 06-04: Loading and error state standardization
-- [ ] 06-05: Empty state designs
+- [ ] 06-01-PLAN.md — TooltipProvider, ActionTooltip, and Skeleton components (Wave 1)
+- [ ] 06-02-PLAN.md — ErrorModal and error message mapping (Wave 1)
+- [ ] 06-03-PLAN.md — Visual consistency: design tokens and table striping (Wave 2)
+- [ ] 06-04-PLAN.md — Loading states and useErrorModal hook for key pages (Wave 2)
+- [ ] 06-05-PLAN.md — Empty state configurations and context-aware display (Wave 3)
 
 ### Phase 7: Task Management Core
 **Goal**: Basic task management available for operational and business tracking
