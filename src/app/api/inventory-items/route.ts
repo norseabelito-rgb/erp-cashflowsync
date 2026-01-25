@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
     const supplierId = searchParams.get("supplierId");
     const lowStock = searchParams.get("lowStock") === "true";
     const excludeMapped = searchParams.get("excludeMapped") === "true";
+    const grouped = searchParams.get("grouped") === "true";
     const warehouseId = searchParams.get("warehouseId"); // Filtru per depozit
     const includeWarehouseStock = searchParams.get("includeWarehouseStock") === "true";
     const page = parseInt(searchParams.get("page") || "1");
@@ -76,6 +77,80 @@ export async function GET(request: NextRequest) {
           warehouseId: warehouseId,
         },
       };
+    }
+
+    // Grouped response mode - returns available and assigned items separately
+    if (grouped) {
+      // Build base where clause without excludeMapped
+      const baseWhere: any = { ...where };
+      delete baseWhere.mappedProducts;
+
+      // Add search filter if present
+      if (search) {
+        baseWhere.OR = [
+          { sku: { contains: search, mode: "insensitive" } },
+          { name: { contains: search, mode: "insensitive" } },
+        ];
+      }
+
+      // Add isActive filter if present
+      if (isActive !== null && isActive !== undefined && isActive !== "") {
+        baseWhere.isActive = isActive === "true";
+      }
+
+      const [availableItems, assignedItems] = await Promise.all([
+        prisma.inventoryItem.findMany({
+          where: {
+            ...baseWhere,
+            mappedProducts: { none: {} }
+          },
+          select: {
+            id: true,
+            sku: true,
+            name: true,
+            currentStock: true,
+            costPrice: true,
+            unit: true,
+          },
+          orderBy: { sku: 'asc' },
+          take: 200, // Limit for performance
+        }),
+        prisma.inventoryItem.findMany({
+          where: {
+            ...baseWhere,
+            mappedProducts: { some: {} }
+          },
+          include: {
+            mappedProducts: {
+              select: {
+                id: true,
+                title: true,
+              },
+              take: 1,
+            }
+          },
+          orderBy: { sku: 'asc' },
+          take: 200,
+        })
+      ]);
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          available: availableItems,
+          assigned: assignedItems.map(item => ({
+            id: item.id,
+            sku: item.sku,
+            name: item.name,
+            currentStock: item.currentStock,
+            costPrice: item.costPrice,
+            unit: item.unit,
+            assignedTo: item.mappedProducts[0]
+              ? { productId: item.mappedProducts[0].id, productName: item.mappedProducts[0].title }
+              : null
+          }))
+        }
+      });
     }
 
     const skip = (page - 1) * limit;
