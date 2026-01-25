@@ -5,35 +5,34 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 3 - Internal Settlement (decontare interna) - **COMPLETE** (including gap closure)
+**Current focus:** Phase 4 - Flow Integrity (previne mismatch-uri intre facturi si AWB-uri)
 
 ## Current Position
 
-Phase: 3 of 10 (Internal Settlement) - **COMPLETE**
-Plan: 5 of 5 complete (including gap closure plan)
-Status: **PHASE COMPLETE** - Ready for next phase
-Last activity: 2026-01-25 - Completed 03-05-PLAN.md (order selection wiring gap closure)
+Phase: 4 of 10 (Flow Integrity)
+Plan: 2 of 4 complete
+Status: In progress
+Last activity: 2026-01-25 - Completed 04-02-PLAN.md (AWB mismatch detection)
 
-Progress: [████████░░░░░░░░░░░░] 40%
+Progress: [█████████░░░░░░░░░░░] 45%
 
-## Phase 3 Progress
+## Phase 4 Progress
 
 | Plan | Status | Summary |
 |------|--------|---------|
-| 03-01 | Complete | Schema extended for Oblio, eligible orders API created |
-| 03-02 | Complete | Settlement preview uses costPrice, POST for order selection |
-| 03-03 | Complete | Order selection UI with pre-selection and warnings |
-| 03-04 | Complete | Oblio invoice generation for settlements with retry capability |
-| 03-05 | Complete | Gap closure: orderIds wired from UI through API to service |
+| 04-01 | Pending | Invoice transfer blocking |
+| 04-02 | Complete | AWB mismatch detection with warning/confirmation flow |
+| 04-03 | Pending | Unified warning confirmation modal |
+| 04-04 | Pending | End-to-end flow integrity tests |
 
 ---
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 14
 - Average duration: ~6 minutes
-- Total execution time: ~76 minutes
+- Total execution time: ~84 minutes
 
 **By Phase:**
 
@@ -42,6 +41,7 @@ Progress: [████████░░░░░░░░░░░░] 40%
 | 01-system-audit | 4/4 | ~28 min | ~7 min |
 | 02-invoice-series-fix | 5/5 | ~21 min | ~4.2 min |
 | 03-internal-settlement | 5/5 | ~27 min | ~5.4 min |
+| 04-flow-integrity | 1/4 | ~8 min | ~8 min |
 
 ## Accumulated Context
 
@@ -49,27 +49,24 @@ Progress: [████████░░░░░░░░░░░░] 40%
 
 Recent decisions affecting current work:
 
+- **04-02:** AWB mismatch is warning, not blocking - allows proceeding after acknowledgment
+- **04-02:** Mismatch overrides logged for audit trail
+- **04-02:** Amber color for missing credentials (warning), green for configured
 - **03-05:** orderIds parameter is optional - empty/undefined falls back to all eligible orders
 - **03-05:** runWeeklySettlement explicitly passes undefined for orderIds (uses all eligible)
 - **03-04:** 19% VAT rate for all intercompany settlement products
 - **03-04:** Oblio series from issuing company (intercompanySeriesName)
 - **03-04:** Oblio failure non-blocking - settlement created, allows retry later
-- **03-04:** Type assertions used for fields pending prisma generate
 - **03-03:** Orders pre-selected by default, user deselects to exclude
 - **03-03:** Warning banner shows when any order has missing cost prices
-- **03-03:** Preview uses POST with orderIds array for selective calculation
 - **03-02:** Settlement uses InventoryItem.costPrice (acquisition price), NOT order lineItem.price
-- **03-02:** Markup calculated on total subtotal, not per-line items
-- **03-02:** Products without costPrice included with 0 value + warning generated
 - **03-01:** Oblio fields on IntercompanyInvoice (oblioInvoiceId, oblioSeriesName, oblioInvoiceNumber, oblioLink)
-- **03-01:** intercompanySeriesName on Company for dedicated settlement invoice series
-- **03-01:** Cost price lookup: masterProduct.inventoryItem first, then direct SKU match
 - **02-05:** Inlocuit Facturis cu Oblio - autentificare simpla OAuth 2.0 (email + token)
 
 ### Blockers/Concerns
 
 **NEXT:**
-- Ready for Phase 4 (Warehouse/Inventory) or other priorities
+- Continue Phase 4 (04-01 invoice transfer blocking, or 04-03 modal)
 
 **CRITICAL (Blocheaza munca):**
 - TD-01: Order processing no transaction - partial failures cause inconsistent data
@@ -79,27 +76,25 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed Phase 3 (03-05-PLAN.md gap closure)
+Stopped at: Completed 04-02-PLAN.md (AWB mismatch detection)
 Resume file: None
 
-## Phase 3 Completed
+## Phase 4 In Progress
 
-Internal Settlement flow complete:
-- Schema extended with Oblio fields for invoice tracking
-- Settlement calculated using acquisition price (costPrice) with markup
-- Order selection UI with pre-selection and warning banners
-- Oblio invoice generation on settlement creation
-- Retry capability for failed Oblio generations
-- **Gap closed:** orderIds wired from UI through API to generateIntercompanyInvoice
+Flow Integrity features:
+- [x] AWB mismatch detection (04-02)
+- [ ] Invoice transfer blocking (04-01)
+- [ ] Unified warning modal (04-03)
+- [ ] E2E flow tests (04-04)
 
 ## Recent Commits
 
-- `2ef9679` feat(03-05): pass orderIds from API to generateIntercompanyInvoice
-- `6bedd1b` feat(03-05): add orderIds parameter to generateIntercompanyInvoice
-- `3e9cfee` feat(03-04): add retry Oblio generation endpoint for failed settlements
-- `c92ae43` feat(03-04): integrate Oblio into generate API and update UI
-- `46e01b9` feat(03-04): add Oblio invoice generation for intercompany settlements
+- `58fcd88` feat(04-02): improve credential status badges with clearer text
+- `0dd4dfe` feat(04-02): add FanCourier credential help text
+- `9cda88d` feat(04-02): add AWB company mismatch detection
+- `a60c776` docs(04): create phase plan for flow integrity
+- `8ea505d` docs(04): research flow integrity phase
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-25 (Phase 3 gap closure complete)*
+*Last updated: 2026-01-25 (04-02 complete)*
