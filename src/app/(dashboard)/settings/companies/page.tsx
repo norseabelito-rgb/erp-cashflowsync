@@ -1015,6 +1015,11 @@ export default function CompaniesPage() {
                 </div>
               </div>
 
+              <p className="text-xs text-muted-foreground">
+                Credențialele SelfAWB pentru generarea AWB-urilor pe contul acestei firme.
+                Dacă nu sunt completate, AWB-urile nu pot fi generate pentru această firmă.
+              </p>
+
               <div className="pt-4 border-t">
                 <h4 className="font-medium mb-3">Date Expeditor (Sender)</h4>
                 <p className="text-sm text-muted-foreground mb-4">
