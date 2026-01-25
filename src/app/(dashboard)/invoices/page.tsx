@@ -53,6 +53,8 @@ import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import { SkeletonTableRow } from "@/components/ui/skeleton";
 import { useErrorModal } from "@/hooks/use-error-modal";
+import { EmptyState } from "@/components/ui/empty-state";
+import { getEmptyState, determineEmptyStateType } from "@/lib/empty-states";
 
 interface Invoice {
   id: string;
@@ -110,7 +112,7 @@ export default function InvoicesPage() {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
 
-  const { data: invoicesData, isLoading, refetch } = useQuery({
+  const { data: invoicesData, isLoading, isError, refetch } = useQuery({
     queryKey: ["invoices", statusFilter, paymentFilter, searchQuery],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -447,12 +449,37 @@ export default function InvoicesPage() {
                     ))}
                   </>
                 ) : invoices.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="p-8 text-center">
-                      <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                      <p className="text-muted-foreground">Nu există facturi</p>
-                    </td>
-                  </tr>
+                  (() => {
+                    const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || paymentFilter !== "all";
+                    const emptyStateType = determineEmptyStateType(hasActiveFilters, isError);
+                    const emptyConfig = getEmptyState("invoices", emptyStateType);
+                    const clearFilters = () => {
+                      setSearchQuery("");
+                      setStatusFilter("all");
+                      setPaymentFilter("all");
+                    };
+                    return (
+                      <tr>
+                        <td colSpan={8}>
+                          <EmptyState
+                            icon={emptyConfig.icon}
+                            title={emptyConfig.title}
+                            description={emptyConfig.description}
+                            action={emptyConfig.action?.href ? {
+                              label: emptyConfig.action.label,
+                              href: emptyConfig.action.href
+                            } : emptyConfig.action?.onClick === "clearFilters" ? {
+                              label: emptyConfig.action.label,
+                              onClick: clearFilters
+                            } : emptyConfig.action?.onClick === "refresh" ? {
+                              label: emptyConfig.action.label,
+                              onClick: () => refetch()
+                            } : undefined}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })()
                 ) : (
                   invoices.map((invoice) => (
                     <tr
