@@ -4,15 +4,46 @@ import crypto from "crypto";
 
 /**
  * Meta Webhooks Endpoint
- * 
+ *
  * Gestionează:
  * 1. Verificarea inițială de la Meta (GET)
  * 2. Primirea evenimentelor (POST)
- * 
+ *
  * Configurare în Facebook Developer Console:
  * - Callback URL: https://erp.cashflowgrup.net/api/webhooks/meta
  * - Verify Token: Se generează în platformă (Ads > Setări > Webhooks)
  */
+
+/**
+ * Extract unique event ID from Facebook webhook payload.
+ * Facebook provides event IDs in different locations depending on event type.
+ * Falls back to MD5 hash of payload if no explicit ID found.
+ */
+function extractEventId(entry: any, change: any): string {
+  // Try multiple locations where Facebook might put the event ID
+  const possibleIds = [
+    change.value?.id,                          // Most campaign events
+    change.value?.event_id,                    // Some conversion events
+    entry.id && change.field ? `${entry.id}_${change.field}_${change.value?.time || Date.now()}` : null, // Composite
+  ].filter(Boolean);
+
+  if (possibleIds.length > 0) {
+    return String(possibleIds[0]);
+  }
+
+  // Fallback: generate deterministic hash from payload
+  // This ensures the same payload always produces the same ID
+  const payloadString = JSON.stringify({
+    entryId: entry.id,
+    field: change.field,
+    value: change.value,
+  });
+
+  return crypto
+    .createHash('md5')
+    .update(payloadString)
+    .digest('hex');
+}
 
 // Helper: Create notification for all users with ads access
 async function createAdsNotification(notification: {
@@ -173,21 +204,40 @@ export async function POST(request: NextRequest) {
     for (const entry of entries) {
       const objectId = entry.id;
       const changes = entry.changes || [];
-      
+
       for (const change of changes) {
         const eventType = change.field;
         const value = change.value;
-        
-        // Salvează evenimentul în DB pentru procesare
+
+        // Extract unique event ID for deduplication
+        const externalEventId = extractEventId(entry, change);
+
+        // Check for duplicate event
+        const existingEvent = await prisma.adsWebhookEvent.findFirst({
+          where: {
+            platform: "META",
+            externalEventId,
+          },
+        });
+
+        if (existingEvent) {
+          console.log(`[Meta Webhook] Duplicate event ${externalEventId}, skipping`);
+          continue; // Silent skip per decisions
+        }
+
+        // Save event with dedup key
         await prisma.adsWebhookEvent.create({
           data: {
             platform: "META",
             eventType,
             objectId,
+            externalEventId,
             payload: value,
           },
         });
-        
+
+        console.log(`[Meta Webhook] Processing ${eventType} for ${objectId} (eventId: ${externalEventId})`);
+
         // Procesează imediat anumite tipuri de evenimente
         await processWebhookEvent(eventType, objectId, value);
       }
