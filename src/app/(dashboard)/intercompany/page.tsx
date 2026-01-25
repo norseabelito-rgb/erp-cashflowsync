@@ -15,6 +15,8 @@ import {
   CheckSquare,
   Square,
   MinusSquare,
+  ExternalLink,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +69,10 @@ interface IntercompanyInvoice {
   paidAt: string | null;
   issuedByCompany: Company;
   receivedByCompany: Company;
+  oblioInvoiceId?: string | null;
+  oblioSeriesName?: string | null;
+  oblioInvoiceNumber?: string | null;
+  oblioLink?: string | null;
   _count: {
     orders: number;
   };
@@ -209,15 +215,50 @@ export default function IntercompanyPage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["intercompany-invoices"] });
+
+      // Show success with Oblio info
+      let description = `Factura ${data.invoiceNumber} a fost generata.`;
+      if (data.oblio?.success) {
+        description += ` Oblio: ${data.oblio.seriesName}${data.oblio.invoiceNumber}`;
+      } else if (data.oblio?.error) {
+        description += ` Atentie: Factura Oblio nu s-a generat - ${data.oblio.error}`;
+      }
+
       toast({
-        title: "Factura generata",
-        description: `Factura ${data.invoiceNumber} a fost generata cu succes.`,
+        title: "Decontare generata",
+        description,
       });
       setIsPreviewOpen(false);
       setPreviewData(null);
       setSelectedOrderIds(new Set());
       setEligibleOrders([]);
       setSelectedCompanyId("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Eroare",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Retry Oblio invoice generation mutation
+  const retryOblioMutation = useMutation({
+    mutationFn: async (invoiceId: string) => {
+      const res = await fetch(`/api/intercompany/invoices/${invoiceId}/oblio`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["intercompany-invoices"] });
+      toast({
+        title: "Factura Oblio generata",
+        description: `Factura Oblio: ${data.oblioSeriesName}${data.oblioInvoiceNumber}`,
+      });
     },
     onError: (error: any) => {
       toast({
@@ -629,6 +670,7 @@ export default function IntercompanyPage() {
                   <TableHead>Perioada</TableHead>
                   <TableHead>Comenzi</TableHead>
                   <TableHead className="text-right">Valoare</TableHead>
+                  <TableHead>Oblio</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Emis la</TableHead>
                   <TableHead></TableHead>
@@ -659,6 +701,39 @@ export default function IntercompanyPage() {
                     <TableCell>{invoice._count.orders}</TableCell>
                     <TableCell className="text-right font-medium">
                       {Number(invoice.totalValue).toLocaleString("ro-RO")} RON
+                    </TableCell>
+                    <TableCell>
+                      {invoice.oblioLink ? (
+                        <a
+                          href={invoice.oblioLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          {invoice.oblioSeriesName}
+                          {invoice.oblioInvoiceNumber}
+                        </a>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-yellow-600">
+                            Doar intern
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => retryOblioMutation.mutate(invoice.id)}
+                            disabled={retryOblioMutation.isPending}
+                            title="Genereaza factura Oblio"
+                          >
+                            {retryOblioMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge

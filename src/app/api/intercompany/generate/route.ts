@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
-import { generateIntercompanyInvoice } from "@/lib/intercompany-service";
+import {
+  generateIntercompanyInvoice,
+  generateOblioIntercompanyInvoice,
+} from "@/lib/intercompany-service";
 
 /**
  * POST /api/intercompany/generate - Generează factură intercompany
@@ -26,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { companyId, periodStart, periodEnd } = body;
+    const { companyId, orderIds, periodStart, periodEnd } = body;
 
     if (!companyId) {
       return NextResponse.json(
@@ -38,6 +41,7 @@ export async function POST(request: NextRequest) {
     const periodStartDate = periodStart ? new Date(periodStart) : undefined;
     const periodEndDate = periodEnd ? new Date(periodEnd) : undefined;
 
+    // Generate the intercompany invoice (creates record + links orders)
     const result = await generateIntercompanyInvoice(companyId, periodStartDate, periodEndDate);
 
     if (!result.success) {
@@ -47,10 +51,25 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Try to generate Oblio invoice
+    let oblioResult = null;
+    if (result.invoiceId) {
+      oblioResult = await generateOblioIntercompanyInvoice(result.invoiceId);
+    }
+
     return NextResponse.json({
       success: true,
       invoiceId: result.invoiceId,
       invoiceNumber: result.invoiceNumber,
+      oblio: oblioResult
+        ? {
+            success: oblioResult.success,
+            invoiceNumber: oblioResult.oblioInvoiceNumber,
+            seriesName: oblioResult.oblioSeriesName,
+            link: oblioResult.oblioLink,
+            error: oblioResult.error,
+          }
+        : null,
     });
   } catch (error: any) {
     console.error("Error generating intercompany invoice:", error);
