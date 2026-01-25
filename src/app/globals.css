@@ -70,6 +70,18 @@
     --duration-fast: 150ms;
     --duration-normal: 200ms;
     --duration-slow: 300ms;
+
+    /* Table row striping */
+    --row-stripe: hsl(var(--muted) / 0.3);
+
+    /* Consistent transitions */
+    --transition-fast: 150ms ease-out;
+    --transition-normal: 200ms ease-out;
+    --transition-slow: 300ms ease-out;
+
+    /* Focus ring consistency */
+    --focus-ring: hsl(var(--ring) / 0.5);
+    --focus-ring-offset: 2px;
   }
 
   .dark {
@@ -108,6 +120,9 @@
     --surface-1: 224 71% 6%;
     --surface-2: 224 71% 10%;
     --surface-3: 224 71% 14%;
+
+    /* Slightly different stripe for dark mode */
+    --row-stripe: hsl(var(--muted) / 0.2);
   }
 }
 
@@ -208,6 +223,26 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: hsl(var(--muted));
     border-radius: 3px;
+  }
+
+  /* Zebra striping for tables */
+  .table-zebra tbody tr:nth-child(even) {
+    background-color: var(--row-stripe);
+  }
+
+  /* Focus visible enhancement */
+  .focus-enhanced:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 var(--focus-ring-offset) hsl(var(--background)),
+                0 0 0 calc(var(--focus-ring-offset) + 2px) var(--focus-ring);
+  }
+
+  /* Notion-like subtle hover */
+  .hover-subtle {
+    transition: background-color var(--transition-fast);
+  }
+  .hover-subtle:hover {
+    background-color: var(--row-stripe);
   }
 }
 
