@@ -1,8 +1,32 @@
 import prisma from "@/lib/db";
 
 /**
+ * Extract the numeric portion from a formatted invoice number.
+ * Handles formats like "CFG000123" -> 123, "FA-000001" -> 1
+ * @param invoiceNumber - The formatted invoice number string
+ * @param prefix - The series prefix to remove
+ * @returns The extracted number or null if parsing fails
+ */
+function extractNumberFromInvoice(invoiceNumber: string, prefix: string): number | null {
+  // Remove the prefix (case insensitive)
+  const withoutPrefix = invoiceNumber.replace(new RegExp(`^${prefix}`, 'i'), '');
+
+  // Remove any separator characters (-, _, etc.)
+  const numericPart = withoutPrefix.replace(/^[-_]/, '');
+
+  // Parse the number (parseInt handles leading zeros)
+  const parsed = parseInt(numericPart, 10);
+
+  return isNaN(parsed) ? null : parsed;
+}
+
+/**
  * Get the next invoice number for a series and increment the counter
  * Uses atomic transaction to prevent race conditions
+ * Handles edge cases idempotently:
+ * - Negative or zero currentNumber
+ * - currentNumber below startNumber
+ * - Gap detection (currentNumber behind last issued invoice)
  * @param seriesId - The ID of the invoice series
  * @returns Object with prefix, number and formatted string, or null if series not found/inactive
  */
@@ -28,22 +52,63 @@ export async function getNextInvoiceNumber(seriesId: string): Promise<{
 
     let currentNumber = series.currentNumber;
     let correctionApplied = false;
-    let correctionMessage: string | null = null;
+    const corrections: string[] = [];
 
-    // Fix: Ensure currentNumber is at least 1 (fix for legacy data with 0 or negative)
+    // === EDGE CASE 1: Negative or zero ===
+    // Legacy data might have invalid currentNumber
     if (currentNumber < 1) {
       const newNumber = Math.max(1, series.startNumber || 1);
-      correctionApplied = true;
-      correctionMessage = `Numarul seriei a fost corectat automat de la ${currentNumber} la ${newNumber}`;
+      corrections.push(`Numar negativ/zero corectat: ${currentNumber} -> ${newNumber}`);
       currentNumber = newNumber;
+      correctionApplied = true;
+    }
 
-      // Update in database
+    // === EDGE CASE 2: Below startNumber ===
+    // currentNumber should never be below the configured startNumber
+    if (currentNumber < series.startNumber) {
+      corrections.push(`Sub startNumber corectat: ${currentNumber} -> ${series.startNumber}`);
+      currentNumber = series.startNumber;
+      correctionApplied = true;
+    }
+
+    // === EDGE CASE 3: Detect gaps by checking last issued invoice ===
+    // If currentNumber is behind or equal to the last issued invoice,
+    // we need to jump ahead to avoid collisions
+    const lastInvoice = await tx.invoice.findFirst({
+      where: {
+        seriesId: series.id,
+        // Only consider invoices that have been numbered (not drafts)
+        invoiceNumber: { not: null }
+      },
+      orderBy: { invoiceNumber: 'desc' },
+      select: { invoiceNumber: true }
+    });
+
+    if (lastInvoice && lastInvoice.invoiceNumber !== null) {
+      // Parse the invoice number from the formatted string (e.g., "CFG000123" -> 123)
+      // The invoiceNumber field stores the formatted string, we need to extract the numeric part
+      const lastNumber = extractNumberFromInvoice(lastInvoice.invoiceNumber, series.prefix);
+
+      if (lastNumber !== null && lastNumber >= currentNumber) {
+        const newNumber = lastNumber + 1;
+        corrections.push(`Gap detectat - ultima factura ${lastNumber}, corectat: ${currentNumber} -> ${newNumber}`);
+        currentNumber = newNumber;
+        correctionApplied = true;
+      }
+    }
+
+    // Build correction message for logging/return
+    const correctionMessage = correctionApplied
+      ? `Auto-corectie seria ${series.prefix}: ${corrections.join('; ')}`
+      : null;
+
+    // Only update DB if correction was needed (idempotent)
+    if (correctionApplied) {
       await tx.invoiceSeries.update({
         where: { id: seriesId },
         data: { currentNumber: currentNumber },
       });
-
-      console.log(`[InvoiceSeries] Auto-corectie: seria ${series.prefix} de la ${series.currentNumber} la ${currentNumber}`);
+      console.log(`[InvoiceSeries] ${correctionMessage}`);
     }
 
     const padding = series.numberPadding || 6;

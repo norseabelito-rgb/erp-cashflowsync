@@ -15,10 +15,12 @@ interface SyncResult {
   productId: string | null;
   imagesFound: number;
   imagesAdded: number;
+  imagesSkipped: number;
   imagesUpdated: number;
   imagesRemoved: number;
   status: "synced" | "created" | "not_found" | "error";
   error?: string;
+  errors: string[];
 }
 
 // GET - Status sincronizare și preview
@@ -190,9 +192,11 @@ export async function POST(request: NextRequest) {
         productId: null,
         imagesFound: 0,
         imagesAdded: 0,
+        imagesSkipped: 0,
         imagesUpdated: 0,
         imagesRemoved: 0,
         status: "not_found",
+        errors: [],
       };
 
       try {
@@ -224,40 +228,53 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        console.log(`  📸 ${product.sku}: ${product.images.length} imagini existente, ${driveImages.length} în Drive`);
+        // Fetch existing images for the product
+        const existing = await prisma.masterProductImage.findMany({
+          where: { productId: product.id },
+          select: { url: true, position: true }
+        });
+        const existingUrls = new Set(existing.map(img => img.url));
+        let nextPosition = existing.length > 0
+          ? Math.max(...existing.map(img => img.position)) + 1
+          : 0;
 
-        // SOLUȚIE SIMPLĂ: Ștergem toate imaginile existente și le recreăm
-        // Aceasta evită problemele de constraint unic pe (productId, position)
-        if (product.images.length > 0) {
-          console.log(`    🗑️ Șterg ${product.images.length} imagini existente pentru ${product.sku}`);
-          await prisma.masterProductImage.deleteMany({
-            where: { productId: product.id },
-          });
-          result.imagesRemoved = product.images.length;
-        }
+        console.log(`  [${folders.indexOf(folder) + 1}/${folders.length}] ${product.sku}: ${existing.length} existing, ${driveImages.length} in Drive`);
 
-        // Creează imaginile noi din Drive
+        // Create only new images (skip existing URLs)
         for (let i = 0; i < driveImages.length; i++) {
           const driveImg = driveImages[i];
-          const position = i; // Prima imagine (index 0) = principală
           const imageUrl = getPublicImageUrl(driveImg.id);
+
+          // Skip if URL already exists
+          if (existingUrls.has(imageUrl)) {
+            result.imagesSkipped++;
+            continue;
+          }
+
           const modifiedTime = driveImg.modifiedTime
             ? new Date(driveImg.modifiedTime)
             : null;
 
-          await prisma.masterProductImage.create({
-            data: {
-              productId: product.id,
-              url: imageUrl,
-              filename: driveImg.name,
-              position,
-              driveFileId: driveImg.id,
-              driveModified: modifiedTime,
-            },
-          });
-          result.imagesAdded++;
-          console.log(`    ➕ Adăugat: ${driveImg.name} → poziția ${position}`);
+          try {
+            await prisma.masterProductImage.create({
+              data: {
+                productId: product.id,
+                url: imageUrl,
+                filename: driveImg.name,
+                position: nextPosition++,
+                driveFileId: driveImg.id,
+                driveModified: modifiedTime,
+              },
+            });
+            result.imagesAdded++;
+            console.log(`    + Added: ${driveImg.name} at position ${nextPosition - 1}`);
+          } catch (error: any) {
+            result.errors.push(`${driveImg.name}: ${error.message}`);
+            console.error(`    x Failed: ${driveImg.name} - ${error.message}`);
+          }
         }
+
+        console.log(`    Summary: ${result.imagesAdded} added, ${result.imagesSkipped} skipped, ${result.errors.length} errors`);
 
         result.status = "synced";
       } catch (error: any) {
@@ -284,8 +301,10 @@ export async function POST(request: NextRequest) {
       notFound: results.filter((r) => r.status === "not_found").length,
       errors: results.filter((r) => r.status === "error").length,
       imagesAdded: results.reduce((sum, r) => sum + r.imagesAdded, 0),
+      imagesSkipped: results.reduce((sum, r) => sum + r.imagesSkipped, 0),
       imagesUpdated: results.reduce((sum, r) => sum + r.imagesUpdated, 0),
       imagesRemoved: results.reduce((sum, r) => sum + r.imagesRemoved, 0),
+      imageErrors: results.flatMap(r => r.errors).slice(0, 20), // First 20 errors
     };
 
     return NextResponse.json({
