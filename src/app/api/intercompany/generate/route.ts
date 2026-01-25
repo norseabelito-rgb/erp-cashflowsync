@@ -42,7 +42,8 @@ export async function POST(request: NextRequest) {
     const periodEndDate = periodEnd ? new Date(periodEnd) : undefined;
 
     // Generate the intercompany invoice (creates record + links orders)
-    const result = await generateIntercompanyInvoice(companyId, periodStartDate, periodEndDate);
+    // orderIds: selected orders from UI. If undefined/empty, uses all eligible orders.
+    const result = await generateIntercompanyInvoice(companyId, orderIds, periodStartDate, periodEndDate);
 
     if (!result.success) {
       return NextResponse.json({
