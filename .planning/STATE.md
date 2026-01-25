@@ -5,34 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 4 - Flow Integrity - **COMPLETE**
+**Current focus:** Phase 5 - Known Bug Fixes - In Progress
 
 ## Current Position
 
-Phase: 4 of 10 (Flow Integrity)
-Plan: 4 of 4 complete
-Status: Phase complete
-Last activity: 2026-01-25 - Completed 04-04-PLAN.md (transfer warning modal integration)
+Phase: 5 of 10 (Known Bug Fixes)
+Plan: 3 of ? in phase
+Status: In progress
+Last activity: 2026-01-25 - Completed 05-03-PLAN.md (Meta webhook deduplication)
 
-Progress: [████████████░░░░░░░░] 55%
+Progress: [█████████████░░░░░░░] 58%
 
-## Phase 4 Progress
+## Phase 5 Progress
 
 | Plan | Status | Summary |
 |------|--------|---------|
-| 04-01 | Complete | Soft warning flow for pending transfers with user acknowledgment |
-| 04-02 | Complete | AWB mismatch detection with warning/confirmation flow |
-| 04-03 | Complete | Pre-flight transfer status check API (single + batch) |
-| 04-04 | Complete | Transfer warning modal integration in invoice flow |
+| 05-01 | Pending | - |
+| 05-02 | Pending | - |
+| 05-03 | Complete | Meta webhook deduplication via externalEventId field |
 
 ---
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 17
+- Total plans completed: 18
 - Average duration: ~6 minutes
-- Total execution time: ~106 minutes
+- Total execution time: ~110 minutes
 
 **By Phase:**
 
@@ -42,6 +41,7 @@ Progress: [████████████░░░░░░░░] 55%
 | 02-invoice-series-fix | 5/5 | ~21 min | ~4.2 min |
 | 03-internal-settlement | 5/5 | ~27 min | ~5.4 min |
 | 04-flow-integrity | 4/4 | ~30 min | ~7.5 min |
+| 05-known-bug-fixes | 1/? | ~4 min | ~4 min |
 
 ## Accumulated Context
 
@@ -49,6 +49,9 @@ Progress: [████████████░░░░░░░░] 55%
 
 Recent decisions affecting current work:
 
+- **05-03:** Use composite index not unique constraint for nullable externalEventId
+- **05-03:** Silent skip for duplicates - log and continue, no error
+- **05-03:** MD5 hash fallback for deterministic event ID when no explicit ID
 - **04-03:** Batch endpoint limited to 100 orders per request for performance
 - **04-03:** Summary object includes readyForInvoice count for UI convenience
 - **04-01:** Return needsConfirmation: true instead of hard error for pending transfers
@@ -67,7 +70,7 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 **NEXT:**
-- Ready for Phase 5: Known Bug Fixes
+- Continue Phase 5: Known Bug Fixes plans
 
 **CRITICAL (Blocheaza munca):**
 - TD-01: Order processing no transaction - partial failures cause inconsistent data
@@ -77,27 +80,25 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed 04-04-PLAN.md (transfer warning modal integration)
+Stopped at: Completed 05-03-PLAN.md (Meta webhook deduplication)
 Resume file: None
 
-## Phase 4 Complete
+## Phase 5 Progress (Known Bug Fixes)
 
-Flow Integrity features:
-- [x] Invoice transfer warning (04-01)
-- [x] AWB mismatch detection (04-02)
-- [x] Pre-flight transfer check API (04-03)
-- [x] Transfer warning modal integration (04-04)
+- [ ] 05-01: Pending
+- [ ] 05-02: Pending
+- [x] 05-03: Meta webhook deduplication
 
 ## Recent Commits
 
+- `7d8b78b` feat(05-03): add deduplication to Meta webhook handler
+- `df5bcc2` feat(05-03): add externalEventId field for webhook deduplication
 - `efc2088` feat(04-04): wire TransferWarningModal into orders page invoice flow
 - `e6a0b12` feat(04-04): add transfer warning acknowledgment to invoice issue API
 - `ca400d9` feat(04-04): create TransferWarningModal component
 - `0492389` feat(04-03): add batch transfer status check endpoint
 - `eefd049` feat(04-03): add single order transfer status check endpoint
-- `a45970f` fix(04-01): use ActionType.UPDATE for warning override logging
-- `58fcd88` feat(04-02): improve credential status badges with clearer text
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-25 (Phase 4 complete)*
+*Last updated: 2026-01-25 (05-03 complete)*
