@@ -373,34 +373,33 @@ export async function logOrderDataUpdate(params: {
 }
 
 /**
- * Helper pentru logarea override-urilor de avertismente
- * Folosit când utilizatorul continuă în ciuda unui avertisment (mismatch, transfer, etc.)
+ * Helper pentru logarea când utilizatorul continuă în ciuda unui avertisment
+ * Folosește ActionType.UPDATE cu warningType în details pentru filtrare ulterioară
+ * (evită schema migration pentru ActionType.WARNING_OVERRIDE)
  */
 export async function logWarningOverride(params: {
   orderId: string;
   orderNumber: string;
-  warningType: "AWB_MISMATCH" | "INVOICE_MISMATCH" | "TRANSFER_PENDING" | string;
+  warningType: "TRANSFER_PENDING" | "AWB_MISMATCH";
   warningDetails: Record<string, any>;
   acknowledgedBy: string;
 }) {
-  const warningMessages: Record<string, string> = {
-    AWB_MISMATCH: "AWB emis pe firmă diferită de magazin",
-    INVOICE_MISMATCH: "Factură emisă pe firmă diferită de magazin",
-    TRANSFER_PENDING: "Acțiune executată cu transfer nefinalizat",
-  };
+  const description = params.warningType === "TRANSFER_PENDING"
+    ? `Factură emisă cu transfer nefinalizat: ${params.warningDetails.transferNumber}`
+    : `AWB generat cu firma diferită de facturare`;
 
   return logActivity({
     entityType: EntityType.ORDER,
     entityId: params.orderId,
-    action: ActionType.WARNING_OVERRIDE,
-    description: `⚠️ Avertisment ignorat pentru comanda #${params.orderNumber}: ${warningMessages[params.warningType] || params.warningType} (confirmat de ${params.acknowledgedBy})`,
+    action: ActionType.UPDATE, // Using UPDATE since WARNING_OVERRIDE not in enum
+    description,
     orderId: params.orderId,
     orderNumber: params.orderNumber,
     details: {
       warningType: params.warningType,
-      ...params.warningDetails,
       acknowledgedBy: params.acknowledgedBy,
       acknowledgedAt: new Date().toISOString(),
+      ...params.warningDetails,
     },
     source: "manual",
   });
