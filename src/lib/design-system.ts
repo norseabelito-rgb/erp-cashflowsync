@@ -186,3 +186,81 @@ export const Z_INDEX = {
   toast: "z-[100]",
   overlay: "z-40",
 } as const;
+
+// =============================================================================
+// SPACING SCALE (4px base unit - Notion-like)
+// =============================================================================
+
+/** Vertical spacing scale based on 4px base unit */
+export const SPACING_SCALE = {
+  xs: "space-y-1",    // 4px
+  sm: "space-y-2",    // 8px
+  md: "space-y-4",    // 16px
+  lg: "space-y-6",    // 24px
+  xl: "space-y-8",    // 32px
+} as const;
+
+/** Gap scale for flex/grid layouts */
+export const GAP_SCALE = {
+  xs: "gap-1",        // 4px
+  sm: "gap-2",        // 8px
+  md: "gap-4",        // 16px
+  lg: "gap-6",        // 24px
+  xl: "gap-8",        // 32px
+} as const;
+
+// =============================================================================
+// SHADOW SCALE (Minimal shadows)
+// =============================================================================
+
+/** Shadow scale for elevation hierarchy */
+export const SHADOW_SCALE = {
+  none: "shadow-none",
+  sm: "shadow-sm",        // Subtle elevation
+  md: "shadow-md",        // Cards, dropdowns
+  lg: "shadow-lg",        // Modals, popovers
+} as const;
+
+// =============================================================================
+// BORDER RADIUS (Consistent rounding)
+// =============================================================================
+
+/** Border radius scale for consistent rounding */
+export const BORDER_RADIUS = {
+  none: "rounded-none",
+  sm: "rounded-sm",
+  md: "rounded-md",
+  lg: "rounded-lg",
+  xl: "rounded-xl",
+  full: "rounded-full",
+} as const;
+
+// =============================================================================
+// TEXT STYLES (Typography hierarchy)
+// =============================================================================
+
+/** Typography hierarchy styles */
+export const TEXT_STYLES = {
+  h1: "text-2xl md:text-3xl font-bold tracking-tight",
+  h2: "text-xl md:text-2xl font-semibold tracking-tight",
+  h3: "text-lg font-semibold",
+  body: "text-sm text-foreground",
+  muted: "text-sm text-muted-foreground",
+  small: "text-xs text-muted-foreground",
+} as const;
+
+// =============================================================================
+// VISUAL PATTERNS (Reusable combinations)
+// =============================================================================
+
+/** Reusable visual pattern combinations */
+export const VISUAL_PATTERNS = {
+  /** Notion-like minimal card */
+  card: "bg-card rounded-lg border shadow-sm",
+  /** Card with hover effect */
+  cardHover: "bg-card rounded-lg border shadow-sm transition-all hover:shadow-md hover:border-primary/30",
+  /** Subtle background for sections */
+  section: "bg-muted/30 rounded-lg p-4",
+  /** Input container */
+  inputGroup: "bg-background rounded-md border",
+} as const;
