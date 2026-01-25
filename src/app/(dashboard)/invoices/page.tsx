@@ -55,6 +55,7 @@ import { SkeletonTableRow } from "@/components/ui/skeleton";
 import { useErrorModal } from "@/hooks/use-error-modal";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getEmptyState, determineEmptyStateType } from "@/lib/empty-states";
+import { ActionTooltip } from "@/components/ui/action-tooltip";
 
 interface Invoice {
   id: string;
@@ -308,14 +309,18 @@ export default function InvoicesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" size="sm" className="md:size-default" onClick={() => setHelpOpen(true)}>
-            <HelpCircle className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">Help - Statusuri</span>
-          </Button>
-          <Button variant="outline" size="sm" className="md:size-default" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">Reîmprospătează</span>
-          </Button>
+          <ActionTooltip action="Afiseaza ajutor">
+            <Button variant="outline" size="sm" className="md:size-default" onClick={() => setHelpOpen(true)}>
+              <HelpCircle className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Help - Statusuri</span>
+            </Button>
+          </ActionTooltip>
+          <ActionTooltip action="Reincarca facturi" consequence="Se actualizeaza lista">
+            <Button variant="outline" size="sm" className="md:size-default" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Reîmprospătează</span>
+            </Button>
+          </ActionTooltip>
         </div>
       </div>
 
@@ -562,11 +567,13 @@ export default function InvoicesPage() {
                       </td>
                       <td className="p-4" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
+                          <ActionTooltip action="Actiuni" consequence="Vezi optiunile disponibile">
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                          </ActionTooltip>
                           <DropdownMenuContent align="end">
                             {invoice.pdfUrl && (
                               <>
@@ -695,23 +702,30 @@ export default function InvoicesPage() {
             >
               Renunță
             </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmCancel}
+            <ActionTooltip
+              action="Confirma anularea"
+              consequence="Factura va fi stornata in Oblio"
               disabled={cancelMutation.isPending}
+              disabledReason="Se proceseaza..."
             >
-              {cancelMutation.isPending ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Se anulează...
-                </>
-              ) : (
-                <>
-                  <Ban className="h-4 w-4 mr-2" />
-                  Anulează factura
-                </>
-              )}
-            </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmCancel}
+                disabled={cancelMutation.isPending}
+              >
+                {cancelMutation.isPending ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Se anulează...
+                  </>
+                ) : (
+                  <>
+                    <Ban className="h-4 w-4 mr-2" />
+                    Anulează factura
+                  </>
+                )}
+              </Button>
+            </ActionTooltip>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -930,31 +944,38 @@ export default function InvoicesPage() {
             >
               Renunță
             </Button>
-            <Button
-              onClick={() => {
-                if (payDialog.invoice && paymentAmount) {
-                  payMutation.mutate({
-                    invoiceId: payDialog.invoice.id,
-                    amount: parseFloat(paymentAmount),
-                    method: paymentMethod,
-                  });
-                }
-              }}
+            <ActionTooltip
+              action="Marcheaza ca platita"
+              consequence="Se actualizeaza statusul platii"
               disabled={payMutation.isPending || !paymentAmount}
-              className="bg-status-success hover:bg-status-success/90"
+              disabledReason="Se proceseaza..."
             >
-              {payMutation.isPending ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Se înregistrează...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Confirmă plata
-                </>
-              )}
-            </Button>
+              <Button
+                onClick={() => {
+                  if (payDialog.invoice && paymentAmount) {
+                    payMutation.mutate({
+                      invoiceId: payDialog.invoice.id,
+                      amount: parseFloat(paymentAmount),
+                      method: paymentMethod,
+                    });
+                  }
+                }}
+                disabled={payMutation.isPending || !paymentAmount}
+                className="bg-status-success hover:bg-status-success/90"
+              >
+                {payMutation.isPending ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Se înregistrează...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Confirmă plata
+                  </>
+                )}
+              </Button>
+            </ActionTooltip>
           </DialogFooter>
         </DialogContent>
       </Dialog>
