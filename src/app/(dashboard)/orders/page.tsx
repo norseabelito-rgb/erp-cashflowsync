@@ -78,6 +78,7 @@ import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import { RequirePermission, usePermissions } from "@/hooks/use-permissions";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { getEmptyState, determineEmptyStateType } from "@/lib/empty-states";
 import { FILTER_BAR } from "@/lib/design-system";
 import { TransferWarningModal } from "@/components/orders/transfer-warning-modal";
 import { SkeletonTableRow } from "@/components/ui/skeleton";
@@ -387,7 +388,7 @@ export default function OrdersPage() {
   const [dbErrorTypeFilter, setDbErrorTypeFilter] = useState<string>("all");
   const [selectedDbErrors, setSelectedDbErrors] = useState<string[]>([]);
 
-  const { data: ordersData, isLoading: ordersLoading } = useQuery({
+  const { data: ordersData, isLoading: ordersLoading, isError: ordersError, refetch: refetchOrders } = useQuery({
     queryKey: ["orders", statusFilter, storeFilter, searchQuery, startDate, endDate, page, limit],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -1233,7 +1234,39 @@ export default function OrdersPage() {
                     ))}
                   </>
                 ) : orders.length === 0 ? (
-                  <tr><td colSpan={9} className="p-8 text-center"><ShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-50" /><p className="text-muted-foreground">Nu există comenzi</p></td></tr>
+                  (() => {
+                    const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || storeFilter !== "all" || startDate !== "" || endDate !== "";
+                    const emptyStateType = determineEmptyStateType(hasActiveFilters, ordersError);
+                    const emptyConfig = getEmptyState("orders", emptyStateType);
+                    const clearFilters = () => {
+                      setSearchQuery("");
+                      setStatusFilter("all");
+                      setStoreFilter("all");
+                      setStartDate("");
+                      setEndDate("");
+                    };
+                    return (
+                      <tr>
+                        <td colSpan={9}>
+                          <EmptyState
+                            icon={emptyConfig.icon}
+                            title={emptyConfig.title}
+                            description={emptyConfig.description}
+                            action={emptyConfig.action?.href ? {
+                              label: emptyConfig.action.label,
+                              href: emptyConfig.action.href
+                            } : emptyConfig.action?.onClick === "clearFilters" ? {
+                              label: emptyConfig.action.label,
+                              onClick: clearFilters
+                            } : emptyConfig.action?.onClick === "refresh" ? {
+                              label: emptyConfig.action.label,
+                              onClick: () => refetchOrders()
+                            } : undefined}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })()
                 ) : (
                   orders.map((order) => (
                     <tr
