@@ -3,12 +3,16 @@
  *
  * Serviciu pentru gestionarea decontărilor intercompany.
  * Aquaterra (firma primară) facturează firmele secundare pentru comenzile procesate.
+ *
+ * IMPORTANT: Settlement calculates using ACQUISITION PRICE (costPrice from InventoryItem),
+ * NOT customer order prices. This is the core business logic for intercompany invoicing.
  */
 
 import prisma from "./db";
 import { Prisma } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 
+// Base interface for settlement preview
 interface SettlementPreview {
   companyId: string;
   companyName: string;
@@ -37,11 +41,61 @@ interface SettlementPreview {
   total: number;
 }
 
+// Extended preview with cost-based calculations and order selection
+interface AggregatedProduct {
+  sku: string;
+  title: string;
+  quantity: number;
+  totalCostPrice: number; // Sum of (costPrice * quantity)
+  unitCostPrice: number; // Average unit cost
+  hasCostPrice: boolean; // false if any quantity lacks cost price
+}
+
+interface SettlementOrderInfo {
+  id: string;
+  orderNumber: string;
+  totalPrice: number; // What customer paid
+  costTotal: number; // Acquisition price total for this order
+  processedAt: Date;
+  productCount: number;
+  paymentType: "cod" | "online";
+  selected: boolean; // For UI selection
+}
+
+export interface SettlementPreviewExtended extends Omit<SettlementPreview, "orders"> {
+  warnings: string[]; // Products without costPrice
+  orders: SettlementOrderInfo[];
+  totals: {
+    orderCount: number;
+    subtotal: number; // Sum of costPrice
+    markupPercent: number;
+    markupAmount: number;
+    total: number; // With markup
+  };
+}
+
 interface SettlementResult {
   success: boolean;
   invoiceId?: string;
   invoiceNumber?: string;
   error?: string;
+}
+
+/**
+ * Batch-fetch cost prices from InventoryItem for given SKUs
+ * Uses two-step lookup:
+ * 1. Try to get costPrice via MasterProduct -> InventoryItem
+ * 2. Fallback to direct SKU match in InventoryItem
+ */
+async function getCostPricesForSkus(skus: string[]): Promise<Map<string, number | null>> {
+  if (skus.length === 0) return new Map();
+
+  const items = await prisma.inventoryItem.findMany({
+    where: { sku: { in: skus } },
+    select: { sku: true, costPrice: true },
+  });
+
+  return new Map(items.map((i) => [i.sku, i.costPrice ? Number(i.costPrice) : null]));
 }
 
 /**
@@ -68,7 +122,7 @@ export async function getSecondaryCompanies() {
  * Comenzi care:
  * - Sunt facturate pe firma secundară (billingCompanyId)
  * - Au status pending pentru decontare (intercompanyStatus = "pending")
- * - Au AWB livrat și încasat (pentru ramburs)
+ * - Au AWB livrat și încasat (pentru ramburs) SAU sunt plătite online
  */
 export async function getEligibleOrdersForSettlement(
   companyId: string,
@@ -80,6 +134,7 @@ export async function getEligibleOrdersForSettlement(
     orderNumber: string;
     totalPrice: Decimal;
     processedAt: Date;
+    paymentType: "cod" | "online";
     lineItems: Array<{
       sku: string | null;
       title: string;
@@ -88,30 +143,30 @@ export async function getEligibleOrdersForSettlement(
     }>;
   }>
 > {
-  const whereClause: any = {
-    billingCompanyId: companyId,
-    intercompanyStatus: "pending",
-    // Comanda trebuie să fie livrată și încasată
-    awb: {
-      isCollected: true, // Ramburs încasat
-    },
-  };
-
+  const dateFilter: { gte?: Date; lte?: Date } = {};
   if (periodStart) {
-    whereClause.invoice = {
-      ...whereClause.invoice,
-      issuedAt: { gte: periodStart },
-    };
+    dateFilter.gte = periodStart;
   }
   if (periodEnd) {
-    whereClause.invoice = {
-      ...whereClause.invoice,
-      issuedAt: { ...(whereClause.invoice?.issuedAt || {}), lte: periodEnd },
-    };
+    dateFilter.lte = periodEnd;
   }
 
   const orders = await prisma.order.findMany({
-    where: whereClause,
+    where: {
+      billingCompanyId: companyId,
+      intercompanyStatus: "pending",
+      OR: [
+        { awb: { isCollected: true } }, // COD orders with AWB collected
+        { financialStatus: "paid" }, // Online paid orders
+      ],
+      ...(Object.keys(dateFilter).length > 0
+        ? {
+            invoice: {
+              issuedAt: dateFilter,
+            },
+          }
+        : {}),
+    },
     include: {
       lineItems: {
         select: {
@@ -119,6 +174,11 @@ export async function getEligibleOrdersForSettlement(
           title: true,
           quantity: true,
           price: true,
+        },
+      },
+      awb: {
+        select: {
+          isCollected: true,
         },
       },
       invoice: {
@@ -135,28 +195,199 @@ export async function getEligibleOrdersForSettlement(
     orderNumber: order.shopifyOrderNumber || order.id,
     totalPrice: order.totalPrice,
     processedAt: order.invoice?.issuedAt || order.createdAt,
+    paymentType: order.awb?.isCollected === true ? "cod" : "online",
     lineItems: order.lineItems,
   }));
 }
 
 /**
- * Generează un preview al decontării pentru o firmă
+ * Calculate settlement preview for selected orders using ACQUISITION PRICE (costPrice)
+ *
+ * Key business logic:
+ * - Uses InventoryItem.costPrice, NOT order lineItem.price
+ * - Markup is applied to total subtotal, not per-line
+ * - Products without costPrice generate warnings but are included (with 0 value)
  */
-export async function generateSettlementPreview(
+export async function calculateSettlementFromOrders(
   companyId: string,
-  periodStart?: Date,
-  periodEnd?: Date
-): Promise<SettlementPreview | null> {
+  orderIds: string[]
+): Promise<SettlementPreviewExtended | null> {
+  // Fetch company
   const company = await prisma.company.findUnique({
     where: { id: companyId },
   });
 
   if (!company) {
-    throw new Error("Firma nu a fost găsită");
+    throw new Error("Firma nu a fost gasita");
   }
 
   if (company.isPrimary) {
-    throw new Error("Nu se poate genera decontare pentru firma primară");
+    throw new Error("Nu se poate genera decontare pentru firma primara");
+  }
+
+  // Fetch orders with line items
+  const orders = await prisma.order.findMany({
+    where: {
+      id: { in: orderIds },
+      billingCompanyId: companyId,
+      intercompanyStatus: "pending",
+    },
+    include: {
+      lineItems: {
+        select: {
+          sku: true,
+          title: true,
+          quantity: true,
+          price: true,
+        },
+      },
+      awb: {
+        select: { isCollected: true },
+      },
+      invoice: {
+        select: { issuedAt: true },
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (orders.length === 0) {
+    return null;
+  }
+
+  // Get all unique SKUs from orders
+  const allSkus = new Set<string>();
+  for (const order of orders) {
+    for (const item of order.lineItems) {
+      if (item.sku) allSkus.add(item.sku);
+    }
+  }
+
+  // Batch fetch cost prices from InventoryItem
+  const costPriceMap = await getCostPricesForSkus(Array.from(allSkus));
+  const warnings: string[] = [];
+  const warnedSkus = new Set<string>();
+
+  // Aggregate products with costPrice
+  const productMap = new Map<string, AggregatedProduct>();
+
+  // Process each order and calculate cost totals
+  const orderInfos: SettlementOrderInfo[] = [];
+
+  for (const order of orders) {
+    let orderCostTotal = 0;
+
+    for (const item of order.lineItems) {
+      const key = item.sku || item.title;
+      const costPrice = item.sku ? (costPriceMap.get(item.sku) ?? null) : null;
+
+      if (costPrice === null && !warnedSkus.has(key)) {
+        warnedSkus.add(key);
+        warnings.push(`${key}: Pret achizitie lipsa`);
+      }
+
+      const lineTotal = (costPrice || 0) * item.quantity;
+      orderCostTotal += lineTotal;
+
+      if (productMap.has(key)) {
+        const existing = productMap.get(key)!;
+        existing.quantity += item.quantity;
+        existing.totalCostPrice += lineTotal;
+        existing.unitCostPrice = existing.totalCostPrice / existing.quantity;
+        if (costPrice === null) existing.hasCostPrice = false;
+      } else {
+        productMap.set(key, {
+          sku: item.sku || "N/A",
+          title: item.title,
+          quantity: item.quantity,
+          totalCostPrice: lineTotal,
+          unitCostPrice: costPrice || 0,
+          hasCostPrice: costPrice !== null,
+        });
+      }
+    }
+
+    orderInfos.push({
+      id: order.id,
+      orderNumber: order.shopifyOrderNumber || order.id,
+      totalPrice: Number(order.totalPrice),
+      costTotal: Math.round(orderCostTotal * 100) / 100,
+      processedAt: order.invoice?.issuedAt || order.createdAt,
+      productCount: order.lineItems.reduce((sum, li) => sum + li.quantity, 0),
+      paymentType: order.awb?.isCollected === true ? "cod" : "online",
+      selected: true,
+    });
+  }
+
+  // Calculate totals with markup applied to subtotal (not per-line)
+  const markup = Number(company.intercompanyMarkup) || 10;
+  const subtotal = Array.from(productMap.values()).reduce((sum, p) => sum + p.totalCostPrice, 0);
+  const markupAmount = Math.round(((subtotal * markup) / 100) * 100) / 100;
+  const total = Math.round((subtotal + markupAmount) * 100) / 100;
+
+  // Build line items from aggregated products
+  const lineItems = Array.from(productMap.values()).map((p) => ({
+    sku: p.sku,
+    title: p.title,
+    quantity: p.quantity,
+    unitCost: Math.round(p.unitCostPrice * 100) / 100,
+    markup,
+    lineTotal: Math.round(p.totalCostPrice * (1 + markup / 100) * 100) / 100,
+  }));
+
+  // Determine period from orders
+  const sortedByDate = [...orderInfos].sort(
+    (a, b) => a.processedAt.getTime() - b.processedAt.getTime()
+  );
+  const periodStart = sortedByDate[0]?.processedAt || new Date();
+  const periodEnd = sortedByDate[sortedByDate.length - 1]?.processedAt || new Date();
+
+  return {
+    companyId: company.id,
+    companyName: company.name,
+    companyCode: company.code,
+    periodStart,
+    periodEnd,
+    orders: orderInfos,
+    lineItems,
+    totalOrders: orders.length,
+    totalItems: lineItems.reduce((sum, li) => sum + li.quantity, 0),
+    subtotal: Math.round(subtotal * 100) / 100,
+    markup,
+    markupAmount,
+    total,
+    warnings,
+    totals: {
+      orderCount: orders.length,
+      subtotal: Math.round(subtotal * 100) / 100,
+      markupPercent: markup,
+      markupAmount,
+      total,
+    },
+  };
+}
+
+/**
+ * Generează un preview al decontării pentru o firmă
+ *
+ * UPDATED: Now uses InventoryItem.costPrice instead of order lineItem.price
+ * Markup is applied to total subtotal, not per-line
+ */
+export async function generateSettlementPreview(
+  companyId: string,
+  periodStart?: Date,
+  periodEnd?: Date
+): Promise<SettlementPreviewExtended | null> {
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+  });
+
+  if (!company) {
+    throw new Error("Firma nu a fost gasita");
+  }
+
+  if (company.isPrimary) {
+    throw new Error("Nu se poate genera decontare pentru firma primara");
   }
 
   const orders = await getEligibleOrdersForSettlement(companyId, periodStart, periodEnd);
@@ -165,49 +396,84 @@ export async function generateSettlementPreview(
     return null;
   }
 
-  // Agregăm produsele din toate comenzile
-  const productMap = new Map<
-    string,
-    {
-      sku: string;
-      title: string;
-      quantity: number;
-      totalValue: number;
-    }
-  >();
-
+  // Get all unique SKUs from orders
+  const allSkus = new Set<string>();
   for (const order of orders) {
     for (const item of order.lineItems) {
+      if (item.sku) allSkus.add(item.sku);
+    }
+  }
+
+  // Batch fetch cost prices from InventoryItem
+  const costPriceMap = await getCostPricesForSkus(Array.from(allSkus));
+  const warnings: string[] = [];
+  const warnedSkus = new Set<string>();
+
+  // Aggregate products with costPrice
+  const productMap = new Map<string, AggregatedProduct>();
+
+  // Process each order and calculate cost totals
+  const orderInfos: SettlementOrderInfo[] = [];
+
+  for (const order of orders) {
+    let orderCostTotal = 0;
+
+    for (const item of order.lineItems) {
       const key = item.sku || item.title;
+      const costPrice = item.sku ? (costPriceMap.get(item.sku) ?? null) : null;
+
+      if (costPrice === null && !warnedSkus.has(key)) {
+        warnedSkus.add(key);
+        warnings.push(`${key}: Pret achizitie lipsa`);
+      }
+
+      const lineTotal = (costPrice || 0) * item.quantity;
+      orderCostTotal += lineTotal;
+
       if (productMap.has(key)) {
         const existing = productMap.get(key)!;
         existing.quantity += item.quantity;
-        existing.totalValue += Number(item.price) * item.quantity;
+        existing.totalCostPrice += lineTotal;
+        existing.unitCostPrice = existing.totalCostPrice / existing.quantity;
+        if (costPrice === null) existing.hasCostPrice = false;
       } else {
         productMap.set(key, {
           sku: item.sku || "N/A",
           title: item.title,
           quantity: item.quantity,
-          totalValue: Number(item.price) * item.quantity,
+          totalCostPrice: lineTotal,
+          unitCostPrice: costPrice || 0,
+          hasCostPrice: costPrice !== null,
         });
       }
     }
+
+    orderInfos.push({
+      id: order.id,
+      orderNumber: order.orderNumber,
+      totalPrice: Number(order.totalPrice),
+      costTotal: Math.round(orderCostTotal * 100) / 100,
+      processedAt: order.processedAt,
+      productCount: order.lineItems.reduce((sum, li) => sum + li.quantity, 0),
+      paymentType: order.paymentType,
+      selected: true, // Default pre-selected
+    });
   }
 
-  // Calculăm markup-ul
-  // C8: Use proper rounding for financial calculations to avoid floating point errors
+  // Calculate totals with markup applied to subtotal (not per-line)
   const markup = Number(company.intercompanyMarkup) || 10;
-  const subtotal = Array.from(productMap.values()).reduce((sum, p) => sum + p.totalValue, 0);
-  const markupAmount = Math.round((subtotal * markup) / 100 * 100) / 100; // Round to 2 decimals
+  const subtotal = Array.from(productMap.values()).reduce((sum, p) => sum + p.totalCostPrice, 0);
+  const markupAmount = Math.round(((subtotal * markup) / 100) * 100) / 100;
   const total = Math.round((subtotal + markupAmount) * 100) / 100;
 
+  // Build line items from aggregated products
   const lineItems = Array.from(productMap.values()).map((p) => ({
     sku: p.sku,
     title: p.title,
     quantity: p.quantity,
-    unitCost: Math.round((p.totalValue / p.quantity) * 100) / 100,
+    unitCost: Math.round(p.unitCostPrice * 100) / 100,
     markup,
-    lineTotal: Math.round((p.totalValue * (1 + markup / 100)) * 100) / 100,
+    lineTotal: Math.round(p.totalCostPrice * (1 + markup / 100) * 100) / 100,
   }));
 
   return {
@@ -216,19 +482,22 @@ export async function generateSettlementPreview(
     companyCode: company.code,
     periodStart: periodStart || orders[0].processedAt,
     periodEnd: periodEnd || orders[orders.length - 1].processedAt,
-    orders: orders.map((o) => ({
-      id: o.id,
-      orderNumber: o.orderNumber,
-      totalPrice: Number(o.totalPrice),
-      processedAt: o.processedAt,
-    })),
+    orders: orderInfos,
     lineItems,
     totalOrders: orders.length,
     totalItems: lineItems.reduce((sum, li) => sum + li.quantity, 0),
     subtotal: Math.round(subtotal * 100) / 100,
     markup,
-    markupAmount: Math.round(markupAmount * 100) / 100,
-    total: Math.round(total * 100) / 100,
+    markupAmount,
+    total,
+    warnings,
+    totals: {
+      orderCount: orders.length,
+      subtotal: Math.round(subtotal * 100) / 100,
+      markupPercent: markup,
+      markupAmount,
+      total,
+    },
   };
 }
 
@@ -246,7 +515,7 @@ export async function generateIntercompanyInvoice(
     if (!preview) {
       return {
         success: false,
-        error: "Nu există comenzi eligibile pentru decontare",
+        error: "Nu exista comenzi eligibile pentru decontare",
       };
     }
 
@@ -255,7 +524,7 @@ export async function generateIntercompanyInvoice(
     if (!primaryCompany) {
       return {
         success: false,
-        error: "Nu există firmă primară configurată",
+        error: "Nu exista firma primara configurata",
       };
     }
 
@@ -271,6 +540,7 @@ export async function generateIntercompanyInvoice(
       const invoiceNumber = `IC-${year}-${String(count + 1).padStart(5, "0")}`;
 
       // Creăm factura intercompany
+      // For intercompany settlements, VAT is typically 0 (same legal entity or exempt)
       const intercompanyInvoice = await tx.intercompanyInvoice.create({
         data: {
           issuedByCompanyId: primaryCompany.id,
@@ -278,10 +548,13 @@ export async function generateIntercompanyInvoice(
           periodStart: preview.periodStart,
           periodEnd: preview.periodEnd,
           invoiceNumber,
-          totalValue: preview.total,
+          totalValue: new Decimal(preview.total),
+          totalVat: new Decimal(0),
+          totalWithVat: new Decimal(preview.total),
           totalItems: preview.totalOrders,
           status: "pending",
           lineItems: JSON.stringify(preview.lineItems),
+          markupPercent: new Decimal(preview.markup),
           issuedAt: new Date(),
         },
       });
@@ -306,7 +579,7 @@ export async function generateIntercompanyInvoice(
     });
 
     console.log(
-      `📋 Factură intercompany generată: ${result.invoiceNumber} pentru ${preview.companyName} - ${preview.total} RON`
+      `Factura intercompany generata: ${result.invoiceNumber} pentru ${preview.companyName} - ${preview.total} RON`
     );
 
     return {
@@ -314,11 +587,12 @@ export async function generateIntercompanyInvoice(
       invoiceId: result.invoiceId,
       invoiceNumber: result.invoiceNumber,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Eroare la generarea facturii intercompany:", error);
+    const errorMessage = error instanceof Error ? error.message : "Eroare necunoscuta";
     return {
       success: false,
-      error: error.message,
+      error: errorMessage,
     };
   }
 }
@@ -335,11 +609,11 @@ export async function markIntercompanyInvoiceAsPaid(
     });
 
     if (!invoice) {
-      return { success: false, error: "Factura nu a fost găsită" };
+      return { success: false, error: "Factura nu a fost gasita" };
     }
 
     if (invoice.status === "paid") {
-      return { success: false, error: "Factura este deja plătită" };
+      return { success: false, error: "Factura este deja platita" };
     }
 
     await prisma.intercompanyInvoice.update({
@@ -351,8 +625,9 @@ export async function markIntercompanyInvoiceAsPaid(
     });
 
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Eroare necunoscuta";
+    return { success: false, error: errorMessage };
   }
 }
 
@@ -365,7 +640,7 @@ export async function getIntercompanyInvoices(filters?: {
   limit?: number;
   offset?: number;
 }) {
-  const where: any = {};
+  const where: Prisma.IntercompanyInvoiceWhereInput = {};
 
   if (filters?.companyId) {
     where.receivedByCompanyId = filters.companyId;
@@ -386,7 +661,7 @@ export async function getIntercompanyInvoices(filters?: {
           select: { id: true, name: true, code: true },
         },
         _count: {
-          select: { orders: true },
+          select: { includedOrders: true },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -435,7 +710,7 @@ export async function runWeeklySettlement(): Promise<{
   periodStart.setDate(periodStart.getDate() - 7);
 
   for (const company of secondaryCompanies) {
-    console.log(`\n📊 Procesare decontare pentru ${company.name}...`);
+    console.log(`Procesare decontare pentru ${company.name}...`);
 
     const result = await generateIntercompanyInvoice(company.id, periodStart, periodEnd);
 
@@ -449,12 +724,12 @@ export async function runWeeklySettlement(): Promise<{
 
     if (result.success) {
       processed++;
-    } else if (result.error !== "Nu există comenzi eligibile pentru decontare") {
+    } else if (result.error !== "Nu exista comenzi eligibile pentru decontare") {
       failed++;
     }
   }
 
-  console.log(`\n✅ Decontare săptămânală completă: ${processed} facturi generate, ${failed} erori`);
+  console.log(`Decontare saptamanala completa: ${processed} facturi generate, ${failed} erori`);
 
   return { processed, failed, results };
 }
