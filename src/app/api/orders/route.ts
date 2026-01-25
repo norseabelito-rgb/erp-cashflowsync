@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
             id: true,
             invoiceNumber: true,
             invoiceSeriesName: true,
-            facturisId: true,
+            oblioId: true,
             status: true,
             errorMessage: true,
           },

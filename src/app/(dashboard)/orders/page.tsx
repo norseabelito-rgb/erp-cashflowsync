@@ -101,7 +101,7 @@ interface Order {
   addressValidation: string;
   addressValidationMsg: string | null;
   createdAt: string;
-  invoice: { id: string; invoiceNumber: string | null; invoiceSeriesName: string | null; facturisId: string | null; status: string; errorMessage: string | null } | null;
+  invoice: { id: string; invoiceNumber: string | null; invoiceSeriesName: string | null; oblioId: string | null; status: string; errorMessage: string | null } | null;
   awb: { id: string; awbNumber: string; currentStatus: string; currentStatusDate: string | null; errorMessage: string | null } | null;
   lineItems?: Array<{
     id: string;

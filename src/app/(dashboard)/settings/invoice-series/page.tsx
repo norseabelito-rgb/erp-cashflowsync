@@ -77,8 +77,8 @@ interface InvoiceSeries {
   currentNumber: number;
   isDefault: boolean;
   isActive: boolean;
-  syncToFacturis: boolean;
-  facturisSeries: string | null;
+  syncToOblio: boolean;
+  oblioSeries: string | null;
   companyId: string | null;
   company: { id: string; name: string; code: string } | null;
   stores: { id: string; name: string }[];
@@ -112,8 +112,8 @@ interface SeriesFormData {
   type: string;
   startNumber: number;
   isDefault: boolean;
-  syncToFacturis: boolean;
-  facturisSeries: string;
+  syncToOblio: boolean;
+  oblioSeries: string;
   companyId: string;
 }
 
@@ -124,8 +124,8 @@ const initialFormData: SeriesFormData = {
   type: "f",
   startNumber: 1,
   isDefault: false,
-  syncToFacturis: false,
-  facturisSeries: "",
+  syncToOblio: false,
+  oblioSeries: "",
   companyId: "",
 };
 
@@ -291,8 +291,8 @@ export default function InvoiceSeriesPage() {
       type: s.type,
       startNumber: s.startNumber,
       isDefault: s.isDefault,
-      syncToFacturis: s.syncToFacturis,
-      facturisSeries: s.facturisSeries || "",
+      syncToOblio: s.syncToOblio,
+      oblioSeries: s.oblioSeries || "",
       companyId: s.companyId || "",
     });
     setIsEditing(true);
@@ -355,8 +355,8 @@ export default function InvoiceSeriesPage() {
           <Info className="h-4 w-4" />
           <AlertDescription>
             <strong>Important:</strong> Seriile de facturare trebuie create manual in ERP pentru a corespunde
-            exact cu cele din contul Facturis (case-sensitive). Facturis nu ofera un API pentru listarea
-            seriilor - acestea trebuie verificate direct in contul Facturis.
+            exact cu cele din contul Oblio (case-sensitive). Oblio nu ofera un API pentru listarea
+            seriilor - acestea trebuie verificate direct in contul Oblio.
           </AlertDescription>
         </Alert>
 
@@ -402,16 +402,16 @@ export default function InvoiceSeriesPage() {
                               Default
                             </Badge>
                           )}
-                          {s.syncToFacturis && (
+                          {s.syncToOblio && (
                             <Tooltip>
                               <TooltipTrigger>
                                 <Badge variant="outline" className="text-status-info border-status-info/50">
                                   <Settings2 className="h-3 w-3 mr-1" />
-                                  Facturis
+                                  Oblio
                                 </Badge>
                               </TooltipTrigger>
                               <TooltipContent>
-                                Sincronizat cu seria Facturis: {s.facturisSeries || s.prefix}
+                                Sincronizat cu seria Oblio: {s.oblioSeries || s.prefix}
                               </TooltipContent>
                             </Tooltip>
                           )}
@@ -778,29 +778,29 @@ export default function InvoiceSeriesPage() {
               <div className="border-t pt-4">
                 <div className="flex items-center justify-between py-2">
                   <div className="space-y-0.5">
-                    <Label>Sincronizează cu Facturis</Label>
+                    <Label>Sincronizează cu Oblio</Label>
                     <p className="text-xs text-muted-foreground">
-                      Folosește aceeași serie și în Facturis la emiterea facturii
+                      Folosește aceeași serie și în Oblio la emiterea facturii
                     </p>
                   </div>
                   <Switch
-                    checked={formData.syncToFacturis}
-                    onCheckedChange={(v) => setFormData({ ...formData, syncToFacturis: v })}
+                    checked={formData.syncToOblio}
+                    onCheckedChange={(v) => setFormData({ ...formData, syncToOblio: v })}
                   />
                 </div>
 
-                {formData.syncToFacturis && (
+                {formData.syncToOblio && (
                   <div className="space-y-2 mt-3">
-                    <Label>Seria Facturis</Label>
+                    <Label>Seria Oblio</Label>
                     <Input
-                      value={formData.facturisSeries}
+                      value={formData.oblioSeries}
                       onChange={(e) =>
-                        setFormData({ ...formData, facturisSeries: e.target.value.toUpperCase() })
+                        setFormData({ ...formData, oblioSeries: e.target.value.toUpperCase() })
                       }
                       placeholder={formData.prefix || "Ex: CFG"}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Lasă gol pentru a folosi prefixul ca nume de serie Facturis
+                      Lasă gol pentru a folosi prefixul ca nume de serie Oblio
                     </p>
                   </div>
                 )}

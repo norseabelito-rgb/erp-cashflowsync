@@ -68,8 +68,8 @@ export async function POST(request: NextRequest) {
       type = "f",
       startNumber = 1,
       isDefault = false,
-      syncToFacturis = false,
-      facturisSeries,
+      syncToOblio = false,
+      oblioSeries,
       companyId,
     } = body;
 
@@ -107,8 +107,8 @@ export async function POST(request: NextRequest) {
         startNumber: Math.max(1, startNumber),
         currentNumber: Math.max(1, startNumber),
         isDefault,
-        syncToFacturis,
-        facturisSeries: syncToFacturis ? (facturisSeries || prefix.toUpperCase()) : null,
+        syncToOblio,
+        oblioSeries: syncToOblio ? (oblioSeries || prefix.toUpperCase()) : null,
         companyId: companyId || null,
       },
     });
@@ -143,8 +143,8 @@ export async function PUT(request: NextRequest) {
       startNumber,
       isDefault,
       isActive,
-      syncToFacturis,
-      facturisSeries,
+      syncToOblio,
+      oblioSeries,
       companyId,
       storeId,
       seriesId,
@@ -216,8 +216,8 @@ export async function PUT(request: NextRequest) {
       }
       if (isDefault !== undefined) updateData.isDefault = isDefault;
       if (isActive !== undefined) updateData.isActive = isActive;
-      if (syncToFacturis !== undefined) updateData.syncToFacturis = syncToFacturis;
-      if (facturisSeries !== undefined) updateData.facturisSeries = facturisSeries || null;
+      if (syncToOblio !== undefined) updateData.syncToOblio = syncToOblio;
+      if (oblioSeries !== undefined) updateData.oblioSeries = oblioSeries || null;
       if (companyId !== undefined) updateData.companyId = companyId || null;
 
       // Fix: Always ensure currentNumber >= 1 (fix for legacy data with 0)

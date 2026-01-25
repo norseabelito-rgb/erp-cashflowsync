@@ -257,7 +257,7 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
     if (order.invoice?.status === "issued") {
       const existingNumber = order.invoice.invoiceSeriesName && order.invoice.invoiceNumber
         ? `${order.invoice.invoiceSeriesName}${order.invoice.invoiceNumber}`
-        : order.invoice.facturisId || "necunoscut";
+        : order.invoice.oblioId || "necunoscut";
       return {
         success: false,
         error: getInvoiceErrorMessage("ALREADY_ISSUED", `Factura a fost deja emisa: ${existingNumber}`),

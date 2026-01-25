@@ -56,7 +56,7 @@ interface Invoice {
   id: string;
   invoiceNumber: string | null;
   invoiceSeriesName: string | null;
-  facturisId: string | null;
+  oblioId: string | null;
   status: string;
   errorMessage: string | null;
   pdfUrl: string | null;
