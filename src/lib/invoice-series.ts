@@ -12,7 +12,7 @@ export async function getNextInvoiceNumber(seriesId: string): Promise<{
   formatted: string;
   seriesId: string;
   padding: number;
-  facturisSeries: string | null;
+  oblioSeries: string | null;
   correctionApplied: boolean;
   correctionMessage: string | null;
 } | null> {
@@ -60,7 +60,7 @@ export async function getNextInvoiceNumber(seriesId: string): Promise<{
       formatted: `${series.prefix}${currentNumber.toString().padStart(padding, "0")}`,
       seriesId: series.id,
       padding,
-      facturisSeries: series.facturisSeries,
+      oblioSeries: series.oblioSeries,
       correctionApplied,
       correctionMessage,
     };

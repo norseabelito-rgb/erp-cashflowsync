@@ -70,10 +70,9 @@ export async function GET(
     // Ascundem credențialele sensibile (doar indică dacă sunt setate)
     const safeCompany = {
       ...company,
-      facturisApiKey: company.facturisApiKey ? "********" : null,
-      facturisPassword: company.facturisPassword ? "********" : null,
+      oblioSecretToken: company.oblioSecretToken ? "********" : null,
       fancourierPassword: company.fancourierPassword ? "********" : null,
-      hasFacturisCredentials: !!(company.facturisApiKey && company.facturisUsername && company.facturisPassword),
+      hasOblioCredentials: !!(company.oblioEmail && company.oblioSecretToken),
       hasFancourierCredentials: !!(company.fancourierClientId && company.fancourierUsername && company.fancourierPassword),
     };
 
@@ -177,9 +176,8 @@ export async function PATCH(
       ...updateData
     } = body;
 
-    // Dacă parolele sunt "********", le ignorăm (nu actualizăm)
-    if (updateData.facturisApiKey === "********") delete updateData.facturisApiKey;
-    if (updateData.facturisPassword === "********") delete updateData.facturisPassword;
+    // Dacă credențialele sensibile sunt "********", le ignorăm (nu actualizăm)
+    if (updateData.oblioSecretToken === "********") delete updateData.oblioSecretToken;
     if (updateData.fancourierPassword === "********") delete updateData.fancourierPassword;
 
     const company = await prisma.company.update({

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { logInvoiceCancelled } from "@/lib/activity-log";
-import { createFacturisClient } from "@/lib/facturis";
+import { createOblioClient } from "@/lib/oblio";
 
 export async function POST(
   request: NextRequest,
@@ -43,13 +43,6 @@ export async function POST(
       );
     }
 
-    if (!invoice.invoiceNumber) {
-      return NextResponse.json(
-        { success: false, error: "Factura nu a fost emisă în Facturis" },
-        { status: 400 }
-      );
-    }
-
     // Obținem firma pentru credențiale
     const company = invoice.company || invoice.order.store?.company;
 
@@ -60,44 +53,44 @@ export async function POST(
       });
     }
 
-    if (!company.facturisApiKey || !company.facturisUsername || !company.facturisPassword) {
+    if (!company.oblioEmail || !company.oblioSecretToken) {
       return NextResponse.json({
         success: false,
-        error: "Configurația Facturis nu este completă pentru această firmă",
+        error: "Configurația Oblio nu este completă pentru această firmă",
       });
     }
 
     console.log("\n" + "=".repeat(60));
-    console.log("🚫 FACTURIS - ANULARE FACTURĂ");
+    console.log("OBLIO - ANULARE FACTURA");
     console.log("=".repeat(60));
-    console.log(`Factură: ${invoice.invoiceSeriesName || ''}${invoice.invoiceNumber || ''}`);
-    console.log(`Comandă: #${invoice.order.shopifyOrderNumber}`);
+    console.log(`Factura: ${invoice.invoiceSeriesName || ''}${invoice.invoiceNumber || ''}`);
+    console.log(`Comanda: #${invoice.order.shopifyOrderNumber}`);
     console.log(`Firma: ${company.name}`);
     console.log(`Motiv: ${reason || "Nespecificat"}`);
     console.log("=".repeat(60));
 
-    // Anulăm factura în Facturis
-    const facturisClient = createFacturisClient(company);
+    // Anulăm factura în Oblio
+    const oblioClient = createOblioClient(company);
 
-    // Folosim facturisId dacă există
-    const facturisKey = invoice.facturisId;
+    // Folosim oblioId dacă există
+    const oblioKey = invoice.oblioId;
 
-    if (!facturisKey) {
+    if (!oblioKey || !invoice.invoiceSeriesName || !invoice.invoiceNumber) {
       // Dacă nu avem key, anulăm doar local
-      console.log("⚠️ Nu există ID Facturis, anulăm doar local");
-    } else {
-      const cancelResult = await facturisClient.cancelInvoice(facturisKey);
+      console.log("Nu exista ID Oblio, anulam doar local");
+    } else if (oblioClient) {
+      const cancelResult = await oblioClient.cancelInvoice(invoice.invoiceSeriesName, invoice.invoiceNumber);
 
       if (!cancelResult.success) {
-        console.error("❌ FACTURIS - EROARE ANULARE:", cancelResult.error);
+        console.error("OBLIO - EROARE ANULARE:", cancelResult.error);
 
         return NextResponse.json({
           success: false,
-          error: `Eroare Facturis: ${cancelResult.error}`,
+          error: `Eroare Oblio: ${cancelResult.error}`,
         });
       }
 
-      console.log("✅ Facturis cancel response:", cancelResult.message);
+      console.log("Oblio cancel response: success");
     }
 
     // Actualizăm factura în baza de date
@@ -125,7 +118,7 @@ export async function POST(
       reason,
     });
 
-    console.log("✅ FACTURIS - FACTURĂ ANULATĂ");
+    console.log("OBLIO - FACTURA ANULATA");
     console.log("=".repeat(60) + "\n");
 
     return NextResponse.json({

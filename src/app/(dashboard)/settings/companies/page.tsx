@@ -64,11 +64,10 @@ interface Company {
   vatPayer: boolean;
   defaultVatRate: number;
   intercompanyMarkup: number;
-  // Credențiale Facturis (mascate de API)
-  facturisApiKey: string | null;
-  facturisUsername: string | null;
-  facturisPassword: string | null;
-  facturisCompanyCif: string | null;
+  // Credențiale Oblio (mascate de API)
+  oblioEmail: string | null;
+  oblioSecretToken: string | null;
+  oblioCif: string | null;
   // Credențiale FanCourier (mascate de API)
   fancourierClientId: string | null;
   fancourierUsername: string | null;
@@ -83,7 +82,7 @@ interface Company {
   senderNumber: string | null;
   senderPostalCode: string | null;
   // Flags
-  hasFacturisCredentials?: boolean;
+  hasOblioCredentials?: boolean;
   hasFancourierCredentials?: boolean;
   _count?: {
     stores: number;
@@ -122,11 +121,10 @@ export default function CompaniesPage() {
   const [formDefaultVatRate, setFormDefaultVatRate] = useState("19");
   const [formIntercompanyMarkup, setFormIntercompanyMarkup] = useState("10");
 
-  // Form state - Facturis
-  const [formFacturisApiKey, setFormFacturisApiKey] = useState("");
-  const [formFacturisUsername, setFormFacturisUsername] = useState("");
-  const [formFacturisPassword, setFormFacturisPassword] = useState("");
-  const [formFacturisCompanyCif, setFormFacturisCompanyCif] = useState("");
+  // Form state - Oblio
+  const [formOblioEmail, setFormOblioEmail] = useState("");
+  const [formOblioSecretToken, setFormOblioSecretToken] = useState("");
+  const [formOblioCif, setFormOblioCif] = useState("");
 
   // Form state - FanCourier
   const [formFancourierClientId, setFormFancourierClientId] = useState("");
@@ -210,18 +208,17 @@ export default function CompaniesPage() {
     },
   });
 
-  // Test Facturis mutation - trimite credențialele din formular pentru testare live
-  const testFacturisMutation = useMutation({
+  // Test Oblio mutation - trimite credențialele din formular pentru testare live
+  const testOblioMutation = useMutation({
     mutationFn: async (companyId: string) => {
       // Trimitem credențialele din formular pentru testare live
       const credentials = {
-        facturisApiKey: formFacturisApiKey || undefined,
-        facturisUsername: formFacturisUsername || undefined,
-        facturisPassword: formFacturisPassword || undefined,
-        facturisCompanyCif: formFacturisCompanyCif || undefined,
+        oblioEmail: formOblioEmail || undefined,
+        oblioSecretToken: formOblioSecretToken || undefined,
+        oblioCif: formOblioCif || undefined,
       };
 
-      const res = await fetch(`/api/companies/${companyId}/test-facturis`, {
+      const res = await fetch(`/api/companies/${companyId}/test-oblio`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(credentials),
@@ -235,7 +232,7 @@ export default function CompaniesPage() {
     onSuccess: (data) => {
       toast({
         title: "Conexiune reușită",
-        description: data.message || "Conexiunea cu Facturis funcționează corect.",
+        description: data.message || "Conexiunea cu Oblio funcționează corect.",
       });
     },
     onError: (error: any) => {
@@ -302,10 +299,9 @@ export default function CompaniesPage() {
     setFormVatPayer(true);
     setFormDefaultVatRate("19");
     setFormIntercompanyMarkup("10");
-    setFormFacturisApiKey("");
-    setFormFacturisUsername("");
-    setFormFacturisPassword("");
-    setFormFacturisCompanyCif("");
+    setFormOblioEmail("");
+    setFormOblioSecretToken("");
+    setFormOblioCif("");
     setFormFancourierClientId("");
     setFormFancourierUsername("");
     setFormFancourierPassword("");
@@ -347,11 +343,10 @@ export default function CompaniesPage() {
     setFormVatPayer(company.vatPayer);
     setFormDefaultVatRate(String(company.defaultVatRate));
     setFormIntercompanyMarkup(String(company.intercompanyMarkup));
-    // Credențialele Facturis - afișăm valori mascate dacă există
-    setFormFacturisApiKey(company.facturisApiKey || "");
-    setFormFacturisUsername(company.facturisUsername || "");
-    setFormFacturisPassword(company.facturisPassword || "");
-    setFormFacturisCompanyCif(company.facturisCompanyCif || "");
+    // Credențialele Oblio - afișăm valori mascate dacă există
+    setFormOblioEmail(company.oblioEmail || "");
+    setFormOblioSecretToken(company.oblioSecretToken || "");
+    setFormOblioCif(company.oblioCif || "");
     // Credențialele FanCourier - afișăm valori mascate dacă există
     setFormFancourierClientId(company.fancourierClientId || "");
     setFormFancourierUsername(company.fancourierUsername || "");
@@ -467,18 +462,15 @@ export default function CompaniesPage() {
       intercompanyMarkup: parseFloat(formIntercompanyMarkup) || 10,
     };
 
-    // Credențiale Facturis (doar dacă sunt completate)
-    if (formFacturisApiKey && formFacturisApiKey !== "********") {
-      data.facturisApiKey = formFacturisApiKey;
+    // Credențiale Oblio (doar dacă sunt completate)
+    if (formOblioEmail) {
+      data.oblioEmail = formOblioEmail;
     }
-    if (formFacturisUsername) {
-      data.facturisUsername = formFacturisUsername;
+    if (formOblioSecretToken && formOblioSecretToken !== "********") {
+      data.oblioSecretToken = formOblioSecretToken;
     }
-    if (formFacturisPassword && formFacturisPassword !== "********") {
-      data.facturisPassword = formFacturisPassword;
-    }
-    if (formFacturisCompanyCif) {
-      data.facturisCompanyCif = formFacturisCompanyCif;
+    if (formOblioCif) {
+      data.oblioCif = formOblioCif;
     }
 
     // Credențiale FanCourier (doar dacă sunt completate)
@@ -589,12 +581,12 @@ export default function CompaniesPage() {
                 {/* Integration Status */}
                 <div className="flex gap-2 pt-2">
                   <Badge
-                    variant={company.hasFacturisCredentials ? "default" : "outline"}
+                    variant={company.hasOblioCredentials ? "default" : "outline"}
                     className="text-xs"
                   >
                     <FileText className="h-3 w-3 mr-1" />
-                    Facturis
-                    {company.hasFacturisCredentials ? (
+                    Oblio
+                    {company.hasOblioCredentials ? (
                       <CheckCircle2 className="h-3 w-3 ml-1 text-green-500" />
                     ) : (
                       <XCircle className="h-3 w-3 ml-1 text-red-500" />
@@ -664,7 +656,7 @@ export default function CompaniesPage() {
           <Tabs defaultValue="general" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="general">Date Generale</TabsTrigger>
-              <TabsTrigger value="facturis">Facturis</TabsTrigger>
+              <TabsTrigger value="oblio">Oblio</TabsTrigger>
               <TabsTrigger value="fancourier">FanCourier</TabsTrigger>
             </TabsList>
 
@@ -873,16 +865,17 @@ export default function CompaniesPage() {
               </div>
             </TabsContent>
 
-            {/* Facturis Tab */}
-            <TabsContent value="facturis" className="space-y-4 mt-4">
+            {/* Oblio Tab */}
+            <TabsContent value="oblio" className="space-y-4 mt-4">
               <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
                 <p className="text-sm text-blue-600 dark:text-blue-400">
-                  Configurează credențialele pentru emiterea facturilor prin Facturis.
+                  Configurează credențialele pentru emiterea facturilor prin Oblio.
+                  Găsești Token-ul Secret în Oblio la Setări → Date Cont.
                 </p>
               </div>
 
               <div className="flex items-center justify-between">
-                <Label>Afișează parole</Label>
+                <Label>Afișează token</Label>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -897,45 +890,34 @@ export default function CompaniesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="facturisApiKey">API Key</Label>
+                <Label htmlFor="oblioEmail">Email (cont Oblio)</Label>
                 <Input
-                  id="facturisApiKey"
-                  type={showPasswords ? "text" : "password"}
-                  value={formFacturisApiKey}
-                  onChange={(e) => setFormFacturisApiKey(e.target.value)}
-                  placeholder={editingCompany?.hasFacturisCredentials ? "********" : "API Key de la Facturis"}
+                  id="oblioEmail"
+                  type="email"
+                  value={formOblioEmail}
+                  onChange={(e) => setFormOblioEmail(e.target.value)}
+                  placeholder="Email-ul cu care te loghezi în Oblio"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="facturisUsername">Username</Label>
-                  <Input
-                    id="facturisUsername"
-                    value={formFacturisUsername}
-                    onChange={(e) => setFormFacturisUsername(e.target.value)}
-                    placeholder="Username Facturis"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="facturisPassword">Password</Label>
-                  <Input
-                    id="facturisPassword"
-                    type={showPasswords ? "text" : "password"}
-                    value={formFacturisPassword}
-                    onChange={(e) => setFormFacturisPassword(e.target.value)}
-                    placeholder={editingCompany?.hasFacturisCredentials ? "********" : "Password"}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="oblioSecretToken">Token Secret</Label>
+                <Input
+                  id="oblioSecretToken"
+                  type={showPasswords ? "text" : "password"}
+                  value={formOblioSecretToken}
+                  onChange={(e) => setFormOblioSecretToken(e.target.value)}
+                  placeholder={editingCompany?.hasOblioCredentials ? "********" : "Token din Oblio Setări > Date Cont"}
+                />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="facturisCompanyCif">CIF Firmă în Facturis</Label>
+                <Label htmlFor="oblioCif">CIF Firmă în Oblio</Label>
                 <Input
-                  id="facturisCompanyCif"
-                  value={formFacturisCompanyCif}
-                  onChange={(e) => setFormFacturisCompanyCif(e.target.value)}
-                  placeholder="CIF-ul configurat în Facturis (dacă diferă)"
+                  id="oblioCif"
+                  value={formOblioCif}
+                  onChange={(e) => setFormOblioCif(e.target.value)}
+                  placeholder="CIF-ul configurat în Oblio (dacă diferă)"
                 />
                 <p className="text-xs text-muted-foreground">
                   Lasă gol dacă CIF-ul este același cu cel din datele generale.
@@ -945,15 +927,15 @@ export default function CompaniesPage() {
               {editingCompany && (
                 <Button
                   variant="outline"
-                  onClick={() => testFacturisMutation.mutate(editingCompany.id)}
-                  disabled={testFacturisMutation.isPending}
+                  onClick={() => testOblioMutation.mutate(editingCompany.id)}
+                  disabled={testOblioMutation.isPending}
                 >
-                  {testFacturisMutation.isPending ? (
+                  {testOblioMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   ) : (
                     <CheckCircle2 className="h-4 w-4 mr-2" />
                   )}
-                  Test Conexiune Facturis
+                  Test Conexiune Oblio
                 </Button>
               )}
             </TabsContent>

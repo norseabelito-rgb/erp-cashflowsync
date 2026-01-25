@@ -4,14 +4,15 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 import {
-  createFacturisClient,
-  hasFacturisCredentials,
-  FacturisValidationError,
-  FacturisAuthError,
-} from "@/lib/facturis";
+  createOblioClient,
+  hasOblioCredentials,
+  OblioValidationError,
+  OblioAuthError,
+  OblioAPI,
+} from "@/lib/oblio";
 
 /**
- * POST /api/companies/[id]/test-facturis - Test conexiune Facturis
+ * POST /api/companies/[id]/test-oblio - Test conexiune Oblio
  *
  * Acceptă credențiale în body pentru testare live (fără salvare)
  * sau folosește credențialele din DB dacă nu sunt trimise în body.
@@ -55,10 +56,9 @@ export async function POST(
         id: true,
         name: true,
         cif: true,
-        facturisApiKey: true,
-        facturisUsername: true,
-        facturisPassword: true,
-        facturisCompanyCif: true,
+        oblioEmail: true,
+        oblioSecretToken: true,
+        oblioCif: true,
       },
     });
 
@@ -70,69 +70,66 @@ export async function POST(
     }
 
     // Folosim credențialele din body dacă sunt trimise, altfel cele din DB
-    // Ignorăm valorile "********" care sunt placeholder pentru parole mascate
+    // Ignorăm valorile "********" care sunt placeholder pentru token-uri mascate
     const testCredentials = {
       ...company,
-      facturisApiKey: (bodyCredentials.facturisApiKey && bodyCredentials.facturisApiKey !== "********")
-        ? bodyCredentials.facturisApiKey
-        : company.facturisApiKey,
-      facturisUsername: bodyCredentials.facturisUsername || company.facturisUsername,
-      facturisPassword: (bodyCredentials.facturisPassword && bodyCredentials.facturisPassword !== "********")
-        ? bodyCredentials.facturisPassword
-        : company.facturisPassword,
-      facturisCompanyCif: bodyCredentials.facturisCompanyCif || company.facturisCompanyCif || company.cif,
+      oblioEmail: bodyCredentials.oblioEmail || company.oblioEmail,
+      oblioSecretToken: (bodyCredentials.oblioSecretToken && bodyCredentials.oblioSecretToken !== "********")
+        ? bodyCredentials.oblioSecretToken
+        : company.oblioSecretToken,
+      oblioCif: bodyCredentials.oblioCif || company.oblioCif || company.cif,
     };
 
     // Verificăm credențialele folosind funcția helper
-    if (!hasFacturisCredentials(testCredentials)) {
+    if (!hasOblioCredentials(testCredentials)) {
       return NextResponse.json(
         {
           success: false,
-          error: "Credențialele Facturis nu sunt complete. Completează API Key, Username și Password, apoi încearcă din nou.",
+          error: "Credențialele Oblio nu sunt complete. Completează Email și Token Secret, apoi încearcă din nou.",
         },
         { status: 400 }
       );
     }
 
-    // Creăm clientul Facturis cu credențialele de test
-    const facturis = createFacturisClient(testCredentials);
+    // Creăm clientul Oblio cu credențialele de test
+    const oblio = createOblioClient(testCredentials);
 
-    if (!facturis) {
+    if (!oblio) {
       return NextResponse.json(
-        { success: false, error: "Nu s-a putut crea clientul Facturis. Verifică credențialele." },
+        { success: false, error: "Nu s-a putut crea clientul Oblio. Verifică credențialele." },
         { status: 500 }
       );
     }
 
     // Testăm conexiunea
-    const result = await facturis.testConnection();
+    const result = await oblio.testConnection();
 
     if (result.success) {
       return NextResponse.json({
         success: true,
-        message: `Conexiune reușită cu Facturis pentru ${company.name}`,
+        message: `Conexiune reușită cu Oblio pentru ${company.name}`,
       });
     }
 
     return NextResponse.json({
       success: false,
-      error: result.error || "Eroare la conexiunea cu Facturis",
+      error: result.error || "Eroare la conexiunea cu Oblio",
     });
 
   } catch (error: any) {
-    console.error("[test-facturis] Error:", error);
+    console.error("[test-oblio] Error:", error);
 
-    // Erori specifice Facturis
-    if (error instanceof FacturisValidationError) {
+    // Erori specifice Oblio
+    if (error instanceof OblioValidationError) {
       return NextResponse.json(
         { success: false, error: error.message },
         { status: 400 }
       );
     }
 
-    if (error instanceof FacturisAuthError) {
+    if (error instanceof OblioAuthError) {
       return NextResponse.json(
-        { success: false, error: "Autentificare eșuată. Verifică: 1) API Key să fie corect, 2) Username și Parola să corespundă contului Facturis, 3) CIF-ul firmei să fie valid." },
+        { success: false, error: "Autentificare eșuată. Verifică: 1) Email-ul să fie corect (cel cu care te loghezi în Oblio), 2) Token-ul Secret din Setări > Date Cont în Oblio." },
         { status: 401 }
       );
     }

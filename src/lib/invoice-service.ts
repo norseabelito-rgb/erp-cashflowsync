@@ -2,23 +2,23 @@
  * Invoice Service
  *
  * Serviciu unificat pentru emiterea facturilor.
- * Folosește Facturis pentru emiterea facturilor.
+ * Folosește Oblio pentru emiterea facturilor.
  * Folosește credențiale per firmă și numerotare locală.
  */
 
 import prisma from "./db";
 import { Prisma } from "@prisma/client";
 import {
-  FacturisAPI,
-  FacturisInvoiceData,
-  FacturisValidationError,
-  FacturisAuthError,
-  FacturisApiError,
-  createFacturisClient,
-  createFacturisInvoiceItem,
-  formatDateForFacturis,
-  hasFacturisCredentials,
-} from "./facturis";
+  OblioAPI,
+  OblioInvoiceData,
+  OblioValidationError,
+  OblioAuthError,
+  OblioApiError,
+  createOblioClient,
+  createOblioInvoiceItem,
+  formatDateForOblio,
+  hasOblioCredentials,
+} from "./oblio";
 import { getNextInvoiceNumber, getInvoiceSeriesForCompany } from "./invoice-series";
 import { getInvoiceErrorMessage } from "./invoice-errors";
 
@@ -33,7 +33,7 @@ export interface IssueInvoiceResult {
   success: boolean;
   invoiceNumber?: string;
   invoiceSeries?: string;
-  invoiceKey?: string; // Cheia Facturis pentru referință
+  invoiceKey?: string; // Cheia Oblio pentru referință (serie + număr)
   companyId?: string;
   companyName?: string;
   seriesSource?: "store" | "company_default"; // Indicates whether store-specific or company default series was used
@@ -93,7 +93,7 @@ async function saveInvoiceToDatabase(
     invoiceSeriesId: string;
     invoiceNumber: number;
     invoiceSeries: string;
-    facturisKey?: string;
+    oblioKey?: string;
     pdfUrl?: string;
     pdfData?: Buffer | null;
     isPaid: boolean;
@@ -110,10 +110,10 @@ async function saveInvoiceToDatabase(
       orderId: params.orderId,
       companyId: params.companyId,
       invoiceSeriesId: params.invoiceSeriesId,
-      invoiceProvider: "facturis",
+      invoiceProvider: "oblio",
       invoiceNumber: params.invoiceNumber.toString(),
       invoiceSeriesName: params.invoiceSeries,
-      facturisId: params.facturisKey,
+      oblioId: params.oblioKey,
       status: "issued",
       pdfUrl: params.pdfUrl || null,
       pdfData: params.pdfData || null,
@@ -125,10 +125,10 @@ async function saveInvoiceToDatabase(
     update: {
       companyId: params.companyId,
       invoiceSeriesId: params.invoiceSeriesId,
-      invoiceProvider: "facturis",
+      invoiceProvider: "oblio",
       invoiceNumber: params.invoiceNumber.toString(),
       invoiceSeriesName: params.invoiceSeries,
-      facturisId: params.facturisKey,
+      oblioId: params.oblioKey,
       status: "issued",
       pdfUrl: params.pdfUrl || null,
       pdfData: params.pdfData || null,
@@ -288,8 +288,8 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
       };
     }
 
-    // 5. Verificăm credențialele Facturis
-    if (!hasFacturisCredentials(company)) {
+    // 5. Verificăm credențialele Oblio
+    if (!hasOblioCredentials(company)) {
       return {
         success: false,
         error: getInvoiceErrorMessage("NO_CREDENTIALS"),
@@ -297,13 +297,13 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
       };
     }
 
-    // 5a. Verificăm CIF-ul pentru Facturis
-    const facturisCif = company.facturisCompanyCif || company.cif;
-    if (!facturisCif) {
+    // 5a. Verificăm CIF-ul pentru Oblio
+    const oblioCif = company.oblioCif || company.cif;
+    if (!oblioCif) {
       return {
         success: false,
-        error: getInvoiceErrorMessage("NO_FACTURIS_CIF"),
-        errorCode: "NO_FACTURIS_CIF",
+        error: getInvoiceErrorMessage("NO_OBLIO_CIF"),
+        errorCode: "NO_OBLIO_CIF",
       };
     }
 
@@ -385,23 +385,23 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
       invoiceSeries.numberPadding
     );
 
-    // Seria pentru Facturis: folosim facturisSeries dacă există, altfel prefix
-    const facturisSeriesName = nextNumber.facturisSeries || nextNumber.prefix;
+    // Seria pentru Oblio: folosim oblioSeries dacă există, altfel prefix
+    const oblioSeriesName = nextNumber.oblioSeries || nextNumber.prefix;
 
     console.log("\n" + "=".repeat(60));
-    console.log("EMITERE FACTURA - FACTURIS");
+    console.log("EMITERE FACTURA - OBLIO");
     console.log("=".repeat(60));
     console.log(`Comanda: ${order.shopifyOrderNumber || order.id}`);
     console.log(`Firma: ${company.name} (${company.code})`);
     console.log(`Serie locală: ${nextNumber.prefix} | Numar: ${nextNumber.number}`);
-    console.log(`Serie Facturis: ${facturisSeriesName} (${nextNumber.facturisSeries ? "configurat" : "fallback la prefix"})`);
+    console.log(`Serie Oblio: ${oblioSeriesName} (${nextNumber.oblioSeries ? "configurat" : "fallback la prefix"})`);
     console.log(`Factura: ${formattedInvoice}`);
     console.log("=".repeat(60));
 
-    // 8. Creăm clientul Facturis
-    const facturis = createFacturisClient(company);
+    // 8. Creăm clientul Oblio
+    const oblio = createOblioClient(company);
 
-    if (!facturis) {
+    if (!oblio) {
       await rollbackInvoiceNumber(invoiceSeries.id, previousNumber);
       return {
         success: false,
@@ -427,35 +427,38 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
     const billingVatNumber = order.billingCompany?.cif || null;
     const billingRegNumber = order.billingCompany?.regCom || null;
 
-    // Construim datele facturii în format Facturis
-    const invoiceData: FacturisInvoiceData = {
-      // Header
-      facturi_data: formatDateForFacturis(new Date()),
-      facturi_serie: facturisSeriesName,
-      facturi_numar: nextNumber.number,
-      facturi_moneda: order.currency || "RON",
-      facturi_cota_tva: `${vatRate}%`,
-      facturi_status: "Emisa",
-      facturi_tip: "factura",
+    // Construim datele facturii în format Oblio
+    const invoiceData: OblioInvoiceData = {
+      // Informații firmă
+      cif: oblioCif,
+      seriesName: oblioSeriesName,
 
       // Client
-      facturi_nume_client: isCompany ? billingCompanyName! : customerName,
-      facturi_tip_persoana: isCompany ? "juridica" : "fizica",
-      facturi_codf_client: isCompany ? billingVatNumber || undefined : undefined,
-      facturi_nrreg_client: isCompany ? billingRegNumber || undefined : undefined,
-      facturi_sediu_client: customerAddress || "Nedefinit",
-      facturi_judet_client: order.shippingProvince || "",
-      facturi_oras_client: order.shippingCity || "",
-      facturi_tara_client: order.shippingCountry || "Romania",
-      facturi_email_client: order.customerEmail || undefined,
-      facturi_telefon_client: order.customerPhone || undefined,
+      client: {
+        name: isCompany ? billingCompanyName! : customerName,
+        cif: isCompany ? billingVatNumber || undefined : undefined,
+        rc: isCompany ? billingRegNumber || undefined : undefined,
+        address: customerAddress || "Nedefinit",
+        state: order.shippingProvince || "",
+        city: order.shippingCity || "",
+        country: order.shippingCountry || "Romania",
+        email: order.customerEmail || undefined,
+        phone: order.customerPhone || undefined,
+        isTaxPayer: isCompany,
+        save: true, // Salvează clientul în nomenclator
+      },
+
+      // Date document
+      issueDate: formatDateForOblio(new Date()),
+      currency: order.currency || "RON",
+      language: "RO",
 
       // Observații
-      facturi_obs_up: `Comanda online: ${order.shopifyOrderNumber || order.id}`,
+      mentions: `Comanda online: ${order.shopifyOrderNumber || order.id}`,
 
       // Produse
-      dataProd: order.lineItems.map((item) =>
-        createFacturisInvoiceItem({
+      products: order.lineItems.map((item) =>
+        createOblioInvoiceItem({
           sku: item.sku,
           title: item.title,
           variantTitle: item.variantTitle,
@@ -466,20 +469,20 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
       ),
     };
 
-    // 10. Emitem factura în Facturis
-    const result = await facturis.createInvoice(invoiceData);
+    // 10. Emitem factura în Oblio
+    const result = await oblio.createInvoice(invoiceData);
 
     if (!result.success) {
       // Rollback numărul facturii
       await rollbackInvoiceNumber(invoiceSeries.id, previousNumber);
 
       // Determinăm codul de eroare
-      let errorCode = "FACTURIS_ERROR";
+      let errorCode = "OBLIO_ERROR";
       if (result.errorCode) {
-        errorCode = `FACTURIS_${result.errorCode}`;
+        errorCode = `OBLIO_${result.errorCode}`;
       }
 
-      const errorMessage = result.error || "Eroare la emiterea facturii în Facturis";
+      const errorMessage = result.error || "Eroare la emiterea facturii în Oblio";
 
       // Salvăm încercarea eșuată pentru retry
       await saveFailedInvoiceAttempt({
@@ -503,11 +506,11 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
 
     // 11. Obținem PDF-ul (opțional, nu blochează procesul)
     let pdfData: Buffer | null = null;
-    const invoiceKey = result.invoiceKey || result.invoiceId;
+    const invoiceKey = result.invoiceId; // În Oblio: serie + număr
 
-    if (invoiceKey) {
+    if (result.invoiceSeries && result.invoiceNumber) {
       try {
-        const pdfResult = await facturis.getInvoicePDF(invoiceKey);
+        const pdfResult = await oblio.getInvoicePDF(result.invoiceSeries, result.invoiceNumber);
         if (pdfResult.success && pdfResult.pdfBuffer) {
           pdfData = pdfResult.pdfBuffer;
           console.log(`[Invoice] PDF descărcat pentru ${formattedInvoice}`);
@@ -529,8 +532,8 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
         invoiceSeriesId: invoiceSeries.id,
         invoiceNumber: nextNumber.number,
         invoiceSeries: nextNumber.prefix,
-        facturisKey: invoiceKey,
-        pdfUrl: result.pdfUrl,
+        oblioKey: invoiceKey,
+        pdfUrl: result.link,
         pdfData,
         isPaid,
         totalPrice: order.totalPrice,
@@ -587,18 +590,18 @@ export async function issueInvoiceForOrder(orderId: string): Promise<IssueInvoic
     let errorCode = "UNKNOWN_ERROR";
     let errorMessage = error.message || "Eroare necunoscută la emiterea facturii";
 
-    if (error instanceof FacturisValidationError) {
+    if (error instanceof OblioValidationError) {
       errorCode = "VALIDATION_ERROR";
       errorMessage = error.message;
-    } else if (error instanceof FacturisAuthError) {
+    } else if (error instanceof OblioAuthError) {
       errorCode = "AUTH_ERROR";
-      errorMessage = "Autentificare eșuată la Facturis. Verifică credențialele.";
-    } else if (error instanceof FacturisApiError) {
+      errorMessage = "Autentificare eșuată la Oblio. Verifică credențialele.";
+    } else if (error instanceof OblioApiError) {
       errorCode = `API_ERROR_${error.code || "UNKNOWN"}`;
     }
 
-    // Salvăm încercarea eșuată pentru retry (dacă e eroare Facturis)
-    if (error instanceof FacturisApiError || error instanceof FacturisAuthError) {
+    // Salvăm încercarea eșuată pentru retry (dacă e eroare Oblio)
+    if (error instanceof OblioApiError || error instanceof OblioAuthError) {
       await saveFailedInvoiceAttempt({
         orderId,
         errorCode,
@@ -655,19 +658,19 @@ export async function canIssueInvoice(orderId: string): Promise<InvoiceCanIssueR
     return { canIssue: false, reason: "Nu există firmă de facturare asociată" };
   }
 
-  if (!hasFacturisCredentials(company)) {
+  if (!hasOblioCredentials(company)) {
     return {
       canIssue: false,
-      reason: `Credențialele Facturis nu sunt configurate pentru ${company.name}`,
+      reason: `Credențialele Oblio nu sunt configurate pentru ${company.name}`,
     };
   }
 
-  // Verificăm CIF-ul pentru Facturis
-  const facturisCif = company.facturisCompanyCif || company.cif;
-  if (!facturisCif) {
+  // Verificăm CIF-ul pentru Oblio
+  const oblioCif = company.oblioCif || company.cif;
+  if (!oblioCif) {
     return {
       canIssue: false,
-      reason: `CIF-ul Facturis nu este configurat pentru ${company.name}`,
+      reason: `CIF-ul Oblio nu este configurat pentru ${company.name}`,
     };
   }
 
@@ -768,11 +771,11 @@ export async function getInvoicePDF(orderId: string): Promise<{
       };
     }
 
-    // Încercăm să descărcăm de la Facturis
-    if (invoice.facturisId && invoice.company) {
-      const facturis = createFacturisClient(invoice.company);
-      if (facturis) {
-        const pdfResult = await facturis.getInvoicePDF(invoice.facturisId);
+    // Încercăm să descărcăm de la Oblio
+    if (invoice.oblioId && invoice.company && invoice.invoiceSeriesName && invoice.invoiceNumber) {
+      const oblio = createOblioClient(invoice.company);
+      if (oblio) {
+        const pdfResult = await oblio.getInvoicePDF(invoice.invoiceSeriesName, invoice.invoiceNumber);
         if (pdfResult.success) {
           // Salvăm PDF-ul pentru viitor
           if (pdfResult.pdfBuffer) {
@@ -823,13 +826,13 @@ export async function cancelInvoice(orderId: string, reason?: string): Promise<{
       return { success: false, error: "Factura este deja anulată" };
     }
 
-    // Anulăm în Facturis dacă avem cheie
-    if (invoice.facturisId && invoice.company) {
-      const facturis = createFacturisClient(invoice.company);
-      if (facturis) {
-        const cancelResult = await facturis.cancelInvoice(invoice.facturisId);
+    // Anulăm în Oblio dacă avem cheie
+    if (invoice.oblioId && invoice.company && invoice.invoiceSeriesName && invoice.invoiceNumber) {
+      const oblio = createOblioClient(invoice.company);
+      if (oblio) {
+        const cancelResult = await oblio.cancelInvoice(invoice.invoiceSeriesName, invoice.invoiceNumber);
         if (!cancelResult.success) {
-          console.warn("[Invoice] Nu s-a putut anula în Facturis:", cancelResult.error);
+          console.warn("[Invoice] Nu s-a putut anula în Oblio:", cancelResult.error);
           // Continuăm cu anularea locală
         }
       }

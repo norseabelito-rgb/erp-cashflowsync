@@ -343,9 +343,9 @@ model InvoiceSeries {
   companyId     String?
   company       Company? @relation(fields: [companyId], references: [id])
 
-  // Sincronizare cu Facturis
-  syncToFacturis   Boolean  @default(false)
-  facturisSeries   String?  // Numele seriei în Facturis (dacă diferit)
+  // Sincronizare cu Oblio
+  syncToOblio      Boolean  @default(false)
+  oblioSeries      String?  // Numele seriei în Oblio (dacă diferit de prefix)
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -511,14 +511,14 @@ model Invoice {
   invoiceSeries     InvoiceSeries? @relation(fields: [invoiceSeriesId], references: [id])
 
   // Provider factură
-  invoiceProvider   String   @default("facturis") // "facturis"
+  invoiceProvider   String   @default("oblio") // "oblio"
 
   // Număr și serie factură
   invoiceNumber     String?  // Numărul facturii
   invoiceSeriesName String?  // Seria/prefixul facturii
 
-  // ID extern în Facturis
-  facturisId        String?
+  // ID extern în Oblio
+  oblioId           String?
 
   status            String   @default("pending") // pending, issued, cancelled, error
   errorMessage      String?  // Mesajul de eroare
@@ -547,7 +547,7 @@ model Invoice {
   @@index([companyId])
   @@index([invoiceSeriesId])
   @@index([invoiceProvider])
-  @@index([facturisId])
+  @@index([oblioId])
   @@map("invoices")
 }
 
@@ -3093,11 +3093,10 @@ model Company {
   email             String?
   phone             String?
 
-  // ===== CREDENȚIALE FACTURIS =====
-  facturisApiKey        String?
-  facturisUsername      String?
-  facturisPassword      String?
-  facturisCompanyCif    String?  // CIF-ul din Facturis (poate fi diferit)
+  // ===== CREDENȚIALE OBLIO =====
+  oblioEmail            String?  // Email-ul contului Oblio (client_id)
+  oblioSecretToken      String?  // Token secret din Oblio Setări > Date Cont (client_secret)
+  oblioCif              String?  // CIF-ul firmei în Oblio (poate fi diferit de CIF-ul fiscal)
 
   // ===== CREDENȚIALE FANCOURIER/SELFAWB =====
   fancourierClientId    String?
