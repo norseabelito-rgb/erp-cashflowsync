@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 6 of 10 (UX Foundation)
-Plan: 5 of 5 complete
-Status: Phase complete
-Last activity: 2026-01-25 - Completed 06-05-PLAN.md
+Plan: 6 of 6 complete
+Status: Phase complete (including gap closure)
+Last activity: 2026-01-25 - Completed 06-06-PLAN.md (gap closure)
 
 Progress: [████████████████████] 81%
 
@@ -25,15 +25,16 @@ Progress: [████████████████████] 81%
 | 06-03 | Complete | Design tokens + CSS variables + Table zebra striping |
 | 06-04 | Complete | useErrorModal hook + skeleton loading on Orders/Invoices |
 | 06-05 | Complete | Empty states config + context-aware Orders/Invoices |
+| 06-06 | Complete | ActionTooltip applied to 23 buttons across 4 pages (gap closure) |
 
 ---
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 26
-- Average duration: ~5.5 minutes
-- Total execution time: ~141 minutes
+- Total plans completed: 27
+- Average duration: ~5.4 minutes
+- Total execution time: ~146 minutes
 
 **By Phase:**
 
@@ -44,7 +45,7 @@ Progress: [████████████████████] 81%
 | 03-internal-settlement | 5/5 | ~27 min | ~5.4 min |
 | 04-flow-integrity | 4/4 | ~30 min | ~7.5 min |
 | 05-known-bug-fixes | 4/4 | ~18 min | ~4.5 min |
-| 06-ux-foundation | 5/5 | ~17 min | ~3.4 min |
+| 06-ux-foundation | 6/6 | ~22 min | ~3.7 min |
 
 ## Accumulated Context
 
@@ -52,6 +53,9 @@ Progress: [████████████████████] 81%
 
 Recent decisions affecting current work:
 
+- **06-06:** All tooltips use Romanian text without diacritics (Genereaza vs Generează)
+- **06-06:** Dropdown triggers wrapped with ActionTooltip to explain menu purpose
+- **06-06:** Processing states show disabledReason "Se proceseaza..."
 - **06-05:** EMPTY_STATES organized by module (orders, invoices, products, inventory, failed_invoices)
 - **06-05:** Four empty state types: first_time, filtered, success, error
 - **06-05:** Action callbacks use string identifiers (clearFilters, refresh) for config portability
@@ -106,7 +110,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed 06-05-PLAN.md (Phase 6 complete)
+Stopped at: Completed 06-06-PLAN.md (Phase 6 fully complete including gap closure)
 Resume file: None
 
 ## Phase 6 Features
@@ -118,9 +122,13 @@ UX Foundation components:
 - [x] 06-03: Design tokens + CSS variables + Table zebra striping
 - [x] 06-04: useErrorModal hook + skeleton loading on Orders/Invoices
 - [x] 06-05: Empty states config + context-aware Orders/Invoices
+- [x] 06-06: ActionTooltip applied to 23 buttons across 4 pages (gap closure)
 
 ## Recent Commits
 
+- `1891da9` feat(06-06): add ActionTooltip to Products and Inventory pages
+- `ebe5944` feat(06-06): add ActionTooltip to Invoices page buttons
+- `447f3c3` feat(06-06): add ActionTooltip to Orders page buttons
 - `e1a1c7c` feat(06-05): add context-aware empty state to Invoices page
 - `def255e` feat(06-05): add context-aware empty state to Orders page
 - `f73971c` feat(06-05): create centralized empty state configurations
@@ -129,10 +137,7 @@ UX Foundation components:
 - `6da316f` feat(06-04): create useErrorModal hook for consistent error handling
 - `8e81838` feat(06-03): add striped prop to Table component
 - `6065aeb` feat(06-03): add CSS variables for visual consistency
-- `e135e0b` feat(06-03): extend design system with spacing and visual standards
-- `12b3d98` feat(06-02): create ErrorModal component
-- `2c286b7` feat(06-02): create error message mapping utility
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-25 (06-05 complete, Phase 6 complete)*
+*Last updated: 2026-01-25 (06-06 complete, Phase 6 fully complete)*
