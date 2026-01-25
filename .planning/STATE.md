@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 3 - Internal Settlement (decontare interna) - **COMPLETE**
+**Current focus:** Phase 3 - Internal Settlement (decontare interna) - **COMPLETE** (including gap closure)
 
 ## Current Position
 
 Phase: 3 of 10 (Internal Settlement) - **COMPLETE**
-Plan: 4 of 4 complete
+Plan: 5 of 5 complete (including gap closure plan)
 Status: **PHASE COMPLETE** - Ready for next phase
-Last activity: 2026-01-25 - Completed 03-04-PLAN.md (Oblio invoice generation)
+Last activity: 2026-01-25 - Completed 03-05-PLAN.md (order selection wiring gap closure)
 
 Progress: [████████░░░░░░░░░░░░] 40%
 
@@ -24,15 +24,16 @@ Progress: [████████░░░░░░░░░░░░] 40%
 | 03-02 | Complete | Settlement preview uses costPrice, POST for order selection |
 | 03-03 | Complete | Order selection UI with pre-selection and warnings |
 | 03-04 | Complete | Oblio invoice generation for settlements with retry capability |
+| 03-05 | Complete | Gap closure: orderIds wired from UI through API to service |
 
 ---
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
+- Total plans completed: 13
 - Average duration: ~6 minutes
-- Total execution time: ~73 minutes
+- Total execution time: ~76 minutes
 
 **By Phase:**
 
@@ -40,7 +41,7 @@ Progress: [████████░░░░░░░░░░░░] 40%
 |-------|-------|-------|----------|
 | 01-system-audit | 4/4 | ~28 min | ~7 min |
 | 02-invoice-series-fix | 5/5 | ~21 min | ~4.2 min |
-| 03-internal-settlement | 4/4 | ~24 min | ~6 min |
+| 03-internal-settlement | 5/5 | ~27 min | ~5.4 min |
 
 ## Accumulated Context
 
@@ -48,6 +49,8 @@ Progress: [████████░░░░░░░░░░░░] 40%
 
 Recent decisions affecting current work:
 
+- **03-05:** orderIds parameter is optional - empty/undefined falls back to all eligible orders
+- **03-05:** runWeeklySettlement explicitly passes undefined for orderIds (uses all eligible)
 - **03-04:** 19% VAT rate for all intercompany settlement products
 - **03-04:** Oblio series from issuing company (intercompanySeriesName)
 - **03-04:** Oblio failure non-blocking - settlement created, allows retry later
@@ -76,7 +79,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed Phase 3 (03-04-PLAN.md)
+Stopped at: Completed Phase 3 (03-05-PLAN.md gap closure)
 Resume file: None
 
 ## Phase 3 Completed
@@ -87,15 +90,16 @@ Internal Settlement flow complete:
 - Order selection UI with pre-selection and warning banners
 - Oblio invoice generation on settlement creation
 - Retry capability for failed Oblio generations
+- **Gap closed:** orderIds wired from UI through API to generateIntercompanyInvoice
 
 ## Recent Commits
 
+- `2ef9679` feat(03-05): pass orderIds from API to generateIntercompanyInvoice
+- `6bedd1b` feat(03-05): add orderIds parameter to generateIntercompanyInvoice
 - `3e9cfee` feat(03-04): add retry Oblio generation endpoint for failed settlements
 - `c92ae43` feat(03-04): integrate Oblio into generate API and update UI
 - `46e01b9` feat(03-04): add Oblio invoice generation for intercompany settlements
-- `64872ce` feat(03-03): build order selection workflow in intercompany page
-- `30c1ff6` feat(03-03): add intercompanySeriesName field to company settings
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-25 (Phase 3 complete)*
+*Last updated: 2026-01-25 (Phase 3 gap closure complete)*
