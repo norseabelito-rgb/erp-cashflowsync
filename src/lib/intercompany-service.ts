@@ -510,14 +510,23 @@ export async function generateSettlementPreview(
 
 /**
  * Generează factura intercompany
+ *
+ * @param companyId - ID-ul firmei secundare pentru care se generează factura
+ * @param orderIds - Optional: ID-urile comenzilor selectate de utilizator. Dacă nu este furnizat, se folosesc toate comenzile eligibile.
+ * @param periodStart - Optional: Data de început a perioadei
+ * @param periodEnd - Optional: Data de sfârșit a perioadei
  */
 export async function generateIntercompanyInvoice(
   companyId: string,
+  orderIds?: string[],
   periodStart?: Date,
   periodEnd?: Date
 ): Promise<SettlementResult> {
   try {
-    const preview = await generateSettlementPreview(companyId, periodStart, periodEnd);
+    // Use selected orders if provided, otherwise fetch all eligible orders
+    const preview = orderIds && orderIds.length > 0
+      ? await calculateSettlementFromOrders(companyId, orderIds)
+      : await generateSettlementPreview(companyId, periodStart, periodEnd);
 
     if (!preview) {
       return {
@@ -719,7 +728,7 @@ export async function runWeeklySettlement(): Promise<{
   for (const company of secondaryCompanies) {
     console.log(`Procesare decontare pentru ${company.name}...`);
 
-    const result = await generateIntercompanyInvoice(company.id, periodStart, periodEnd);
+    const result = await generateIntercompanyInvoice(company.id, undefined, periodStart, periodEnd);
 
     results.push({
       companyId: company.id,
