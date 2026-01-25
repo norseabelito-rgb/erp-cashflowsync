@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 6 of 10 (UX Foundation)
-Plan: 3 of 5 complete
+Plan: 4 of 5 complete
 Status: In progress
-Last activity: 2026-01-25 - Completed 06-03-PLAN.md
+Last activity: 2026-01-25 - Completed 06-04-PLAN.md
 
-Progress: [████████████████░░░░] 76%
+Progress: [████████████████░░░░] 79%
 
 ## Phase 6 Progress
 
@@ -23,7 +23,7 @@ Progress: [████████████████░░░░] 76%
 | 06-01 | Complete | TooltipProvider + ActionTooltip + Skeleton system |
 | 06-02 | Complete | ErrorModal + getErrorMessage with 30+ Romanian mappings |
 | 06-03 | Complete | Design tokens + CSS variables + Table zebra striping |
-| 06-04 | Pending | Button States |
+| 06-04 | Complete | useErrorModal hook + skeleton loading on Orders/Invoices |
 | 06-05 | Pending | Form Feedback |
 
 ---
@@ -31,9 +31,9 @@ Progress: [████████████████░░░░] 76%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 24
+- Total plans completed: 25
 - Average duration: ~6 minutes
-- Total execution time: ~135 minutes
+- Total execution time: ~138 minutes
 
 **By Phase:**
 
@@ -44,7 +44,7 @@ Progress: [████████████████░░░░] 76%
 | 03-internal-settlement | 5/5 | ~27 min | ~5.4 min |
 | 04-flow-integrity | 4/4 | ~30 min | ~7.5 min |
 | 05-known-bug-fixes | 4/4 | ~18 min | ~4.5 min |
-| 06-ux-foundation | 3/5 | ~11 min | ~3.7 min |
+| 06-ux-foundation | 4/5 | ~14 min | ~3.5 min |
 
 ## Accumulated Context
 
@@ -52,6 +52,9 @@ Progress: [████████████████░░░░] 76%
 
 Recent decisions affecting current work:
 
+- **06-04:** useErrorModal returns ErrorModalComponent as render function for flexibility
+- **06-04:** 10 skeleton rows during table loading for visual consistency
+- **06-04:** showError auto-maps errors via getErrorMessage for Romanian messages
 - **06-03:** 4px base unit for spacing (Notion-like minimal design)
 - **06-03:** Table striped prop defaults to false for backward compatibility
 - **06-03:** Dark mode row stripe uses 0.2 opacity vs 0.3 in light mode
@@ -89,7 +92,7 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 **NEXT:**
-- Continue Phase 6: UX Foundation (plans 04-05)
+- Continue Phase 6: UX Foundation (plan 05)
 
 **CRITICAL (Blocheaza munca):**
 - TD-01: Order processing no transaction - partial failures cause inconsistent data
@@ -99,7 +102,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed 06-03-PLAN.md
+Stopped at: Completed 06-04-PLAN.md
 Resume file: None
 
 ## Phase 6 Features
@@ -109,20 +112,20 @@ UX Foundation components:
 - [x] 06-01: TooltipProvider + ActionTooltip + Skeleton system
 - [x] 06-02: ErrorModal + getErrorMessage with 30+ Romanian mappings
 - [x] 06-03: Design tokens + CSS variables + Table zebra striping
-- [ ] 06-04: Button States
+- [x] 06-04: useErrorModal hook + skeleton loading on Orders/Invoices
 - [ ] 06-05: Form Feedback
 
 ## Recent Commits
 
+- `c8f2d3e` feat(06-04): add skeleton loading and error modal to Invoices page
+- `3c63df6` feat(06-04): add skeleton loading and error modal to Orders page
+- `6da316f` feat(06-04): create useErrorModal hook for consistent error handling
 - `8e81838` feat(06-03): add striped prop to Table component
 - `6065aeb` feat(06-03): add CSS variables for visual consistency
 - `e135e0b` feat(06-03): extend design system with spacing and visual standards
 - `12b3d98` feat(06-02): create ErrorModal component
 - `2c286b7` feat(06-02): create error message mapping utility
-- `d459bfb` feat(06-01): add TooltipProvider with 300ms delay to app providers
-- `e8c53df` feat(06-01): create ActionTooltip component with action/consequence semantics
-- `f7e9e2b` feat(06-01): create Skeleton component system with presets
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-25 (06-03 complete)*
+*Last updated: 2026-01-25 (06-04 complete)*
