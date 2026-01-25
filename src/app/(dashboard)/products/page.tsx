@@ -18,6 +18,7 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Image as ImageIcon,
   Tag,
   FolderTree,
@@ -60,6 +61,11 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -226,14 +232,14 @@ export default function ProductsPage() {
     },
   });
 
-  // Fetch inventory items (pentru dropdown SKU) - doar cele nemapate la produse
+  // Fetch inventory items (pentru dropdown SKU) - grupate in disponibile si asignate
   const { data: inventoryData } = useQuery({
-    queryKey: ["inventory-items", skuSearch],
+    queryKey: ["inventory-items-grouped", skuSearch],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (skuSearch) params.set("search", skuSearch);
       params.set("isActive", "true");
-      params.set("excludeMapped", "true");
+      params.set("grouped", "true");
       const res = await fetch(`/api/inventory-items?${params}`);
       return res.json();
     },
@@ -512,11 +518,11 @@ export default function ProductsPage() {
   const products: Product[] = productsData?.products || [];
   const channels: Channel[] = productsData?.channels || channelsData?.channels || [];
   const categories: Category[] = categoriesData?.categories || [];
-  const inventoryItems: InventoryItem[] = inventoryData?.data?.items || [];
   const pagination = productsData?.pagination;
 
-  // Articolele sunt filtrate server-side (excludeMapped=true)
-  const availableInventoryItems = inventoryItems;
+  // Grouped inventory data from API
+  const availableInventoryItems = inventoryData?.data?.available || [];
+  const assignedInventoryItems = inventoryData?.data?.assigned || [];
 
   return (
     <TooltipProvider>
@@ -928,11 +934,21 @@ export default function ProductsPage() {
                         onValueChange={setSkuSearch}
                       />
                       <CommandList>
+                        {/* Empty state warning */}
+                        {availableInventoryItems.length === 0 && !skuSearch && (
+                          <div className="p-3 bg-yellow-50 border-b border-yellow-200 text-yellow-800 text-sm">
+                            <AlertTriangle className="inline h-4 w-4 mr-2" />
+                            Toate SKU-urile sunt asignate. Creeaza mai multe in Inventar.
+                          </div>
+                        )}
+
                         <CommandEmpty>
                           {skuSearch ? "Niciun articol găsit" : "Nu există articole disponibile în inventar"}
                         </CommandEmpty>
-                        <CommandGroup>
-                          {availableInventoryItems.map((inv) => (
+
+                        {/* Available section */}
+                        <CommandGroup heading="Disponibile">
+                          {availableInventoryItems.map((inv: any) => (
                             <CommandItem
                               key={inv.id}
                               value={inv.id}
@@ -942,7 +958,7 @@ export default function ProductsPage() {
                                   inventoryItemId: inv.id,
                                   sku: inv.sku,
                                   title: inv.name,
-                                  description: inv.description || "",
+                                  description: "",
                                   price: inv.costPrice ? String(inv.costPrice) : "",
                                   stock: Number(inv.currentStock),
                                 });
@@ -956,6 +972,38 @@ export default function ProductsPage() {
                             </CommandItem>
                           ))}
                         </CommandGroup>
+
+                        {/* Assigned section - collapsed by default */}
+                        {assignedInventoryItems.length > 0 && (
+                          <Collapsible defaultOpen={false}>
+                            <CollapsibleTrigger className="w-full px-2 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted flex items-center justify-between">
+                              <span>Deja asignate ({assignedInventoryItems.length})</span>
+                              <ChevronDown className="h-4 w-4" />
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              {assignedInventoryItems.map((inv: any) => (
+                                <CommandItem
+                                  key={inv.id}
+                                  value={inv.id}
+                                  disabled
+                                  className="opacity-60 cursor-not-allowed"
+                                >
+                                  <span className="font-mono text-xs bg-muted px-1 rounded mr-2">{inv.sku}</span>
+                                  <span className="truncate flex-1">{inv.name}</span>
+                                  {inv.assignedTo && (
+                                    <Link
+                                      href={`/products?search=${inv.assignedTo.productId}`}
+                                      className="text-xs text-blue-600 hover:underline ml-2"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {inv.assignedTo.productName?.substring(0, 20)}...
+                                    </Link>
+                                  )}
+                                </CommandItem>
+                              ))}
+                            </CollapsibleContent>
+                          </Collapsible>
+                        )}
                       </CommandList>
                     </Command>
                   </PopoverContent>
