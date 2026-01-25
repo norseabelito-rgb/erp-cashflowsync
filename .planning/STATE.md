@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 5 - Known Bug Fixes - In Progress
+**Current focus:** Phase 5 - Known Bug Fixes - **COMPLETE**
 
 ## Current Position
 
 Phase: 5 of 10 (Known Bug Fixes)
-Plan: 4 of ? complete in phase
-Status: In progress
-Last activity: 2026-01-25 - Completed 05-01-PLAN.md (Image sync + SKU dropdown fixes)
+Plan: 4 of 4 complete
+Status: Phase complete
+Last activity: 2026-01-25 - Phase 5 verified complete
 
-Progress: [█████████████░░░░░░░] 62%
+Progress: [██████████████░░░░░░] 67%
 
 ## Phase 5 Progress
 
@@ -42,7 +42,7 @@ Progress: [█████████████░░░░░░░] 62%
 | 02-invoice-series-fix | 5/5 | ~21 min | ~4.2 min |
 | 03-internal-settlement | 5/5 | ~27 min | ~5.4 min |
 | 04-flow-integrity | 4/4 | ~30 min | ~7.5 min |
-| 05-known-bug-fixes | 4/? | ~18 min | ~4.5 min |
+| 05-known-bug-fixes | 4/4 | ~18 min | ~4.5 min |
 
 ## Accumulated Context
 
@@ -78,7 +78,7 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 **NEXT:**
-- Continue Phase 5: Additional bug fix plans if any
+- Ready for Phase 6: UX Foundation
 
 **CRITICAL (Blocheaza munca):**
 - TD-01: Order processing no transaction - partial failures cause inconsistent data
@@ -88,10 +88,12 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed 05-01-PLAN.md (Image sync + SKU dropdown fixes)
+Stopped at: Phase 5 complete - all bug fixes verified
 Resume file: None
 
-## Phase 5 Progress (Known Bug Fixes)
+## Phase 5 Complete
+
+Known Bug Fixes features:
 
 - [x] 05-01: Idempotent image sync + grouped SKU dropdown
 - [x] 05-02: Card-based line item display with images and stock check

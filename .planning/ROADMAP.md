@@ -14,7 +14,7 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
 - [x] **Phase 2: Invoice Series Fix** - Oblio integration with automatic series selection (migrated from Facturis)
 - [x] **Phase 3: Internal Settlement** - Implement decontare interna flow for secondary company orders
 - [x] **Phase 4: Flow Integrity** - Ensure data consistency with transfer blocking and AWB routing
-- [ ] **Phase 5: Known Bug Fixes** - Address documented bugs from codebase analysis
+- [x] **Phase 5: Known Bug Fixes** - Address documented bugs from codebase analysis
 - [ ] **Phase 6: UX Foundation** - Consistent design, tooltips, and feedback across all pages
 - [ ] **Phase 7: Task Management Core** - Data model and basic UI for task tracking
 - [ ] **Phase 8: Task Management Advanced** - Automation, notifications, and reporting
@@ -115,10 +115,10 @@ Plans:
 **Plans**: 4 plans in 1 wave (all parallel)
 
 Plans:
-- [ ] 05-01-PLAN.md — Image sync idempotent upsert and SKU dropdown grouping
-- [ ] 05-02-PLAN.md — Order detail line items card display with quick actions
-- [ ] 05-03-PLAN.md — Meta webhook notification deduplication
-- [ ] 05-04-PLAN.md — Invoice series robust edge case handling
+- [x] 05-01-PLAN.md — Image sync idempotent upsert and SKU dropdown grouping
+- [x] 05-02-PLAN.md — Order detail line items card display with quick actions
+- [x] 05-03-PLAN.md — Meta webhook notification deduplication
+- [x] 05-04-PLAN.md — Invoice series robust edge case handling
 
 ### Phase 6: UX Foundation
 **Goal**: Consistent, intuitive user interface across all pages
@@ -227,7 +227,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 | 2. Invoice Series Fix | 5/5 | ✓ Complete | 2026-01-25 |
 | 3. Internal Settlement | 5/5 | ✓ Complete | 2026-01-25 |
 | 4. Flow Integrity | 4/4 | ✓ Complete | 2026-01-25 |
-| 5. Known Bug Fixes | 0/4 | Planned | - |
+| 5. Known Bug Fixes | 4/4 | ✓ Complete | 2026-01-25 |
 | 6. UX Foundation | 0/5 | Not started | - |
 | 7. Task Management Core | 0/4 | Not started | - |
 | 8. Task Management Advanced | 0/4 | Not started | - |

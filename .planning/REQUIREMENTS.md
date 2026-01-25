@@ -108,10 +108,10 @@ Deferred pentru dupa stabilizare.
 | INV-04 | Phase 3: Internal Settlement | Complete |
 | INV-05 | Phase 3: Internal Settlement | Complete |
 | INV-06 | Phase 3: Internal Settlement | Complete |
-| INV-07 | Phase 4: Flow Integrity | Pending |
-| FLOW-01 | Phase 4: Flow Integrity | Pending |
-| FLOW-02 | Phase 4: Flow Integrity | Pending |
-| QA-02 | Phase 5: Known Bug Fixes | Pending |
+| INV-07 | Phase 4: Flow Integrity | Complete |
+| FLOW-01 | Phase 4: Flow Integrity | Complete |
+| FLOW-02 | Phase 4: Flow Integrity | Complete |
+| QA-02 | Phase 5: Known Bug Fixes | Complete |
 | UX-01 | Phase 6: UX Foundation | Pending |
 | UX-02 | Phase 6: UX Foundation | Pending |
 | UX-03 | Phase 6: UX Foundation | Pending |
@@ -142,4 +142,4 @@ Deferred pentru dupa stabilizare.
 
 ---
 *Requirements defined: 2026-01-23*
-*Last updated: 2026-01-25 (Phase 2 + Phase 3 complete)*
+*Last updated: 2026-01-25 (Phase 4 + Phase 5 complete)*
