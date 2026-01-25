@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 4 of 10 (Flow Integrity)
-Plan: 3 of 4 complete
-Status: In progress
-Last activity: 2026-01-25 - Completed 04-03-PLAN.md (pre-flight transfer status check API)
+Plan: 4 of 4 complete
+Status: Phase complete
+Last activity: 2026-01-25 - Completed 04-04-PLAN.md (transfer warning modal integration)
 
-Progress: [██████████░░░░░░░░░░] 50%
+Progress: [████████████░░░░░░░░] 55%
 
 ## Phase 4 Progress
 
@@ -23,16 +23,16 @@ Progress: [██████████░░░░░░░░░░] 50%
 | 04-01 | Complete | Soft warning flow for pending transfers with user acknowledgment |
 | 04-02 | Complete | AWB mismatch detection with warning/confirmation flow |
 | 04-03 | Complete | Pre-flight transfer status check API (single + batch) |
-| 04-04 | Pending | End-to-end flow integrity tests |
+| 04-04 | Complete | Transfer warning modal integration in invoice flow |
 
 ---
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
+- Total plans completed: 17
 - Average duration: ~6 minutes
-- Total execution time: ~94 minutes
+- Total execution time: ~106 minutes
 
 **By Phase:**
 
@@ -41,7 +41,7 @@ Progress: [██████████░░░░░░░░░░] 50%
 | 01-system-audit | 4/4 | ~28 min | ~7 min |
 | 02-invoice-series-fix | 5/5 | ~21 min | ~4.2 min |
 | 03-internal-settlement | 5/5 | ~27 min | ~5.4 min |
-| 04-flow-integrity | 3/4 | ~18 min | ~6 min |
+| 04-flow-integrity | 4/4 | ~30 min | ~7.5 min |
 
 ## Accumulated Context
 
@@ -77,26 +77,26 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed 04-03-PLAN.md (pre-flight transfer status check API)
+Stopped at: Completed 04-04-PLAN.md (transfer warning modal integration)
 Resume file: None
 
-## Phase 4 In Progress
+## Phase 4 Complete
 
 Flow Integrity features:
 - [x] Invoice transfer warning (04-01)
 - [x] AWB mismatch detection (04-02)
 - [x] Pre-flight transfer check API (04-03)
-- [ ] E2E flow tests (04-04)
+- [x] Transfer warning modal integration (04-04)
 
 ## Recent Commits
 
+- `efc2088` feat(04-04): wire TransferWarningModal into orders page invoice flow
+- `e6a0b12` feat(04-04): add transfer warning acknowledgment to invoice issue API
+- `ca400d9` feat(04-04): create TransferWarningModal component
 - `0492389` feat(04-03): add batch transfer status check endpoint
 - `eefd049` feat(04-03): add single order transfer status check endpoint
 - `a45970f` fix(04-01): use ActionType.UPDATE for warning override logging
 - `58fcd88` feat(04-02): improve credential status badges with clearer text
-- `0dd4dfe` feat(04-02): add FanCourier credential help text
-- `9cda88d` feat(04-02): add AWB company mismatch detection
-- `a60c776` docs(04): create phase plan for flow integrity
 
 ---
 *State initialized: 2026-01-23*
