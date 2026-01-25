@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 6 of 10 (UX Foundation)
-Plan: 1 of 5 complete
+Plan: 2 of 5 complete
 Status: In progress
-Last activity: 2026-01-25 - Completed 06-01-PLAN.md
+Last activity: 2026-01-25 - Completed 06-02-PLAN.md
 
-Progress: [██████████████░░░░░░] 70%
+Progress: [███████████████░░░░░] 73%
 
 ## Phase 6 Progress
 
 | Plan | Status | Summary |
 |------|--------|---------|
 | 06-01 | Complete | TooltipProvider + ActionTooltip + Skeleton system |
-| 06-02 | Pending | Error Modal System |
+| 06-02 | Complete | ErrorModal + getErrorMessage with 30+ Romanian mappings |
 | 06-03 | Pending | Loading States |
 | 06-04 | Pending | Button States |
 | 06-05 | Pending | Form Feedback |
@@ -31,9 +31,9 @@ Progress: [██████████████░░░░░░] 70%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 22
+- Total plans completed: 23
 - Average duration: ~6 minutes
-- Total execution time: ~127 minutes
+- Total execution time: ~131 minutes
 
 **By Phase:**
 
@@ -44,7 +44,7 @@ Progress: [██████████████░░░░░░] 70%
 | 03-internal-settlement | 5/5 | ~27 min | ~5.4 min |
 | 04-flow-integrity | 4/4 | ~30 min | ~7.5 min |
 | 05-known-bug-fixes | 4/4 | ~18 min | ~4.5 min |
-| 06-ux-foundation | 1/5 | ~3 min | ~3 min |
+| 06-ux-foundation | 2/5 | ~7 min | ~3.5 min |
 
 ## Accumulated Context
 
@@ -52,6 +52,10 @@ Progress: [██████████████░░░░░░] 70%
 
 Recent decisions affecting current work:
 
+- **06-02:** 30+ error codes covering network, auth, invoice, AWB, stock, order, validation, and HTTP status scenarios
+- **06-02:** getErrorMessage uses resolution order: code property, HTTP status, message pattern detection, UNKNOWN_ERROR fallback
+- **06-02:** Copy button shows Check icon for 2 seconds after successful copy
+- **06-02:** Default action button text is 'Am inteles' (Romanian)
 - **06-01:** TooltipProvider as innermost wrapper for maximum availability
 - **05-01:** Image sync uses check-before-create instead of delete-all-recreate
 - **05-01:** Grouped API returns up to 200 items per category for performance
@@ -81,7 +85,7 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 **NEXT:**
-- Continue Phase 6: UX Foundation (plans 02-05)
+- Continue Phase 6: UX Foundation (plans 03-05)
 
 **CRITICAL (Blocheaza munca):**
 - TD-01: Order processing no transaction - partial failures cause inconsistent data
@@ -91,7 +95,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed 06-01-PLAN.md
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None
 
 ## Phase 6 Features
@@ -99,22 +103,22 @@ Resume file: None
 UX Foundation components:
 
 - [x] 06-01: TooltipProvider + ActionTooltip + Skeleton system
-- [ ] 06-02: Error Modal System
+- [x] 06-02: ErrorModal + getErrorMessage with 30+ Romanian mappings
 - [ ] 06-03: Loading States
 - [ ] 06-04: Button States
 - [ ] 06-05: Form Feedback
 
 ## Recent Commits
 
+- `12b3d98` feat(06-02): create ErrorModal component
+- `2c286b7` feat(06-02): create error message mapping utility
 - `d459bfb` feat(06-01): add TooltipProvider with 300ms delay to app providers
 - `e8c53df` feat(06-01): create ActionTooltip component with action/consequence semantics
 - `f7e9e2b` feat(06-01): create Skeleton component system with presets
 - `7093e40` feat(05-01): update SKU dropdown with grouped Available/Assigned sections
 - `37d77b4` feat(05-01): add grouped response to inventory-items API
 - `685e9d3` fix(05-01): make image sync idempotent - skip existing URLs
-- `4fb9938` feat(05-02): transform order line items to card layout
-- `7d8b78b` feat(05-03): add deduplication to Meta webhook handler
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-25 (06-01 complete)*
+*Last updated: 2026-01-25 (06-02 complete)*
