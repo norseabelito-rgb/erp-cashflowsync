@@ -17,14 +17,14 @@ Requirements pentru stabilizarea si imbunatatirea sistemului curent.
 
 ### Facturare
 
-- [ ] **INV-01**: Serii facturare definite in Facturis, selectate automat per magazin/firma
-- [ ] **INV-02**: Mapare corecta magazin > firma > serie facturare
-- [ ] **INV-03**: Logica decontare interna: comenzi firma secundara > tracking separat
-- [ ] **INV-04**: Selectie comenzi firma secundara cu status "incasat" pentru decontare
-- [ ] **INV-05**: Calcul automat cumul produse la pret achizitie + 10% adaos
-- [ ] **INV-06**: Generare factura interna Aquaterra > firma secundara (saptamanal)
+- [x] **INV-01**: Serii facturare definite in Facturis, selectate automat per magazin/firma
+- [x] **INV-02**: Mapare corecta magazin > firma > serie facturare
+- [x] **INV-03**: Logica decontare interna: comenzi firma secundara > tracking separat
+- [x] **INV-04**: Selectie comenzi firma secundara cu status "incasat" pentru decontare
+- [x] **INV-05**: Calcul automat cumul produse la pret achizitie + 10% adaos
+- [x] **INV-06**: Generare factura interna Aquaterra > firma secundara (saptamanal)
 - [ ] **INV-07**: AWB emis pe contul firmei care factureaza (user dedicat per firma in SelfAWB)
-- [ ] **INV-08**: Verificare si fix pentru edge cases in auto-correct serii
+- [x] **INV-08**: Verificare si fix pentru edge cases in auto-correct serii
 
 ### Flow Integrity
 
@@ -101,13 +101,13 @@ Deferred pentru dupa stabilizare.
 | AUDIT-03 | Phase 1: System Audit | Complete |
 | AUDIT-04 | Phase 1: System Audit | Complete |
 | AUDIT-05 | Phase 1: System Audit | Complete |
-| INV-01 | Phase 2: Invoice Series Fix | Pending |
-| INV-02 | Phase 2: Invoice Series Fix | Pending |
-| INV-08 | Phase 2: Invoice Series Fix | Pending |
-| INV-03 | Phase 3: Internal Settlement | Pending |
-| INV-04 | Phase 3: Internal Settlement | Pending |
-| INV-05 | Phase 3: Internal Settlement | Pending |
-| INV-06 | Phase 3: Internal Settlement | Pending |
+| INV-01 | Phase 2: Invoice Series Fix | Complete |
+| INV-02 | Phase 2: Invoice Series Fix | Complete |
+| INV-08 | Phase 2: Invoice Series Fix | Complete |
+| INV-03 | Phase 3: Internal Settlement | Complete |
+| INV-04 | Phase 3: Internal Settlement | Complete |
+| INV-05 | Phase 3: Internal Settlement | Complete |
+| INV-06 | Phase 3: Internal Settlement | Complete |
 | INV-07 | Phase 4: Flow Integrity | Pending |
 | FLOW-01 | Phase 4: Flow Integrity | Pending |
 | FLOW-02 | Phase 4: Flow Integrity | Pending |
@@ -142,4 +142,4 @@ Deferred pentru dupa stabilizare.
 
 ---
 *Requirements defined: 2026-01-23*
-*Last updated: 2026-01-23 after roadmap creation*
+*Last updated: 2026-01-25 (Phase 2 + Phase 3 complete)*

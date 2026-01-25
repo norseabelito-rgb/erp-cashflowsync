@@ -12,7 +12,7 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
 
 - [x] **Phase 1: System Audit** - Complete understanding of current state before making changes
 - [x] **Phase 2: Invoice Series Fix** - Oblio integration with automatic series selection (migrated from Facturis)
-- [ ] **Phase 3: Internal Settlement** - Implement decontare interna flow for secondary company orders
+- [x] **Phase 3: Internal Settlement** - Implement decontare interna flow for secondary company orders
 - [ ] **Phase 4: Flow Integrity** - Ensure data consistency with transfer blocking and AWB routing
 - [ ] **Phase 5: Known Bug Fixes** - Address documented bugs from codebase analysis
 - [ ] **Phase 6: UX Foundation** - Consistent design, tooltips, and feedback across all pages
@@ -80,7 +80,7 @@ Plans:
 - [x] 03-02-PLAN.md — Price calculation using costPrice and order selection (Wave 2)
 - [x] 03-03-PLAN.md — Order selection UI with pre-selection workflow (Wave 3)
 - [x] 03-04-PLAN.md — Oblio invoice generation for settlements (Wave 4)
-- [ ] 03-05-PLAN.md — Gap closure: wire order selection to generate endpoint (Wave 1)
+- [x] 03-05-PLAN.md — Gap closure: wire order selection to generate endpoint (Wave 1)
 
 ### Phase 4: Flow Integrity
 **Goal**: Data consistency ensured through transfer blocking and correct AWB routing
@@ -224,7 +224,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 |-------|----------------|--------|-----------|
 | 1. System Audit | 4/4 | ✓ Complete | 2026-01-24 |
 | 2. Invoice Series Fix | 5/5 | ✓ Complete | 2026-01-25 |
-| 3. Internal Settlement | 4/5 | Gap closure needed | - |
+| 3. Internal Settlement | 5/5 | ✓ Complete | 2026-01-25 |
 | 4. Flow Integrity | 0/3 | Not started | - |
 | 5. Known Bug Fixes | 0/4 | Not started | - |
 | 6. UX Foundation | 0/5 | Not started | - |
