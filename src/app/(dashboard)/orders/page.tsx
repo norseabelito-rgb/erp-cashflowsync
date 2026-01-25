@@ -27,6 +27,8 @@ import {
   Download,
   Loader2,
   Pencil,
+  ExternalLink,
+  BoxIcon,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -111,6 +113,7 @@ interface Order {
     sku: string;
     quantity: number;
     price: string;
+    imageUrl?: string | null;
   }>;
 }
 
@@ -170,6 +173,41 @@ const statusConfig: Record<string, { label: string; variant: "default" | "succes
   AWB_PENDING: { label: "Necesită AWB", variant: "warning" },
   INVOICE_PENDING: { label: "Necesită factură", variant: "warning" },
 };
+
+// Component for stock tooltip content with live fetch
+function StockTooltipContent({ sku }: { sku: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['stock-check', sku],
+    queryFn: async () => {
+      const res = await fetch(`/api/inventory-items?search=${encodeURIComponent(sku)}&limit=1`);
+      const json = await res.json();
+      return json.data?.[0] || null;
+    },
+    staleTime: 30000, // Cache for 30 seconds
+  });
+
+  if (isLoading) {
+    return <p className="text-xs">Se incarca...</p>;
+  }
+
+  if (!data) {
+    return <p className="text-xs text-muted-foreground">Nu s-a gasit in inventar</p>;
+  }
+
+  return (
+    <div className="text-xs">
+      <p className="font-medium">{data.name}</p>
+      <p className="mt-1">
+        Stoc: <span className={data.currentStock > 0 ? "text-green-600" : "text-red-600"}>
+          {data.currentStock} {data.unit || 'buc'}
+        </span>
+      </p>
+      {data.reorderPoint && data.currentStock <= data.reorderPoint && (
+        <p className="text-yellow-600 mt-1">Stoc scazut!</p>
+      )}
+    </div>
+  );
+}
 
 // Funcție pentru a determina statusul vizual al AWB-ului
 function getAWBStatusInfo(awb: Order['awb']): {
@@ -1931,62 +1969,119 @@ export default function OrdersPage() {
 
               {/* Produse comandă */}
               <div>
-                <h4 className="font-semibold mb-2">Produse ({viewOrder.lineItems?.length || 0})</h4>
-                {viewOrder.lineItems && viewOrder.lineItems.length > 0 ? (
-                  <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead className="bg-muted">
-                        <tr>
-                          <th className="text-left px-3 py-2 font-medium">Produs</th>
-                          <th className="text-left px-3 py-2 font-medium">SKU</th>
-                          <th className="text-center px-3 py-2 font-medium">Cant.</th>
-                          <th className="text-right px-3 py-2 font-medium">Preț</th>
-                          <th className="text-right px-3 py-2 font-medium">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {viewOrder.lineItems.map((item: any) => (
-                          <tr key={item.id} className="hover:bg-muted/50">
-                            <td className="px-3 py-2">
-                              <div className="flex flex-col">
-                                <span className="font-medium line-clamp-1">{item.title}</span>
-                                {item.variantTitle && (
-                                  <span className="text-xs text-muted-foreground">{item.variantTitle}</span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-3 py-2">
-                              <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                                {item.sku || '-'}
-                              </code>
-                            </td>
-                            <td className="px-3 py-2 text-center">{item.quantity}</td>
-                            <td className="px-3 py-2 text-right">
-                              {formatCurrency(parseFloat(item.price), viewOrder.currency)}
-                            </td>
-                            <td className="px-3 py-2 text-right font-medium">
-                              {formatCurrency(parseFloat(item.price) * item.quantity, viewOrder.currency)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot className="bg-muted font-medium">
-                        <tr>
-                          <td colSpan={4} className="px-3 py-2 text-right">Total produse:</td>
-                          <td className="px-3 py-2 text-right">
-                            {formatCurrency(
-                              viewOrder.lineItems.reduce((sum: number, item: any) => 
-                                sum + parseFloat(item.price) * item.quantity, 0
-                              ), 
-                              viewOrder.currency
-                            )}
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
+                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Produse ({viewOrder.lineItems?.length || 0})
+                </h4>
+
+                {/* Empty state warning */}
+                {viewOrder.lineItems && viewOrder.lineItems.length === 0 && (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                    <span>Comanda nu are produse. Aceasta poate indica o problema de sincronizare.</span>
                   </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Nu sunt produse în comandă</p>
+                )}
+
+                {/* Line items as cards */}
+                {viewOrder.lineItems && viewOrder.lineItems.length > 0 && (
+                  <div className="space-y-3">
+                    {viewOrder.lineItems.map((item: any) => (
+                      <Card key={item.id} className="overflow-hidden">
+                        <CardContent className="p-4">
+                          <div className="flex gap-4">
+                            {/* Product image */}
+                            <div className="flex-shrink-0">
+                              {item.imageUrl ? (
+                                <img
+                                  src={item.imageUrl}
+                                  alt={item.title}
+                                  className="w-16 h-16 object-cover rounded-md border"
+                                />
+                              ) : (
+                                <div className="w-16 h-16 bg-muted rounded-md border flex items-center justify-center">
+                                  <Package className="h-6 w-6 text-muted-foreground" />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Product info */}
+                            <div className="flex-1 min-w-0">
+                              <h5 className="font-medium text-sm line-clamp-2">{item.title}</h5>
+                              {item.variantTitle && item.variantTitle !== "Default Title" && (
+                                <p className="text-xs text-muted-foreground">{item.variantTitle}</p>
+                              )}
+                              <p className="font-mono text-xs text-muted-foreground mt-1">
+                                SKU: {item.sku || '-'}
+                              </p>
+                            </div>
+
+                            {/* Quantity and price */}
+                            <div className="text-right flex-shrink-0">
+                              <p className="font-medium">{item.quantity}x</p>
+                              <p className="text-sm text-muted-foreground">
+                                {formatCurrency(parseFloat(item.price), viewOrder.currency)}
+                              </p>
+                              <p className="text-sm font-medium mt-1">
+                                {formatCurrency(parseFloat(item.price) * item.quantity, viewOrder.currency)}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Quick actions */}
+                          <div className="flex gap-2 mt-3 pt-3 border-t">
+                            {item.sku && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7"
+                                  onClick={() => {
+                                    window.location.href = `/products?search=${encodeURIComponent(item.sku)}`;
+                                  }}
+                                >
+                                  <ExternalLink className="h-3 w-3 mr-1" />
+                                  Vezi Produs
+                                </Button>
+
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-xs h-7"
+                                      >
+                                        <BoxIcon className="h-3 w-3 mr-1" />
+                                        Stoc
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <StockTooltipContent sku={item.sku} />
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+
+                    {/* Total row */}
+                    <div className="flex justify-end pt-2 border-t">
+                      <div className="text-right">
+                        <span className="text-sm text-muted-foreground mr-2">Total produse:</span>
+                        <span className="font-semibold">
+                          {formatCurrency(
+                            viewOrder.lineItems.reduce((sum: number, item: any) =>
+                              sum + parseFloat(item.price) * item.quantity, 0
+                            ),
+                            viewOrder.currency
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
 
