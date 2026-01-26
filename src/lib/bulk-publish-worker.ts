@@ -24,17 +24,43 @@ type ChannelProgress = {
 type ChannelProgressMap = Record<string, ChannelProgress>;
 
 /**
- * Convertește URL Google Drive în URL public
+ * Convertește URL Google Drive în URL public accesibil de Shopify
  */
 function convertGoogleDriveUrl(url: string): string {
   if (!url) return url;
 
-  // Pattern: https://drive.google.com/file/d/FILE_ID/view
-  const drivePattern = /drive\.google\.com\/file\/d\/([^/]+)/;
-  const match = url.match(drivePattern);
+  let fileId: string | null = null;
 
-  if (match) {
-    const fileId = match[1];
+  // Format: /api/drive-image/FILE_ID (format intern)
+  if (url.includes("/api/drive-image/")) {
+    fileId = url.split("/api/drive-image/")[1];
+  }
+  // Format: https://drive.google.com/file/d/FILE_ID/view
+  else if (url.includes("drive.google.com")) {
+    const patterns = [
+      /\/file\/d\/([a-zA-Z0-9_-]+)/,
+      /id=([a-zA-Z0-9_-]+)/,
+      /\/d\/([a-zA-Z0-9_-]+)/,
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) {
+        fileId = match[1];
+        break;
+      }
+    }
+  }
+  // Doar ID-ul (20+ caractere alfanumerice)
+  else if (/^[a-zA-Z0-9_-]{20,}$/.test(url)) {
+    fileId = url;
+  }
+  // URL extern valid (https://...), returnează direct
+  else if (url.startsWith("https://") || url.startsWith("http://")) {
+    return url;
+  }
+
+  if (fileId) {
+    // Folosim lh3.googleusercontent.com care permite download direct
     return `https://lh3.googleusercontent.com/d/${fileId}`;
   }
 
