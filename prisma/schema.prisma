@@ -50,6 +50,12 @@ model User {
   // Acces depozite
   warehouseAccess UserWarehouseAccess[]
 
+  // Tasks
+  tasksAssigned   Task[]           @relation("TaskAssignee")
+  tasksCreated    Task[]           @relation("TaskCreator")
+  tasksCompleted  Task[]           @relation("TaskCompleter")
+  taskAttachments TaskAttachment[]
+
   @@map("users")
 }
 
@@ -459,6 +465,7 @@ model Order {
   trendyolOrder         TrendyolOrder?
   intercompanyLink      IntercompanyOrderLink?
   failedInvoiceAttempts FailedInvoiceAttempt[]
+  tasks                 Task[]
 
   @@unique([shopifyOrderId, storeId])
   @@index([status])
@@ -546,6 +553,9 @@ model Invoice {
   issuedAt  DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  // Tasks linked to this invoice
+  tasks Task[]
 
   @@index([companyId])
   @@index([invoiceSeriesId])
@@ -1275,6 +1285,9 @@ model MasterProduct {
   trendyolProductMappings  TrendyolProductMapping[]
   trendyolProducts         TrendyolProduct[]
   trendyolCampaignProducts TrendyolCampaignProduct[]
+
+  // Tasks linked to this product
+  tasks Task[]
 
   @@index([sku])
   @@index([barcode])
@@ -3236,4 +3249,111 @@ model IntercompanyOrderLink {
   @@index([status])
   @@index([intercompanyInvoiceId])
   @@map("intercompany_order_links")
+}
+
+// ============================================
+// TASK MANAGEMENT SYSTEM
+// ============================================
+
+// Tip task (tipuri operaționale și business)
+enum TaskType {
+  PICKING // Picking marfă din depozit
+  VERIFICARE // Verificare comandă/produs
+  EXPEDIERE // Expediere colet
+  MEETING // Întâlnire
+  DEADLINE // Termen limită
+  FOLLOW_UP // Urmărire/follow-up
+  BUSINESS // Task general business
+  OTHER // Altele
+}
+
+// Prioritate task
+enum TaskPriority {
+  LOW // Prioritate scăzută
+  MEDIUM // Prioritate medie (default)
+  HIGH // Prioritate ridicată
+  URGENT // Urgent
+}
+
+// Status task
+enum TaskStatus {
+  PENDING // În așteptare
+  COMPLETED // Finalizat
+}
+
+// Task
+model Task {
+  id          String  @id @default(cuid())
+  title       String
+  description String? @db.Text
+
+  // Tip și prioritate
+  type     TaskType     @default(BUSINESS)
+  priority TaskPriority @default(MEDIUM)
+  status   TaskStatus   @default(PENDING)
+
+  // Deadline (opțional)
+  deadline DateTime?
+
+  // Asignare
+  assigneeId String?
+  assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  // Cine a creat task-ul
+  createdById String
+  createdBy   User   @relation("TaskCreator", fields: [createdById], references: [id])
+
+  // Link-uri la entități (opțional)
+  linkedOrderId String?
+  linkedOrder   Order?  @relation(fields: [linkedOrderId], references: [id], onDelete: SetNull)
+
+  linkedProductId String?
+  linkedProduct   MasterProduct? @relation(fields: [linkedProductId], references: [id], onDelete: SetNull)
+
+  linkedInvoiceId String?
+  linkedInvoice   Invoice? @relation(fields: [linkedInvoiceId], references: [id], onDelete: SetNull)
+
+  // Completare
+  completedAt   DateTime?
+  completedById String?
+  completedBy   User?     @relation("TaskCompleter", fields: [completedById], references: [id], onDelete: SetNull)
+
+  // Notă la reasignare
+  reassignmentNote String? @db.Text
+
+  // Atașamente
+  attachments TaskAttachment[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([assigneeId])
+  @@index([status])
+  @@index([deadline])
+  @@index([type])
+  @@index([priority, deadline])
+  @@map("tasks")
+}
+
+// Atașament task
+model TaskAttachment {
+  id     String @id @default(cuid())
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  // Detalii fișier
+  filename    String
+  storagePath String
+  mimeType    String
+  size        Int // Dimensiune în bytes
+
+  // Cine a încărcat
+  uploadedById String
+  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+  @@map("task_attachments")
 }
