@@ -3357,3 +3357,23 @@ model TaskAttachment {
   @@index([taskId])
   @@map("task_attachments")
 }
+
+// ============================================
+// BULK PUSH JOBS
+// ============================================
+
+// Job pentru bulk push produse către Shopify
+model BulkPushJob {
+  id          String    @id @default(cuid())
+  status      String    @default("pending") // pending, running, completed, failed
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  progress    Json      @default("{}") // Per-store progress as JSON
+  error       String? // Global error message if job fails
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@map("bulk_push_jobs")
+}
