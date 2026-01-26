@@ -135,6 +135,12 @@ export const PERMISSIONS: PermissionDefinition[] = [
   { code: "logs.sync", name: "Vizualizare istoric sync", description: "Poate vedea istoricul sincronizărilor", category: "logs", sortOrder: 1200 },
   { code: "logs.activity", name: "Vizualizare activitate", description: "Poate vedea log-urile de activitate", category: "logs", sortOrder: 1201 },
 
+  // ==================== TASK-URI ====================
+  { code: "tasks.view", name: "Vizualizare task-uri", description: "Poate vedea lista și detaliile task-urilor", category: "tasks", sortOrder: 1250 },
+  { code: "tasks.create", name: "Creare task-uri", description: "Poate crea task-uri noi", category: "tasks", sortOrder: 1251 },
+  { code: "tasks.edit", name: "Editare task-uri", description: "Poate modifica task-urile existente", category: "tasks", sortOrder: 1252 },
+  { code: "tasks.delete", name: "Ștergere task-uri", description: "Poate șterge task-uri", category: "tasks", sortOrder: 1253 },
+
   // ==================== FIRME (COMPANIES) ====================
   { code: "companies.view", name: "Vizualizare firme", description: "Poate vedea lista firmelor și detaliile lor", category: "companies", sortOrder: 1300 },
   { code: "companies.manage", name: "Gestiune firme", description: "Poate crea, modifica și șterge firme", category: "companies", sortOrder: 1301 },
@@ -166,6 +172,7 @@ export const PERMISSION_CATEGORIES = [
   { code: "users", name: "Utilizatori", icon: "Users" },
   { code: "admin", name: "Administrare", icon: "Shield" },
   { code: "logs", name: "Loguri", icon: "ScrollText" },
+  { code: "tasks", name: "Task-uri", icon: "CheckSquare" },
   { code: "companies", name: "Firme", icon: "Building" },
   { code: "intercompany", name: "Decontări Intercompany", icon: "ArrowRightLeft" },
 ];
@@ -199,6 +206,7 @@ export const DEFAULT_ROLES = [
       "ads.view", "ads.manage",
       "reports.view", "reports.export",
       "logs.sync", "logs.activity",
+      "tasks.view", "tasks.create", "tasks.edit", "tasks.delete",
     ],
   },
   {
@@ -255,6 +263,7 @@ export const DEFAULT_ROLES = [
       "warehouses.view",
       "transfers.view",
       "reports.view",
+      "tasks.view",
     ],
   },
 ];
