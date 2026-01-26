@@ -16,6 +16,7 @@ const fs = require('fs');
 const path = require('path');
 
 async function runMigration() {
+  console.log('🚀 [force-migration] Script started at:', new Date().toISOString());
   const databaseUrl = process.env.DATABASE_URL;
 
   if (!databaseUrl) {
@@ -73,6 +74,16 @@ async function runMigration() {
     }
 
     console.log('\n🎉 Toate migrațiile au fost procesate!');
+
+    // Verifică dacă tabela bulk_publish_jobs există acum
+    const checkTable = await client.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables
+        WHERE table_schema = 'public'
+        AND table_name = 'bulk_publish_jobs'
+      );
+    `);
+    console.log('📋 Tabela bulk_publish_jobs există:', checkTable.rows[0].exists);
 
   } catch (err) {
     console.error('❌ Eroare la conectare:', err.message);
