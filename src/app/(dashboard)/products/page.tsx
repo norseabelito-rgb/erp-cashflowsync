@@ -167,6 +167,8 @@ export default function ProductsPage() {
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [selectAllMode, setSelectAllMode] = useState(false); // True când sunt selectate TOATE produsele
+  const [isLoadingAllIds, setIsLoadingAllIds] = useState(false);
   const [skuSearch, setSkuSearch] = useState("");
   
   // Dialog states
@@ -480,15 +482,53 @@ export default function ProductsPage() {
       setSelectedProducts(products.map((p: Product) => p.id));
     } else {
       setSelectedProducts([]);
+      setSelectAllMode(false);
     }
   };
 
   const handleSelectProduct = (productId: string, checked: boolean) => {
+    setSelectAllMode(false); // Reset select all mode when manually selecting
     if (checked) {
       setSelectedProducts([...selectedProducts, productId]);
     } else {
       setSelectedProducts(selectedProducts.filter(id => id !== productId));
     }
+  };
+
+  // Selectează TOATE produsele din baza de date (nu doar din pagina curentă)
+  const handleSelectAllProducts = async () => {
+    setIsLoadingAllIds(true);
+    try {
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (categoryFilter !== "all") params.set("categoryId", categoryFilter);
+      if (channelFilter !== "all") params.set("channelId", channelFilter);
+
+      const res = await fetch(`/api/products/ids?${params}`);
+      const data = await res.json();
+
+      if (data.success && data.ids) {
+        setSelectedProducts(data.ids);
+        setSelectAllMode(true);
+        toast({
+          title: "Toate produsele selectate",
+          description: `${data.total} produse au fost selectate`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Eroare",
+        description: "Nu s-au putut încărca toate produsele",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingAllIds(false);
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedProducts([]);
+    setSelectAllMode(false);
   };
 
   const getChannelStatus = (product: Product, channelId: string) => {
@@ -643,56 +683,83 @@ export default function ProductsPage() {
 
         {/* Bulk Actions Bar */}
         {selectedProducts.length > 0 && (
-          <div className="flex items-center gap-4 p-4 mb-4 bg-primary/10 rounded-lg border border-primary/20">
-            <span className="text-sm font-medium">
-              {selectedProducts.length} produse selectate
-            </span>
-            <div className="flex gap-2 ml-auto">
-              <DropdownMenu>
-                <ActionTooltip action="Actiuni in bulk" consequence="Aplica actiuni pe selectie">
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      Acțiuni Bulk
-                    </Button>
-                  </DropdownMenuTrigger>
-                </ActionTooltip>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => { setBulkAction("change-category"); setBulkDialogOpen(true); }}>
-                    <FolderTree className="h-4 w-4 mr-2" />
-                    Schimbă categoria
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { setBulkAction("add-tags"); setBulkDialogOpen(true); }}>
-                    <Tag className="h-4 w-4 mr-2" />
-                    Adaugă tag-uri
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { setBulkAction("remove-tags"); setBulkDialogOpen(true); }}>
-                    <Tag className="h-4 w-4 mr-2" />
-                    Șterge tag-uri
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => { setBulkAction("publish-channel"); setBulkDialogOpen(true); }}>
-                    <CheckCircle2 className="h-4 w-4 mr-2 text-status-success" />
-                    Publică pe canal
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { setBulkAction("unpublish-channel"); setBulkDialogOpen(true); }}>
-                    <MinusCircle className="h-4 w-4 mr-2" />
-                    Depublică de pe canal
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => { setBulkAction("delete"); setBulkDialogOpen(true); }}
-                    className="text-status-error"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Șterge produsele
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <ActionTooltip action="Deselecteaza tot">
-                <Button variant="ghost" size="sm" onClick={() => setSelectedProducts([])}>
-                  Deselectează
+          <div className="flex flex-col gap-2 p-4 mb-4 bg-primary/10 rounded-lg border border-primary/20">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium">
+                {selectAllMode ? (
+                  <>Toate cele {selectedProducts.length} produse selectate</>
+                ) : (
+                  <>{selectedProducts.length} produse selectate</>
+                )}
+              </span>
+
+              {/* Opțiune de a selecta toate când sunt selectate toate din pagină */}
+              {!selectAllMode && selectedProducts.length === products.length && total > products.length && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-primary"
+                  onClick={handleSelectAllProducts}
+                  disabled={isLoadingAllIds}
+                >
+                  {isLoadingAllIds ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Se încarcă...
+                    </>
+                  ) : (
+                    <>Selectează toate cele {total} produse</>
+                  )}
                 </Button>
-              </ActionTooltip>
+              )}
+
+              <div className="flex gap-2 ml-auto">
+                <DropdownMenu>
+                  <ActionTooltip action="Actiuni in bulk" consequence="Aplica actiuni pe selectie">
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        Acțiuni Bulk
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </ActionTooltip>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={() => { setBulkAction("change-category"); setBulkDialogOpen(true); }}>
+                      <FolderTree className="h-4 w-4 mr-2" />
+                      Schimbă categoria
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { setBulkAction("add-tags"); setBulkDialogOpen(true); }}>
+                      <Tag className="h-4 w-4 mr-2" />
+                      Adaugă tag-uri
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { setBulkAction("remove-tags"); setBulkDialogOpen(true); }}>
+                      <Tag className="h-4 w-4 mr-2" />
+                      Șterge tag-uri
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => { setBulkAction("publish-channel"); setBulkDialogOpen(true); }}>
+                      <CheckCircle2 className="h-4 w-4 mr-2 text-status-success" />
+                      Publică pe canal
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { setBulkAction("unpublish-channel"); setBulkDialogOpen(true); }}>
+                      <MinusCircle className="h-4 w-4 mr-2" />
+                      Depublică de pe canal
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => { setBulkAction("delete"); setBulkDialogOpen(true); }}
+                      className="text-status-error"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Șterge produsele
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <ActionTooltip action="Deselecteaza tot">
+                  <Button variant="ghost" size="sm" onClick={handleClearSelection}>
+                    Deselectează
+                  </Button>
+                </ActionTooltip>
+              </div>
             </div>
           </div>
         )}
