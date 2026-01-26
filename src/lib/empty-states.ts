@@ -1,4 +1,4 @@
-import { LucideIcon, Package, FileText, ShoppingCart, Search, CheckCircle, AlertTriangle, Warehouse, BarChart3 } from "lucide-react";
+import { LucideIcon, Package, FileText, ShoppingCart, Search, CheckCircle, AlertTriangle, Warehouse, BarChart3, ClipboardList } from "lucide-react";
 
 export interface EmptyStateConfig {
   icon: LucideIcon;
@@ -181,6 +181,41 @@ export const EMPTY_STATES: Record<string, Record<EmptyStateType, EmptyStateConfi
       icon: AlertTriangle,
       title: "Eroare la incarcare",
       description: "Nu am putut incarca lista. Incearca din nou.",
+      action: {
+        label: "Reincarca",
+        onClick: "refresh"
+      }
+    }
+  },
+
+  tasks: {
+    first_time: {
+      icon: ClipboardList,
+      title: "Niciun task inca",
+      description: "Creeaza primul task pentru a incepe gestionarea activitatilor.",
+      action: {
+        label: "Creeaza task",
+        onClick: "createTask"
+      }
+    },
+    filtered: {
+      icon: Search,
+      title: "Niciun rezultat gasit",
+      description: "Nu am gasit task-uri care sa corespunda criteriilor de cautare.",
+      action: {
+        label: "Reseteaza filtrele",
+        onClick: "clearFilters"
+      }
+    },
+    success: {
+      icon: CheckCircle,
+      title: "Toate task-urile finalizate",
+      description: "Nu ai task-uri active. Buna treaba!"
+    },
+    error: {
+      icon: AlertTriangle,
+      title: "Eroare la incarcarea task-urilor",
+      description: "Nu am putut incarca lista de task-uri. Incearca din nou.",
       action: {
         label: "Reincarca",
         onClick: "refresh"
