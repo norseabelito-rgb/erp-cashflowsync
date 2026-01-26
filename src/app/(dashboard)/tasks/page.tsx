@@ -21,6 +21,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -122,6 +132,7 @@ export default function TasksPage() {
   // Dialog state
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
 
   // Build query params based on filters
   const buildQueryParams = () => {
@@ -209,6 +220,32 @@ export default function TasksPage() {
     },
   });
 
+  // Delete task mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to delete task");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Task sters",
+        description: "Task-ul a fost sters cu succes.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      setTaskToDelete(null);
+    },
+    onError: (error: Error) => {
+      showError(error);
+      setTaskToDelete(null);
+    },
+  });
+
   const tasks: Task[] = tasksData?.tasks || [];
   // usersData is an array from /api/rbac/users
   const users: User[] = Array.isArray(usersData) ? usersData : [];
@@ -231,6 +268,13 @@ export default function TasksPage() {
   // Dialog handlers
   const openCreateDialog = () => setIsCreateDialogOpen(true);
   const openEditDialog = (task: Task) => setEditingTask(task);
+  const openDeleteDialog = (task: Task) => setTaskToDelete(task);
+  const confirmDelete = () => {
+    if (taskToDelete) {
+      deleteMutation.mutate(taskToDelete.id);
+    }
+  };
+  const cancelDelete = () => setTaskToDelete(null);
 
   const handleDialogSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ["tasks"] });
@@ -368,7 +412,10 @@ export default function TasksPage() {
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-status-error focus:text-status-error">
+              <DropdownMenuItem
+                className="text-status-error focus:text-status-error"
+                onClick={() => openDeleteDialog(task)}
+              >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Sterge
               </DropdownMenuItem>
@@ -538,6 +585,31 @@ export default function TasksPage() {
         onSuccess={handleDialogSuccess}
         users={users.map((u) => ({ id: u.id, name: u.name }))}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!taskToDelete} onOpenChange={(open) => !open && cancelDelete()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sterge task</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esti sigur ca vrei sa stergi task-ul &quot;{taskToDelete?.title}&quot;?
+              Aceasta actiune nu poate fi anulata.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelDelete} disabled={deleteMutation.isPending}>
+              Anuleaza
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleteMutation.isPending}
+              className="bg-status-error hover:bg-status-error/90"
+            >
+              {deleteMutation.isPending ? "Se sterge..." : "Sterge"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
