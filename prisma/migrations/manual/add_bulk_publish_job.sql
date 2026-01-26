@@ -1,3 +1,5 @@
+-- Migration: add_bulk_publish_job
+-- Created: 2026-01-27
 -- Enum pentru statusul job-urilor de publicare bulk
 DO $$ BEGIN
     CREATE TYPE "BulkPublishStatus" AS ENUM ('PENDING', 'RUNNING', 'COMPLETED', 'COMPLETED_WITH_ERRORS', 'FAILED', 'CANCELLED');

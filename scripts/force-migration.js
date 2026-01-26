@@ -48,9 +48,14 @@ async function runMigration() {
       return;
     }
 
-    const sqlFiles = fs.readdirSync(manualDir)
+    const allFiles = fs.readdirSync(manualDir);
+    console.log('📂 Toate fișierele din folder:', allFiles);
+
+    const sqlFiles = allFiles
       .filter(f => f.endsWith('.sql'))
       .sort(); // Sortează alfabetic pentru ordine consistentă
+
+    console.log('📄 Fișiere SQL filtrate:', sqlFiles);
 
     if (sqlFiles.length === 0) {
       console.log('ℹ️  Nu există fișiere SQL de migrat.');
