@@ -365,7 +365,7 @@ export default function ProductInventoryMappingPage() {
                         <TableCell className="font-mono">
                           {product.inventoryItem ? (
                             <span>
-                              {Number(product.inventoryItem.currentStock).toFixed(2)} {product.inventoryItem.unit}
+                              {Math.round(Number(product.inventoryItem.currentStock))} {product.inventoryItem.unit}
                             </span>
                           ) : (
                             "-"
