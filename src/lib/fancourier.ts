@@ -571,6 +571,21 @@ export class FanCourierAPI {
   }
 
   /**
+   * Normalizează textul pentru API FanCourier
+   * Elimină diacritice și normalizează spațiile
+   * FanCourier API pare să accepte doar caractere ASCII
+   */
+  private normalizeForAPI(text: string): string {
+    return text
+      .replace(/[ăâ]/gi, (m) => m.toLowerCase() === m ? 'a' : 'A')
+      .replace(/[î]/gi, (m) => m.toLowerCase() === m ? 'i' : 'I')
+      .replace(/[șş]/gi, (m) => m.toLowerCase() === m ? 's' : 'S')
+      .replace(/[țţ]/gi, (m) => m.toLowerCase() === m ? 't' : 'T')
+      .replace(/sectorul\s*/gi, 'Sector ')
+      .trim();
+  }
+
+  /**
    * Obține lista de străzi din nomenclatorul FanCourier
    * Returnează străzi cu coduri poștale pentru un județ și/sau localitate
    */
@@ -595,8 +610,9 @@ export class FanCourierAPI {
   }> {
     try {
       const queryParams: Record<string, string> = {};
-      if (params?.county) queryParams.county = params.county;
-      if (params?.locality) queryParams.locality = params.locality;
+      // Normalizăm parametrii pentru API (elimină diacritice)
+      if (params?.county) queryParams.county = this.normalizeForAPI(params.county);
+      if (params?.locality) queryParams.locality = this.normalizeForAPI(params.locality);
 
       const response = await this.authRequest("GET", "/reports/streets", null, queryParams);
 
@@ -618,6 +634,55 @@ export class FanCourierAPI {
       };
     } catch (error: any) {
       console.error("[FanCourier API] getStreets exception:", error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message,
+      };
+    }
+  }
+
+  /**
+   * Obține lista de localități din nomenclatorul FanCourier pentru un județ
+   * Folosește endpoint-ul dedicat /reports/localities
+   */
+  async getLocalities(params: {
+    county: string;
+  }): Promise<{
+    success: boolean;
+    data?: Array<{
+      judet: string;
+      localitate: string;
+      agentie?: string;
+      km?: string;
+      cod_rutare?: string;
+      id_localitate_fan?: string;
+    }>;
+    error?: string;
+  }> {
+    try {
+      // Normalizăm județul pentru API (elimină diacritice)
+      const normalizedCounty = this.normalizeForAPI(params.county);
+
+      const response = await this.authRequest("GET", "/reports/localities", null, {
+        county: normalizedCounty,
+      });
+
+      if (response.data.status === "success" && response.data.data) {
+        const localities = response.data.data;
+        console.log(`[FanCourier API] getLocalities(county="${normalizedCounty}"): ${localities.length} localities found`);
+        return {
+          success: true,
+          data: localities,
+        };
+      }
+
+      console.log(`[FanCourier API] getLocalities failed:`, response.data);
+      return {
+        success: false,
+        error: response.data.message || "Eroare la obținerea localităților",
+      };
+    } catch (error: any) {
+      console.error("[FanCourier API] getLocalities exception:", error.response?.data || error.message);
       return {
         success: false,
         error: error.response?.data?.message || error.message,

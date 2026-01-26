@@ -7,6 +7,6 @@ buildCommand = "npx prisma generate && npm run build"
 [deploy]
 # Safe migration script that uses IF NOT EXISTS - won't delete data
 # After migration, backfill postal codes for orders missing them (limit 200 per deploy)
-startCommand = "node scripts/force-migration.js && (LIMIT=200 npm run backfill:postal-codes || echo 'Backfill skipped or failed - continuing') && npm run start"
+startCommand = "node scripts/force-migration.js && (LIMIT=50 npm run backfill:postal-codes || echo 'Backfill skipped or failed - continuing') && npm run start"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
