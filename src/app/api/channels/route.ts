@@ -6,7 +6,7 @@ import { hasPermission } from "@/lib/permissions";
 
 export const dynamic = 'force-dynamic';
 
-// GET - Lista canalelor
+// GET - Lista canalelor (cu auto-sync pentru Store-uri Shopify noi)
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -17,6 +17,33 @@ export async function GET() {
     const canView = await hasPermission(session.user.id, "products.view");
     if (!canView) {
       return NextResponse.json({ error: "Nu ai permisiunea necesară" }, { status: 403 });
+    }
+
+    // Auto-sync: creează canale pentru Store-uri Shopify active care nu au canal
+    const storesWithoutChannel = await prisma.store.findMany({
+      where: {
+        channel: null,
+        isActive: true,
+      }
+    });
+
+    if (storesWithoutChannel.length > 0) {
+      for (const store of storesWithoutChannel) {
+        try {
+          await prisma.channel.create({
+            data: {
+              name: store.name,
+              type: "SHOPIFY",
+              storeId: store.id,
+              isActive: true,
+            }
+          });
+          console.log(`Auto-created channel for store: ${store.name}`);
+        } catch (err) {
+          // Ignoră erori de duplicat (race condition)
+          console.warn(`Could not create channel for store ${store.name}:`, err);
+        }
+      }
     }
 
     const channels = await prisma.channel.findMany({

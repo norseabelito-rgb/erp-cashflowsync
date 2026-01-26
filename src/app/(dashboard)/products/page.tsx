@@ -555,12 +555,6 @@ export default function ProductsPage() {
                   <span className="hidden md:inline">Sync Shopify</span>
                 </Button>
               </ActionTooltip>
-              <Link href="/products/bulk-push">
-                <Button variant="outline" size="sm" className="md:size-default">
-                  <Upload className="h-4 w-4 md:mr-2" />
-                  <span className="hidden md:inline">Bulk Push</span>
-                </Button>
-              </Link>
               <Link href="/products/inventory-mapping">
                 <Button variant="outline" size="sm" className="md:size-default">
                   <Package className="h-4 w-4 md:mr-2" />
