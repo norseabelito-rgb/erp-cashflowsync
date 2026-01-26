@@ -3366,13 +3366,13 @@ model TaskAttachment {
 model BulkPushJob {
   id          String    @id @default(cuid())
   status      String    @default("pending") // pending, running, completed, failed
-  startedAt   DateTime  @default(now())
-  completedAt DateTime?
+  startedAt   DateTime  @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
   progress    Json      @default("{}") // Per-store progress as JSON
   error       String? // Global error message if job fails
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([status])
   @@map("bulk_push_jobs")
