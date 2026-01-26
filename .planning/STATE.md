@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 7 - Task Management Core - COMPLETE
+**Current focus:** Phase 7 - Task Management Core - COMPLETE (with gap closure)
 
 ## Current Position
 
 Phase: 7 of 10 (Task Management Core)
-Plan: 4 of 4 complete
+Plan: 5 of 5 complete (including gap closure)
 Status: Phase complete
-Last activity: 2026-01-26 - Completed 07-04-PLAN.md
+Last activity: 2026-01-26 - Completed 07-05-PLAN.md (gap closure)
 
 Progress: [██████████████████░░] 90%
 
@@ -24,15 +24,16 @@ Progress: [██████████████████░░] 90%
 | 07-02 | Complete | Task CRUD API endpoints with filtering and completion toggle |
 | 07-03 | Complete | Task list page with filtering and grouped display |
 | 07-04 | Complete | TaskFormDialog + sidebar navigation |
+| 07-05 | Complete | Gap closure: Delete button wired to API with confirmation |
 
 ---
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 31
-- Average duration: ~5.6 minutes
-- Total execution time: ~172 minutes
+- Total plans completed: 32
+- Average duration: ~5.4 minutes
+- Total execution time: ~174 minutes
 
 **By Phase:**
 
@@ -44,7 +45,7 @@ Progress: [██████████████████░░] 90%
 | 04-flow-integrity | 4/4 | ~30 min | ~7.5 min |
 | 05-known-bug-fixes | 4/4 | ~18 min | ~4.5 min |
 | 06-ux-foundation | 6/6 | ~22 min | ~3.7 min |
-| 07-task-management-core | 4/4 | ~26 min | ~6.5 min |
+| 07-task-management-core | 5/5 | ~28 min | ~5.6 min |
 
 ## Accumulated Context
 
@@ -52,6 +53,9 @@ Progress: [██████████████████░░] 90%
 
 Recent decisions affecting current work:
 
+- **07-05:** AlertDialog confirmation before delete (prevent accidental deletion)
+- **07-05:** Show task title in confirmation for user clarity
+- **07-05:** Use status-error color for delete action button
 - **07-04:** Native HTML date input for deadline (react-day-picker unavailable)
 - **07-04:** Tasks navigation placed under Vanzari section in sidebar
 - **07-04:** TaskFormDialog exports Task type for cross-component compatibility
@@ -128,7 +132,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-26
-Stopped at: Completed 07-04-PLAN.md (Phase 7 complete)
+Stopped at: Completed 07-05-PLAN.md (gap closure, Phase 7 fully complete)
 Resume file: None
 
 ## Phase 7 Features
@@ -139,9 +143,11 @@ Task Management Core components:
 - [x] 07-02: Task CRUD API endpoints
 - [x] 07-03: Task list page with filtering
 - [x] 07-04: Task create/edit modal + sidebar navigation
+- [x] 07-05: Delete button wired to API with confirmation dialog
 
 ## Recent Commits
 
+- `097d5b6` feat(07-05): wire delete button to API with confirmation dialog
 - `b659081` feat(07-04): add tasks navigation entry to sidebar
 - `d2db178` feat(07-04): integrate task form dialog into tasks page
 - `1a0018a` feat(07-04): create task form dialog component
@@ -154,4 +160,4 @@ Task Management Core components:
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-26 (07-04 complete, Phase 7 complete)*
+*Last updated: 2026-01-26 (07-05 complete, Phase 7 fully complete with gap closure)*
