@@ -872,26 +872,76 @@ export async function getHandoverReport(date: Date, storeId?: string): Promise<H
 
 /**
  * Verifică dacă trebuie rulată finalizarea automată
- * Apelată din CRON job la fiecare minut
+ * Apelată din CRON job
+ *
+ * Finalizează dacă:
+ * - Ora curentă >= ora setată (default 20:00)
+ * - Sesiunea de azi e încă deschisă
+ *
+ * De asemenea, marchează automat AWB-urile vechi nescanate ca nepredate
  */
 export async function checkAutoFinalize(): Promise<boolean> {
+  // Mai întâi, marchează AWB-urile din zilele anterioare care nu au fost scanate/marcate
+  await markOldUnscannedAsNotHandedOver();
+
   const settings = await prisma.settings.findFirst();
   const closeTime = settings?.handoverAutoCloseTime || "20:00";
-  
+
   const now = new Date();
   const [closeHour, closeMinute] = closeTime.split(":").map(Number);
-  
-  // Verificăm dacă suntem în minutul de închidere
-  if (now.getHours() === closeHour && now.getMinutes() === closeMinute) {
+
+  // Calculăm minutele de la miezul nopții pentru comparație ușoară
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const closeMinutes = closeHour * 60 + closeMinute;
+
+  // Verificăm dacă am trecut de ora de închidere
+  if (nowMinutes >= closeMinutes) {
     const session = await getOrCreateTodaySession();
-    
+
     if (session.status === "OPEN") {
       await finalizeHandover("system", "System (Auto)", "auto");
       return true;
     }
   }
-  
+
   return false;
+}
+
+/**
+ * Marchează automat AWB-urile din zilele anterioare care nu au fost scanate și nici marcate ca nepredate
+ * Acestea sunt AWB-uri "uitate" - probabil predarea din ziua respectivă nu s-a finalizat
+ */
+export async function markOldUnscannedAsNotHandedOver(): Promise<number> {
+  const todayStart = getTodayStart();
+
+  // Găsim AWB-uri create ÎNAINTE de azi, nescanate, nemarcate ca nepredate
+  const result = await prisma.aWB.updateMany({
+    where: {
+      createdAt: { lt: todayStart },
+      awbNumber: { not: null },
+      handedOverAt: null,
+      notHandedOver: false,
+      // Excludem cele anulate/livrate/returnate
+      NOT: {
+        OR: [
+          { currentStatus: "cancelled" },
+          { currentStatus: "deleted" },
+          { currentStatus: "delivered" },
+          { currentStatus: "returned" },
+        ],
+      },
+    },
+    data: {
+      notHandedOver: true,
+      notHandedOverAt: new Date(),
+    },
+  });
+
+  if (result.count > 0) {
+    console.log(`🔴 ${result.count} AWB-uri vechi nescanate marcate automat ca NEPREDATE`);
+  }
+
+  return result.count;
 }
 
 /**

@@ -59,16 +59,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Creează picking list automat dacă e cerut și avem AWB-uri create
+    // Creează picking list automat pentru AWB-urile create (dacă nu sunt deja într-un picking list)
     let pickingList = null;
-    if (createPickingList && results.awbIds.length > 0) {
+    if (results.awbIds.length > 0) {
       try {
-        pickingList = await createPickingListFromAWBs({
-          awbIds: results.awbIds,
-          name: pickingListName,
-          assignedTo,
-          createdBy,
+        // Verifică dacă AWB-urile au deja picking list
+        const existingPLAs = await prisma.pickingListAWB.findMany({
+          where: { awbId: { in: results.awbIds } },
+          select: { awbId: true },
         });
+        const existingAwbIds = new Set(existingPLAs.map((p) => p.awbId));
+        const newAwbIds = results.awbIds.filter((id) => !existingAwbIds.has(id));
+
+        if (newAwbIds.length > 0) {
+          pickingList = await createPickingListFromAWBs({
+            awbIds: newAwbIds,
+            name: pickingListName,
+            assignedTo,
+            createdBy: createdBy || session.user.id,
+          });
+          console.log(`📋 Picking list creat automat pentru ${newAwbIds.length} AWB-uri: ${pickingList.code}`);
+        }
       } catch (plError: any) {
         console.error("Error creating picking list:", plError);
         // Nu returnăm eroare - AWB-urile au fost create cu succes
