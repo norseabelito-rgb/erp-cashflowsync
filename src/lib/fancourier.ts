@@ -637,17 +637,79 @@ export class FanCourierAPI {
     success: boolean;
     postalCode?: string;
     matchedStreet?: string;
+    matchedLocality?: string;
     error?: string;
   }> {
+    // Helper pentru normalizare text (elimină diacritice, lowercase)
+    const normalize = (s: string) => s
+      .toLowerCase()
+      .trim()
+      .replace(/[ăâ]/g, 'a')
+      .replace(/[î]/g, 'i')
+      .replace(/[șş]/g, 's')
+      .replace(/[țţ]/g, 't')
+      .replace(/sectorul\s*/gi, 'sector ')
+      .replace(/\s+/g, ' ');
+
     try {
-      // Obținem străzile pentru județul și localitatea date
-      const streetsResult = await this.getStreets({
+      // Încercăm mai întâi lookup direct
+      let streetsResult = await this.getStreets({
         county: params.county,
         locality: params.locality,
       });
 
+      // Dacă nu găsim, încercăm să găsim localitatea în nomenclator
       if (!streetsResult.success || !streetsResult.data?.length) {
-        console.log(`[FanCourier] Lookup failed for county="${params.county}", locality="${params.locality}": ${streetsResult.error || 'No streets found'} (got ${streetsResult.data?.length || 0} streets)`);
+        console.log(`[FanCourier] Direct lookup failed for "${params.locality}, ${params.county}". Trying locality search...`);
+
+        // Obținem toate localitățile din județ
+        const localitiesResult = await this.getLocalities({ county: params.county });
+
+        if (localitiesResult.success && localitiesResult.data?.length) {
+          const normalizedInput = normalize(params.locality);
+
+          // Căutăm cea mai bună potrivire
+          let bestMatch: { localitate: string; score: number } | null = null;
+
+          for (const loc of localitiesResult.data) {
+            const normalizedLoc = normalize(loc.localitate);
+
+            // Potrivire exactă normalizată
+            if (normalizedLoc === normalizedInput) {
+              bestMatch = { localitate: loc.localitate, score: 1 };
+              break;
+            }
+
+            // Potrivire parțială (unul conține pe celălalt)
+            if (normalizedLoc.includes(normalizedInput) || normalizedInput.includes(normalizedLoc)) {
+              const score = Math.min(normalizedLoc.length, normalizedInput.length) /
+                           Math.max(normalizedLoc.length, normalizedInput.length);
+              if (!bestMatch || score > bestMatch.score) {
+                bestMatch = { localitate: loc.localitate, score };
+              }
+            }
+          }
+
+          if (bestMatch && bestMatch.score >= 0.5) {
+            console.log(`[FanCourier] Found locality match: "${params.locality}" → "${bestMatch.localitate}" (score: ${bestMatch.score.toFixed(2)})`);
+
+            // Reîncercăm cu numele găsit
+            streetsResult = await this.getStreets({
+              county: params.county,
+              locality: bestMatch.localitate,
+            });
+
+            if (streetsResult.success && streetsResult.data?.length) {
+              // Continuăm cu localitate găsită
+              params = { ...params, locality: bestMatch.localitate };
+            }
+          } else {
+            console.log(`[FanCourier] No locality match found for "${params.locality}" in ${params.county} (${localitiesResult.data.length} localities checked)`);
+          }
+        }
+      }
+
+      if (!streetsResult.success || !streetsResult.data?.length) {
         return {
           success: false,
           error: streetsResult.error || "Nu s-au găsit străzi pentru această localitate",
