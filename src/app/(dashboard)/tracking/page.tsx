@@ -144,9 +144,9 @@ const categoryConfig: Record<StatusCategory, {
   },
   delivered: {
     label: "Livrat",
-    bgColor: "bg-emerald-50",
-    borderColor: "border-emerald-200",
-    textColor: "text-emerald-700",
+    bgColor: "bg-status-success/10",
+    borderColor: "border-status-success/20",
+    textColor: "text-status-success",
     badgeVariant: "success",
     icon: CheckCircle2,
   },
@@ -168,9 +168,9 @@ const categoryConfig: Record<StatusCategory, {
   },
   deleted: {
     label: "Șters",
-    bgColor: "bg-gray-100",
-    borderColor: "border-gray-300",
-    textColor: "text-gray-600",
+    bgColor: "bg-muted",
+    borderColor: "border-border",
+    textColor: "text-muted-foreground",
     badgeVariant: "outline",
     icon: Trash2,
   },
@@ -184,9 +184,9 @@ const categoryConfig: Record<StatusCategory, {
   },
   unknown: {
     label: "Necunoscut",
-    bgColor: "bg-gray-50",
-    borderColor: "border-gray-200",
-    textColor: "text-gray-600",
+    bgColor: "bg-muted/50",
+    borderColor: "border-border",
+    textColor: "text-muted-foreground",
     badgeVariant: "outline",
     icon: Package,
   },
@@ -303,16 +303,16 @@ export default function TrackingPage() {
           </CardContent>
         </Card>
         
-        <Card 
+        <Card
           className={cn(
-            "cursor-pointer transition-all hover:shadow-md bg-emerald-50 border-emerald-200",
-            categoryFilter === "delivered" && "ring-2 ring-emerald-500"
+            "cursor-pointer transition-all hover:shadow-md bg-status-success/10 border-status-success/20",
+            categoryFilter === "delivered" && "ring-2 ring-status-success"
           )}
           onClick={() => setCategoryFilter("delivered")}
         >
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-emerald-600">{stats.delivered}</p>
-            <p className="text-xs text-emerald-600">Livrate</p>
+            <p className="text-2xl font-bold text-status-success">{stats.delivered}</p>
+            <p className="text-xs text-status-success">Livrate</p>
           </CardContent>
         </Card>
         
@@ -355,16 +355,16 @@ export default function TrackingPage() {
           </CardContent>
         </Card>
         
-        <Card 
+        <Card
           className={cn(
-            "cursor-pointer transition-all hover:shadow-md bg-gray-100 border-gray-300",
-            categoryFilter === "deleted" && "ring-2 ring-gray-500"
+            "cursor-pointer transition-all hover:shadow-md bg-muted border-border",
+            categoryFilter === "deleted" && "ring-2 ring-muted-foreground"
           )}
           onClick={() => setCategoryFilter("deleted")}
         >
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-gray-600">{stats.deleted}</p>
-            <p className="text-xs text-gray-600">Șterse</p>
+            <p className="text-2xl font-bold text-muted-foreground">{stats.deleted}</p>
+            <p className="text-xs text-muted-foreground">Șterse</p>
           </CardContent>
         </Card>
         
@@ -468,25 +468,25 @@ export default function TrackingPage() {
                           </div>
                           
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                            <a 
+                            <a
                               href={`/orders/${awb.order.id}`}
-                              className="hover:text-primary hover:underline flex items-center gap-1 text-gray-700"
+                              className="hover:text-primary hover:underline flex items-center gap-1 text-foreground"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <Package className="h-3 w-3" />
                               {awb.order.shopifyOrderNumber}
                             </a>
-                            
-                            <span className="flex items-center gap-1 text-gray-700">
+
+                            <span className="flex items-center gap-1 text-foreground">
                               <MapPin className="h-3 w-3" />
                               {awb.order.customerFirstName} {awb.order.customerLastName}
                             </span>
-                            
-                            <span className="text-gray-600">
+
+                            <span className="text-muted-foreground">
                               {awb.order.shippingCity}, {awb.order.shippingProvince}
                             </span>
-                            
-                            <Badge variant="outline" className="text-xs bg-white">
+
+                            <Badge variant="outline" className="text-xs bg-card">
                               {awb.order.store.name}
                             </Badge>
                           </div>
@@ -502,22 +502,22 @@ export default function TrackingPage() {
                         <div className="flex items-center gap-4">
                           <div className="text-right text-sm">
                             {awb.currentStatusDate && (
-                              <p className="text-gray-600">
+                              <p className="text-muted-foreground">
                                 {formatDate(awb.currentStatusDate)}
                               </p>
                             )}
                             {awb.statusHistory.length > 0 && (
-                              <p className="text-xs text-gray-500 flex items-center gap-1 justify-end">
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
                                 <History className="h-3 w-3" />
                                 {awb.statusHistory.length} evenimente
                               </p>
                             )}
                           </div>
-                          
+
                           {isExpanded ? (
-                            <ChevronUp className="h-5 w-5 text-gray-500" />
+                            <ChevronUp className="h-5 w-5 text-muted-foreground" />
                           ) : (
-                            <ChevronDown className="h-5 w-5 text-gray-500" />
+                            <ChevronDown className="h-5 w-5 text-muted-foreground" />
                           )}
                         </div>
                       </div>
@@ -538,45 +538,45 @@ export default function TrackingPage() {
                     <div className="px-6 pb-6 border-t border-dashed">
                       <div className="grid md:grid-cols-2 gap-6 pt-4">
                         {/* Detalii livrare */}
-                        <div className="bg-white/70 p-4 rounded-lg">
-                          <h4 className="font-semibold mb-3 flex items-center gap-2 text-gray-800">
+                        <div className="bg-card/70 p-4 rounded-lg">
+                          <h4 className="font-semibold mb-3 flex items-center gap-2 text-foreground">
                             <MapPin className="h-4 w-4" />
                             Detalii Livrare
                           </h4>
-                          <div className="space-y-2 text-sm text-gray-700">
+                          <div className="space-y-2 text-sm text-foreground/80">
                             <p>
-                              <strong className="text-gray-900">Destinatar:</strong> {awb.order.customerFirstName} {awb.order.customerLastName}
+                              <strong className="text-foreground">Destinatar:</strong> {awb.order.customerFirstName} {awb.order.customerLastName}
                             </p>
                             {awb.order.customerPhone && (
                               <p className="flex items-center gap-1">
-                                <Phone className="h-3 w-3 text-gray-500" />
+                                <Phone className="h-3 w-3 text-muted-foreground" />
                                 {awb.order.customerPhone}
                               </p>
                             )}
                             <p>
-                              <strong className="text-gray-900">Adresă:</strong> {awb.order.shippingAddress1}
+                              <strong className="text-foreground">Adresă:</strong> {awb.order.shippingAddress1}
                             </p>
                             <p>
-                              <strong className="text-gray-900">Localitate:</strong> {awb.order.shippingCity}, {awb.order.shippingProvince}
+                              <strong className="text-foreground">Localitate:</strong> {awb.order.shippingCity}, {awb.order.shippingProvince}
                             </p>
                             <p>
-                              <strong className="text-gray-900">Serviciu:</strong> {awb.serviceType}
+                              <strong className="text-foreground">Serviciu:</strong> {awb.serviceType}
                             </p>
                             <p>
-                              <strong className="text-gray-900">Plată:</strong> {awb.paymentType}
+                              <strong className="text-foreground">Plată:</strong> {awb.paymentType}
                             </p>
                             {awb.cashOnDelivery && parseFloat(awb.cashOnDelivery) > 0 && (
                               <p>
-                                <strong className="text-gray-900">Ramburs:</strong> {formatCurrency(parseFloat(awb.cashOnDelivery), "RON")}
+                                <strong className="text-foreground">Ramburs:</strong> {formatCurrency(parseFloat(awb.cashOnDelivery), "RON")}
                               </p>
                             )}
                             <p>
-                              <strong className="text-gray-900">Valoare comandă:</strong> {formatCurrency(parseFloat(awb.order.totalPrice), awb.order.currency)}
+                              <strong className="text-foreground">Valoare comandă:</strong> {formatCurrency(parseFloat(awb.order.totalPrice), awb.order.currency)}
                             </p>
                           </div>
-                          
+
                           <div className="mt-4 flex gap-2">
-                            <Button size="sm" variant="outline" asChild className="bg-white">
+                            <Button size="sm" variant="outline" asChild className="bg-card">
                               <a href={`/orders/${awb.order.id}`}>
                                 <ExternalLink className="h-3 w-3 mr-1" />
                                 Vezi comanda
@@ -586,14 +586,14 @@ export default function TrackingPage() {
                         </div>
                         
                         {/* Istoric status */}
-                        <div className="bg-white/70 p-4 rounded-lg">
-                          <h4 className="font-semibold mb-3 flex items-center gap-2 text-gray-800">
+                        <div className="bg-card/70 p-4 rounded-lg">
+                          <h4 className="font-semibold mb-3 flex items-center gap-2 text-foreground">
                             <History className="h-4 w-4" />
                             Istoric Status ({awb.statusHistory.length})
                           </h4>
-                          
+
                           {awb.statusHistory.length === 0 ? (
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-muted-foreground">
                               Nu există evenimente înregistrate.
                             </p>
                           ) : (
@@ -601,35 +601,35 @@ export default function TrackingPage() {
                               {awb.statusHistory.map((event, index) => {
                                 const eventCategory = getStatusCategory(event.status);
                                 const eventConfig = categoryConfig[eventCategory];
-                                
+
                                 return (
                                   <div key={event.id} className="flex gap-3">
                                     <div className="flex flex-col items-center">
                                       <div
                                         className={cn(
                                           "h-3 w-3 rounded-full border-2",
-                                          index === 0 
+                                          index === 0
                                             ? cn(eventConfig.borderColor, eventConfig.bgColor)
-                                            : "border-gray-300 bg-gray-100"
+                                            : "border-muted-foreground/30 bg-muted"
                                         )}
                                       />
                                       {index < awb.statusHistory.length - 1 && (
-                                        <div className="w-px h-full bg-gray-200 flex-1 min-h-[20px]" />
+                                        <div className="w-px h-full bg-border flex-1 min-h-[20px]" />
                                       )}
                                     </div>
                                     <div className="flex-1 pb-2">
                                       <p className={cn(
-                                        "text-sm font-medium text-gray-800",
+                                        "text-sm font-medium text-foreground",
                                         index === 0 && eventConfig.textColor
                                       )}>
                                         {event.status}
                                       </p>
-                                      <p className="text-xs text-gray-600">
+                                      <p className="text-xs text-muted-foreground">
                                         {event.location && `${event.location} • `}
                                         {formatDate(event.statusDate)}
                                       </p>
                                       {event.description && (
-                                        <p className="text-xs text-gray-500 mt-0.5">
+                                        <p className="text-xs text-muted-foreground mt-0.5">
                                           {event.description}
                                         </p>
                                       )}
@@ -652,7 +652,7 @@ export default function TrackingPage() {
       
       {/* Info despre numărul de rezultate */}
       {!isLoading && awbs.length > 0 && (
-        <p className="text-sm text-gray-600 text-center mt-6">
+        <p className="text-sm text-muted-foreground text-center mt-6">
           Se afișează {awbs.length} din {allAWBs.length} AWB-uri
           {categoryFilter !== "all" && ` (filtru: ${categoryConfig[categoryFilter as StatusCategory]?.label})`}
         </p>

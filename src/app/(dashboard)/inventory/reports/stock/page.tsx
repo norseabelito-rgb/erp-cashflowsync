@@ -211,12 +211,12 @@ export default function StockReportPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <AlertTriangle className="h-4 w-4 text-orange-600" />
+              <div className="p-2 bg-status-warning/10 rounded-lg">
+                <AlertTriangle className="h-4 w-4 text-status-warning" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Sub minim</p>
-                <p className="text-xl font-bold text-orange-600">
+                <p className="text-xl font-bold text-status-warning">
                   {totals.itemsBelowMin || 0}
                 </p>
               </div>
@@ -329,7 +329,7 @@ export default function StockReportPage() {
       {!isToday && (
         <Card className="mb-6 border-status-info/50 bg-status-info/10">
           <CardContent className="py-3">
-            <p className="text-sm text-blue-700">
+            <p className="text-sm text-status-info">
               <Calendar className="h-4 w-4 inline mr-1" />
               Vizualizezi stocul la data de{" "}
               <strong>
@@ -381,7 +381,7 @@ export default function StockReportPage() {
                   {displayItems.map((item: any) => (
                     <TableRow
                       key={item.id}
-                      className={item.isBelowMin || item.stockAtDate === 0 ? "bg-orange-50/50" : ""}
+                      className={item.isBelowMin || item.stockAtDate === 0 ? "bg-status-warning/5" : ""}
                     >
                       <TableCell className="font-mono text-sm">{item.sku}</TableCell>
                       <TableCell>

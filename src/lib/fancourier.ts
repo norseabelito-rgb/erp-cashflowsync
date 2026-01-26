@@ -592,6 +592,8 @@ export class FanCourierAPI {
   async getStreets(params?: {
     county?: string;
     locality?: string;
+    page?: number;
+    perPage?: number;
   }): Promise<{
     success: boolean;
     data?: Array<{
@@ -609,12 +611,29 @@ export class FanCourierAPI {
     error?: string;
   }> {
     try {
-      const queryParams: Record<string, string> = {};
+      const queryParams: Record<string, string | number> = {};
       // Normalizăm parametrii pentru API (elimină diacritice)
       if (params?.county) queryParams.county = this.normalizeForAPI(params.county);
       if (params?.locality) queryParams.locality = this.normalizeForAPI(params.locality);
+      // Adăugăm paginare (default 1000 per pagină)
+      queryParams.page = params?.page || 1;
+      queryParams.perPage = params?.perPage || 1000;
+
+      console.log(`[FanCourier API] getStreets request:`, queryParams);
 
       const response = await this.authRequest("GET", "/reports/streets", null, queryParams);
+
+      // Log raw response pentru debugging
+      console.log(`[FanCourier API] getStreets raw response status:`, response.data.status);
+      console.log(`[FanCourier API] getStreets raw response keys:`, Object.keys(response.data));
+      if (response.data.data) {
+        console.log(`[FanCourier API] getStreets data length:`, response.data.data.length);
+        if (response.data.data.length > 0) {
+          console.log(`[FanCourier API] getStreets sample item:`, JSON.stringify(response.data.data[0]));
+        }
+      } else {
+        console.log(`[FanCourier API] getStreets full response:`, JSON.stringify(response.data).substring(0, 500));
+      }
 
       if (response.data.status === "success") {
         const streetCount = response.data.data?.length || 0;

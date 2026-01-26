@@ -7,8 +7,7 @@ buildCommand = "npx prisma generate && npm run build"
 [deploy]
 # Safe migration script that uses IF NOT EXISTS - won't delete data
 # After migration, backfill postal codes for orders missing them (limit 200 per deploy)
-# Backfill dezactivat temporar - /reports/streets FanCourier returnează 0 rezultate
-# TODO: Investighează cu FanCourier sau folosește bază de date statică pentru coduri poștale
-startCommand = "node scripts/force-migration.js && npm run start"
+# DEBUG: Backfill cu 5 comenzi pentru a vedea răspunsurile raw FanCourier
+startCommand = "node scripts/force-migration.js && (LIMIT=5 npm run backfill:postal-codes || echo 'Backfill failed') && npm run start"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
