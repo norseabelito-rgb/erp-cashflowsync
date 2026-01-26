@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7 of 10 (Task Management Core)
-Plan: 1 of 4 complete
+Plan: 2 of 4 complete
 Status: In progress
-Last activity: 2026-01-26 - Completed 07-01-PLAN.md
+Last activity: 2026-01-26 - Completed 07-02-PLAN.md
 
-Progress: [█████████████████░░░] 85%
+Progress: [█████████████████░░░] 87%
 
 ## Phase 7 Progress
 
 | Plan | Status | Summary |
 |------|--------|---------|
 | 07-01 | Complete | Task/TaskAttachment Prisma models + task-utils.ts helpers |
-| 07-02 | Pending | Task CRUD API endpoints |
+| 07-02 | Complete | Task CRUD API endpoints with filtering and completion toggle |
 | 07-03 | Pending | Task list page |
 | 07-04 | Pending | Task create/edit modal |
 
@@ -30,9 +30,9 @@ Progress: [█████████████████░░░] 85%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 28
+- Total plans completed: 29
 - Average duration: ~5.5 minutes
-- Total execution time: ~154 minutes
+- Total execution time: ~159 minutes
 
 **By Phase:**
 
@@ -44,7 +44,7 @@ Progress: [█████████████████░░░] 85%
 | 04-flow-integrity | 4/4 | ~30 min | ~7.5 min |
 | 05-known-bug-fixes | 4/4 | ~18 min | ~4.5 min |
 | 06-ux-foundation | 6/6 | ~22 min | ~3.7 min |
-| 07-task-management-core | 1/4 | ~8 min | ~8 min |
+| 07-task-management-core | 2/4 | ~13 min | ~6.5 min |
 
 ## Accumulated Context
 
@@ -52,6 +52,11 @@ Progress: [█████████████████░░░] 85%
 
 Recent decisions affecting current work:
 
+- **07-02:** Task permissions added to permissions.ts (tasks.view, tasks.create, tasks.edit, tasks.delete)
+- **07-02:** Manager role gets full task CRUD, Vizualizare role gets view only
+- **07-02:** Reassignment validation requires note when assigneeId changes
+- **07-02:** Priority sorting done in application layer (Prisma enum sorting is alphabetical)
+- **07-02:** Filter presets: today, overdue, this_week, my_tasks
 - **07-01:** Optional deadline field (per CONTEXT.md - not all tasks need deadlines)
 - **07-01:** SetNull onDelete for task relations (preserve tasks when linked entities deleted)
 - **07-01:** Composite index on (priority, deadline) for efficient sorted queries
@@ -104,11 +109,11 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 **NEXT:**
-- Continue Phase 7: 07-02 Task CRUD API endpoints
+- Continue Phase 7: 07-03 Task list page
 
 **DATABASE MIGRATION NEEDED:**
 - Apply `prisma/migrations/manual/add_task_management.sql` to create tasks and task_attachments tables
-- Regenerate Prisma client with `npx prisma generate`
+- Regenerate Prisma client with `npx prisma generate` (permission issue on node_modules/.prisma)
 
 **CRITICAL (Blocheaza munca):**
 - TD-01: Order processing no transaction - partial failures cause inconsistent data
@@ -118,7 +123,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-26
-Stopped at: Completed 07-01-PLAN.md
+Stopped at: Completed 07-02-PLAN.md
 Resume file: None
 
 ## Phase 7 Features
@@ -126,21 +131,21 @@ Resume file: None
 Task Management Core components:
 
 - [x] 07-01: Task/TaskAttachment Prisma models + task-utils.ts helpers
-- [ ] 07-02: Task CRUD API endpoints
+- [x] 07-02: Task CRUD API endpoints
 - [ ] 07-03: Task list page
 - [ ] 07-04: Task create/edit modal
 
 ## Recent Commits
 
+- `5996e5c` feat(07-02): create task completion toggle API endpoint
+- `e442f38` feat(07-02): create task detail, update, delete API endpoints
+- `c400663` feat(07-02): create task list and create API endpoints
 - `173192a` feat(07-01): create task-utils.ts helper functions
 - `b83a06b` chore(07-01): add task management database migration
 - `cc6a406` feat(07-01): add Task management models to Prisma schema
 - `05a6ce6` docs(07): create phase plan
 - `2b519ba` docs(07): research task management core phase
-- `1891da9` feat(06-06): add ActionTooltip to Products and Inventory pages
-- `ebe5944` feat(06-06): add ActionTooltip to Invoices page buttons
-- `447f3c3` feat(06-06): add ActionTooltip to Orders page buttons
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-26 (07-01 complete)*
+*Last updated: 2026-01-26 (07-02 complete)*
