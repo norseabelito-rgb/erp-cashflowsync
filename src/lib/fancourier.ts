@@ -1388,8 +1388,12 @@ export async function lookupAndUpdatePostalCode(orderId: string): Promise<{
         shippingProvince: true,
         shippingCity: true,
         shippingAddress1: true,
+        shippingAddress2: true,
         shippingZip: true,
         shippingCountry: true,
+        customerPhone: true,
+        phoneValidation: true,
+        status: true,
       },
     });
 
@@ -1421,9 +1425,37 @@ export async function lookupAndUpdatePostalCode(orderId: string): Promise<{
     });
 
     if (result.success && result.postalCode) {
+      // Import validators pentru re-validare
+      const { validateOrder } = await import("./validators");
+
+      // Re-validăm comanda cu noul cod poștal
+      const validation = validateOrder({
+        customerPhone: order.customerPhone,
+        shippingAddress1: order.shippingAddress1,
+        shippingAddress2: order.shippingAddress2,
+        shippingCity: order.shippingCity,
+        shippingProvince: order.shippingProvince,
+        shippingCountry: order.shippingCountry,
+        shippingZip: result.postalCode, // Folosim noul cod poștal
+      });
+
+      // Determinăm noul status
+      let newStatus = order.status;
+      if (validation.isFullyValid && order.status === "VALIDATION_FAILED") {
+        newStatus = "VALIDATED";
+      } else if (!validation.isFullyValid && order.status === "PENDING") {
+        newStatus = "VALIDATION_FAILED";
+      }
+
+      // Actualizăm comanda cu codul poștal și validarea refăcută
       await prisma.order.update({
         where: { id: orderId },
-        data: { shippingZip: result.postalCode },
+        data: {
+          shippingZip: result.postalCode,
+          addressValidation: validation.address.isValid ? "PASSED" : "FAILED",
+          addressValidationMsg: validation.address.message,
+          status: newStatus,
+        },
       });
 
       return {
@@ -1507,11 +1539,18 @@ export async function backfillPostalCodes(options?: {
         shippingProvince: true,
         shippingCity: true,
         shippingAddress1: true,
+        shippingAddress2: true,
         shippingZip: true,
+        shippingCountry: true,
+        customerPhone: true,
+        status: true,
       },
       orderBy: { createdAt: "desc" },
       take: limit,
     });
+
+    // Import validators pentru re-validare
+    const { validateOrder } = await import("./validators");
 
     result.total = orders.length;
     console.log(`\n📋 Se procesează ${orders.length} comenzi...\n`);
@@ -1571,9 +1610,33 @@ export async function backfillPostalCodes(options?: {
       }
 
       if (postalCode) {
+        // Re-validăm comanda cu noul cod poștal
+        const validation = validateOrder({
+          customerPhone: order.customerPhone,
+          shippingAddress1: order.shippingAddress1,
+          shippingAddress2: order.shippingAddress2,
+          shippingCity: order.shippingCity,
+          shippingProvince: order.shippingProvince,
+          shippingCountry: order.shippingCountry,
+          shippingZip: postalCode,
+        });
+
+        // Determinăm noul status
+        let newStatus = order.status;
+        if (validation.isFullyValid && order.status === "VALIDATION_FAILED") {
+          newStatus = "VALIDATED";
+        } else if (!validation.isFullyValid && order.status === "PENDING") {
+          newStatus = "VALIDATION_FAILED";
+        }
+
         await prisma.order.update({
           where: { id: order.id },
-          data: { shippingZip: postalCode },
+          data: {
+            shippingZip: postalCode,
+            addressValidation: validation.address.isValid ? "PASSED" : "FAILED",
+            addressValidationMsg: validation.address.message,
+            status: newStatus,
+          },
         });
 
         result.updated++;
@@ -1583,7 +1646,7 @@ export async function backfillPostalCodes(options?: {
           status: "updated",
           postalCode,
         });
-        console.log(`✅ [${i + 1}/${orders.length}] ${orderNumber}: ${postalCode}`);
+        console.log(`✅ [${i + 1}/${orders.length}] ${orderNumber}: ${postalCode}${newStatus !== order.status ? ` (status: ${newStatus})` : ''}`);
       } else {
         result.errors++;
         result.details.push({
