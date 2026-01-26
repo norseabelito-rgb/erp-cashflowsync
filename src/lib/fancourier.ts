@@ -601,18 +601,23 @@ export class FanCourierAPI {
       const response = await this.authRequest("GET", "/reports/streets", null, queryParams);
 
       if (response.data.status === "success") {
+        const streetCount = response.data.data?.length || 0;
+        if (streetCount === 0) {
+          console.log(`[FanCourier API] getStreets(county="${queryParams.county}", locality="${queryParams.locality}"): 0 streets returned`);
+        }
         return {
           success: true,
           data: response.data.data || [],
         };
       }
 
+      console.log(`[FanCourier API] getStreets failed: ${response.data.message || 'Unknown error'}`, response.data);
       return {
         success: false,
         error: response.data.message || "Eroare la obținerea străzilor",
       };
     } catch (error: any) {
-      console.error("Error getting streets:", error.response?.data || error.message);
+      console.error("[FanCourier API] getStreets exception:", error.response?.data || error.message);
       return {
         success: false,
         error: error.response?.data?.message || error.message,
@@ -642,6 +647,7 @@ export class FanCourierAPI {
       });
 
       if (!streetsResult.success || !streetsResult.data?.length) {
+        console.log(`[FanCourier] Lookup failed for county="${params.county}", locality="${params.locality}": ${streetsResult.error || 'No streets found'} (got ${streetsResult.data?.length || 0} streets)`);
         return {
           success: false,
           error: streetsResult.error || "Nu s-au găsit străzi pentru această localitate",
@@ -654,16 +660,18 @@ export class FanCourierAPI {
       if (params.street) {
         const normalizedStreet = params.street.toLowerCase().trim();
 
-        // Căutare exactă
+        // Căutare exactă (cu null safety)
         let match = streets.find(s =>
-          s.strada.toLowerCase().trim() === normalizedStreet
+          s.strada && s.strada.toLowerCase().trim() === normalizedStreet
         );
 
         // Căutare parțială dacă nu găsim exact
         if (!match) {
           match = streets.find(s =>
-            normalizedStreet.includes(s.strada.toLowerCase().trim()) ||
-            s.strada.toLowerCase().trim().includes(normalizedStreet)
+            s.strada && (
+              normalizedStreet.includes(s.strada.toLowerCase().trim()) ||
+              s.strada.toLowerCase().trim().includes(normalizedStreet)
+            )
           );
         }
 
@@ -671,6 +679,7 @@ export class FanCourierAPI {
         if (!match) {
           const streetWords = normalizedStreet.split(/[\s,.-]+/).filter(w => w.length > 2);
           match = streets.find(s => {
+            if (!s.strada) return false;
             const sWords = s.strada.toLowerCase().split(/[\s,.-]+/);
             return streetWords.some(w => sWords.some(sw => sw.includes(w) || w.includes(sw)));
           });
@@ -1552,6 +1561,18 @@ export async function backfillPostalCodes(options?: {
     console.log("📮 BACKFILL CODURI POȘTALE DIN NOMENCLATOR FANCOURIER");
     console.log("=".repeat(60));
 
+    // Test API connection first
+    const client = await createFanCourierClient();
+    console.log("✅ FanCourier client creat cu succes");
+
+    // Test cu un oraș cunoscut (București, Sector 1)
+    const testResult = await client.getStreets({ county: "București", locality: "Sector 1" });
+    if (testResult.success && testResult.data && testResult.data.length > 0) {
+      console.log(`✅ API FanCourier funcționează - test București Sector 1: ${testResult.data.length} străzi găsite`);
+    } else {
+      console.log(`⚠️ API FanCourier test eșuat pentru București Sector 1:`, testResult.error || `${testResult.data?.length || 0} străzi`);
+    }
+
     // Construim where clause
     const whereClause: any = {
       shippingCountry: { in: ["Romania", "RO", "România", "romania"] },
@@ -1594,8 +1615,6 @@ export async function backfillPostalCodes(options?: {
       console.log("✅ Nu există comenzi de procesat (toate au cod poștal)");
       return result;
     }
-
-    const client = await createFanCourierClient();
 
     // Cache pentru a evita apeluri repetate pentru aceeași localitate
     const postalCodeCache = new Map<string, string | null>();
