@@ -419,7 +419,7 @@ export default function NewGoodsReceiptPage() {
                 <div className="border-t bg-muted/30 px-4 py-3">
                   <div className="flex justify-between items-center">
                     <div className="text-sm text-muted-foreground">
-                      {items.length} articole, {totalQuantity.toFixed(3)} unități total
+                      {items.length} articole, {Math.round(totalQuantity)} unități total
                     </div>
                     <div className="text-right">
                       <span className="text-sm text-muted-foreground mr-2">Valoare totală:</span>

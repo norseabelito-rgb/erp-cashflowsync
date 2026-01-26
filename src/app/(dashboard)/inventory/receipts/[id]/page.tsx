@@ -617,7 +617,7 @@ export default function GoodsReceiptDetailPage() {
                             }}
                           />
                         ) : (
-                          <span>{Number(item.quantity).toFixed(3)} {item.item?.unit}</span>
+                          <span>{Math.round(Number(item.quantity))} {item.item?.unit}</span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -667,7 +667,7 @@ export default function GoodsReceiptDetailPage() {
               <div className="border-t bg-muted/30 px-4 py-3">
                 <div className="flex justify-between items-center">
                   <div className="text-sm text-muted-foreground">
-                    {isEditing ? items.length : receipt.items.length} articole, {Number(totalQuantity).toFixed(3)} unități total
+                    {isEditing ? items.length : receipt.items.length} articole, {Math.round(Number(totalQuantity))} unități total
                   </div>
                   <div className="text-right">
                     <span className="text-sm text-muted-foreground mr-2">Valoare totală:</span>

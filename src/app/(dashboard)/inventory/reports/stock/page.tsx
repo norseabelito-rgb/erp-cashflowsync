@@ -111,9 +111,9 @@ export default function StockReportPage() {
       item.name,
       item.supplier?.name || "",
       item.unit,
-      item.stockAtDate.toFixed(3),
-      item.currentStock.toFixed(3),
-      item.stockDifference.toFixed(3),
+      Math.round(item.stockAtDate).toString(),
+      Math.round(item.currentStock).toString(),
+      Math.round(item.stockDifference).toString(),
       item.costPrice.toFixed(2),
       item.valueAtDate.toFixed(2),
       item.currentValue.toFixed(2),
@@ -398,11 +398,11 @@ export default function StockReportPage() {
                         {item.supplier?.name || "-"}
                       </TableCell>
                       <TableCell className="text-right font-mono">
-                        <span className="font-medium">{item.stockAtDate.toFixed(3)}</span>
+                        <span className="font-medium">{Math.round(item.stockAtDate)}</span>
                         <span className="text-muted-foreground ml-1">{item.unit}</span>
                       </TableCell>
                       <TableCell className="text-right font-mono text-muted-foreground">
-                        {item.currentStock.toFixed(3)}
+                        {Math.round(item.currentStock)}
                       </TableCell>
                       <TableCell className="text-right font-mono">
                         {item.stockDifference !== 0 && (
@@ -417,7 +417,7 @@ export default function StockReportPage() {
                               <TrendingDown className="h-3 w-3" />
                             )}
                             {item.stockDifference > 0 ? "+" : ""}
-                            {item.stockDifference.toFixed(3)}
+                            {Math.round(item.stockDifference)}
                           </span>
                         )}
                         {item.stockDifference === 0 && (

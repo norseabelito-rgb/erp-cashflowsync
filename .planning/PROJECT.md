@@ -16,7 +16,7 @@ Facturare corectă și AWB-uri emise fără erori pentru fiecare comandă, cu tr
 
 - ✓ Import comenzi din Shopify via webhooks și polling — existing
 - ✓ Import comenzi din Trendyol — existing
-- ✓ Generare facturi prin Facturis API — existing (cu probleme la serii)
+- ✓ Generare facturi prin Oblio API — migrated from Facturis (Phase 2 complete)
 - ✓ Generare AWB-uri prin FanCourier — existing
 - ✓ Nomenclator de produse cu SKU — existing
 - ✓ Gestiune stoc multi-depozit — existing
@@ -95,7 +95,7 @@ Facturare corectă și AWB-uri emise fără erori pentru fiecare comandă, cu tr
 
 - **Tech stack**: Next.js 14 + Prisma + PostgreSQL — menținut
 - **Deployment**: Railway — menținut
-- **Integrări externe**: Facturis (facturi), FanCourier/SelfAWB (AWB), Shopify/Trendyol (comenzi)
+- **Integrări externe**: Oblio (facturi), FanCourier/SelfAWB (AWB), Shopify/Trendyol (comenzi)
 - **Compatibilitate**: Logica existentă trebuie menținută unde funcționează corect
 - **Stabilitate**: Prioritate pe fix-uri înainte de features noi
 

@@ -517,7 +517,7 @@ export default function NewTransferPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Total unitati</span>
                   <span className="font-medium">
-                    {selectedItemsArray.reduce((sum, i) => sum + i.quantity, 0).toFixed(2)}
+                    {Math.round(selectedItemsArray.reduce((sum, i) => sum + i.quantity, 0))}
                   </span>
                 </div>
                 {hasInsufficientStock && (

@@ -377,7 +377,7 @@ export default function RecipeEditPage() {
                                 : "destructive"
                             }
                           >
-                            {Number(comp.componentItem?.currentStock || 0).toFixed(2)}{" "}
+                            {Math.round(Number(comp.componentItem?.currentStock || 0))}{" "}
                             {comp.componentItem?.unit}
                           </Badge>
                         </TableCell>
@@ -465,7 +465,7 @@ export default function RecipeEditPage() {
                           <AlertTriangle className="h-3 w-3" />
                           <span>
                             {comp.componentItem?.name}: necesar {comp.quantity}, disponibil{" "}
-                            {Number(comp.componentItem?.currentStock || 0).toFixed(2)}
+                            {Math.round(Number(comp.componentItem?.currentStock || 0))}
                           </span>
                         </li>
                       ))}
@@ -524,7 +524,7 @@ export default function RecipeEditPage() {
                     <div>
                       <div className="font-medium">{i.name}</div>
                       <div className="text-xs text-muted-foreground">
-                        SKU: {i.sku} | Stoc: {Number(i.currentStock).toFixed(2)} {i.unit}
+                        SKU: {i.sku} | Stoc: {Math.round(Number(i.currentStock))} {i.unit}
                       </div>
                     </div>
                     <Plus className="h-4 w-4 text-muted-foreground" />

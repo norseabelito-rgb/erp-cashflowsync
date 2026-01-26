@@ -368,7 +368,7 @@ export default function TransferDetailPage({
                         </p>
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {Number(item.quantity).toFixed(2)} {item.item.unit}
+                        {Math.round(Number(item.quantity))} {item.item.unit}
                       </TableCell>
                       {transfer.status === "DRAFT" && (
                         <TableCell className="text-right">
@@ -379,7 +379,7 @@ export default function TransferDetailPage({
                                 : ""
                             }
                           >
-                            {Number(item.sourceStock || 0).toFixed(2)} {item.item.unit}
+                            {Math.round(Number(item.sourceStock || 0))} {item.item.unit}
                           </span>
                         </TableCell>
                       )}
@@ -387,17 +387,17 @@ export default function TransferDetailPage({
                         <>
                           <TableCell className="text-right text-sm">
                             <span className="text-muted-foreground">
-                              {Number(item.fromStockBefore).toFixed(2)}
+                              {Math.round(Number(item.fromStockBefore))}
                             </span>
                             <span className="mx-1">→</span>
-                            <span>{Number(item.fromStockAfter).toFixed(2)}</span>
+                            <span>{Math.round(Number(item.fromStockAfter))}</span>
                           </TableCell>
                           <TableCell className="text-right text-sm">
                             <span className="text-muted-foreground">
-                              {Number(item.toStockBefore).toFixed(2)}
+                              {Math.round(Number(item.toStockBefore))}
                             </span>
                             <span className="mx-1">→</span>
-                            <span>{Number(item.toStockAfter).toFixed(2)}</span>
+                            <span>{Math.round(Number(item.toStockAfter))}</span>
                           </TableCell>
                         </>
                       )}

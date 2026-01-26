@@ -240,7 +240,7 @@ export default function StockMovementsPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Cantitate +</p>
-                <p className="text-xl font-bold text-status-info">+{stats.inQty.toFixed(2)}</p>
+                <p className="text-xl font-bold text-status-info">+{Math.round(stats.inQty)}</p>
               </div>
             </div>
           </CardContent>
@@ -387,13 +387,13 @@ export default function StockMovementsPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className={`text-right font-mono font-medium ${qty > 0 ? "text-status-success" : "text-status-error"}`}>
-                            {qty > 0 ? "+" : ""}{qty.toFixed(3)}
+                            {qty > 0 ? "+" : ""}{Math.round(qty)}
                           </TableCell>
                           <TableCell className="text-right font-mono text-muted-foreground">
-                            {Number(movement.previousStock).toFixed(3)}
+                            {Math.round(Number(movement.previousStock))}
                           </TableCell>
                           <TableCell className="text-right font-mono font-medium">
-                            {Number(movement.newStock).toFixed(3)}
+                            {Math.round(Number(movement.newStock))}
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
                             {movement.reason || "-"}

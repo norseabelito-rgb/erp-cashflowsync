@@ -368,7 +368,7 @@ export default function StockAdjustmentsPage() {
                           <span>-</span>
                           <span>{item.name}</span>
                           <Badge variant="outline" className="ml-2">
-                            {Number(item.currentStock).toFixed(2)} {item.unit}
+                            {Math.round(Number(item.currentStock))} {item.unit}
                           </Badge>
                         </div>
                       </SelectItem>
@@ -382,10 +382,10 @@ export default function StockAdjustmentsPage() {
                   <Package className="h-4 w-4" />
                   <AlertTitle>{selectedItem.name}</AlertTitle>
                   <AlertDescription>
-                    Stoc curent: <strong>{Number(selectedItem.currentStock).toFixed(3)} {selectedItem.unit}</strong>
+                    Stoc curent: <strong>{Math.round(Number(selectedItem.currentStock))} {selectedItem.unit}</strong>
                     {selectedItem.minStock && (
                       <span className="ml-2 text-muted-foreground">
-                        (Minim: {Number(selectedItem.minStock).toFixed(3)})
+                        (Minim: {Math.round(Number(selectedItem.minStock))})
                       </span>
                     )}
                   </AlertDescription>
@@ -412,10 +412,10 @@ export default function StockAdjustmentsPage() {
                   <p className="text-sm mt-1">
                     Stoc nou:{" "}
                     <strong className={adjustmentType === "ADJUSTMENT_PLUS" ? "text-status-success" : "text-status-error"}>
-                      {(
+                      {Math.round(
                         Number(selectedItem.currentStock) +
                         (adjustmentType === "ADJUSTMENT_PLUS" ? 1 : -1) * parseFloat(quantity || "0")
-                      ).toFixed(3)}{" "}
+                      )}{" "}
                       {selectedItem.unit}
                     </strong>
                   </p>
@@ -477,7 +477,7 @@ export default function StockAdjustmentsPage() {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Atenție</AlertTitle>
                 <AlertDescription>
-                  Cantitatea de scăzut ({quantity}) depășește stocul curent ({Number(selectedItem.currentStock).toFixed(3)}).
+                  Cantitatea de scăzut ({quantity}) depășește stocul curent ({Math.round(Number(selectedItem.currentStock))}).
                   Stocul nu poate deveni negativ.
                 </AlertDescription>
               </Alert>
@@ -535,7 +535,7 @@ export default function StockAdjustmentsPage() {
                             className="ml-2"
                           >
                             {Number(movement.quantity) > 0 ? "+" : ""}
-                            {Number(movement.quantity).toFixed(2)}
+                            {Math.round(Number(movement.quantity))}
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">
