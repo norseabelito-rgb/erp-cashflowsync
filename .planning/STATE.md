@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 7 - Task Management Core - IN PROGRESS
+**Current focus:** Phase 7 - Task Management Core - COMPLETE
 
 ## Current Position
 
 Phase: 7 of 10 (Task Management Core)
-Plan: 2 of 4 complete
-Status: In progress
-Last activity: 2026-01-26 - Completed 07-02-PLAN.md
+Plan: 4 of 4 complete
+Status: Phase complete
+Last activity: 2026-01-26 - Completed 07-04-PLAN.md
 
-Progress: [█████████████████░░░] 87%
+Progress: [██████████████████░░] 90%
 
 ## Phase 7 Progress
 
@@ -22,17 +22,17 @@ Progress: [█████████████████░░░] 87%
 |------|--------|---------|
 | 07-01 | Complete | Task/TaskAttachment Prisma models + task-utils.ts helpers |
 | 07-02 | Complete | Task CRUD API endpoints with filtering and completion toggle |
-| 07-03 | Pending | Task list page |
-| 07-04 | Pending | Task create/edit modal |
+| 07-03 | Complete | Task list page with filtering and grouped display |
+| 07-04 | Complete | TaskFormDialog + sidebar navigation |
 
 ---
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 29
-- Average duration: ~5.5 minutes
-- Total execution time: ~159 minutes
+- Total plans completed: 31
+- Average duration: ~5.6 minutes
+- Total execution time: ~172 minutes
 
 **By Phase:**
 
@@ -44,7 +44,7 @@ Progress: [█████████████████░░░] 87%
 | 04-flow-integrity | 4/4 | ~30 min | ~7.5 min |
 | 05-known-bug-fixes | 4/4 | ~18 min | ~4.5 min |
 | 06-ux-foundation | 6/6 | ~22 min | ~3.7 min |
-| 07-task-management-core | 2/4 | ~13 min | ~6.5 min |
+| 07-task-management-core | 4/4 | ~26 min | ~6.5 min |
 
 ## Accumulated Context
 
@@ -52,6 +52,11 @@ Progress: [█████████████████░░░] 87%
 
 Recent decisions affecting current work:
 
+- **07-04:** Native HTML date input for deadline (react-day-picker unavailable)
+- **07-04:** Tasks navigation placed under Vanzari section in sidebar
+- **07-04:** TaskFormDialog exports Task type for cross-component compatibility
+- **07-03:** Task list grouped by date with sortable priority within groups
+- **07-03:** TaskFilters component extracted for reusability
 - **07-02:** Task permissions added to permissions.ts (tasks.view, tasks.create, tasks.edit, tasks.delete)
 - **07-02:** Manager role gets full task CRUD, Vizualizare role gets view only
 - **07-02:** Reassignment validation requires note when assigneeId changes
@@ -109,7 +114,7 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 **NEXT:**
-- Continue Phase 7: 07-03 Task list page
+- Start Phase 8: Notifications and Automation
 
 **DATABASE MIGRATION NEEDED:**
 - Apply `prisma/migrations/manual/add_task_management.sql` to create tasks and task_attachments tables
@@ -123,7 +128,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-26
-Stopped at: Completed 07-02-PLAN.md
+Stopped at: Completed 07-04-PLAN.md (Phase 7 complete)
 Resume file: None
 
 ## Phase 7 Features
@@ -132,20 +137,21 @@ Task Management Core components:
 
 - [x] 07-01: Task/TaskAttachment Prisma models + task-utils.ts helpers
 - [x] 07-02: Task CRUD API endpoints
-- [ ] 07-03: Task list page
-- [ ] 07-04: Task create/edit modal
+- [x] 07-03: Task list page with filtering
+- [x] 07-04: Task create/edit modal + sidebar navigation
 
 ## Recent Commits
 
+- `b659081` feat(07-04): add tasks navigation entry to sidebar
+- `d2db178` feat(07-04): integrate task form dialog into tasks page
+- `1a0018a` feat(07-04): create task form dialog component
 - `5996e5c` feat(07-02): create task completion toggle API endpoint
 - `e442f38` feat(07-02): create task detail, update, delete API endpoints
 - `c400663` feat(07-02): create task list and create API endpoints
 - `173192a` feat(07-01): create task-utils.ts helper functions
 - `b83a06b` chore(07-01): add task management database migration
 - `cc6a406` feat(07-01): add Task management models to Prisma schema
-- `05a6ce6` docs(07): create phase plan
-- `2b519ba` docs(07): research task management core phase
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-26 (07-02 complete)*
+*Last updated: 2026-01-26 (07-04 complete, Phase 7 complete)*
