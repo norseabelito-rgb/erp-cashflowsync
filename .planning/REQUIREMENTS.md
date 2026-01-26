@@ -42,10 +42,10 @@ Requirements pentru stabilizarea si imbunatatirea sistemului curent.
 
 ### Task Management
 
-- [ ] **TASK-01**: Model de date pentru task-uri (titlu, descriere, tip, prioritate, deadline, assignee)
-- [ ] **TASK-02**: UI pentru vizualizare si management task-uri
-- [ ] **TASK-03**: Task-uri operationale zilnice pentru depozit (picking, verificare, expediere)
-- [ ] **TASK-04**: To-do-uri business (proiecte, deadline-uri, responsabili)
+- [x] **TASK-01**: Model de date pentru task-uri (titlu, descriere, tip, prioritate, deadline, assignee)
+- [x] **TASK-02**: UI pentru vizualizare si management task-uri
+- [x] **TASK-03**: Task-uri operationale zilnice pentru depozit (picking, verificare, expediere)
+- [x] **TASK-04**: To-do-uri business (proiecte, deadline-uri, responsabili)
 - [ ] **TASK-05**: Sistem notificari si remindere pentru deadline-uri
 - [ ] **TASK-06**: Rapoarte activitate (cine a facut ce, cand)
 - [ ] **TASK-07**: Auto-creare task-uri din evenimente sistem (ex: tura AWB > task picking)
@@ -118,10 +118,10 @@ Deferred pentru dupa stabilizare.
 | UX-04 | Phase 6: UX Foundation | Complete |
 | UX-05 | Phase 6: UX Foundation | Complete |
 | UX-06 | Phase 6: UX Foundation | Complete |
-| TASK-01 | Phase 7: Task Management Core | Pending |
-| TASK-02 | Phase 7: Task Management Core | Pending |
-| TASK-03 | Phase 7: Task Management Core | Pending |
-| TASK-04 | Phase 7: Task Management Core | Pending |
+| TASK-01 | Phase 7: Task Management Core | Complete |
+| TASK-02 | Phase 7: Task Management Core | Complete |
+| TASK-03 | Phase 7: Task Management Core | Complete |
+| TASK-04 | Phase 7: Task Management Core | Complete |
 | TASK-05 | Phase 8: Task Management Advanced | Pending |
 | TASK-06 | Phase 8: Task Management Advanced | Pending |
 | TASK-07 | Phase 8: Task Management Advanced | Pending |
@@ -142,4 +142,4 @@ Deferred pentru dupa stabilizare.
 
 ---
 *Requirements defined: 2026-01-23*
-*Last updated: 2026-01-25 (Phase 6 complete)*
+*Last updated: 2026-01-26 (Phase 7 complete)*

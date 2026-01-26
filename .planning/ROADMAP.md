@@ -16,7 +16,7 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
 - [x] **Phase 4: Flow Integrity** - Ensure data consistency with transfer blocking and AWB routing
 - [x] **Phase 5: Known Bug Fixes** - Address documented bugs from codebase analysis
 - [x] **Phase 6: UX Foundation** - Consistent design, tooltips, and feedback across all pages
-- [ ] **Phase 7: Task Management Core** - Data model and basic UI for task tracking
+- [x] **Phase 7: Task Management Core** - Data model and basic UI for task tracking
 - [ ] **Phase 8: Task Management Advanced** - Automation, notifications, and reporting
 - [ ] **Phase 9: Documentation** - In-app documentation for all modules
 - [ ] **Phase 10: Quality Assurance** - Final verification and test coverage for critical flows
@@ -159,7 +159,7 @@ Plans:
 - [x] 07-02-PLAN.md — Task API routes with CRUD and completion toggle (Wave 2)
 - [x] 07-03-PLAN.md — Task list page with filters and date grouping (Wave 3)
 - [x] 07-04-PLAN.md — Task form dialog and sidebar integration (Wave 3)
-- [ ] 07-05-PLAN.md — Gap closure: Wire delete button to API with confirmation (Wave 4)
+- [x] 07-05-PLAN.md — Gap closure: Wire delete button to API with confirmation (Wave 4)
 
 ### Phase 8: Task Management Advanced
 **Goal**: Automated task creation, notifications, and activity reporting
@@ -230,7 +230,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 | 4. Flow Integrity | 4/4 | ✓ Complete | 2026-01-25 |
 | 5. Known Bug Fixes | 4/4 | ✓ Complete | 2026-01-25 |
 | 6. UX Foundation | 6/6 | ✓ Complete | 2026-01-25 |
-| 7. Task Management Core | 0/4 | Planned | - |
+| 7. Task Management Core | 5/5 | ✓ Complete | 2026-01-26 |
 | 8. Task Management Advanced | 0/4 | Not started | - |
 | 9. Documentation | 0/4 | Not started | - |
 | 10. Quality Assurance | 0/4 | Not started | - |
