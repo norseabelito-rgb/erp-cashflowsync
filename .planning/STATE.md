@@ -5,36 +5,34 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 6 - UX Foundation - COMPLETE
+**Current focus:** Phase 7 - Task Management Core - IN PROGRESS
 
 ## Current Position
 
-Phase: 6 of 10 (UX Foundation)
-Plan: 6 of 6 complete
-Status: Phase complete (including gap closure)
-Last activity: 2026-01-25 - Completed 06-06-PLAN.md (gap closure)
+Phase: 7 of 10 (Task Management Core)
+Plan: 1 of 4 complete
+Status: In progress
+Last activity: 2026-01-26 - Completed 07-01-PLAN.md
 
-Progress: [████████████████████] 81%
+Progress: [█████████████████░░░] 85%
 
-## Phase 6 Progress
+## Phase 7 Progress
 
 | Plan | Status | Summary |
 |------|--------|---------|
-| 06-01 | Complete | TooltipProvider + ActionTooltip + Skeleton system |
-| 06-02 | Complete | ErrorModal + getErrorMessage with 30+ Romanian mappings |
-| 06-03 | Complete | Design tokens + CSS variables + Table zebra striping |
-| 06-04 | Complete | useErrorModal hook + skeleton loading on Orders/Invoices |
-| 06-05 | Complete | Empty states config + context-aware Orders/Invoices |
-| 06-06 | Complete | ActionTooltip applied to 23 buttons across 4 pages (gap closure) |
+| 07-01 | Complete | Task/TaskAttachment Prisma models + task-utils.ts helpers |
+| 07-02 | Pending | Task CRUD API endpoints |
+| 07-03 | Pending | Task list page |
+| 07-04 | Pending | Task create/edit modal |
 
 ---
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 27
-- Average duration: ~5.4 minutes
-- Total execution time: ~146 minutes
+- Total plans completed: 28
+- Average duration: ~5.5 minutes
+- Total execution time: ~154 minutes
 
 **By Phase:**
 
@@ -46,6 +44,7 @@ Progress: [████████████████████] 81%
 | 04-flow-integrity | 4/4 | ~30 min | ~7.5 min |
 | 05-known-bug-fixes | 4/4 | ~18 min | ~4.5 min |
 | 06-ux-foundation | 6/6 | ~22 min | ~3.7 min |
+| 07-task-management-core | 1/4 | ~8 min | ~8 min |
 
 ## Accumulated Context
 
@@ -53,6 +52,11 @@ Progress: [████████████████████] 81%
 
 Recent decisions affecting current work:
 
+- **07-01:** Optional deadline field (per CONTEXT.md - not all tasks need deadlines)
+- **07-01:** SetNull onDelete for task relations (preserve tasks when linked entities deleted)
+- **07-01:** Composite index on (priority, deadline) for efficient sorted queries
+- **07-01:** Romanian labels without diacritics (Intarziate, Astazi, Maine)
+- **07-01:** Week starts Monday (weekStartsOn: 1) for European/Romanian convention
 - **06-06:** All tooltips use Romanian text without diacritics (Genereaza vs Generează)
 - **06-06:** Dropdown triggers wrapped with ActionTooltip to explain menu purpose
 - **06-06:** Processing states show disabledReason "Se proceseaza..."
@@ -100,7 +104,11 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 **NEXT:**
-- Begin Phase 7: Workflow Optimization
+- Continue Phase 7: 07-02 Task CRUD API endpoints
+
+**DATABASE MIGRATION NEEDED:**
+- Apply `prisma/migrations/manual/add_task_management.sql` to create tasks and task_attachments tables
+- Regenerate Prisma client with `npx prisma generate`
 
 **CRITICAL (Blocheaza munca):**
 - TD-01: Order processing no transaction - partial failures cause inconsistent data
@@ -109,35 +117,30 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-01-25
-Stopped at: Completed 06-06-PLAN.md (Phase 6 fully complete including gap closure)
+Last session: 2026-01-26
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None
 
-## Phase 6 Features
+## Phase 7 Features
 
-UX Foundation components:
+Task Management Core components:
 
-- [x] 06-01: TooltipProvider + ActionTooltip + Skeleton system
-- [x] 06-02: ErrorModal + getErrorMessage with 30+ Romanian mappings
-- [x] 06-03: Design tokens + CSS variables + Table zebra striping
-- [x] 06-04: useErrorModal hook + skeleton loading on Orders/Invoices
-- [x] 06-05: Empty states config + context-aware Orders/Invoices
-- [x] 06-06: ActionTooltip applied to 23 buttons across 4 pages (gap closure)
+- [x] 07-01: Task/TaskAttachment Prisma models + task-utils.ts helpers
+- [ ] 07-02: Task CRUD API endpoints
+- [ ] 07-03: Task list page
+- [ ] 07-04: Task create/edit modal
 
 ## Recent Commits
 
+- `173192a` feat(07-01): create task-utils.ts helper functions
+- `b83a06b` chore(07-01): add task management database migration
+- `cc6a406` feat(07-01): add Task management models to Prisma schema
+- `05a6ce6` docs(07): create phase plan
+- `2b519ba` docs(07): research task management core phase
 - `1891da9` feat(06-06): add ActionTooltip to Products and Inventory pages
 - `ebe5944` feat(06-06): add ActionTooltip to Invoices page buttons
 - `447f3c3` feat(06-06): add ActionTooltip to Orders page buttons
-- `e1a1c7c` feat(06-05): add context-aware empty state to Invoices page
-- `def255e` feat(06-05): add context-aware empty state to Orders page
-- `f73971c` feat(06-05): create centralized empty state configurations
-- `c8f2d3e` feat(06-04): add skeleton loading and error modal to Invoices page
-- `3c63df6` feat(06-04): add skeleton loading and error modal to Orders page
-- `6da316f` feat(06-04): create useErrorModal hook for consistent error handling
-- `8e81838` feat(06-03): add striped prop to Table component
-- `6065aeb` feat(06-03): add CSS variables for visual consistency
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-25 (06-06 complete, Phase 6 fully complete)*
+*Last updated: 2026-01-26 (07-01 complete)*
