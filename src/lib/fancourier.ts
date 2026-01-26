@@ -569,6 +569,145 @@ export class FanCourierAPI {
       };
     }
   }
+
+  /**
+   * Obține lista de străzi din nomenclatorul FanCourier
+   * Returnează străzi cu coduri poștale pentru un județ și/sau localitate
+   */
+  async getStreets(params?: {
+    county?: string;
+    locality?: string;
+  }): Promise<{
+    success: boolean;
+    data?: Array<{
+      judet: string;
+      localitate: string;
+      strada: string;
+      de_la: string;
+      pana_la: string;
+      paritate: string;
+      cod_postal: string;
+      tip: string;
+      cod_cartare: string;
+      numar_depozite: string;
+    }>;
+    error?: string;
+  }> {
+    try {
+      const queryParams: Record<string, string> = {};
+      if (params?.county) queryParams.county = params.county;
+      if (params?.locality) queryParams.locality = params.locality;
+
+      const response = await this.authRequest("GET", "/reports/streets", null, queryParams);
+
+      if (response.data.status === "success") {
+        return {
+          success: true,
+          data: response.data.data || [],
+        };
+      }
+
+      return {
+        success: false,
+        error: response.data.message || "Eroare la obținerea străzilor",
+      };
+    } catch (error: any) {
+      console.error("Error getting streets:", error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message,
+      };
+    }
+  }
+
+  /**
+   * Găsește codul poștal pentru o adresă dată
+   * Caută în nomenclatorul FanCourier pe baza județului, localității și străzii
+   */
+  async findPostalCode(params: {
+    county: string;
+    locality: string;
+    street?: string;
+  }): Promise<{
+    success: boolean;
+    postalCode?: string;
+    matchedStreet?: string;
+    error?: string;
+  }> {
+    try {
+      // Obținem străzile pentru județul și localitatea date
+      const streetsResult = await this.getStreets({
+        county: params.county,
+        locality: params.locality,
+      });
+
+      if (!streetsResult.success || !streetsResult.data?.length) {
+        return {
+          success: false,
+          error: streetsResult.error || "Nu s-au găsit străzi pentru această localitate",
+        };
+      }
+
+      const streets = streetsResult.data;
+
+      // Dacă avem stradă, încercăm să o găsim exact sau parțial
+      if (params.street) {
+        const normalizedStreet = params.street.toLowerCase().trim();
+
+        // Căutare exactă
+        let match = streets.find(s =>
+          s.strada.toLowerCase().trim() === normalizedStreet
+        );
+
+        // Căutare parțială dacă nu găsim exact
+        if (!match) {
+          match = streets.find(s =>
+            normalizedStreet.includes(s.strada.toLowerCase().trim()) ||
+            s.strada.toLowerCase().trim().includes(normalizedStreet)
+          );
+        }
+
+        // Căutare prin cuvinte cheie
+        if (!match) {
+          const streetWords = normalizedStreet.split(/[\s,.-]+/).filter(w => w.length > 2);
+          match = streets.find(s => {
+            const sWords = s.strada.toLowerCase().split(/[\s,.-]+/);
+            return streetWords.some(w => sWords.some(sw => sw.includes(w) || w.includes(sw)));
+          });
+        }
+
+        if (match && match.cod_postal) {
+          return {
+            success: true,
+            postalCode: match.cod_postal,
+            matchedStreet: match.strada,
+          };
+        }
+      }
+
+      // Dacă nu găsim strada sau nu avem stradă, returnăm primul cod poștal disponibil
+      // (de obicei localitățile mici au un singur cod poștal)
+      const firstWithPostalCode = streets.find(s => s.cod_postal && s.cod_postal.trim());
+      if (firstWithPostalCode) {
+        return {
+          success: true,
+          postalCode: firstWithPostalCode.cod_postal,
+          matchedStreet: params.street ? undefined : firstWithPostalCode.strada,
+        };
+      }
+
+      return {
+        success: false,
+        error: "Nu s-a găsit cod poștal pentru această adresă",
+      };
+    } catch (error: any) {
+      console.error("Error finding postal code:", error.message);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
 }
 
 /**
@@ -1225,6 +1364,253 @@ export async function syncAWBsFromFanCourier(): Promise<{
 
   } catch (error: any) {
     console.error("❌ Eroare la sincronizare AWB-uri:", error.message);
+    result.errors++;
+  }
+
+  return result;
+}
+
+/**
+ * Caută și actualizează codul poștal pentru o comandă
+ * Folosește nomenclatorul FanCourier pentru a găsi codul poștal
+ */
+export async function lookupAndUpdatePostalCode(orderId: string): Promise<{
+  success: boolean;
+  postalCode?: string;
+  updated?: boolean;
+  error?: string;
+}> {
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: {
+        id: true,
+        shippingProvince: true,
+        shippingCity: true,
+        shippingAddress1: true,
+        shippingZip: true,
+        shippingCountry: true,
+      },
+    });
+
+    if (!order) {
+      return { success: false, error: "Comanda nu a fost găsită" };
+    }
+
+    // Skip dacă deja are cod poștal valid
+    if (order.shippingZip && /^\d{6}$/.test(order.shippingZip)) {
+      return { success: true, postalCode: order.shippingZip, updated: false };
+    }
+
+    // Skip dacă nu e în România
+    const country = order.shippingCountry?.toLowerCase();
+    if (country && !["romania", "ro", "rou", "România"].some(c => country.includes(c.toLowerCase()))) {
+      return { success: false, error: "Comanda nu este în România" };
+    }
+
+    // Skip dacă nu avem datele necesare
+    if (!order.shippingProvince || !order.shippingCity) {
+      return { success: false, error: "Lipsesc județul sau localitatea" };
+    }
+
+    const client = await createFanCourierClient();
+    const result = await client.findPostalCode({
+      county: order.shippingProvince,
+      locality: order.shippingCity,
+      street: order.shippingAddress1 || undefined,
+    });
+
+    if (result.success && result.postalCode) {
+      await prisma.order.update({
+        where: { id: orderId },
+        data: { shippingZip: result.postalCode },
+      });
+
+      return {
+        success: true,
+        postalCode: result.postalCode,
+        updated: true,
+      };
+    }
+
+    return {
+      success: false,
+      error: result.error || "Nu s-a găsit cod poștal",
+    };
+  } catch (error: any) {
+    console.error(`Eroare la lookup postal code pentru ${orderId}:`, error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Populează codurile poștale pentru mai multe comenzi
+ * Folosit pentru backfill-ul comenzilor existente
+ */
+export async function backfillPostalCodes(options?: {
+  limit?: number;
+  onlyMissing?: boolean;
+}): Promise<{
+  total: number;
+  updated: number;
+  skipped: number;
+  errors: number;
+  details: Array<{
+    orderId: string;
+    orderNumber: string;
+    status: "updated" | "skipped" | "error";
+    postalCode?: string;
+    error?: string;
+  }>;
+}> {
+  const limit = options?.limit || 500;
+  const onlyMissing = options?.onlyMissing !== false;
+
+  const result = {
+    total: 0,
+    updated: 0,
+    skipped: 0,
+    errors: 0,
+    details: [] as Array<{
+      orderId: string;
+      orderNumber: string;
+      status: "updated" | "skipped" | "error";
+      postalCode?: string;
+      error?: string;
+    }>,
+  };
+
+  try {
+    console.log("=".repeat(60));
+    console.log("📮 BACKFILL CODURI POȘTALE DIN NOMENCLATOR FANCOURIER");
+    console.log("=".repeat(60));
+
+    // Construim where clause
+    const whereClause: any = {
+      shippingCountry: { in: ["Romania", "RO", "România", "romania"] },
+      shippingProvince: { not: null },
+      shippingCity: { not: null },
+    };
+
+    if (onlyMissing) {
+      whereClause.OR = [
+        { shippingZip: null },
+        { shippingZip: "" },
+      ];
+    }
+
+    const orders = await prisma.order.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        shopifyOrderNumber: true,
+        shippingProvince: true,
+        shippingCity: true,
+        shippingAddress1: true,
+        shippingZip: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+
+    result.total = orders.length;
+    console.log(`\n📋 Se procesează ${orders.length} comenzi...\n`);
+
+    if (orders.length === 0) {
+      console.log("✅ Nu există comenzi de procesat (toate au cod poștal)");
+      return result;
+    }
+
+    const client = await createFanCourierClient();
+
+    // Cache pentru a evita apeluri repetate pentru aceeași localitate
+    const postalCodeCache = new Map<string, string | null>();
+
+    for (let i = 0; i < orders.length; i++) {
+      const order = orders[i];
+      const orderNumber = order.shopifyOrderNumber || order.id;
+
+      // Skip dacă deja are cod poștal valid
+      if (order.shippingZip && /^\d{6}$/.test(order.shippingZip)) {
+        result.skipped++;
+        result.details.push({
+          orderId: order.id,
+          orderNumber,
+          status: "skipped",
+          postalCode: order.shippingZip,
+        });
+        continue;
+      }
+
+      // Construim cheia de cache
+      const cacheKey = `${order.shippingProvince}|${order.shippingCity}`.toLowerCase();
+
+      let postalCode: string | null = null;
+
+      // Verificăm cache
+      if (postalCodeCache.has(cacheKey)) {
+        postalCode = postalCodeCache.get(cacheKey) || null;
+      } else {
+        // Căutăm în FanCourier
+        try {
+          const lookupResult = await client.findPostalCode({
+            county: order.shippingProvince!,
+            locality: order.shippingCity!,
+            street: order.shippingAddress1 || undefined,
+          });
+
+          if (lookupResult.success && lookupResult.postalCode) {
+            postalCode = lookupResult.postalCode;
+          }
+
+          // Salvăm în cache (chiar și null pentru a evita apeluri repetate)
+          postalCodeCache.set(cacheKey, postalCode);
+        } catch (err: any) {
+          console.error(`   ❌ Eroare la lookup pentru ${orderNumber}: ${err.message}`);
+        }
+      }
+
+      if (postalCode) {
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { shippingZip: postalCode },
+        });
+
+        result.updated++;
+        result.details.push({
+          orderId: order.id,
+          orderNumber,
+          status: "updated",
+          postalCode,
+        });
+        console.log(`✅ [${i + 1}/${orders.length}] ${orderNumber}: ${postalCode}`);
+      } else {
+        result.errors++;
+        result.details.push({
+          orderId: order.id,
+          orderNumber,
+          status: "error",
+          error: "Nu s-a găsit cod poștal",
+        });
+        console.log(`❌ [${i + 1}/${orders.length}] ${orderNumber}: Nu s-a găsit cod poștal pentru ${order.shippingCity}, ${order.shippingProvince}`);
+      }
+
+      // Mică pauză pentru a nu supraîncărca API-ul
+      if (i > 0 && i % 50 === 0) {
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+
+    console.log("\n" + "-".repeat(60));
+    console.log(`📊 REZULTAT BACKFILL CODURI POȘTALE:`);
+    console.log(`   📋 Total procesate: ${result.total}`);
+    console.log(`   ✅ Actualizate: ${result.updated}`);
+    console.log(`   ⏭️ Sărite (aveau deja): ${result.skipped}`);
+    console.log(`   ❌ Erori/Negăsite: ${result.errors}`);
+    console.log("=".repeat(60) + "\n");
+
+  } catch (error: any) {
+    console.error("❌ Eroare la backfill postal codes:", error.message);
     result.errors++;
   }
 

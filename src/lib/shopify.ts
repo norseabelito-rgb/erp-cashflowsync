@@ -675,4 +675,35 @@ export async function syncSingleOrder(
       },
     });
   }
+
+  // După sync, încercăm să completăm codul poștal din nomenclatorul FanCourier
+  // doar pentru comenzi din România care nu au cod poștal valid
+  const shippingZip = shopifyOrder.shipping_address?.zip;
+  const shippingCountry = shopifyOrder.shipping_address?.country?.toLowerCase();
+  const isRomania = shippingCountry && ["romania", "ro", "rou"].some(c => shippingCountry.includes(c));
+  const hasValidZip = shippingZip && /^\d{6}$/.test(shippingZip);
+
+  if (isRomania && !hasValidZip && shopifyOrder.shipping_address?.province && shopifyOrder.shipping_address?.city) {
+    try {
+      const { lookupAndUpdatePostalCode } = await import("./fancourier");
+
+      // Găsim comanda în DB pentru a obține ID-ul
+      const order = await prisma.order.findUnique({
+        where: {
+          shopifyOrderId_storeId: {
+            shopifyOrderId: String(shopifyOrder.id),
+            storeId,
+          },
+        },
+        select: { id: true },
+      });
+
+      if (order) {
+        await lookupAndUpdatePostalCode(order.id);
+      }
+    } catch (error) {
+      // Eroarea la lookup postal code nu trebuie să oprească sync-ul
+      console.warn(`Nu s-a putut completa codul poștal pentru comanda ${shopifyOrder.name}:`, error);
+    }
+  }
 }
