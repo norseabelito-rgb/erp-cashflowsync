@@ -146,7 +146,7 @@ Plans:
 **Goal**: Basic task management available for operational and business tracking
 **Depends on**: Phase 6 (UX patterns established for consistent task UI)
 **Requirements**: TASK-01, TASK-02, TASK-03, TASK-04
-**Plans**: 4 plans in 3 waves
+**Plans**: 5 plans in 4 waves (includes gap closure)
 **Success Criteria** (what must be TRUE):
   1. Tasks can be created with title, description, type, priority, deadline, and assignee
   2. Task list view shows all tasks with filtering by type, status, assignee
@@ -155,10 +155,11 @@ Plans:
   5. Tasks can be marked complete and history is preserved
 
 Plans:
-- [ ] 07-01-PLAN.md — Task data model, enums, and utility helpers (Wave 1)
-- [ ] 07-02-PLAN.md — Task API routes with CRUD and completion toggle (Wave 2)
-- [ ] 07-03-PLAN.md — Task list page with filters and date grouping (Wave 3)
-- [ ] 07-04-PLAN.md — Task form dialog and sidebar integration (Wave 3)
+- [x] 07-01-PLAN.md — Task data model, enums, and utility helpers (Wave 1)
+- [x] 07-02-PLAN.md — Task API routes with CRUD and completion toggle (Wave 2)
+- [x] 07-03-PLAN.md — Task list page with filters and date grouping (Wave 3)
+- [x] 07-04-PLAN.md — Task form dialog and sidebar integration (Wave 3)
+- [ ] 07-05-PLAN.md — Gap closure: Wire delete button to API with confirmation (Wave 4)
 
 ### Phase 8: Task Management Advanced
 **Goal**: Automated task creation, notifications, and activity reporting
