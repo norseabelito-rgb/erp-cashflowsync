@@ -22,240 +22,6 @@ function getTokenCacheKey(clientId: string, username: string): string {
   return `${clientId}:${username}`;
 }
 
-/**
- * Extrage numele străzii dintr-o adresă completă
- * Exemple:
- *   "Str. Victoriei nr. 25, bl. A1" → "Victoriei"
- *   "Calea Dorobanți, nr 10" → "Calea Dorobanți"
- *   "Bd. Unirii nr. 5" → "Bulevardul Unirii"
- */
-export function extractStreetName(address: string): string {
-  if (!address) return "";
-
-  let street = address.trim();
-
-  // Normalizare diacritice pentru procesare
-  const removeDiacritics = (s: string) => s
-    .replace(/[ăâ]/gi, 'a')
-    .replace(/[î]/gi, 'i')
-    .replace(/[șş]/gi, 's')
-    .replace(/[țţ]/gi, 't');
-
-  const addressLower = removeDiacritics(street.toLowerCase());
-
-  // Pattern-uri pentru identificarea sfârșitului numelui străzii
-  // (unde începe numărul, blocul, etc.)
-  const stopPatterns = [
-    /\b(nr\.?|num[aă]r|numar)\s*\d/i,  // nr. 25, număr 10
-    /\b(bl\.?|bloc)\b/i,                // bl., bloc
-    /\b(sc\.?|scara)\b/i,               // sc., scara
-    /\b(et\.?|etaj)\b/i,                // et., etaj
-    /\b(ap\.?|apart|apartament)\b/i,    // ap., apartament
-    /,\s*\d+/,                           // , 25 (virgulă urmată de număr)
-    /\s+\d+\s*[,-]/,                     // spațiu + număr + virgulă/cratimă
-    /\s+\d+$/,                           // spațiu + număr la sfârșit
-  ];
-
-  // Găsim prima poziție unde apare un stop pattern
-  let stopIndex = street.length;
-  const addressForMatching = removeDiacritics(street);
-
-  for (const pattern of stopPatterns) {
-    const match = addressForMatching.match(pattern);
-    if (match && match.index !== undefined && match.index < stopIndex) {
-      stopIndex = match.index;
-    }
-  }
-
-  // Extragem partea cu strada
-  street = street.substring(0, stopIndex).trim();
-
-  // Eliminăm virgula de la sfârșit dacă există
-  street = street.replace(/,\s*$/, '').trim();
-
-  // Normalizăm tipurile de străzi - eliminăm prefixele pentru comparare uniformă
-  // FanCourier stochează străzile fără prefix (ex: "Victoriei" nu "Strada Victoriei")
-  const streetTypePrefixes = [
-    /^strada\s+/i,             // Strada (check full word first)
-    /^str\.?\s+/i,             // Str. sau Str (cu sau fără punct)
-    /^bulevardul\s+/i,         // Bulevardul
-    /^b-dul\.?\s*/i,           // B-dul. sau B-dul
-    /^bd\.?\s+/i,              // Bd. sau Bd
-    /^calea\s+/i,              // Calea
-    /^cal\.?\s+/i,             // Cal. sau Cal
-    /^aleea\s+/i,              // Aleea
-    /^al\.?\s+/i,              // Al. sau Al
-    /^[șs]oseaua\s+/i,         // Șoseaua sau Soseaua
-    /^[șs]os\.?\s+/i,          // Șos. sau Sos
-    /^pia[țt]a\s+/i,           // Piața sau Piata
-    /^p-[țt]a\.?\s*/i,         // P-ța sau P-ta
-    /^intrarea\s+/i,           // Intrarea
-    /^int\.?\s+/i,             // Int. sau Int
-    /^splaiul\s+/i,            // Splaiul
-    /^spl\.?\s+/i,             // Spl. sau Spl
-  ];
-
-  for (const pattern of streetTypePrefixes) {
-    if (pattern.test(street)) {
-      street = street.replace(pattern, '');
-      break;
-    }
-  }
-
-  return street.trim();
-}
-
-/**
- * Normalizează numele unei străzi pentru comparare
- */
-export function normalizeStreet(name: string): string {
-  if (!name) return "";
-
-  let normalized = name.toLowerCase().trim();
-
-  // Remove diacritics
-  normalized = normalized
-    .replace(/[ăâ]/g, 'a')
-    .replace(/[î]/g, 'i')
-    .replace(/[șş]/g, 's')
-    .replace(/[țţ]/g, 't');
-
-  // Remove street type prefixes for comparison
-  normalized = normalized
-    .replace(/^(strada|bulevardul|calea|aleea|soseaua|piata|intrarea|splaiul)\s+/i, '')
-    .replace(/[-–—]/g, ' ')
-    .replace(/[.,;:'"()]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  return normalized;
-}
-
-/**
- * Normalizează numele unei localități pentru comparare
- * Elimină diacritice, transformă în lowercase, expandează abrevieri
- */
-export function normalizeLocality(name: string): string {
-  if (!name) return "";
-
-  let normalized = name.toLowerCase().trim();
-
-  // Remove diacritics using character-by-character replacement
-  normalized = normalized
-    .replace(/[ăâ]/g, 'a')
-    .replace(/[î]/g, 'i')
-    .replace(/[șş]/g, 's')
-    .replace(/[țţ]/g, 't');
-
-  // Expand common abbreviations (only at word boundaries)
-  // Use word boundaries to avoid partial replacements
-  normalized = normalized
-    .replace(/\bsf\.\s*/gi, 'sfantu ')
-    .replace(/\bstr\.\s*/gi, 'strada ')
-    .replace(/\bmun\.\s*/gi, 'municipiul ')
-    .replace(/\bcom\.\s*/gi, 'comuna ')
-    .replace(/\bor\.\s*/gi, 'oras ')
-    .replace(/\bjud\.\s*/gi, '');
-
-  // Remove hyphens and other punctuation, normalize spaces
-  normalized = normalized
-    .replace(/[-–—]/g, ' ')  // Replace dashes with spaces
-    .replace(/[.,;:'"()]/g, '') // Remove punctuation
-    .replace(/\s+/g, ' ')    // Collapse multiple spaces
-    .trim();
-
-  return normalized;
-}
-
-/**
- * Calculează scorul de similaritate între două stringuri (0-1)
- * Folosește potrivire pe cuvinte și substring-uri
- */
-export function localitySimilarity(a: string, b: string): number {
-  const normA = normalizeLocality(a);
-  const normB = normalizeLocality(b);
-
-  if (normA === normB) return 1;
-  if (!normA || !normB) return 0;
-
-  // Check if one contains the other
-  if (normA.includes(normB) || normB.includes(normA)) {
-    // Give higher score if one fully contains the other
-    const ratio = Math.min(normA.length, normB.length) / Math.max(normA.length, normB.length);
-    return 0.7 + (ratio * 0.3); // Score between 0.7 and 1.0
-  }
-
-  // Word-based matching
-  const wordsA = normA.split(' ').filter(w => w.length > 1);
-  const wordsB = normB.split(' ').filter(w => w.length > 1);
-  const setA = new Set(wordsA);
-  const setB = new Set(wordsB);
-
-  if (setA.size === 0 || setB.size === 0) {
-    return 0;
-  }
-
-  // Count matching words
-  let matches = 0;
-  for (const word of wordsA) {
-    if (setB.has(word)) {
-      matches++;
-    } else {
-      // Check partial matches (one word contains the other)
-      for (const wordB of wordsB) {
-        if (word.includes(wordB) || wordB.includes(word)) {
-          matches += 0.5;
-          break;
-        }
-      }
-    }
-  }
-
-  // Score based on percentage of matched words
-  const maxWords = Math.max(setA.size, setB.size);
-  return matches / maxWords;
-}
-
-/**
- * Găsește cea mai bună potrivire pentru o localitate în lista FanCourier
- */
-export function findBestLocalityMatch(
-  inputLocality: string,
-  localities: Array<{ localitate: string; judet: string }>,
-  inputCounty?: string
-): { localitate: string; judet: string; score: number } | null {
-  if (!inputLocality || localities.length === 0) return null;
-
-  const normalizedInput = normalizeLocality(inputLocality);
-  const normalizedCounty = inputCounty ? normalizeLocality(inputCounty) : null;
-
-  let bestMatch: { localitate: string; judet: string; score: number } | null = null;
-
-  for (const loc of localities) {
-    // If county is specified, filter by county
-    if (normalizedCounty) {
-      const locCounty = normalizeLocality(loc.judet);
-      if (!locCounty.includes(normalizedCounty) && !normalizedCounty.includes(locCounty)) {
-        continue;
-      }
-    }
-
-    const score = localitySimilarity(inputLocality, loc.localitate);
-
-    // Exact normalized match - perfect score
-    if (normalizeLocality(loc.localitate) === normalizedInput) {
-      return { ...loc, score: 1 };
-    }
-
-    if (!bestMatch || score > bestMatch.score) {
-      bestMatch = { ...loc, score };
-    }
-  }
-
-  // Only return if score is above threshold
-  return bestMatch && bestMatch.score >= 0.6 ? bestMatch : null;
-}
-
 export class FanCourierAPI {
   private username: string;
   private password: string;
@@ -805,50 +571,6 @@ export class FanCourierAPI {
   }
 
   /**
-   * Obține lista de localități din nomenclatorul FanCourier
-   * Poate fi filtrat pe județ
-   */
-  async getLocalities(params?: {
-    county?: string;
-  }): Promise<{
-    success: boolean;
-    data?: Array<{
-      judet: string;
-      localitate: string;
-      agentie: string;
-      km: number;
-      cod_rutare: string;
-      id_localitate_fan: number;
-    }>;
-    error?: string;
-  }> {
-    try {
-      const queryParams: Record<string, string> = {};
-      if (params?.county) queryParams.county = params.county;
-
-      const response = await this.authRequest("GET", "/reports/localities", null, queryParams);
-
-      if (response.data.status === "success") {
-        return {
-          success: true,
-          data: response.data.data || [],
-        };
-      }
-
-      return {
-        success: false,
-        error: response.data.message || "Eroare la obținerea localităților",
-      };
-    } catch (error: any) {
-      console.error("Error getting localities:", error.response?.data || error.message);
-      return {
-        success: false,
-        error: error.response?.data?.message || error.message,
-      };
-    }
-  }
-
-  /**
    * Obține lista de străzi din nomenclatorul FanCourier
    * Returnează străzi cu coduri poștale pentru un județ și/sau localitate
    */
@@ -901,7 +623,6 @@ export class FanCourierAPI {
   /**
    * Găsește codul poștal pentru o adresă dată
    * Caută în nomenclatorul FanCourier pe baza județului, localității și străzii
-   * Include fuzzy matching pentru localități care nu se potrivesc exact
    */
   async findPostalCode(params: {
     county: string;
@@ -911,168 +632,67 @@ export class FanCourierAPI {
     success: boolean;
     postalCode?: string;
     matchedStreet?: string;
-    matchedLocality?: string;
     error?: string;
   }> {
     try {
-      // Helper pentru extragerea codului poștal din lista de străzi
-      const findStreetPostalCode = (
-        streets: Array<{ strada: string; cod_postal: string }>,
-        rawAddress?: string
-      ): { postalCode?: string; matchedStreet?: string; confidence: 'exact' | 'partial' | 'fallback' | 'none' } => {
-        if (!rawAddress) {
-          // Fără adresă, returnăm primul cod poștal (fallback pentru localități mici)
-          const firstWithPostalCode = streets.find(s => s.cod_postal && s.cod_postal.trim());
-          if (firstWithPostalCode) {
-            return {
-              postalCode: firstWithPostalCode.cod_postal,
-              matchedStreet: firstWithPostalCode.strada,
-              confidence: 'fallback'
-            };
-          }
-          return { confidence: 'none' };
-        }
-
-        // Extragem numele străzii din adresa completă
-        const extractedStreet = extractStreetName(rawAddress);
-        const normalizedInput = normalizeStreet(extractedStreet || rawAddress);
-
-        console.log(`[FanCourier] Adresă: "${rawAddress}" → Stradă extrasă: "${extractedStreet}" → Normalizat: "${normalizedInput}"`);
-
-        if (!normalizedInput) {
-          const firstWithPostalCode = streets.find(s => s.cod_postal && s.cod_postal.trim());
-          if (firstWithPostalCode) {
-            return { postalCode: firstWithPostalCode.cod_postal, matchedStreet: undefined, confidence: 'fallback' };
-          }
-          return { confidence: 'none' };
-        }
-
-        // Pregătim străzile pentru căutare
-        const streetsWithNormalized = streets.map(s => ({
-          ...s,
-          normalized: normalizeStreet(s.strada),
-        }));
-
-        // 1. Căutare exactă pe numele normalizat
-        let match = streetsWithNormalized.find(s => s.normalized === normalizedInput);
-        if (match?.cod_postal) {
-          console.log(`[FanCourier] ✓ Potrivire EXACTĂ: "${match.strada}"`);
-          return { postalCode: match.cod_postal, matchedStreet: match.strada, confidence: 'exact' };
-        }
-
-        // 2. Căutare prin includere (unul conține pe celălalt)
-        match = streetsWithNormalized.find(s =>
-          s.normalized.includes(normalizedInput) || normalizedInput.includes(s.normalized)
-        );
-        if (match?.cod_postal) {
-          console.log(`[FanCourier] ✓ Potrivire PARȚIALĂ (includes): "${match.strada}"`);
-          return { postalCode: match.cod_postal, matchedStreet: match.strada, confidence: 'partial' };
-        }
-
-        // 3. Căutare prin cuvinte cheie (cel puțin un cuvânt semnificativ se potrivește)
-        const inputWords = normalizedInput.split(/\s+/).filter(w => w.length > 2);
-        if (inputWords.length > 0) {
-          let bestMatch: typeof streetsWithNormalized[0] | null = null;
-          let bestScore = 0;
-
-          for (const s of streetsWithNormalized) {
-            const streetWords = s.normalized.split(/\s+/).filter(w => w.length > 2);
-            let score = 0;
-            for (const iw of inputWords) {
-              for (const sw of streetWords) {
-                if (iw === sw) score += 2;
-                else if (iw.includes(sw) || sw.includes(iw)) score += 1;
-              }
-            }
-            if (score > bestScore) {
-              bestScore = score;
-              bestMatch = s;
-            }
-          }
-
-          if (bestMatch && bestScore >= 2 && bestMatch.cod_postal) {
-            console.log(`[FanCourier] ✓ Potrivire CUVINTE CHEIE (scor ${bestScore}): "${bestMatch.strada}"`);
-            return { postalCode: bestMatch.cod_postal, matchedStreet: bestMatch.strada, confidence: 'partial' };
-          }
-        }
-
-        // 4. Fallback - primul cod poștal (doar pentru localități mici)
-        // Pentru orașe mari NU facem fallback - mai bine returnăm eroare
-        if (streets.length <= 10) {
-          const firstWithPostalCode = streets.find(s => s.cod_postal && s.cod_postal.trim());
-          if (firstWithPostalCode) {
-            console.log(`[FanCourier] ⚠ Fallback (localitate mică): "${firstWithPostalCode.strada}"`);
-            return { postalCode: firstWithPostalCode.cod_postal, matchedStreet: undefined, confidence: 'fallback' };
-          }
-        }
-
-        console.log(`[FanCourier] ✗ Nu s-a găsit potrivire pentru "${normalizedInput}" în ${streets.length} străzi`);
-        return { confidence: 'none' };
-      };
-
-      // PASUL 1: Încercăm potrivirea directă
+      // Obținem străzile pentru județul și localitatea date
       const streetsResult = await this.getStreets({
         county: params.county,
         locality: params.locality,
       });
 
-      if (streetsResult.success && streetsResult.data?.length) {
-        const result = findStreetPostalCode(streetsResult.data, params.street);
-        if (result.postalCode && result.confidence !== 'none') {
+      if (!streetsResult.success || !streetsResult.data?.length) {
+        return {
+          success: false,
+          error: streetsResult.error || "Nu s-au găsit străzi pentru această localitate",
+        };
+      }
+
+      const streets = streetsResult.data;
+
+      // Dacă avem stradă, încercăm să o găsim exact sau parțial
+      if (params.street) {
+        const normalizedStreet = params.street.toLowerCase().trim();
+
+        // Căutare exactă
+        let match = streets.find(s =>
+          s.strada.toLowerCase().trim() === normalizedStreet
+        );
+
+        // Căutare parțială dacă nu găsim exact
+        if (!match) {
+          match = streets.find(s =>
+            normalizedStreet.includes(s.strada.toLowerCase().trim()) ||
+            s.strada.toLowerCase().trim().includes(normalizedStreet)
+          );
+        }
+
+        // Căutare prin cuvinte cheie
+        if (!match) {
+          const streetWords = normalizedStreet.split(/[\s,.-]+/).filter(w => w.length > 2);
+          match = streets.find(s => {
+            const sWords = s.strada.toLowerCase().split(/[\s,.-]+/);
+            return streetWords.some(w => sWords.some(sw => sw.includes(w) || w.includes(sw)));
+          });
+        }
+
+        if (match && match.cod_postal) {
           return {
             success: true,
-            postalCode: result.postalCode,
-            matchedStreet: result.matchedStreet,
+            postalCode: match.cod_postal,
+            matchedStreet: match.strada,
           };
         }
       }
 
-      // PASUL 2: Dacă potrivirea directă a eșuat, încercăm fuzzy matching pe localitate
-      console.log(`[FanCourier] Potrivire directă eșuată pentru "${params.locality}", ${params.county}. Încercăm fuzzy matching...`);
-
-      const localitiesResult = await this.getLocalities({ county: params.county });
-
-      if (!localitiesResult.success || !localitiesResult.data?.length) {
-        return {
-          success: false,
-          error: `Nu s-au găsit localități în județul ${params.county}. Verificați numele județului.`,
-        };
-      }
-
-      // Căutăm cea mai bună potrivire pentru localitate
-      const bestMatch = findBestLocalityMatch(params.locality, localitiesResult.data, params.county);
-
-      if (!bestMatch) {
-        console.log(`[FanCourier] Nu s-a găsit potrivire fuzzy pentru "${params.locality}"`);
-        return {
-          success: false,
-          error: `Localitatea "${params.locality}" nu a fost găsită în nomenclatorul FanCourier pentru județul ${params.county}`,
-        };
-      }
-
-      console.log(`[FanCourier] Potrivire fuzzy găsită: "${params.locality}" → "${bestMatch.localitate}" (scor: ${bestMatch.score.toFixed(2)})`);
-
-      // PASUL 3: Reîncercăm cu numele corect din nomenclator
-      const retryStreetsResult = await this.getStreets({
-        county: bestMatch.judet,
-        locality: bestMatch.localitate,
-      });
-
-      if (!retryStreetsResult.success || !retryStreetsResult.data?.length) {
-        return {
-          success: false,
-          error: `Nu s-au găsit străzi pentru localitatea "${bestMatch.localitate}"`,
-        };
-      }
-
-      const result = findStreetPostalCode(retryStreetsResult.data, params.street);
-
-      if (result.postalCode && result.confidence !== 'none') {
+      // Dacă nu găsim strada sau nu avem stradă, returnăm primul cod poștal disponibil
+      // (de obicei localitățile mici au un singur cod poștal)
+      const firstWithPostalCode = streets.find(s => s.cod_postal && s.cod_postal.trim());
+      if (firstWithPostalCode) {
         return {
           success: true,
-          postalCode: result.postalCode,
-          matchedStreet: result.matchedStreet,
-          matchedLocality: bestMatch.localitate,
+          postalCode: firstWithPostalCode.cod_postal,
+          matchedStreet: params.street ? undefined : firstWithPostalCode.strada,
         };
       }
 
@@ -1757,7 +1377,6 @@ export async function syncAWBsFromFanCourier(): Promise<{
 export async function lookupAndUpdatePostalCode(orderId: string): Promise<{
   success: boolean;
   postalCode?: string;
-  matchedLocality?: string;
   updated?: boolean;
   error?: string;
 }> {
@@ -1766,7 +1385,6 @@ export async function lookupAndUpdatePostalCode(orderId: string): Promise<{
       where: { id: orderId },
       select: {
         id: true,
-        shopifyOrderNumber: true,
         shippingProvince: true,
         shippingCity: true,
         shippingAddress1: true,
@@ -1803,27 +1421,14 @@ export async function lookupAndUpdatePostalCode(orderId: string): Promise<{
     });
 
     if (result.success && result.postalCode) {
-      // Pregătim datele pentru actualizare
-      const updateData: { shippingZip: string; shippingCity?: string } = {
-        shippingZip: result.postalCode,
-      };
-
-      // Dacă s-a făcut fuzzy matching și avem o localitate corectă,
-      // actualizăm și localitatea în comandă
-      if (result.matchedLocality && result.matchedLocality !== order.shippingCity) {
-        updateData.shippingCity = result.matchedLocality;
-        console.log(`[FanCourier] Comanda ${order.shopifyOrderNumber}: Localitate corectată "${order.shippingCity}" → "${result.matchedLocality}"`);
-      }
-
       await prisma.order.update({
         where: { id: orderId },
-        data: updateData,
+        data: { shippingZip: result.postalCode },
       });
 
       return {
         success: true,
         postalCode: result.postalCode,
-        matchedLocality: result.matchedLocality,
         updated: true,
       };
     }
