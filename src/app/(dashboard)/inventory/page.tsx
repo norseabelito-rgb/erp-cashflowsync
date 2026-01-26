@@ -24,6 +24,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Building2,
+  Link2,
   Link2Off,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -575,6 +576,7 @@ export default function InventoryPage() {
               <TableHead>SKU</TableHead>
               <TableHead>Nume</TableHead>
               <TableHead>Tip</TableHead>
+              <TableHead className="text-center w-[60px]">Mapat</TableHead>
               <TableHead className="text-center">Stoc Total</TableHead>
               {warehouses.filter(w => w.isActive).map((wh) => (
                 <TableHead key={wh.id} className="text-center" title={wh.name}>
@@ -589,14 +591,14 @@ export default function InventoryPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8 + warehouses.filter(w => w.isActive).length} className="text-center py-8">
+                <TableCell colSpan={9 + warehouses.filter(w => w.isActive).length} className="text-center py-8">
                   <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
                   Se încarcă...
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8 + warehouses.filter(w => w.isActive).length} className="text-center py-8">
+                <TableCell colSpan={9 + warehouses.filter(w => w.isActive).length} className="text-center py-8">
                   <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                   <p className="text-muted-foreground mb-2">
                     {search ? "Niciun articol găsit" : "Nu există articole în inventar"}
@@ -641,6 +643,13 @@ export default function InventoryPage() {
                       </Badge>
                     ) : (
                       <Badge variant="secondary">Individual</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {item._count?.mappedProducts && item._count.mappedProducts > 0 ? (
+                      <Link2 className="h-4 w-4 text-green-600 mx-auto" />
+                    ) : (
+                      <Link2Off className="h-4 w-4 text-muted-foreground/40 mx-auto" />
                     )}
                   </TableCell>
                   <TableCell className="text-center">
