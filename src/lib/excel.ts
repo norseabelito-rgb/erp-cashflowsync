@@ -132,6 +132,8 @@ export interface InventoryImportRow {
   supplier?: string;
   isComposite?: boolean;
   isActive?: boolean;
+  // Stoc per depozit - cheile sunt numele depozitelor (ex: "Sacueni", "Viisoara")
+  warehouseStocks?: Record<string, number>;
 }
 
 export const INVENTORY_COLUMN_MAP: Record<string, keyof InventoryImportRow> = {
@@ -198,54 +200,134 @@ export const INVENTORY_TEMPLATE_HEADERS = [
 ];
 
 export function parseInventoryExcel(buffer: ArrayBuffer): InventoryImportRow[] {
-  const rows = parseExcel<InventoryImportRow>(buffer, INVENTORY_COLUMN_MAP);
+  const workbook = XLSX.read(buffer, { type: "array" });
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
 
-  return rows.map((row) => {
+  if (!sheet) {
+    return [];
+  }
+
+  // Get raw data as array of arrays
+  const rawData = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1 });
+
+  if (rawData.length < 2) {
+    return [];
+  }
+
+  // Parse headers - keep original for warehouse stock detection
+  const originalHeaders = (rawData[0] || []).map((h) => String(h || "").trim());
+  const normalizedHeaders = originalHeaders.map((h) =>
+    h.toLowerCase().replace(/[_\s*]/g, "")
+  );
+
+  // Detect warehouse stock columns (format: "Stoc X" where X is warehouse name)
+  const warehouseStockColumns: { index: number; warehouseName: string }[] = [];
+  originalHeaders.forEach((header, index) => {
+    // Match "Stoc X" pattern (case insensitive)
+    const match = header.match(/^stoc\s+(.+)$/i);
+    if (match) {
+      const warehouseName = match[1].trim();
+      // Exclude generic stock columns
+      if (
+        warehouseName.toLowerCase() !== "curent" &&
+        warehouseName.toLowerCase() !== "minim" &&
+        warehouseName.toLowerCase() !== "current" &&
+        warehouseName.toLowerCase() !== "min"
+      ) {
+        warehouseStockColumns.push({ index, warehouseName });
+      }
+    }
+  });
+
+  // Map standard header indices
+  const headerIndices: Partial<Record<keyof InventoryImportRow, number>> = {};
+  normalizedHeaders.forEach((h, i) => {
+    const field = INVENTORY_COLUMN_MAP[h];
+    if (field && field !== "warehouseStocks") {
+      headerIndices[field] = i;
+    }
+  });
+
+  // Parse rows
+  const rows: InventoryImportRow[] = [];
+  for (let i = 1; i < rawData.length; i++) {
+    const values = rawData[i] || [];
+
+    // Skip empty rows
+    if (values.every((v) => v === undefined || v === null || String(v).trim() === "")) {
+      continue;
+    }
+
     const parsed: InventoryImportRow = {
-      sku: String(row.sku || "").trim(),
-      name: String(row.name || "").trim(),
+      sku: "",
+      name: "",
     };
 
-    if (row.description !== undefined) {
-      parsed.description = String(row.description || "").trim() || undefined;
+    // Extract standard fields
+    if (headerIndices.sku !== undefined) {
+      parsed.sku = String(values[headerIndices.sku] || "").trim();
     }
-    if (row.currentStock !== undefined) {
-      const val = String(row.currentStock).replace(",", ".").trim();
+    if (headerIndices.name !== undefined) {
+      parsed.name = String(values[headerIndices.name] || "").trim();
+    }
+    if (headerIndices.description !== undefined) {
+      const val = values[headerIndices.description];
+      parsed.description = val !== undefined ? String(val || "").trim() || undefined : undefined;
+    }
+    if (headerIndices.currentStock !== undefined) {
+      const val = String(values[headerIndices.currentStock] || "").replace(",", ".").trim();
       parsed.currentStock = val ? parseFloat(val) : undefined;
     }
-    if (row.minStock !== undefined) {
-      const val = String(row.minStock).replace(",", ".").trim();
+    if (headerIndices.minStock !== undefined) {
+      const val = String(values[headerIndices.minStock] || "").replace(",", ".").trim();
       parsed.minStock = val ? parseFloat(val) : undefined;
     }
-    if (row.unit !== undefined) {
-      parsed.unit = String(row.unit || "").trim() || undefined;
+    if (headerIndices.unit !== undefined) {
+      const val = values[headerIndices.unit];
+      parsed.unit = val !== undefined ? String(val || "").trim() || undefined : undefined;
     }
-    if (row.unitsPerBox !== undefined) {
-      const val = String(row.unitsPerBox).trim();
+    if (headerIndices.unitsPerBox !== undefined) {
+      const val = String(values[headerIndices.unitsPerBox] || "").trim();
       parsed.unitsPerBox = val ? parseInt(val, 10) : undefined;
     }
-    if (row.boxUnit !== undefined) {
-      parsed.boxUnit = String(row.boxUnit || "").trim() || undefined;
+    if (headerIndices.boxUnit !== undefined) {
+      const val = values[headerIndices.boxUnit];
+      parsed.boxUnit = val !== undefined ? String(val || "").trim() || undefined : undefined;
     }
-    if (row.costPrice !== undefined) {
-      const val = String(row.costPrice).replace(",", ".").trim();
+    if (headerIndices.costPrice !== undefined) {
+      const val = String(values[headerIndices.costPrice] || "").replace(",", ".").trim();
       parsed.costPrice = val ? parseFloat(val) : undefined;
     }
-    if (row.supplier !== undefined) {
-      parsed.supplier = String(row.supplier || "").trim() || undefined;
+    if (headerIndices.supplier !== undefined) {
+      const val = values[headerIndices.supplier];
+      parsed.supplier = val !== undefined ? String(val || "").trim() || undefined : undefined;
     }
-    if (row.isComposite !== undefined) {
-      const val = String(row.isComposite).toLowerCase().trim();
+    if (headerIndices.isComposite !== undefined) {
+      const val = String(values[headerIndices.isComposite] || "").toLowerCase().trim();
       parsed.isComposite = val === "da" || val === "true" || val === "1" || val === "yes";
     }
-    if (row.isActive !== undefined) {
-      const val = String(row.isActive).toLowerCase().trim();
+    if (headerIndices.isActive !== undefined) {
+      const val = String(values[headerIndices.isActive] || "").toLowerCase().trim();
       // Default to true if empty
       parsed.isActive = val === "" || val === "da" || val === "true" || val === "1" || val === "yes";
     }
 
-    return parsed;
-  });
+    // Extract warehouse stocks
+    if (warehouseStockColumns.length > 0) {
+      const warehouseStocks: Record<string, number> = {};
+      for (const { index, warehouseName } of warehouseStockColumns) {
+        const val = String(values[index] || "0").replace(",", ".").trim();
+        const stock = val ? parseFloat(val) : 0;
+        warehouseStocks[warehouseName] = stock;
+      }
+      parsed.warehouseStocks = warehouseStocks;
+    }
+
+    rows.push(parsed);
+  }
+
+  return rows;
 }
 
 // ============== PRODUCTS ==============
