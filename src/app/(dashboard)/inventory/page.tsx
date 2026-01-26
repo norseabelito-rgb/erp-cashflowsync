@@ -24,6 +24,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Building2,
+  Link2Off,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -134,6 +135,7 @@ interface ImportResult {
   updated: number;
   skipped: number;
   deleted?: number;
+  unmappedProducts?: number;
   errors: Array<{ row: number; sku: string; error: string }>;
 }
 
@@ -868,8 +870,10 @@ export default function InventoryPage() {
                   Șterge articolele care nu sunt în import
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  ⚠️ Toate articolele cu SKU-uri care NU apar în fișierul Excel vor fi șterse din inventar.
-                  Articolele mapate la produse sau folosite în rețete vor fi omise.
+                  ⚠️ Articolele cu SKU-uri care NU apar în Excel vor fi șterse.
+                  Produsele mapate la aceste articole vor fi demapate și vor aștepta remapare în
+                  {" "}<span className="font-medium">Produse → Mapare Inventar</span>.
+                  Articolele folosite în rețete vor fi omise.
                 </p>
               </div>
             </div>
@@ -907,7 +911,7 @@ export default function InventoryPage() {
           {importResults && (
             <div className="space-y-4">
               {/* Summary Cards */}
-              <div className={`grid gap-4 ${importResults.deleted ? "grid-cols-4" : "grid-cols-3"}`}>
+              <div className={`grid gap-4 grid-cols-3 ${(importResults.deleted || importResults.unmappedProducts) ? "sm:grid-cols-4" : ""} ${(importResults.deleted && importResults.unmappedProducts) ? "sm:grid-cols-5" : ""}`}>
                 <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -944,6 +948,20 @@ export default function InventoryPage() {
                     <div className="text-2xl font-bold text-red-700 dark:text-red-300 mt-1">
                       {importResults.deleted}
                     </div>
+                  </div>
+                )}
+                {importResults.unmappedProducts !== undefined && importResults.unmappedProducts > 0 && (
+                  <div className="p-4 bg-purple-50 dark:bg-purple-950 rounded-lg border border-purple-200 dark:border-purple-800">
+                    <div className="flex items-center gap-2">
+                      <Link2Off className="h-5 w-5 text-purple-600" />
+                      <span className="font-medium text-purple-700 dark:text-purple-300">Demapate</span>
+                    </div>
+                    <div className="text-2xl font-bold text-purple-700 dark:text-purple-300 mt-1">
+                      {importResults.unmappedProducts}
+                    </div>
+                    <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                      produse așteaptă remapare
+                    </p>
                   </div>
                 )}
               </div>

@@ -157,6 +157,7 @@ export async function POST(request: NextRequest) {
       updated: 0,
       skipped: 0,
       deleted: 0,
+      unmappedProducts: 0,
       warehouseStocksUpdated: 0,
       errors: [] as { row: number; sku: string; error: string }[],
     };
@@ -383,6 +384,12 @@ export async function POST(request: NextRequest) {
     if (deleteUnlisted && importedSkus.size > 0) {
       // Find all items whose SKU is NOT in the imported set
       const allItems = await prisma.inventoryItem.findMany({
+        where: {
+          sku: {
+            notIn: Array.from(importedSkus).map(s => s.toUpperCase()),
+            mode: "insensitive",
+          },
+        },
         select: {
           id: true,
           sku: true,
@@ -395,36 +402,34 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      const itemsToDelete = allItems.filter(item => {
-        // Skip if SKU is in the import
-        if (importedSkus.has(item.sku.toLowerCase())) {
-          return false;
-        }
-        // Skip if mapped to products
-        if (item._count.mappedProducts > 0) {
-          results.errors.push({
-            row: 0,
-            sku: item.sku,
-            error: `Nu s-a putut șterge - mapat la ${item._count.mappedProducts} produse`,
-          });
-          return false;
-        }
-        // Skip if used in recipes
-        if (item._count.usedInRecipes > 0) {
-          results.errors.push({
-            row: 0,
-            sku: item.sku,
-            error: `Nu s-a putut șterge - folosit în ${item._count.usedInRecipes} rețete`,
-          });
-          return false;
-        }
-        return true;
-      });
+      // Filter out items that are in the import (double-check with lowercase comparison)
+      const itemsToProcess = allItems.filter(item =>
+        !importedSkus.has(item.sku.toLowerCase())
+      );
 
       // Delete items and their related data
-      for (const item of itemsToDelete) {
+      for (const item of itemsToProcess) {
         try {
-          // Delete related warehouse stocks first
+          // Skip if used in recipes (can't delete without breaking recipes)
+          if (item._count.usedInRecipes > 0) {
+            results.errors.push({
+              row: 0,
+              sku: item.sku,
+              error: `Nu s-a putut șterge - folosit în ${item._count.usedInRecipes} rețete`,
+            });
+            continue;
+          }
+
+          // If mapped to products, unmap them first (they'll appear in "awaiting remapping" list)
+          if (item._count.mappedProducts > 0) {
+            const unmapResult = await prisma.masterProduct.updateMany({
+              where: { inventoryItemId: item.id },
+              data: { inventoryItemId: null },
+            });
+            results.unmappedProducts += unmapResult.count;
+          }
+
+          // Delete related warehouse stocks
           await prisma.warehouseStock.deleteMany({
             where: { itemId: item.id },
           });
@@ -455,9 +460,13 @@ export async function POST(request: NextRequest) {
       ? `, ${results.deleted} șterse`
       : "";
 
+    const unmappedMsg = results.unmappedProducts > 0
+      ? `, ${results.unmappedProducts} produse demapate (așteaptă remapare)`
+      : "";
+
     return NextResponse.json({
       success: true,
-      message: `Import finalizat: ${results.created} create, ${results.updated} actualizate, ${results.skipped} omise${warehouseMsg}${deletedMsg}`,
+      message: `Import finalizat: ${results.created} create, ${results.updated} actualizate, ${results.skipped} omise${warehouseMsg}${deletedMsg}${unmappedMsg}`,
       results,
     });
   } catch (error: unknown) {
