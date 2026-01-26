@@ -636,13 +636,39 @@ export class FanCourierAPI {
       }
 
       if (response.data.status === "success") {
-        const streetCount = response.data.data?.length || 0;
+        const rawData = response.data.data || [];
+        const streetCount = rawData.length;
+
         if (streetCount === 0) {
           console.log(`[FanCourier API] getStreets(county="${queryParams.county}", locality="${queryParams.locality}"): 0 streets returned`);
         }
+
+        // Transformăm răspunsul API în structura noastră
+        // API returnează: { street, locality, county, details: [{ zipCode, fromNo, toNo }] }
+        // Noi avem nevoie de: { strada, localitate, judet, cod_postal }
+        const transformedData = rawData.map((item: any) => {
+          // Extragem primul cod poștal din details (sau primul disponibil)
+          const firstDetail = item.details?.[0];
+          const zipCode = firstDetail?.zipCode || '';
+
+          return {
+            judet: item.county || '',
+            localitate: item.locality || '',
+            strada: item.street || '',
+            tip: item.type || '',
+            cod_postal: zipCode,
+            // Păstrăm și detaliile originale pentru cazuri speciale
+            de_la: firstDetail?.fromNo || '',
+            pana_la: firstDetail?.toNo || '',
+            paritate: firstDetail?.parityNo || '',
+            cod_cartare: firstDetail?.routingCode || '',
+            numar_depozite: '',
+          };
+        });
+
         return {
           success: true,
-          data: response.data.data || [],
+          data: transformedData,
         };
       }
 
@@ -753,21 +779,37 @@ export class FanCourierAPI {
       .replace(/\s+/g, ' ');
 
     try {
+      // Handling special pentru București - sectoarele nu sunt localități separate în API
+      let effectiveLocality = params.locality;
+      let effectiveCounty = params.county;
+
+      const normalizedLocality = normalize(params.locality);
+      const normalizedCounty = normalize(params.county);
+
+      // Dacă e București (sector sau oraș), căutăm doar "Bucuresti"
+      if (normalizedCounty.includes('bucuresti') ||
+          normalizedLocality.includes('sector') ||
+          normalizedLocality.includes('bucuresti')) {
+        effectiveCounty = 'Bucuresti';
+        effectiveLocality = 'Bucuresti';
+        console.log(`[FanCourier] București detected, querying as: ${effectiveCounty}/${effectiveLocality}`);
+      }
+
       // Încercăm mai întâi lookup direct
       let streetsResult = await this.getStreets({
-        county: params.county,
-        locality: params.locality,
+        county: effectiveCounty,
+        locality: effectiveLocality,
       });
 
       // Dacă nu găsim, încercăm să găsim localitatea în nomenclator
       if (!streetsResult.success || !streetsResult.data?.length) {
-        console.log(`[FanCourier] Direct lookup failed for "${params.locality}, ${params.county}". Trying locality search...`);
+        console.log(`[FanCourier] Direct lookup failed for "${effectiveLocality}, ${effectiveCounty}". Trying locality search...`);
 
         // Obținem toate localitățile din județ
-        const localitiesResult = await this.getLocalities({ county: params.county });
+        const localitiesResult = await this.getLocalities({ county: effectiveCounty });
 
         if (localitiesResult.success && localitiesResult.data?.length) {
-          const normalizedInput = normalize(params.locality);
+          const normalizedInput = normalize(effectiveLocality);
 
           // Căutăm cea mai bună potrivire
           let bestMatch: { localitate: string; score: number } | null = null;
@@ -795,11 +837,11 @@ export class FanCourierAPI {
           }
 
           if (bestMatch && bestMatch.score >= 0.5) {
-            console.log(`[FanCourier] Found locality match: "${params.locality}" → "${bestMatch.localitate}" (score: ${bestMatch.score.toFixed(2)})`);
+            console.log(`[FanCourier] Found locality match: "${effectiveLocality}" → "${bestMatch.localitate}" (score: ${bestMatch.score.toFixed(2)})`);
 
             // Reîncercăm cu numele găsit
             streetsResult = await this.getStreets({
-              county: params.county,
+              county: effectiveCounty,
               locality: bestMatch.localitate,
             });
 
@@ -808,7 +850,7 @@ export class FanCourierAPI {
               params = { ...params, locality: bestMatch.localitate };
             }
           } else {
-            console.log(`[FanCourier] No locality match found for "${params.locality}" in ${params.county} (${localitiesResult.data.length} localities checked)`);
+            console.log(`[FanCourier] No locality match found for "${effectiveLocality}" in ${effectiveCounty} (${localitiesResult.data.length} localities checked)`);
           }
         }
       }
