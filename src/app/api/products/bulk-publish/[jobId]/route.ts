@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { BulkPublishStatus } from "@prisma/client";
+
+// Local enum pentru status (nu depinde de Prisma generate)
+const BulkPublishStatus = {
+  PENDING: "PENDING",
+  RUNNING: "RUNNING",
+  COMPLETED: "COMPLETED",
+  COMPLETED_WITH_ERRORS: "COMPLETED_WITH_ERRORS",
+  FAILED: "FAILED",
+  CANCELLED: "CANCELLED",
+} as const;
 
 interface RouteParams {
   params: Promise<{ jobId: string }>;
@@ -14,7 +23,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { jobId } = await params;
 
-    const job = await prisma.bulkPublishJob.findUnique({
+    const job = await (prisma as any).bulkPublishJob.findUnique({
       where: { id: jobId },
     });
 
@@ -106,7 +115,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { jobId } = await params;
 
-    const job = await prisma.bulkPublishJob.findUnique({
+    const job = await (prisma as any).bulkPublishJob.findUnique({
       where: { id: jobId },
       select: { status: true },
     });
@@ -128,7 +137,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await prisma.bulkPublishJob.update({
+    await (prisma as any).bulkPublishJob.update({
       where: { id: jobId },
       data: {
         status: BulkPublishStatus.CANCELLED,

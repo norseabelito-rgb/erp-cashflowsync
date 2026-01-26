@@ -1,6 +1,15 @@
 import prisma from "./db";
 import { ShopifyClient } from "./shopify";
-import { BulkPublishStatus, ChannelType } from "@prisma/client";
+
+// Local enum pentru status (nu depinde de Prisma generate)
+const BulkPublishStatus = {
+  PENDING: "PENDING",
+  RUNNING: "RUNNING",
+  COMPLETED: "COMPLETED",
+  COMPLETED_WITH_ERRORS: "COMPLETED_WITH_ERRORS",
+  FAILED: "FAILED",
+  CANCELLED: "CANCELLED",
+} as const;
 
 type ChannelProgress = {
   name: string;
@@ -38,7 +47,7 @@ function convertGoogleDriveUrl(url: string): string {
  */
 export async function processBulkPublishJob(jobId: string): Promise<void> {
   // 1. Încarcă job-ul din DB
-  const job = await prisma.bulkPublishJob.findUnique({
+  const job = await (prisma as any).bulkPublishJob.findUnique({
     where: { id: jobId },
   });
 
@@ -53,7 +62,7 @@ export async function processBulkPublishJob(jobId: string): Promise<void> {
   }
 
   // 2. Setează status = RUNNING, startedAt = now()
-  await prisma.bulkPublishJob.update({
+  await (prisma as any).bulkPublishJob.update({
     where: { id: jobId },
     data: {
       status: BulkPublishStatus.RUNNING,
@@ -68,7 +77,7 @@ export async function processBulkPublishJob(jobId: string): Promise<void> {
   const channels = await prisma.channel.findMany({
     where: {
       id: { in: channelIds },
-      type: ChannelType.SHOPIFY,
+      type: "SHOPIFY",
     },
     include: {
       store: true,
@@ -76,7 +85,7 @@ export async function processBulkPublishJob(jobId: string): Promise<void> {
   });
 
   if (channels.length === 0) {
-    await prisma.bulkPublishJob.update({
+    await (prisma as any).bulkPublishJob.update({
       where: { id: jobId },
       data: {
         status: BulkPublishStatus.FAILED,
@@ -114,7 +123,7 @@ export async function processBulkPublishJob(jobId: string): Promise<void> {
 
   const totalItems = products.length * channels.length;
 
-  await prisma.bulkPublishJob.update({
+  await (prisma as any).bulkPublishJob.update({
     where: { id: jobId },
     data: {
       totalItems,
@@ -130,7 +139,7 @@ export async function processBulkPublishJob(jobId: string): Promise<void> {
   // 3. Pentru fiecare canal Shopify
   for (const channel of channels) {
     // Verifică dacă job-ul a fost anulat
-    const currentJob = await prisma.bulkPublishJob.findUnique({
+    const currentJob = await (prisma as any).bulkPublishJob.findUnique({
       where: { id: jobId },
       select: { status: true },
     });
@@ -146,7 +155,7 @@ export async function processBulkPublishJob(jobId: string): Promise<void> {
       processedItems += products.length;
       failedCount += products.length;
 
-      await prisma.bulkPublishJob.update({
+      await (prisma as any).bulkPublishJob.update({
         where: { id: jobId },
         data: {
           processedItems,
@@ -166,7 +175,7 @@ export async function processBulkPublishJob(jobId: string): Promise<void> {
     );
 
     // Update currentChannelId pentru resume
-    await prisma.bulkPublishJob.update({
+    await (prisma as any).bulkPublishJob.update({
       where: { id: jobId },
       data: {
         currentChannelId: channel.id,
@@ -180,7 +189,7 @@ export async function processBulkPublishJob(jobId: string): Promise<void> {
 
       // Verifică din nou dacă job-ul a fost anulat
       if (productIdx % 10 === 0) {
-        const checkJob = await prisma.bulkPublishJob.findUnique({
+        const checkJob = await (prisma as any).bulkPublishJob.findUnique({
           where: { id: jobId },
           select: { status: true },
         });
@@ -229,7 +238,7 @@ export async function processBulkPublishJob(jobId: string): Promise<void> {
               price: product.price?.toString() || "0",
               compare_at_price: product.compareAtPrice?.toString() || undefined,
               barcode: product.barcode || undefined,
-              weight: product.weight || undefined,
+              weight: product.weight ? Number(product.weight) : undefined,
               weight_unit: "kg" as const,
               inventory_management: null as null,
             },
@@ -313,7 +322,7 @@ export async function processBulkPublishJob(jobId: string): Promise<void> {
       processedItems++;
 
       // Salvează progresul în DB la fiecare produs
-      await prisma.bulkPublishJob.update({
+      await (prisma as any).bulkPublishJob.update({
         where: { id: jobId },
         data: {
           processedItems,
@@ -335,7 +344,7 @@ export async function processBulkPublishJob(jobId: string): Promise<void> {
         ? BulkPublishStatus.FAILED
         : BulkPublishStatus.COMPLETED_WITH_ERRORS;
 
-  await prisma.bulkPublishJob.update({
+  await (prisma as any).bulkPublishJob.update({
     where: { id: jobId },
     data: {
       status: finalStatus,
@@ -353,7 +362,7 @@ export async function processBulkPublishJob(jobId: string): Promise<void> {
  * Verifică dacă există un job în curs pentru acest user
  */
 export async function getActiveJobForUser(userId?: string): Promise<string | null> {
-  const activeJob = await prisma.bulkPublishJob.findFirst({
+  const activeJob = await (prisma as any).bulkPublishJob.findFirst({
     where: {
       status: { in: [BulkPublishStatus.PENDING, BulkPublishStatus.RUNNING] },
       ...(userId ? { userId } : {}),

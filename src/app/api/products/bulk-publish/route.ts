@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { processBulkPublishJob, getActiveJobForUser } from "@/lib/bulk-publish-worker";
-import { BulkPublishStatus, ChannelType } from "@prisma/client";
+
+// Local enum pentru status (nu depinde de Prisma generate)
+const BulkPublishStatus = {
+  PENDING: "PENDING",
+  RUNNING: "RUNNING",
+  COMPLETED: "COMPLETED",
+  COMPLETED_WITH_ERRORS: "COMPLETED_WITH_ERRORS",
+  FAILED: "FAILED",
+  CANCELLED: "CANCELLED",
+} as const;
 
 /**
  * POST /api/products/bulk-publish
@@ -44,7 +53,7 @@ export async function POST(request: NextRequest) {
     const channels = await prisma.channel.findMany({
       where: {
         id: { in: channelIds },
-        type: ChannelType.SHOPIFY,
+        type: "SHOPIFY",
       },
       select: { id: true, name: true },
     });
@@ -70,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     // Creează job-ul
     const totalItems = productCount * channels.length;
-    const job = await prisma.bulkPublishJob.create({
+    const job = await (prisma as any).bulkPublishJob.create({
       data: {
         status: BulkPublishStatus.PENDING,
         productIds: productIds,
@@ -86,7 +95,7 @@ export async function POST(request: NextRequest) {
     // Nu așteptăm să se termine, returnăm imediat jobId
     processBulkPublishJob(job.id).catch((error) => {
       console.error(`Background job ${job.id} failed:`, error);
-      prisma.bulkPublishJob
+      (prisma as any).bulkPublishJob
         .update({
           where: { id: job.id },
           data: {
@@ -124,7 +133,7 @@ export async function GET() {
       return NextResponse.json({ active: false });
     }
 
-    const job = await prisma.bulkPublishJob.findUnique({
+    const job = await (prisma as any).bulkPublishJob.findUnique({
       where: { id: activeJobId },
     });
 
