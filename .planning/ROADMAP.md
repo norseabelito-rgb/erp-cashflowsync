@@ -146,6 +146,7 @@ Plans:
 **Goal**: Basic task management available for operational and business tracking
 **Depends on**: Phase 6 (UX patterns established for consistent task UI)
 **Requirements**: TASK-01, TASK-02, TASK-03, TASK-04
+**Plans**: 4 plans in 3 waves
 **Success Criteria** (what must be TRUE):
   1. Tasks can be created with title, description, type, priority, deadline, and assignee
   2. Task list view shows all tasks with filtering by type, status, assignee
@@ -153,13 +154,11 @@ Plans:
   4. Management can create and track business to-dos with deadlines and owners
   5. Tasks can be marked complete and history is preserved
 
-**Plans**: TBD
-
 Plans:
-- [ ] 07-01: Task data model and API
-- [ ] 07-02: Task list and detail UI
-- [ ] 07-03: Operational task templates (warehouse)
-- [ ] 07-04: Business task management
+- [ ] 07-01-PLAN.md — Task data model, enums, and utility helpers (Wave 1)
+- [ ] 07-02-PLAN.md — Task API routes with CRUD and completion toggle (Wave 2)
+- [ ] 07-03-PLAN.md — Task list page with filters and date grouping (Wave 3)
+- [ ] 07-04-PLAN.md — Task form dialog and sidebar integration (Wave 3)
 
 ### Phase 8: Task Management Advanced
 **Goal**: Automated task creation, notifications, and activity reporting
@@ -230,7 +229,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 | 4. Flow Integrity | 4/4 | ✓ Complete | 2026-01-25 |
 | 5. Known Bug Fixes | 4/4 | ✓ Complete | 2026-01-25 |
 | 6. UX Foundation | 6/6 | ✓ Complete | 2026-01-25 |
-| 7. Task Management Core | 0/4 | Not started | - |
+| 7. Task Management Core | 0/4 | Planned | - |
 | 8. Task Management Advanced | 0/4 | Not started | - |
 | 9. Documentation | 0/4 | Not started | - |
 | 10. Quality Assurance | 0/4 | Not started | - |
@@ -240,4 +239,5 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 *Phase 1 planned: 2026-01-23*
 *Phase 4 planned: 2026-01-25*
 *Phase 5 planned: 2026-01-25*
+*Phase 7 planned: 2026-01-26*
 *Depth: comprehensive (10 phases, 42 planned plans)*
