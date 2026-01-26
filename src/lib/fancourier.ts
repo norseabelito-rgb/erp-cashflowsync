@@ -668,7 +668,24 @@ export class FanCourierAPI {
       });
 
       if (response.data.status === "success" && response.data.data) {
-        const localities = response.data.data;
+        const rawLocalities = response.data.data;
+
+        // Debug: log first item structure to understand API response format
+        if (rawLocalities.length > 0) {
+          console.log(`[FanCourier API] getLocalities sample item:`, JSON.stringify(rawLocalities[0]));
+        }
+
+        // Mapăm răspunsul API la structura noastră
+        // FanCourier API poate returna proprietăți în engleză sau română
+        const localities = rawLocalities.map((item: any) => ({
+          judet: item.judet || item.county || normalizedCounty,
+          localitate: item.localitate || item.locality || item.name || '',
+          agentie: item.agentie || item.agency,
+          km: item.km,
+          cod_rutare: item.cod_rutare || item.routingCode,
+          id_localitate_fan: item.id_localitate_fan || item.id || item.fanId,
+        }));
+
         console.log(`[FanCourier API] getLocalities(county="${normalizedCounty}"): ${localities.length} localities found`);
         return {
           success: true,
@@ -737,6 +754,9 @@ export class FanCourierAPI {
           let bestMatch: { localitate: string; score: number } | null = null;
 
           for (const loc of localitiesResult.data) {
+            // Null safety: skip entries without localitate
+            if (!loc.localitate) continue;
+
             const normalizedLoc = normalize(loc.localitate);
 
             // Potrivire exactă normalizată
