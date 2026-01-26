@@ -72,7 +72,7 @@ async function updateWarehouseStocks(
               newStock: new Decimal(newStock),
               reason: "Import Excel",
               notes: `Import stoc din Excel pentru depozit "${warehouseName}" - de la ${oldStock} la ${newStock}`,
-              performedById: userId,
+              userId: userId,
             },
           });
         }
@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
                     newStock: new Decimal(newStock),
                     reason: "Import Excel",
                     notes: `Import stoc din Excel - ajustare de la ${oldStock} la ${newStock}`,
-                    performedById: session.user.id,
+                    userId: session.user.id,
                   },
                 }),
               ]);
@@ -314,7 +314,7 @@ export async function POST(request: NextRequest) {
                   newStock: new Decimal(newStock),
                   reason: "Import Excel",
                   notes: `Import din Excel - ajustare de la ${oldStock} la ${newStock}`,
-                  performedById: session.user.id,
+                  userId: session.user.id,
                 },
               });
             }
