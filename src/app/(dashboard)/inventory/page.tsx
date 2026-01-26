@@ -83,6 +83,16 @@ import { formatCurrency } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { ActionTooltip } from "@/components/ui/action-tooltip";
 
+interface WarehouseStock {
+  id: string;
+  currentStock: number;
+  warehouse: {
+    id: string;
+    code: string;
+    name: string;
+  };
+}
+
 interface InventoryItem {
   id: string;
   sku: string;
@@ -100,6 +110,7 @@ interface InventoryItem {
     id: string;
     name: string;
   };
+  warehouseStocks?: WarehouseStock[];
   recipeComponents?: Array<{
     id: string;
     quantity: number;
@@ -178,8 +189,9 @@ export default function InventoryPage() {
       if (filterStock === "active") params.set("isActive", "true");
       if (filterWarehouse !== "all") {
         params.set("warehouseId", filterWarehouse);
-        params.set("includeWarehouseStock", "true");
       }
+      // Always include warehouse stocks to show per-warehouse columns
+      params.set("includeWarehouseStock", "true");
       params.set("page", page.toString());
       params.set("limit", limit.toString());
 
@@ -555,7 +567,12 @@ export default function InventoryPage() {
               <TableHead>SKU</TableHead>
               <TableHead>Nume</TableHead>
               <TableHead>Tip</TableHead>
-              <TableHead className="text-center">Stoc</TableHead>
+              <TableHead className="text-center">Stoc Total</TableHead>
+              {warehouses.filter(w => w.isActive).map((wh) => (
+                <TableHead key={wh.id} className="text-center" title={wh.name}>
+                  <span className="text-xs">{wh.code || wh.name.substring(0, 6)}</span>
+                </TableHead>
+              ))}
               <TableHead>Unitate</TableHead>
               <TableHead className="text-right">Cost</TableHead>
               <TableHead>Furnizor</TableHead>
@@ -565,14 +582,14 @@ export default function InventoryPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={9 + warehouses.filter(w => w.isActive).length} className="text-center py-8">
                   <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
                   Se încarcă...
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={9 + warehouses.filter(w => w.isActive).length} className="text-center py-8">
                   <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                   <p className="text-muted-foreground mb-2">
                     {search ? "Niciun articol găsit" : "Nu există articole în inventar"}
@@ -622,6 +639,15 @@ export default function InventoryPage() {
                   <TableCell className="text-center">
                     {getStockBadge(item)}
                   </TableCell>
+                  {warehouses.filter(w => w.isActive).map((wh) => {
+                    const warehouseStock = item.warehouseStocks?.find(ws => ws.warehouse.id === wh.id);
+                    const stock = warehouseStock ? Number(warehouseStock.currentStock) : 0;
+                    return (
+                      <TableCell key={wh.id} className="text-center text-xs text-muted-foreground">
+                        {item.isComposite ? "-" : (stock > 0 ? stock : <span className="text-muted-foreground/50">0</span>)}
+                      </TableCell>
+                    );
+                  })}
                   <TableCell className="text-muted-foreground">
                     {item.unit}
                     {item.unitsPerBox && (
