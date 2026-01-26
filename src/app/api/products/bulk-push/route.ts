@@ -51,7 +51,7 @@ interface StoreProgress {
 
 /**
  * POST /api/products/bulk-push
- * Start a bulk push job to sync all products to all Shopify stores
+ * Start a bulk push job to sync ALL products to ALL Shopify stores
  */
 export async function POST(request: NextRequest) {
   try {
@@ -73,63 +73,57 @@ export async function POST(request: NextRequest) {
       data: { status: "pending" },
     });
 
-    // Get all active Shopify stores with their product channels
-    const productChannels = await prisma.masterProductChannel.findMany({
-      where: {
-        isActive: true,
-        channel: {
-          type: "SHOPIFY",
-          isActive: true,
-        },
-      },
+    // Get ALL products
+    const allProducts = await prisma.masterProduct.findMany({
       include: {
-        product: {
-          include: {
-            images: {
-              orderBy: { position: "asc" },
-            },
-          },
+        images: {
+          orderBy: { position: "asc" },
         },
-        channel: {
+        channels: {
           include: {
-            store: true,
+            channel: true,
           },
         },
       },
     });
 
-    // Group by store
-    const byStore = new Map<
-      string,
-      {
+    // Get ALL active Shopify channels
+    const shopifyChannels = await prisma.channel.findMany({
+      where: {
+        type: "SHOPIFY",
+        isActive: true,
         store: {
-          id: string;
-          name: string;
-          shopifyDomain: string;
-          accessToken: string;
-        };
-        channels: typeof productChannels;
-      }
-    >();
+          isNot: null,
+        },
+      },
+      include: {
+        store: true,
+      },
+    });
 
-    for (const pc of productChannels) {
-      if (!pc.channel.store) continue;
-      const storeId = pc.channel.store.id;
-      if (!byStore.has(storeId)) {
-        byStore.set(storeId, {
-          store: pc.channel.store,
-          channels: [],
-        });
-      }
-      byStore.get(storeId)!.channels.push(pc);
+    if (shopifyChannels.length === 0) {
+      await prisma.bulkPushJob.update({
+        where: { id: job.id },
+        data: {
+          status: "failed",
+          error: "Nu exista canale Shopify active configurate",
+          completedAt: new Date(),
+        },
+      });
+      return NextResponse.json({
+        success: false,
+        error: "Nu exista canale Shopify active",
+        jobId: job.id,
+      });
     }
 
-    // Initialize progress JSON
+    // Initialize progress JSON - one entry per store, total = all products
     const progress: Record<string, StoreProgress> = {};
-    for (const [storeId, { store, channels }] of byStore) {
-      progress[storeId] = {
-        storeName: store.name,
-        total: channels.length,
+    for (const channel of shopifyChannels) {
+      if (!channel.store) continue;
+      progress[channel.store.id] = {
+        storeName: channel.store.name,
+        total: allProducts.length,
         done: 0,
         created: 0,
         updated: 0,
@@ -147,8 +141,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Process each store
-    for (const [storeId, { store, channels }] of byStore) {
+    // Process each Shopify channel/store
+    for (const channel of shopifyChannels) {
+      if (!channel.store) continue;
+
+      const store = channel.store;
+      const storeId = store.id;
+
       const shopifyClient = new ShopifyClient(
         store.shopifyDomain,
         store.accessToken,
@@ -157,21 +156,28 @@ export async function POST(request: NextRequest) {
 
       let batchCount = 0;
 
-      for (const pc of channels) {
+      for (const product of allProducts) {
         try {
-          const product = pc.product;
-          const overrides = (pc.overrides as Record<string, unknown>) || {};
+          // Check if product already has a channel mapping
+          const existingChannel = product.channels.find(
+            (pc) => pc.channelId === channel.id
+          );
+
+          const overrides = existingChannel
+            ? ((existingChannel.overrides as Record<string, unknown>) || {})
+            : {};
 
           // Calculate final values with overrides
-          const finalTitle =
-            (overrides.title as string) || product.title;
+          const finalTitle = (overrides.title as string) || product.title;
           const finalDescription =
             (overrides.description as string) || product.description;
           const finalPrice =
             (overrides.price as number) || Number(product.price);
           const finalCompareAtPrice =
             (overrides.compareAtPrice as number) ||
-            (product.compareAtPrice ? Number(product.compareAtPrice) : undefined);
+            (product.compareAtPrice
+              ? Number(product.compareAtPrice)
+              : undefined);
 
           // Prepare images with public URLs
           const images = product.images
@@ -189,7 +195,9 @@ export async function POST(request: NextRequest) {
                 img !== null
             );
 
-          if (!pc.externalId) {
+          const externalId = existingChannel?.externalId;
+
+          if (!externalId) {
             // Create new product in Shopify
             const shopifyProduct = await shopifyClient.createProduct({
               title: finalTitle,
@@ -211,10 +219,27 @@ export async function POST(request: NextRequest) {
               images,
             });
 
-            // Update externalId in DB
-            await prisma.masterProductChannel.update({
-              where: { id: pc.id },
-              data: {
+            // Create or update channel mapping
+            await prisma.masterProductChannel.upsert({
+              where: {
+                productId_channelId: {
+                  productId: product.id,
+                  channelId: channel.id,
+                },
+              },
+              create: {
+                productId: product.id,
+                channelId: channel.id,
+                isActive: true,
+                isPublished: true,
+                externalId: String(shopifyProduct.id),
+                externalOverrides: {
+                  shopifyProductId: shopifyProduct.id,
+                  shopifyVariantId: shopifyProduct.variants[0]?.id,
+                },
+                lastSyncedAt: new Date(),
+              },
+              update: {
                 externalId: String(shopifyProduct.id),
                 externalOverrides: {
                   shopifyProductId: shopifyProduct.id,
@@ -227,7 +252,7 @@ export async function POST(request: NextRequest) {
             progress[storeId].created++;
           } else {
             // Update existing product in Shopify
-            await shopifyClient.updateProduct(pc.externalId, {
+            await shopifyClient.updateProduct(externalId, {
               title: finalTitle,
               body_html: finalDescription || undefined,
               tags: product.tags || [],
@@ -243,10 +268,12 @@ export async function POST(request: NextRequest) {
             });
 
             // Update timestamp
-            await prisma.masterProductChannel.update({
-              where: { id: pc.id },
-              data: { lastSyncedAt: new Date() },
-            });
+            if (existingChannel) {
+              await prisma.masterProductChannel.update({
+                where: { id: existingChannel.id },
+                data: { lastSyncedAt: new Date() },
+              });
+            }
 
             progress[storeId].updated++;
           }
@@ -257,10 +284,10 @@ export async function POST(request: NextRequest) {
             error instanceof Error ? error.message : "Unknown error";
           progress[storeId].errors++;
           progress[storeId].errorMessages.push(
-            `${pc.product.sku}: ${errorMessage}`
+            `${product.sku}: ${errorMessage}`
           );
           progress[storeId].done++;
-          console.error(`Bulk push error for ${pc.product.sku}:`, errorMessage);
+          console.error(`Bulk push error for ${product.sku}:`, errorMessage);
         }
 
         batchCount++;
