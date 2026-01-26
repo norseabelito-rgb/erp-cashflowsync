@@ -126,6 +126,11 @@ async function executeSqlStatements(client, sql, fileName) {
   }
 
   console.log(`📋 Se execută ${statements.length} statements SQL...`);
+
+  // Debug: arată primele 80 caractere din fiecare statement
+  statements.forEach((s, idx) => {
+    console.log(`   [${idx + 1}] ${s.substring(0, 80).replace(/\n/g, ' ')}...`);
+  });
   console.log('');
 
   let successCount = 0;
@@ -154,7 +159,8 @@ async function executeSqlStatements(client, sql, fileName) {
       } else {
         errorCount++;
         console.error(`❌ [${i + 1}/${statements.length}] Eroare: ${err.message}`);
-        console.error(`   Statement: ${preview}...`);
+        console.error(`   Code: ${err.code}`);
+        console.error(`   Full statement:\n${statement}\n`);
       }
     }
   }
