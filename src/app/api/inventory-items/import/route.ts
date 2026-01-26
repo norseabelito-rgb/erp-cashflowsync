@@ -119,11 +119,13 @@ export async function POST(request: NextRequest) {
 
     let rows: InventoryImportRow[] = [];
     let mode: "create" | "update" | "upsert" | "stock_only" = "upsert";
+    let deleteUnlisted = false;
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
       const file = formData.get("file") as File;
       mode = (formData.get("mode") as typeof mode) || "upsert";
+      deleteUnlisted = formData.get("deleteUnlisted") === "true";
 
       if (!file) {
         return NextResponse.json({ error: "Fișierul este obligatoriu" }, { status: 400 });
@@ -143,6 +145,7 @@ export async function POST(request: NextRequest) {
       const body = await request.json();
       rows = body.rows || [];
       mode = body.mode || "upsert";
+      deleteUnlisted = body.deleteUnlisted === true;
     }
 
     if (rows.length === 0) {
@@ -153,9 +156,15 @@ export async function POST(request: NextRequest) {
       created: 0,
       updated: 0,
       skipped: 0,
+      deleted: 0,
       warehouseStocksUpdated: 0,
       errors: [] as { row: number; sku: string; error: string }[],
     };
+
+    // Collect all SKUs from import for potential cleanup
+    const importedSkus = new Set<string>(
+      rows.filter(r => r.sku?.trim()).map(r => r.sku!.trim().toLowerCase())
+    );
 
     // Get all suppliers for lookup
     const suppliers = await prisma.supplier.findMany();
@@ -370,13 +379,85 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Delete unlisted items if requested
+    if (deleteUnlisted && importedSkus.size > 0) {
+      // Find all items whose SKU is NOT in the imported set
+      const allItems = await prisma.inventoryItem.findMany({
+        select: {
+          id: true,
+          sku: true,
+          _count: {
+            select: {
+              mappedProducts: true,
+              usedInRecipes: true,
+            },
+          },
+        },
+      });
+
+      const itemsToDelete = allItems.filter(item => {
+        // Skip if SKU is in the import
+        if (importedSkus.has(item.sku.toLowerCase())) {
+          return false;
+        }
+        // Skip if mapped to products
+        if (item._count.mappedProducts > 0) {
+          results.errors.push({
+            row: 0,
+            sku: item.sku,
+            error: `Nu s-a putut șterge - mapat la ${item._count.mappedProducts} produse`,
+          });
+          return false;
+        }
+        // Skip if used in recipes
+        if (item._count.usedInRecipes > 0) {
+          results.errors.push({
+            row: 0,
+            sku: item.sku,
+            error: `Nu s-a putut șterge - folosit în ${item._count.usedInRecipes} rețete`,
+          });
+          return false;
+        }
+        return true;
+      });
+
+      // Delete items and their related data
+      for (const item of itemsToDelete) {
+        try {
+          // Delete related warehouse stocks first
+          await prisma.warehouseStock.deleteMany({
+            where: { itemId: item.id },
+          });
+          // Delete related stock movements
+          await prisma.inventoryStockMovement.deleteMany({
+            where: { itemId: item.id },
+          });
+          // Delete the item
+          await prisma.inventoryItem.delete({
+            where: { id: item.id },
+          });
+          results.deleted++;
+        } catch (deleteError) {
+          results.errors.push({
+            row: 0,
+            sku: item.sku,
+            error: `Eroare la ștergere: ${deleteError instanceof Error ? deleteError.message : "necunoscută"}`,
+          });
+        }
+      }
+    }
+
     const warehouseMsg = results.warehouseStocksUpdated > 0
       ? `, ${results.warehouseStocksUpdated} stocuri depozit actualizate`
       : "";
 
+    const deletedMsg = results.deleted > 0
+      ? `, ${results.deleted} șterse`
+      : "";
+
     return NextResponse.json({
       success: true,
-      message: `Import finalizat: ${results.created} create, ${results.updated} actualizate, ${results.skipped} omise${warehouseMsg}`,
+      message: `Import finalizat: ${results.created} create, ${results.updated} actualizate, ${results.skipped} omise${warehouseMsg}${deletedMsg}`,
       results,
     });
   } catch (error: unknown) {

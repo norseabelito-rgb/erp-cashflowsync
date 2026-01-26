@@ -133,6 +133,7 @@ interface ImportResult {
   created: number;
   updated: number;
   skipped: number;
+  deleted?: number;
   errors: Array<{ row: number; sku: string; error: string }>;
 }
 
@@ -162,6 +163,7 @@ export default function InventoryPage() {
   const [importResults, setImportResults] = useState<ImportResult | null>(null);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importMode, setImportMode] = useState<"upsert" | "create" | "update" | "stock_only">("upsert");
+  const [deleteUnlisted, setDeleteUnlisted] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -270,6 +272,7 @@ export default function InventoryPage() {
         queryClient.invalidateQueries({ queryKey: ["inventory-items"] });
         setImportDialogOpen(false);
         setImportFile(null);
+        setDeleteUnlisted(false);
         setImportResults(data.results);
         setImportResultsDialogOpen(true);
       } else {
@@ -310,6 +313,9 @@ export default function InventoryPage() {
     const formData = new FormData();
     formData.append("file", importFile);
     formData.append("mode", importMode);
+    if (deleteUnlisted) {
+      formData.append("deleteUnlisted", "true");
+    }
     importMutation.mutate(formData);
   };
 
@@ -855,6 +861,22 @@ export default function InventoryPage() {
                 {importMode === "stock_only" && "Actualizează doar stocul curent, restul câmpurilor sunt ignorate."}
               </p>
             </div>
+            <div className="flex items-start space-x-3 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+              <Checkbox
+                id="deleteUnlisted"
+                checked={deleteUnlisted}
+                onCheckedChange={(checked) => setDeleteUnlisted(checked as boolean)}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="deleteUnlisted" className="text-sm font-medium cursor-pointer">
+                  Șterge articolele care nu sunt în import
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  ⚠️ Toate articolele cu SKU-uri care NU apar în fișierul Excel vor fi șterse din inventar.
+                  Articolele mapate la produse sau folosite în rețete vor fi omise.
+                </p>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setImportDialogOpen(false)}>
@@ -889,7 +911,7 @@ export default function InventoryPage() {
           {importResults && (
             <div className="space-y-4">
               {/* Summary Cards */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className={`grid gap-4 ${importResults.deleted ? "grid-cols-4" : "grid-cols-3"}`}>
                 <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -917,6 +939,17 @@ export default function InventoryPage() {
                     {importResults.skipped}
                   </div>
                 </div>
+                {importResults.deleted !== undefined && importResults.deleted > 0 && (
+                  <div className="p-4 bg-red-50 dark:bg-red-950 rounded-lg border border-red-200 dark:border-red-800">
+                    <div className="flex items-center gap-2">
+                      <Trash2 className="h-5 w-5 text-red-600" />
+                      <span className="font-medium text-red-700 dark:text-red-300">Șterse</span>
+                    </div>
+                    <div className="text-2xl font-bold text-red-700 dark:text-red-300 mt-1">
+                      {importResults.deleted}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Errors List */}
