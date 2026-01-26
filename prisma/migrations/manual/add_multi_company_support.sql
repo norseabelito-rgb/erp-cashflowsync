@@ -17,10 +17,9 @@ CREATE TABLE IF NOT EXISTS "companies" (
     "bankAccount" TEXT,
     "email" TEXT,
     "phone" TEXT,
-    "facturisApiKey" TEXT,
-    "facturisUsername" TEXT,
-    "facturisPassword" TEXT,
-    "facturisCompanyCif" TEXT,
+    "oblioEmail" TEXT,
+    "oblioSecretToken" TEXT,
+    "oblioCif" TEXT,
     "fancourierClientId" TEXT,
     "fancourierUsername" TEXT,
     "fancourierPassword" TEXT,
@@ -112,8 +111,8 @@ ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "intercompanyStatus" TEXT;
 -- 6. Add new columns to invoices
 ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "invoiceSeriesId" TEXT;
-ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "invoiceProvider" TEXT DEFAULT 'facturis';
-ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "facturisId" TEXT;
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "invoiceProvider" TEXT DEFAULT 'oblio';
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "oblioId" TEXT;
 
 -- 7. Add new columns to awbs
 ALTER TABLE "awbs" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
@@ -228,14 +227,10 @@ ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "pdfUrl" TEXT;
 ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "pdfData" BYTEA;
 ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "issuedAt" TIMESTAMP(3);
 
--- 16. InvoiceSeries: coloane pentru Facturis
+-- 16. InvoiceSeries: coloane pentru Oblio
 ALTER TABLE "invoice_series" ADD COLUMN IF NOT EXISTS "startNumber" INTEGER DEFAULT 1;
-ALTER TABLE "invoice_series" ADD COLUMN IF NOT EXISTS "syncToFacturis" BOOLEAN DEFAULT false;
-ALTER TABLE "invoice_series" ADD COLUMN IF NOT EXISTS "facturisSeries" TEXT;
-
--- Legacy SmartBill columns (deprecated)
-ALTER TABLE "invoice_series" ADD COLUMN IF NOT EXISTS "sync_to_smartbill" BOOLEAN DEFAULT false;
-ALTER TABLE "invoice_series" ADD COLUMN IF NOT EXISTS "smartbill_series" TEXT;
+ALTER TABLE "invoice_series" ADD COLUMN IF NOT EXISTS "syncToOblio" BOOLEAN DEFAULT false;
+ALTER TABLE "invoice_series" ADD COLUMN IF NOT EXISTS "oblioSeries" TEXT;
 
 -- 17. Add AWB_CREATED status to OrderStatus enum
 -- This runs after AWB is successfully created but before courier pickup
