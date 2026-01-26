@@ -102,6 +102,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, getDriveImageUrl } from "@/lib/utils";
 import { SyncOverlay, useSyncOverlay } from "@/components/ui/sync-overlay";
+import { BulkPublishProgress, useBulkPublish } from "@/components/bulk-publish-progress";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ActionTooltip } from "@/components/ui/action-tooltip";
@@ -184,6 +185,9 @@ export default function ProductsPage() {
   const [importMode, setImportMode] = useState<"upsert" | "create" | "update">("upsert");
   const [isExporting, setIsExporting] = useState(false);
   const [inventoryComboboxOpen, setInventoryComboboxOpen] = useState(false);
+
+  // Bulk publish hook
+  const { jobId: bulkPublishJobId, startJob: startBulkPublish, clearJob: clearBulkPublishJob, hasActiveJob: hasBulkPublishJob } = useBulkPublish();
 
   // Form state pentru produs nou
   const [newProduct, setNewProduct] = useState({
@@ -1221,15 +1225,39 @@ export default function ProductsPage() {
           selectedCount={selectedProducts.length}
           channels={channels}
           categories={categories}
-          onConfirm={(data) => {
-            bulkActionMutation.mutate({
-              action: bulkAction,
-              productIds: selectedProducts,
-              data,
-            });
+          onConfirm={async (data) => {
+            // Pentru publish-channel, folosește noul API cu job în background
+            if (bulkAction === "publish-channel" && data.channelIds) {
+              const result = await startBulkPublish(selectedProducts, data.channelIds);
+              if (result.success) {
+                setBulkDialogOpen(false);
+                setSelectedProducts([]);
+                toast({ title: "Job pornit", description: result.message });
+              } else {
+                toast({ title: "Eroare", description: result.error, variant: "destructive" });
+              }
+            } else {
+              // Pentru alte acțiuni, folosește vechiul API
+              bulkActionMutation.mutate({
+                action: bulkAction,
+                productIds: selectedProducts,
+                data,
+              });
+            }
           }}
           isLoading={bulkActionMutation.isPending}
         />
+
+        {/* Bulk Publish Progress Overlay */}
+        {hasBulkPublishJob && (
+          <BulkPublishProgress
+            jobId={bulkPublishJobId || undefined}
+            onClose={clearBulkPublishJob}
+            onComplete={() => {
+              queryClient.invalidateQueries({ queryKey: ["products"] });
+            }}
+          />
+        )}
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
@@ -1376,17 +1404,37 @@ function BulkActionDialog({
 }) {
   const [categoryId, setCategoryId] = useState("");
   const [channelId, setChannelId] = useState("");
+  const [selectedChannelIds, setSelectedChannelIds] = useState<string[]>([]);
   const [tags, setTags] = useState("");
+
+  // Filtrează doar canalele Shopify pentru publish-channel
+  const shopifyChannels = channels.filter((ch) => ch.type === "SHOPIFY");
 
   const getTitle = () => {
     switch (action) {
       case "change-category": return "Schimbă Categoria";
       case "add-tags": return "Adaugă Tag-uri";
       case "remove-tags": return "Șterge Tag-uri";
-      case "publish-channel": return "Publică pe Canal";
+      case "publish-channel": return "Publică pe Canale";
       case "unpublish-channel": return "Depublică de pe Canal";
       case "delete": return "Șterge Produsele";
       default: return "Acțiune Bulk";
+    }
+  };
+
+  const handleChannelToggle = (channelId: string) => {
+    setSelectedChannelIds((prev) =>
+      prev.includes(channelId)
+        ? prev.filter((id) => id !== channelId)
+        : [...prev, channelId]
+    );
+  };
+
+  const handleSelectAllChannels = () => {
+    if (selectedChannelIds.length === shopifyChannels.length) {
+      setSelectedChannelIds([]);
+    } else {
+      setSelectedChannelIds(shopifyChannels.map((ch) => ch.id));
     }
   };
 
@@ -1400,6 +1448,9 @@ function BulkActionDialog({
         onConfirm({ tags: tags.split(",").map(t => t.trim()).filter(Boolean) });
         break;
       case "publish-channel":
+        // Folosește array de channelIds pentru publish
+        onConfirm({ channelIds: selectedChannelIds });
+        break;
       case "unpublish-channel":
       case "activate-channel":
       case "deactivate-channel":
@@ -1410,6 +1461,16 @@ function BulkActionDialog({
         break;
     }
   };
+
+  // Reset state când se deschide dialogul
+  useEffect(() => {
+    if (open) {
+      setSelectedChannelIds([]);
+      setChannelId("");
+      setCategoryId("");
+      setTags("");
+    }
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1450,7 +1511,51 @@ function BulkActionDialog({
             </div>
           )}
 
-          {(action === "publish-channel" || action === "unpublish-channel") && (
+          {action === "publish-channel" && (
+            <div className="grid gap-3">
+              <div className="flex items-center justify-between">
+                <Label>Canale Shopify</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto py-1 px-2 text-xs"
+                  onClick={handleSelectAllChannels}
+                >
+                  {selectedChannelIds.length === shopifyChannels.length
+                    ? "Deselectează toate"
+                    : "Selectează toate"}
+                </Button>
+              </div>
+              {shopifyChannels.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nu există canale Shopify configurate.
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-3">
+                  {shopifyChannels.map((ch) => (
+                    <div
+                      key={ch.id}
+                      className="flex items-center space-x-3 p-2 rounded hover:bg-muted/50 cursor-pointer"
+                      onClick={() => handleChannelToggle(ch.id)}
+                    >
+                      <Checkbox
+                        checked={selectedChannelIds.includes(ch.id)}
+                        onCheckedChange={() => handleChannelToggle(ch.id)}
+                      />
+                      <span className="text-sm">{ch.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selectedChannelIds.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {selectedChannelIds.length} canale selectate
+                </p>
+              )}
+            </div>
+          )}
+
+          {action === "unpublish-channel" && (
             <div className="grid gap-2">
               <Label>Canal</Label>
               <Select value={channelId} onValueChange={setChannelId}>
@@ -1469,7 +1574,7 @@ function BulkActionDialog({
           {action === "delete" && (
             <div className="p-4 bg-status-error/10 rounded-lg border border-status-error/20">
               <p className="text-status-error font-medium">
-                ⚠️ Atenție! Această acțiune este ireversibilă.
+                Atentie! Această acțiune este ireversibilă.
               </p>
               <p className="text-sm text-status-error/80 mt-1">
                 Produsele vor fi șterse din sistem și din toate magazinele Shopify asociate.
@@ -1485,7 +1590,9 @@ function BulkActionDialog({
             variant={action === "delete" ? "destructive" : "default"}
             onClick={handleConfirm}
             disabled={isLoading || (
-              (action === "publish-channel" || action === "unpublish-channel") && !channelId
+              action === "publish-channel" && selectedChannelIds.length === 0
+            ) || (
+              action === "unpublish-channel" && !channelId
             ) || (
               (action === "add-tags" || action === "remove-tags") && !tags.trim()
             )}

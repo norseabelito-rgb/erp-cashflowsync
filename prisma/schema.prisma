@@ -3377,3 +3377,58 @@ model BulkPushJob {
   @@index([status])
   @@map("bulk_push_jobs")
 }
+
+// Status pentru job-uri de publicare bulk
+enum BulkPublishStatus {
+  PENDING              // În așteptare
+  RUNNING              // În curs
+  COMPLETED            // Finalizat cu succes
+  COMPLETED_WITH_ERRORS // Finalizat dar cu erori
+  FAILED               // Eșuat complet
+  CANCELLED            // Anulat de user
+}
+
+// Job pentru publicare bulk produse pe canale multiple
+model BulkPublishJob {
+  id     String  @id @default(cuid())
+  userId String? @map("user_id") // Cine a lansat job-ul
+
+  // Status general
+  status BulkPublishStatus @default(PENDING)
+
+  // Input
+  productIds    Json @default("[]") @map("product_ids")   // Array de product IDs
+  channelIds    Json @default("[]") @map("channel_ids")   // Array de channel IDs selectate
+  totalProducts Int  @default(0) @map("total_products")
+  totalChannels Int  @default(0) @map("total_channels")
+
+  // Progress global
+  processedItems Int @default(0) @map("processed_items") // produse × canale procesate
+  totalItems     Int @default(0) @map("total_items")     // produse × canale total
+  createdCount   Int @default(0) @map("created_count")
+  updatedCount   Int @default(0) @map("updated_count")
+  failedCount    Int @default(0) @map("failed_count")
+
+  // Progress detaliat per canal (JSON)
+  // Structură: { "channelId": { name, total, done, created, updated, failed, errors[] } }
+  channelProgress Json @default("{}") @map("channel_progress")
+
+  // Pentru resume după crash
+  currentChannelId  String? @map("current_channel_id")
+  currentProductIdx Int     @default(0) @map("current_product_idx")
+
+  // Timing
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  // Erori
+  errorMessage String? @map("error_message")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("bulk_publish_jobs")
+}

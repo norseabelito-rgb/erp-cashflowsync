@@ -379,25 +379,136 @@ export class ShopifyClient {
   }
 
   /**
-   * Caută produse în Shopify după SKU
+   * Caută produse în Shopify după SKU (cu paginare completă)
+   * Folosește GraphQL pentru căutare eficientă
    */
   async findProductBySku(sku: string): Promise<ShopifyProduct | null> {
-    const response = await this.client.get<{ products: ShopifyProduct[] }>(
-      `/products.json`,
+    // Folosim GraphQL pentru căutare eficientă după SKU
+    const query = `
       {
-        params: {
-          fields: "id,title,variants",
-          limit: 250,
-        },
+        products(first: 10, query: "sku:${sku.replace(/"/g, '\\"')}") {
+          edges {
+            node {
+              id
+              title
+              legacyResourceId
+              variants(first: 10) {
+                edges {
+                  node {
+                    id
+                    sku
+                    legacyResourceId
+                  }
+                }
+              }
+            }
+          }
+        }
       }
-    );
+    `;
 
-    // Căutăm în variante pentru SKU-ul nostru
-    for (const product of response.data.products) {
-      if (product.variants?.some(v => v.sku === sku)) {
-        return product;
+    try {
+      const response = await this.client.post<{
+        data: {
+          products: {
+            edges: Array<{
+              node: {
+                id: string;
+                title: string;
+                legacyResourceId: string;
+                variants: {
+                  edges: Array<{
+                    node: {
+                      id: string;
+                      sku: string | null;
+                      legacyResourceId: string;
+                    };
+                  }>;
+                };
+              };
+            }>;
+          };
+        };
+      }>("/graphql.json", { query });
+
+      const products = response.data?.data?.products?.edges || [];
+
+      // Verificăm dacă SKU-ul se potrivește exact (GraphQL face fuzzy match)
+      for (const { node: product } of products) {
+        const matchingVariant = product.variants?.edges?.find(
+          ({ node: v }) => v.sku === sku
+        );
+        if (matchingVariant) {
+          // Returnăm în formatul REST API pentru compatibilitate
+          return {
+            id: parseInt(product.legacyResourceId),
+            title: product.title,
+            body_html: null,
+            vendor: null,
+            product_type: null,
+            created_at: "",
+            updated_at: "",
+            published_at: null,
+            status: "active",
+            tags: "",
+            variants: product.variants.edges.map(({ node: v }) => ({
+              id: parseInt(v.legacyResourceId),
+              product_id: parseInt(product.legacyResourceId),
+              title: "",
+              price: "0",
+              sku: v.sku,
+              barcode: null,
+              compare_at_price: null,
+              inventory_management: null,
+              inventory_quantity: 0,
+              weight: 0,
+              weight_unit: "kg",
+            })),
+            images: [],
+          };
+        }
+      }
+
+      return null;
+    } catch (error) {
+      // Fallback la REST API cu paginare dacă GraphQL eșuează
+      console.warn("GraphQL search failed, falling back to REST API pagination:", error);
+      return this.findProductBySkuREST(sku);
+    }
+  }
+
+  /**
+   * Fallback: Caută produse în Shopify după SKU folosind REST API cu paginare
+   */
+  private async findProductBySkuREST(sku: string): Promise<ShopifyProduct | null> {
+    let pageUrl = `/products.json?fields=id,title,variants&limit=250`;
+
+    while (pageUrl) {
+      const response = await this.client.get<{ products: ShopifyProduct[] }>(pageUrl);
+
+      // Căutăm în variante pentru SKU-ul nostru
+      for (const product of response.data.products) {
+        if (product.variants?.some(v => v.sku === sku)) {
+          return product;
+        }
+      }
+
+      // Verificăm dacă există pagina următoare în Link header
+      const linkHeader = response.headers?.link;
+      if (linkHeader) {
+        const nextMatch = linkHeader.match(/<([^>]+)>;\s*rel="next"/);
+        if (nextMatch) {
+          // Extragem doar path-ul din URL-ul complet
+          const nextUrl = new URL(nextMatch[1]);
+          pageUrl = nextUrl.pathname + nextUrl.search;
+        } else {
+          pageUrl = "";
+        }
+      } else {
+        pageUrl = "";
       }
     }
+
     return null;
   }
 
