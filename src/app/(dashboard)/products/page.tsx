@@ -694,7 +694,7 @@ export default function ProductsPage() {
               </span>
 
               {/* Opțiune de a selecta toate când sunt selectate toate din pagină */}
-              {!selectAllMode && selectedProducts.length === products.length && total > products.length && (
+              {!selectAllMode && selectedProducts.length === products.length && pagination?.total > products.length && (
                 <Button
                   variant="link"
                   size="sm"
@@ -708,7 +708,7 @@ export default function ProductsPage() {
                       Se încarcă...
                     </>
                   ) : (
-                    <>Selectează toate cele {total} produse</>
+                    <>Selectează toate cele {pagination?.total} produse</>
                   )}
                 </Button>
               )}
