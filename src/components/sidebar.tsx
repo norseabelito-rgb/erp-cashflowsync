@@ -94,12 +94,13 @@ const navigation: NavItem[] = [
   {
     name: "Vânzări",
     icon: ShoppingCart,
-    permissions: ["orders.view", "invoices.view"],
+    permissions: ["orders.view", "invoices.view", "tasks.view"],
     children: [
       { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { name: "Comenzi", href: "/orders", icon: ShoppingCart, permissions: ["orders.view"] },
       { name: "Facturi", href: "/invoices", icon: FileText, permissions: ["invoices.view"] },
       { name: "Facturi Eșuate", href: "/invoices/failed", icon: AlertTriangle, permissions: ["invoices.view"] },
+      { name: "Task-uri", href: "/tasks", icon: ClipboardList, permissions: ["tasks.view"] },
     ],
   },
 
