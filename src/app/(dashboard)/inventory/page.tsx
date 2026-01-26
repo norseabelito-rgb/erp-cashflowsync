@@ -576,26 +576,25 @@ export default function InventoryPage() {
               <TableHead className="text-center">Stoc Total</TableHead>
               {warehouses.filter(w => w.isActive).map((wh) => (
                 <TableHead key={wh.id} className="text-center" title={wh.name}>
-                  <span className="text-xs">{wh.code || wh.name.substring(0, 6)}</span>
+                  <span className="text-xs">{wh.name}</span>
                 </TableHead>
               ))}
               <TableHead>Unitate</TableHead>
               <TableHead className="text-right">Cost</TableHead>
-              <TableHead>Furnizor</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={9 + warehouses.filter(w => w.isActive).length} className="text-center py-8">
+                <TableCell colSpan={8 + warehouses.filter(w => w.isActive).length} className="text-center py-8">
                   <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
                   Se încarcă...
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9 + warehouses.filter(w => w.isActive).length} className="text-center py-8">
+                <TableCell colSpan={8 + warehouses.filter(w => w.isActive).length} className="text-center py-8">
                   <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                   <p className="text-muted-foreground mb-2">
                     {search ? "Niciun articol găsit" : "Nu există articole în inventar"}
@@ -664,9 +663,6 @@ export default function InventoryPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     {item.costPrice ? formatCurrency(Number(item.costPrice)) : "-"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {item.supplier?.name || "-"}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
