@@ -1417,10 +1417,45 @@ export async function lookupAndUpdatePostalCode(orderId: string): Promise<{
       return { success: false, error: "Lipsesc județul sau localitatea" };
     }
 
+    // Normalizăm datele pentru București
+    // Shopify trimite uneori province="Sector X" și city="București"
+    // FanCourier vrea county="București" și locality="Sector X"
+    let county = order.shippingProvince;
+    let locality = order.shippingCity;
+
+    const bucharestVariants = ["bucurești", "bucharest", "bucuresti", "buc"];
+    const provinceLower = order.shippingProvince.toLowerCase();
+    const cityLower = order.shippingCity.toLowerCase();
+
+    // Detectăm dacă e București
+    const provinceIsSector = /^sector\s*\d$/i.test(order.shippingProvince);
+    const cityIsBucharest = bucharestVariants.some(v => cityLower.includes(v));
+    const provinceIsBucharest = bucharestVariants.some(v => provinceLower.includes(v));
+    const cityIsSector = /^sector\s*\d$/i.test(order.shippingCity);
+
+    if (provinceIsSector && cityIsBucharest) {
+      // Shopify: province="Sector 5", city="București" → FanCourier: county="București", locality="Sector 5"
+      county = "București";
+      locality = order.shippingProvince; // Sectorul devine localitatea
+    } else if (provinceIsBucharest && cityIsSector) {
+      // Shopify: province="București", city="Sector 5" → OK, doar normalizăm
+      county = "București";
+      locality = order.shippingCity;
+    } else if (provinceIsBucharest && cityIsBucharest) {
+      // Ambele sunt București - căutăm sectorul în adresă
+      county = "București";
+      const sectorMatch = order.shippingAddress1?.match(/sector\s*(\d)/i);
+      if (sectorMatch) {
+        locality = `Sector ${sectorMatch[1]}`;
+      } else {
+        locality = "Sector 1"; // Default
+      }
+    }
+
     const client = await createFanCourierClient();
     const result = await client.findPostalCode({
-      county: order.shippingProvince,
-      locality: order.shippingCity,
+      county,
+      locality,
       street: order.shippingAddress1 || undefined,
     });
 
@@ -1581,8 +1616,33 @@ export async function backfillPostalCodes(options?: {
         continue;
       }
 
-      // Construim cheia de cache
-      const cacheKey = `${order.shippingProvince}|${order.shippingCity}`.toLowerCase();
+      // Normalizăm datele pentru București
+      let county = order.shippingProvince!;
+      let locality = order.shippingCity!;
+
+      const bucharestVariants = ["bucurești", "bucharest", "bucuresti", "buc"];
+      const provinceLower = order.shippingProvince!.toLowerCase();
+      const cityLower = order.shippingCity!.toLowerCase();
+
+      const provinceIsSector = /^sector\s*\d$/i.test(order.shippingProvince!);
+      const cityIsBucharest = bucharestVariants.some(v => cityLower.includes(v));
+      const provinceIsBucharest = bucharestVariants.some(v => provinceLower.includes(v));
+      const cityIsSector = /^sector\s*\d$/i.test(order.shippingCity!);
+
+      if (provinceIsSector && cityIsBucharest) {
+        county = "București";
+        locality = order.shippingProvince!;
+      } else if (provinceIsBucharest && cityIsSector) {
+        county = "București";
+        locality = order.shippingCity!;
+      } else if (provinceIsBucharest && cityIsBucharest) {
+        county = "București";
+        const sectorMatch = order.shippingAddress1?.match(/sector\s*(\d)/i);
+        locality = sectorMatch ? `Sector ${sectorMatch[1]}` : "Sector 1";
+      }
+
+      // Construim cheia de cache cu datele normalizate
+      const cacheKey = `${county}|${locality}`.toLowerCase();
 
       let postalCode: string | null = null;
 
@@ -1593,8 +1653,8 @@ export async function backfillPostalCodes(options?: {
         // Căutăm în FanCourier
         try {
           const lookupResult = await client.findPostalCode({
-            county: order.shippingProvince!,
-            locality: order.shippingCity!,
+            county,
+            locality,
             street: order.shippingAddress1 || undefined,
           });
 
