@@ -165,6 +165,7 @@ Plans:
 **Goal**: Automated task creation, notifications, and activity reporting
 **Depends on**: Phase 7 (core task system must exist)
 **Requirements**: TASK-05, TASK-06, TASK-07, TASK-08, TASK-09
+**Plans**: 5 plans in 2 waves
 **Success Criteria** (what must be TRUE):
   1. Users receive notifications for approaching deadlines
   2. Activity reports show who completed what tasks and when
@@ -172,13 +173,12 @@ Plans:
   4. Tasks are auto-assigned to responsible persons based on task type
   5. Tasks auto-complete when system detects the underlying action was performed
 
-**Plans**: TBD
-
 Plans:
-- [ ] 08-01: Notification and reminder system
-- [ ] 08-02: Activity reporting
-- [ ] 08-03: Event-driven task creation
-- [ ] 08-04: Auto-assignment and auto-completion logic
+- [ ] 08-01-PLAN.md — Task service foundation with auto-task config and assignment (Wave 1)
+- [ ] 08-02-PLAN.md — Deadline notifications cron endpoint (Wave 1)
+- [ ] 08-03-PLAN.md — Auto-task creation hooks in process-all (Wave 2)
+- [ ] 08-04-PLAN.md — Auto-completion logic based on linked entity state (Wave 2)
+- [ ] 08-05-PLAN.md — Activity report API and UI page (Wave 1)
 
 ### Phase 9: Documentation
 **Goal**: In-app documentation covers all modules and workflows
@@ -231,7 +231,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 | 5. Known Bug Fixes | 4/4 | ✓ Complete | 2026-01-25 |
 | 6. UX Foundation | 6/6 | ✓ Complete | 2026-01-25 |
 | 7. Task Management Core | 5/5 | ✓ Complete | 2026-01-26 |
-| 8. Task Management Advanced | 0/4 | Not started | - |
+| 8. Task Management Advanced | 0/5 | Not started | - |
 | 9. Documentation | 0/4 | Not started | - |
 | 10. Quality Assurance | 0/4 | Not started | - |
 
@@ -241,4 +241,5 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 8 > 9 > 10
 *Phase 4 planned: 2026-01-25*
 *Phase 5 planned: 2026-01-25*
 *Phase 7 planned: 2026-01-26*
-*Depth: comprehensive (10 phases, 42 planned plans)*
+*Phase 8 planned: 2026-01-26*
+*Depth: comprehensive (10 phases, 43 planned plans)*
