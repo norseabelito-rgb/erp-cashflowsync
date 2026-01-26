@@ -1,6 +1,18 @@
 import * as XLSX from "xlsx";
 
 /**
+ * Remove diacritics from a string (ă→a, î→i, ș→s, ț→t, â→a, etc.)
+ */
+function removeDiacritics(str: string): string {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    // Handle Romanian specific characters that might not normalize properly
+    .replace(/[ăâ]/gi, "a")
+    .replace(/[îí]/gi, "i")
+    .replace(/[șş]/gi, "s")
+    .replace(/[țţ]/gi, "t");
+}
+
+/**
  * Parse an Excel file buffer and return rows as objects
  */
 export function parseExcel<T extends Record<string, unknown>>(
@@ -170,11 +182,10 @@ export const INVENTORY_COLUMN_MAP: Record<string, keyof InventoryImportRow> = {
   // Box unit
   "unitatebax": "boxUnit",
   "boxunit": "boxUnit",
-  // Cost price
-  "prețcost": "costPrice",
+  // Cost price (diacritics are removed during normalization)
   "pretcost": "costPrice",
-  "pretcostachizitie": "costPrice",
   "pretachizitie": "costPrice",
+  "pretcostachizitie": "costPrice",
   "pretdeachizitie": "costPrice",
   "pretcostdeachizitie": "costPrice",
   "costachizitie": "costPrice",
@@ -227,7 +238,7 @@ export function parseInventoryExcel(buffer: ArrayBuffer): InventoryImportRow[] {
   // Parse headers - keep original for warehouse stock detection
   const originalHeaders = (rawData[0] || []).map((h) => String(h || "").trim());
   const normalizedHeaders = originalHeaders.map((h) =>
-    h.toLowerCase().replace(/[_\s*]/g, "")
+    removeDiacritics(h.toLowerCase()).replace(/[_\s*]/g, "")
   );
 
   // Detect warehouse stock columns (format: "Stoc X" where X is warehouse name)
