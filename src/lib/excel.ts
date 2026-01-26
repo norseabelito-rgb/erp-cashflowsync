@@ -144,6 +144,8 @@ export const INVENTORY_COLUMN_MAP: Record<string, keyof InventoryImportRow> = {
   "nume": "name",
   "name": "name",
   "denumire": "name",
+  "numeerp": "name",
+  "denumireprodus": "name",
   // Description
   "descriere": "description",
   "description": "description",
@@ -171,6 +173,7 @@ export const INVENTORY_COLUMN_MAP: Record<string, keyof InventoryImportRow> = {
   // Cost price
   "prețcost": "costPrice",
   "pretcost": "costPrice",
+  "pretcostachizitie": "costPrice",
   "costprice": "costPrice",
   "cost": "costPrice",
   "pret": "costPrice",
