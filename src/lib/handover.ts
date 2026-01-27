@@ -141,8 +141,10 @@ function mapAWBToHandover(awb: any): HandoverAWB {
  * Obține AWB-urile pentru predare azi
  * Condiții:
  * - AWB creat azi
- * - Nu a fost scanat (handedOverAt = null)
  * - Nu e anulat/livrat/returnat
+ *
+ * Returnează TOATE AWB-urile de azi (atât scanate cât și nescanate)
+ * pentru ca frontend-ul să le poată afișa în cele două liste separate.
  */
 export async function getTodayHandoverList(storeId?: string): Promise<HandoverAWB[]> {
   const todayStart = getTodayStart();
@@ -153,7 +155,6 @@ export async function getTodayHandoverList(storeId?: string): Promise<HandoverAW
       gte: todayStart,
       lt: todayEnd,
     },
-    handedOverAt: null,
     awbNumber: { not: null },
     // Excludem AWB-urile anulate sau în status final negativ
     NOT: {
