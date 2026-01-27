@@ -605,19 +605,19 @@ export class FanCourierAPI {
       let page = 1;
       let hasMore = true;
 
-      // Fetch all pages
+      // Fetch all pages (perPage max is 100 per FanCourier API docs)
       while (hasMore) {
         const response = await this.authRequest("GET", "/reports/awb", null, {
           clientId: this.clientId,
           date: date,
-          perPage: 200,
+          perPage: 100,
           page: page,
         });
 
         if (response.data.status === "success" && response.data.data) {
           allData.push(...response.data.data);
-          // If we got fewer than 200, we've reached the last page
-          hasMore = response.data.data.length === 200;
+          // If we got fewer than 100, we've reached the last page
+          hasMore = response.data.data.length === 100;
           page++;
         } else {
           hasMore = false;
