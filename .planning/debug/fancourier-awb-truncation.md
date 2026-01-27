@@ -1,17 +1,17 @@
 ---
-status: blocked
+status: investigating
 trigger: "FanCourier AWBs are being truncated/cut off - missing characters at the end"
 created: 2026-01-27T12:00:00Z
-updated: 2026-01-28T01:30:00Z
+updated: 2026-01-28T03:00:00Z
 ---
 
 ## Current Focus
 
-hypothesis: Borderou API returns AWB numbers in a different format than expected (possibly numeric type losing precision, or different field structure)
-test: Use debug endpoint to inspect raw borderou response
-expecting: AWB numbers in borderou should match pattern `7000121028926001F2491` (21 chars with letters)
-actual: Unknown - need to verify what borderou actually returns
-next_action: Call `/api/awb/repair/debug?date=2026-01-27` to see raw borderou data format
+hypothesis: FanCourier /reports/awb endpoint returns AWB numbers as numeric values that may also be truncated at the source - the API documentation shows awbNumber: 2078300120037 (13 digits numeric)
+test: Enhanced debug endpoint to inspect raw borderou response structure and field paths
+expecting: If AWBs in borderou are also truncated/numeric, automatic repair is impossible via this endpoint
+actual: Need to verify by viewing actual API response
+next_action: User needs to trigger debug endpoint via browser (requires auth) to see raw FanCourier response
 
 ## Symptoms
 
@@ -106,24 +106,46 @@ Response will show:
 - src/lib/fancourier.ts (pagination for getAllAWBsForDate, skipTracking option)
 - src/app/api/awb/repair/route.ts (skipTracking parameter)
 
+## Changes Made This Session
+
+1. **Enhanced debug endpoint** (`/api/awb/repair/debug/route.ts`)
+   - Added logging of raw item structure (top-level keys, info keys)
+   - Try multiple field paths: `info.awbNumber`, `info.awb`, `awbNumber`, `awb`
+   - Include `rawSample` in response with full first item JSON
+
+2. **Added Debug UI section** (`settings/awb-repair/page.tsx`)
+   - New "Debug: Raw FanCourier Borderou Data" card at bottom of page
+   - Date picker to select borderou date
+   - Displays raw structure, field paths, and first 10 AWBs
+   - Shows AWB length and data type to identify truncation
+
 ## Next Steps
 
-1. **CRITICAL: Inspect borderou response**
-   - Call debug endpoint: `/api/awb/repair/debug?date=2026-01-27`
-   - Look at `rawAwbNumber` and `rawType` fields
-   - Check if AWB numbers match expected format
+**USER ACTION REQUIRED:**
 
-2. **If borderou AWBs are truncated/numeric:**
-   - The borderou API itself may be returning truncated numbers
-   - Would need to find a different FanCourier endpoint
+1. Open browser to `/settings/awb-repair` page (need to be logged in as admin)
+2. Scroll to bottom "Debug: Raw FanCourier Borderou Data" section
+3. Select a date when truncated AWBs were created (e.g., 2026-01-27)
+4. Click "Fetch Raw Data"
+5. **Report back:**
+   - What are the top-level keys? (e.g., `info`, `awb`, `awbNumber`?)
+   - What does `info.awbNumber` look like? (truncated? full? has letters?)
+   - What is the AWB length and type?
+   - Is there a different field that has the full AWB?
 
-3. **If borderou AWBs are correct but different field:**
-   - Update field path in matching logic
-   - May be using wrong property name
+## Potential Outcomes
 
-4. **Manual workaround available:**
-   - Use "Manual" button to enter correct AWB from FanCourier portal
-   - Works for individual AWBs but not practical for 1000+ AWBs
+**If borderou AWBs are also truncated/numeric:**
+- FanCourier API returns truncated numbers - automatic repair via borderou is impossible
+- Need to find alternative: tracking endpoint, direct AWB detail endpoint, or CSV import
+
+**If borderou AWBs are correct but wrong field path:**
+- Update bulk repair logic to use correct field
+- Should be straightforward fix
+
+**If borderou AWBs are correct with current path:**
+- Matching logic has different bug (date range, prefix length, etc.)
+- Need to debug the matching algorithm
 
 ## Resume Command
 

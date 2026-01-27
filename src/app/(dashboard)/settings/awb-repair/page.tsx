@@ -62,12 +62,35 @@ interface RepairResult {
   details: RepairDetail[];
 }
 
+interface DebugData {
+  success: boolean;
+  date: string;
+  totalInBorderou: number;
+  count: number;
+  rawSample: {
+    firstItemKeys: string[];
+    firstItemInfoKeys: string[] | null;
+    firstItemRaw: any;
+  } | null;
+  awbs: Array<{
+    awbNumber: string;
+    awbNumberLength: number;
+    fieldSource: string;
+    rawAwbValue: any;
+    rawType: string;
+    allTopLevelKeys: string[];
+  }>;
+}
+
 export default function AWBRepairPage() {
   const [selectedAwbs, setSelectedAwbs] = useState<string[]>([]);
   const [repairResult, setRepairResult] = useState<RepairResult | null>(null);
   const [manualRepairAwb, setManualRepairAwb] = useState<AWBItem | null>(null);
   const [correctAwbNumber, setCorrectAwbNumber] = useState("");
   const [daysBack, setDaysBack] = useState(14); // Days of borderou data to fetch
+  const [debugDate, setDebugDate] = useState(new Date().toISOString().split('T')[0]);
+  const [debugData, setDebugData] = useState<DebugData | null>(null);
+  const [isLoadingDebug, setIsLoadingDebug] = useState(false);
 
   // Fetch AWB list
   const { data: awbData, isLoading, refetch } = useQuery({
@@ -209,6 +232,35 @@ export default function AWBRepairPage() {
       });
     },
   });
+
+  const fetchDebugData = async () => {
+    setIsLoadingDebug(true);
+    try {
+      const res = await fetch(`/api/awb/repair/debug?date=${debugDate}`);
+      const data = await res.json();
+      setDebugData(data);
+      if (data.success) {
+        toast({
+          title: "Debug data loaded",
+          description: `Found ${data.totalInBorderou} AWBs in FanCourier for ${debugDate}`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to fetch debug data",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingDebug(false);
+    }
+  };
 
   const toggleAwb = (awbId: string) => {
     setSelectedAwbs(prev =>
@@ -458,6 +510,113 @@ export default function AWBRepairPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Debug Card - Raw FanCourier Response */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            Debug: Raw FanCourier Borderou Data
+          </CardTitle>
+          <CardDescription>
+            Inspect the raw response from FanCourier API to understand the data structure
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-4 items-end">
+            <div className="space-y-2">
+              <Label htmlFor="debugDate">Date (YYYY-MM-DD)</Label>
+              <Input
+                id="debugDate"
+                type="date"
+                value={debugDate}
+                onChange={(e) => setDebugDate(e.target.value)}
+                className="w-[180px]"
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={fetchDebugData}
+              disabled={isLoadingDebug}
+            >
+              {isLoadingDebug ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <Search className="h-4 w-4 mr-2" />
+                  Fetch Raw Data
+                </>
+              )}
+            </Button>
+          </div>
+
+          {debugData && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <h4 className="font-medium mb-2">Summary</h4>
+                <p className="text-sm">
+                  Date: {debugData.date} | Total AWBs: {debugData.totalInBorderou}
+                </p>
+              </div>
+
+              {debugData.rawSample && (
+                <div className="p-4 bg-muted rounded-lg">
+                  <h4 className="font-medium mb-2">Raw Structure (First Item)</h4>
+                  <p className="text-sm mb-2">
+                    <strong>Top-level keys:</strong> {debugData.rawSample.firstItemKeys.join(", ")}
+                  </p>
+                  {debugData.rawSample.firstItemInfoKeys && (
+                    <p className="text-sm mb-2">
+                      <strong>info.* keys:</strong> {debugData.rawSample.firstItemInfoKeys.join(", ")}
+                    </p>
+                  )}
+                  <details>
+                    <summary className="text-sm cursor-pointer text-blue-600 hover:underline">
+                      Show full raw JSON
+                    </summary>
+                    <pre className="mt-2 p-2 bg-black text-green-400 rounded text-xs overflow-auto max-h-[300px]">
+                      {JSON.stringify(debugData.rawSample.firstItemRaw, null, 2)}
+                    </pre>
+                  </details>
+                </div>
+              )}
+
+              {debugData.awbs && debugData.awbs.length > 0 && (
+                <div className="p-4 bg-muted rounded-lg">
+                  <h4 className="font-medium mb-2">AWB Numbers (First 10)</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>AWB Number</TableHead>
+                        <TableHead>Length</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Field Source</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {debugData.awbs.slice(0, 10).map((awb, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-mono text-sm">{awb.awbNumber}</TableCell>
+                          <TableCell>
+                            <Badge variant={awb.awbNumberLength < 15 ? "destructive" : "secondary"}>
+                              {awb.awbNumberLength} chars
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm">{awb.rawType}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{awb.fieldSource}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Manual Repair Dialog */}
       <Dialog open={!!manualRepairAwb} onOpenChange={(open) => !open && setManualRepairAwb(null)}>

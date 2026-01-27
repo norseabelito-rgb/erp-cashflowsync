@@ -71,16 +71,52 @@ export async function GET(request: NextRequest) {
 
     const allAwbs = response.data || [];
 
-    // Extract AWB info for easier reading
-    let awbList = allAwbs.map((item: any) => ({
-      awbNumber: String(item.info?.awbNumber || ''),
-      awbNumberLength: String(item.info?.awbNumber || '').length,
-      recipient: item.info?.recipientName || '',
-      address: item.info?.address || '',
-      status: item.info?.status || '',
-      rawAwbNumber: item.info?.awbNumber, // Show raw value for debugging
-      rawType: typeof item.info?.awbNumber, // Show type for debugging
-    }));
+    // Log raw structure of first few items for debugging
+    console.log("\n📋 RAW STRUCTURE OF FIRST 3 ITEMS:");
+    for (let i = 0; i < Math.min(3, allAwbs.length); i++) {
+      const item = allAwbs[i];
+      console.log(`\n--- Item ${i + 1} ---`);
+      console.log("Top-level keys:", Object.keys(item));
+      console.log("item.info exists:", !!item.info);
+      console.log("item.info keys:", item.info ? Object.keys(item.info) : "N/A");
+      // Check alternative field paths
+      console.log("item.awbNumber:", item.awbNumber);
+      console.log("item.info?.awbNumber:", item.info?.awbNumber);
+      console.log("item.awb:", item.awb);
+      console.log("item.info?.awb:", item.info?.awb);
+      // Log the full item structure
+      console.log("Full item (truncated):", JSON.stringify(item).substring(0, 500));
+    }
+    console.log("\n");
+
+    // Extract AWB info for easier reading - try multiple field paths
+    let awbList = allAwbs.map((item: any) => {
+      // Try multiple possible field paths for AWB number
+      const awbFromInfoAwbNumber = item.info?.awbNumber;
+      const awbFromInfoAwb = item.info?.awb;
+      const awbFromAwbNumber = item.awbNumber;
+      const awbFromAwb = item.awb;
+
+      // Use the first non-empty value
+      const awbValue = awbFromInfoAwbNumber || awbFromInfoAwb || awbFromAwbNumber || awbFromAwb || '';
+
+      return {
+        awbNumber: String(awbValue),
+        awbNumberLength: String(awbValue).length,
+        recipient: item.info?.recipientName || item.recipientName || item.recipient || '',
+        address: item.info?.address || item.address || '',
+        status: item.info?.status || item.status || '',
+        // Debug fields to show which path the AWB came from
+        rawAwbValue: awbValue,
+        rawType: typeof awbValue,
+        fieldSource: awbFromInfoAwbNumber ? 'info.awbNumber' :
+                     awbFromInfoAwb ? 'info.awb' :
+                     awbFromAwbNumber ? 'awbNumber' :
+                     awbFromAwb ? 'awb' : 'none',
+        // Show all fields for debugging
+        allTopLevelKeys: Object.keys(item),
+      };
+    });
 
     // Apply search filter if provided
     if (search) {
@@ -92,12 +128,20 @@ export async function GET(request: NextRequest) {
     console.log(`Found ${allAwbs.length} total AWBs in borderou`);
     console.log(`Filtered to ${awbList.length} AWBs`);
 
+    // Include raw sample in response for debugging
+    const rawSample = allAwbs.length > 0 ? {
+      firstItemKeys: Object.keys(allAwbs[0]),
+      firstItemInfoKeys: allAwbs[0].info ? Object.keys(allAwbs[0].info) : null,
+      firstItemRaw: allAwbs[0],
+    } : null;
+
     return NextResponse.json({
       success: true,
       date,
       totalInBorderou: allAwbs.length,
       count: awbList.length,
       searchFilter: search || null,
+      rawSample, // Include raw structure for debugging
       awbs: awbList,
     });
   } catch (error: any) {
