@@ -1,7 +1,11 @@
 import axios, { AxiosInstance } from "axios";
+import JSONBig from "json-bigint";
 import prisma from "./db";
 
 const FANCOURIER_API_URL = "https://api.fancourier.ro";
+
+// Configure json-bigint to convert BigInts to strings (preserves precision, avoids BigInt type issues)
+const JSONBigString = JSONBig({ storeAsString: true });
 
 interface FanCourierToken {
   token: string;
@@ -43,6 +47,18 @@ export class FanCourierAPI {
     this.client = axios.create({
       baseURL: FANCOURIER_API_URL,
       timeout: 30000,
+      // Use json-bigint to parse responses - prevents precision loss for large AWB numbers
+      // Without this, JavaScript's JSON.parse loses precision for numbers > MAX_SAFE_INTEGER
+      transformResponse: [(data) => {
+        if (typeof data === "string") {
+          try {
+            return JSONBigString.parse(data);
+          } catch (e) {
+            return data;
+          }
+        }
+        return data;
+      }],
     });
   }
 
@@ -367,8 +383,13 @@ export class FanCourierAPI {
       const responseData = response.data.data?.[0] || response.data.response?.[0];
 
       if (responseData?.awbNumber) {
-        console.log("✅ AWB GENERAT CU SUCCES:", responseData.awbNumber);
-        return { success: true, awb: responseData.awbNumber.toString() };
+        // With json-bigint, awbNumber comes as a string (preserving precision)
+        // Without json-bigint, large numbers would lose trailing digits
+        const awbString = String(responseData.awbNumber);
+        console.log("✅ AWB GENERAT CU SUCCES:", awbString);
+        console.log("   AWB type:", typeof responseData.awbNumber);
+        console.log("   AWB length:", awbString.length);
+        return { success: true, awb: awbString };
       }
 
       // Parsează erorile
@@ -565,6 +586,43 @@ export class FanCourierAPI {
       return {
         success: false,
         found: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Get all AWBs from FanCourier for a specific date
+   * Used for repairing truncated AWB numbers
+   */
+  async getAllAWBsForDate(date: string): Promise<{
+    success: boolean;
+    data?: any[];
+    error?: string;
+  }> {
+    try {
+      const response = await this.authRequest("GET", "/reports/awb", null, {
+        clientId: this.clientId,
+        date: date,
+        perPage: 200,
+        page: 1,
+      });
+
+      if (response.data.status === "success" && response.data.data) {
+        return {
+          success: true,
+          data: response.data.data,
+        };
+      }
+
+      return {
+        success: true,
+        data: [],
+      };
+    } catch (error: any) {
+      console.error(`Error getting AWBs for date ${date}:`, error.message);
+      return {
+        success: false,
         error: error.message,
       };
     }
@@ -1961,6 +2019,247 @@ export async function backfillPostalCodes(options?: {
 
   } catch (error: any) {
     console.error("❌ Eroare la backfill postal codes:", error.message);
+    result.errors++;
+  }
+
+  return result;
+}
+
+/**
+ * Repair truncated AWB numbers by fetching correct values from FanCourier
+ *
+ * This function attempts to repair AWBs that were truncated due to JavaScript
+ * number precision loss before the json-bigint fix was applied.
+ *
+ * Strategy:
+ * 1. Get all AWBs from database within a date range
+ * 2. For each AWB, try tracking - if successful, the AWB is likely correct
+ * 3. If tracking fails, query the FanCourier reports/awb endpoint to find
+ *    AWBs that START with the truncated number (partial match)
+ * 4. Update the database with the correct AWB number
+ *
+ * @param options.startDate - Start date for AWB search (default: 30 days ago)
+ * @param options.endDate - End date for AWB search (default: today)
+ * @param options.dryRun - If true, only report what would be fixed without making changes
+ * @param options.limit - Maximum number of AWBs to process (default: 10 for testing)
+ */
+export async function repairTruncatedAWBs(options?: {
+  startDate?: Date;
+  endDate?: Date;
+  dryRun?: boolean;
+  limit?: number;
+  awbIds?: string[]; // Specific AWB IDs to repair (if provided, ignores date range and limit)
+}): Promise<{
+  checked: number;
+  repaired: number;
+  skipped: number;
+  errors: number;
+  details: Array<{
+    awbId: string;
+    orderId: string;
+    orderNumber: string;
+    oldAwb: string;
+    newAwb?: string;
+    status: "repaired" | "skipped" | "error";
+    message: string;
+  }>;
+}> {
+  const result = {
+    checked: 0,
+    repaired: 0,
+    skipped: 0,
+    errors: 0,
+    details: [] as Array<{
+      awbId: string;
+      orderId: string;
+      orderNumber: string;
+      oldAwb: string;
+      newAwb?: string;
+      status: "repaired" | "skipped" | "error";
+      message: string;
+    }>,
+  };
+
+  const dryRun = options?.dryRun ?? false;
+  const limit = options?.limit ?? 10;
+  const endDate = options?.endDate ?? new Date();
+  const startDate = options?.startDate ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const awbIds = options?.awbIds;
+
+  console.log("\n" + "=".repeat(60));
+  console.log("🔧 REPAIR TRUNCATED AWB NUMBERS");
+  console.log("=".repeat(60));
+  if (awbIds && awbIds.length > 0) {
+    console.log(`🎯 Specific AWBs: ${awbIds.length} selected`);
+  } else {
+    console.log(`📅 Date range: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
+    console.log(`📊 Limit: ${limit} AWBs`);
+  }
+  console.log(`🔄 Mode: ${dryRun ? 'DRY RUN (no changes)' : 'LIVE (will update database)'}`);
+  console.log("=".repeat(60) + "\n");
+
+  try {
+    const fancourier = await createFanCourierClient();
+
+    // Get AWBs from database - either specific IDs or by date range
+    const awbs = await prisma.aWB.findMany({
+      where: awbIds && awbIds.length > 0
+        ? {
+            id: { in: awbIds },
+            awbNumber: { not: null },
+          }
+        : {
+            awbNumber: { not: null },
+            createdAt: {
+              gte: startDate,
+              lte: endDate,
+            },
+          },
+      include: {
+        order: {
+          select: {
+            shopifyOrderNumber: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      ...(awbIds && awbIds.length > 0 ? {} : { take: limit }),
+    });
+
+    console.log(`📋 Found ${awbs.length} AWBs to check\n`);
+
+    // For each date in range, we'll query FanCourier's borderou to get all AWBs
+    // This gives us the "truth" to compare against our potentially truncated values
+    const awbsByDate = new Map<string, any[]>();
+
+    for (const awb of awbs) {
+      if (!awb.awbNumber) continue;
+
+      result.checked++;
+      const orderNumber = awb.order?.shopifyOrderNumber || awb.orderId;
+      const awbLength = awb.awbNumber.length;
+
+      console.log(`\n[${result.checked}/${awbs.length}] AWB: ${awb.awbNumber} (${awbLength} chars)`);
+      console.log(`   Order: ${orderNumber}`);
+
+      // First, try tracking the AWB - if it works, the AWB is correct
+      try {
+        const tracking = await fancourier.trackAWB(awb.awbNumber);
+
+        if (tracking.success && tracking.events && tracking.events.length > 0) {
+          console.log(`   ✅ Tracking OK - AWB is valid (${tracking.events.length} events)`);
+          result.skipped++;
+          result.details.push({
+            awbId: awb.id,
+            orderId: awb.orderId,
+            orderNumber,
+            oldAwb: awb.awbNumber,
+            status: "skipped",
+            message: "Tracking successful - AWB is valid",
+          });
+          continue;
+        }
+
+        // Tracking failed - might be truncated
+        console.log(`   ⚠️ Tracking failed: ${tracking.error}`);
+
+        // Get AWB creation date
+        const awbDate = awb.createdAt.toISOString().split('T')[0];
+
+        // Check if we already have the borderou data for this date
+        if (!awbsByDate.has(awbDate)) {
+          console.log(`   📥 Fetching borderou for ${awbDate}...`);
+
+          const bordereauResponse = await fancourier.getAllAWBsForDate(awbDate);
+
+          if (bordereauResponse.success && bordereauResponse.data) {
+            awbsByDate.set(awbDate, bordereauResponse.data);
+            console.log(`   📋 Found ${bordereauResponse.data.length} AWBs in borderou`);
+          } else {
+            awbsByDate.set(awbDate, []);
+            console.log(`   ℹ️ No AWBs in borderou for ${awbDate}`);
+          }
+        }
+
+        const bordereauAwbs = awbsByDate.get(awbDate) || [];
+
+        // Look for AWBs that start with our truncated number
+        const matchingAwbs = bordereauAwbs.filter((item: any) => {
+          const fullAwb = String(item.info?.awbNumber || '');
+          return fullAwb.startsWith(awb.awbNumber!) && fullAwb !== awb.awbNumber;
+        });
+
+        if (matchingAwbs.length === 1) {
+          const correctAwb = String(matchingAwbs[0].info.awbNumber);
+          console.log(`   🎯 Found match: ${awb.awbNumber} → ${correctAwb}`);
+
+          if (!dryRun) {
+            await prisma.aWB.update({
+              where: { id: awb.id },
+              data: { awbNumber: correctAwb },
+            });
+            console.log(`   ✅ Updated in database`);
+          } else {
+            console.log(`   🔄 [DRY RUN] Would update to: ${correctAwb}`);
+          }
+
+          result.repaired++;
+          result.details.push({
+            awbId: awb.id,
+            orderId: awb.orderId,
+            orderNumber,
+            oldAwb: awb.awbNumber,
+            newAwb: correctAwb,
+            status: "repaired",
+            message: `Fixed: ${awb.awbNumber} → ${correctAwb}`,
+          });
+        } else if (matchingAwbs.length > 1) {
+          console.log(`   ⚠️ Multiple matches found - manual review needed`);
+          result.errors++;
+          result.details.push({
+            awbId: awb.id,
+            orderId: awb.orderId,
+            orderNumber,
+            oldAwb: awb.awbNumber,
+            status: "error",
+            message: `Multiple matches found: ${matchingAwbs.map((m: any) => m.info?.awbNumber).join(', ')}`,
+          });
+        } else {
+          console.log(`   ℹ️ No matching AWB found in borderou`);
+          result.skipped++;
+          result.details.push({
+            awbId: awb.id,
+            orderId: awb.orderId,
+            orderNumber,
+            oldAwb: awb.awbNumber,
+            status: "skipped",
+            message: "No matching AWB found in borderou - may need different date range",
+          });
+        }
+      } catch (error: any) {
+        console.error(`   ❌ Error: ${error.message}`);
+        result.errors++;
+        result.details.push({
+          awbId: awb.id,
+          orderId: awb.orderId,
+          orderNumber,
+          oldAwb: awb.awbNumber,
+          status: "error",
+          message: error.message,
+        });
+      }
+    }
+
+    console.log("\n" + "-".repeat(60));
+    console.log(`📊 REPAIR SUMMARY:`);
+    console.log(`   ✅ Checked: ${result.checked}`);
+    console.log(`   🔧 Repaired: ${result.repaired}`);
+    console.log(`   ⏭️ Skipped: ${result.skipped}`);
+    console.log(`   ❌ Errors: ${result.errors}`);
+    console.log("=".repeat(60) + "\n");
+
+  } catch (error: any) {
+    console.error("❌ Fatal error during repair:", error.message);
     result.errors++;
   }
 
