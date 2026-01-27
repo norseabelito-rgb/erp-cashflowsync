@@ -67,7 +67,6 @@ export default function AWBRepairPage() {
   const [repairResult, setRepairResult] = useState<RepairResult | null>(null);
   const [manualRepairAwb, setManualRepairAwb] = useState<AWBItem | null>(null);
   const [correctAwbNumber, setCorrectAwbNumber] = useState("");
-  const [skipTracking, setSkipTracking] = useState(true); // Default to skip tracking since it's unreliable for truncated AWBs
 
   // Fetch AWB list
   const { data: awbData, isLoading, refetch } = useQuery({
@@ -122,8 +121,58 @@ export default function AWBRepairPage() {
     },
   });
 
+  // Bulk repair mutation (smarter prefix matching)
+  const bulkRepairMutation = useMutation({
+    mutationFn: async ({ awbIds, dryRun }: { awbIds: string[]; dryRun: boolean }) => {
+      const res = await fetch("/api/awb/repair/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ awbIds, dryRun, limit: awbIds.length || 100 }),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        const repairedCount = data.dryRun ? data.matched : data.repaired;
+        toast({
+          title: data.dryRun ? "Bulk Dry Run complet" : "Bulk Repair complet",
+          description: `${repairedCount} AWB-uri ${data.dryRun ? "ar fi" : "au fost"} reparate din ${data.checked} verificate. Map: ${data.prefixMapSize} prefixuri din ${data.bordeauxFetched} AWB-uri FanCourier.`,
+        });
+        // Convert to standard repair result format
+        setRepairResult({
+          success: true,
+          dryRun: data.dryRun,
+          checked: data.checked,
+          repaired: repairedCount,
+          skipped: data.alreadyCorrect,
+          errors: data.noMatch + data.errors,
+          details: data.details.map((d: any) => ({
+            ...d,
+            orderId: d.orderNumber,
+            status: d.status === "already_correct" ? "skipped" : d.status === "no_match" ? "skipped" : d.status,
+          })),
+        });
+        if (!data.dryRun) {
+          refetch();
+        }
+      } else {
+        toast({
+          title: "Eroare",
+          description: data.error || "Nu s-a putut efectua repararea",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Eroare",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Manual repair mutation
-  const manualRepairMutation = useMutation({
     mutationFn: async ({ awbId, correctAwbNumber }: { awbId: string; correctAwbNumber: string }) => {
       const res = await fetch("/api/awb/repair/manual", {
         method: "POST",
@@ -193,12 +242,14 @@ export default function AWBRepairPage() {
                 prin interogarea API-ului FanCourier pentru a obtine numerele complete.
               </p>
               <p className="text-sm text-muted-foreground">
-                <strong>Reparare manuala:</strong> Daca stii numarul AWB corect din portalul FanCourier, apasa butonul
-                &quot;Manual&quot; de langa AWB pentru a-l introduce direct. Aceasta este cea mai sigura metoda.
+                <strong>Reparare automata (Bulk):</strong> Selecteaza AWB-urile, apoi apasa &quot;Bulk Dry Run&quot;.
+                Sistemul va descarca toate AWB-urile din FanCourier din ultimele 60 de zile si va cauta
+                AWB-uri care incep cu primele 13 caractere ale AWB-ului trunchiat. Aceasta metoda gaseste match-uri
+                chiar daca data de creare nu se potriveste exact.
               </p>
               <p className="text-sm text-muted-foreground">
-                <strong>Reparare automata:</strong> Selecteaza AWB-urile si apasa &quot;Dry Run&quot; pentru a le verifica
-                contra API-ului FanCourier. Sistemul va incerca tracking-ul si va compara cu borderou-ul.
+                <strong>Reparare manuala:</strong> Daca stii numarul AWB corect din portalul FanCourier, apasa butonul
+                &quot;Manual&quot; de langa AWB pentru a-l introduce direct.
               </p>
             </div>
           </div>
@@ -244,31 +295,21 @@ export default function AWBRepairPage() {
               Sterge selectia
             </Button>
             <div className="flex-1" />
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="skipTracking"
-                checked={skipTracking}
-                onCheckedChange={(checked) => setSkipTracking(checked === true)}
-              />
-              <Label htmlFor="skipTracking" className="text-sm cursor-pointer">
-                Skip tracking (recomandat)
-              </Label>
-            </div>
             <Button
               variant="outline"
-              onClick={() => repairMutation.mutate({ awbIds: selectedAwbs, dryRun: true, skipTracking })}
-              disabled={selectedAwbs.length === 0 || repairMutation.isPending}
+              onClick={() => bulkRepairMutation.mutate({ awbIds: selectedAwbs, dryRun: true })}
+              disabled={selectedAwbs.length === 0 || bulkRepairMutation.isPending}
             >
               <Search className="h-4 w-4 mr-2" />
-              Dry Run ({selectedAwbs.length})
+              {bulkRepairMutation.isPending ? "Se cauta..." : `Bulk Dry Run (${selectedAwbs.length})`}
             </Button>
             <Button
               variant="default"
-              onClick={() => repairMutation.mutate({ awbIds: selectedAwbs, dryRun: false, skipTracking })}
-              disabled={selectedAwbs.length === 0 || repairMutation.isPending}
+              onClick={() => bulkRepairMutation.mutate({ awbIds: selectedAwbs, dryRun: false })}
+              disabled={selectedAwbs.length === 0 || bulkRepairMutation.isPending}
             >
               <Wrench className="h-4 w-4 mr-2" />
-              Repara ({selectedAwbs.length})
+              {bulkRepairMutation.isPending ? "Se repara..." : `Bulk Repara (${selectedAwbs.length})`}
             </Button>
           </div>
 
