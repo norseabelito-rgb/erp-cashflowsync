@@ -67,7 +67,8 @@ export async function GET(request: NextRequest) {
         order: {
           select: {
             shopifyOrderNumber: true,
-            customerName: true,
+            customerFirstName: true,
+            customerLastName: true,
           },
         },
       },
@@ -81,7 +82,9 @@ export async function GET(request: NextRequest) {
       awbLength: awb.awbNumber?.length || 0,
       orderId: awb.orderId,
       orderNumber: awb.order?.shopifyOrderNumber || awb.orderId,
-      customerName: awb.order?.customerName || "N/A",
+      customerName: awb.order
+        ? `${awb.order.customerFirstName || ''} ${awb.order.customerLastName || ''}`.trim() || "N/A"
+        : "N/A",
       createdAt: awb.createdAt.toISOString(),
       // Flag AWBs that might be truncated (less than 13 chars is suspicious for FanCourier)
       possiblyTruncated: (awb.awbNumber?.length || 0) < 13,
