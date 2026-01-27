@@ -307,7 +307,11 @@ export async function scanAWB(
   const cleanAwbNumber = awbNumber.trim();
 
   // Căutăm AWB-ul
-  const awb = await prisma.aWB.findFirst({
+  // FanCourier barcode format: primele 13 caractere = awbNumber (stocat în DB)
+  // Barcode complet pe etichetă: 21 caractere (ex: 7000121083646001F1870)
+  // Scanner-ul trimite barcode-ul complet, dar în DB avem doar awbNumber (13 cifre)
+
+  let awb = await prisma.aWB.findFirst({
     where: { awbNumber: cleanAwbNumber },
     include: {
       order: {
@@ -320,6 +324,25 @@ export async function scanAWB(
       },
     },
   });
+
+  // Dacă nu găsim exact match, încercăm prefix match
+  // (barcode-ul scanat începe cu awbNumber-ul din DB)
+  if (!awb && cleanAwbNumber.length > 13) {
+    const prefix = cleanAwbNumber.substring(0, 13);
+    awb = await prisma.aWB.findFirst({
+      where: { awbNumber: prefix },
+      include: {
+        order: {
+          include: {
+            store: true,
+            lineItems: {
+              select: { quantity: true, title: true, variantTitle: true },
+            },
+          },
+        },
+      },
+    });
+  }
 
   // AWB inexistent
   if (!awb) {
