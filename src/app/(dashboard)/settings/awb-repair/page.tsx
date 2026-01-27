@@ -3,12 +3,22 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
-  RefreshCw, CheckCircle2, AlertCircle, Search, Wrench, AlertTriangle
+  RefreshCw, CheckCircle2, AlertCircle, Search, Wrench, AlertTriangle, Edit2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -55,6 +65,8 @@ interface RepairResult {
 export default function AWBRepairPage() {
   const [selectedAwbs, setSelectedAwbs] = useState<string[]>([]);
   const [repairResult, setRepairResult] = useState<RepairResult | null>(null);
+  const [manualRepairAwb, setManualRepairAwb] = useState<AWBItem | null>(null);
+  const [correctAwbNumber, setCorrectAwbNumber] = useState("");
 
   // Fetch AWB list
   const { data: awbData, isLoading, refetch } = useQuery({
@@ -109,6 +121,42 @@ export default function AWBRepairPage() {
     },
   });
 
+  // Manual repair mutation
+  const manualRepairMutation = useMutation({
+    mutationFn: async ({ awbId, correctAwbNumber }: { awbId: string; correctAwbNumber: string }) => {
+      const res = await fetch("/api/awb/repair/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ awbId, correctAwbNumber, dryRun: false }),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast({
+          title: "AWB reparat",
+          description: `${data.oldAwb} → ${data.newAwb}`,
+        });
+        setManualRepairAwb(null);
+        setCorrectAwbNumber("");
+        refetch();
+      } else {
+        toast({
+          title: "Eroare",
+          description: data.error || "Nu s-a putut repara AWB-ul",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Eroare",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const toggleAwb = (awbId: string) => {
     setSelectedAwbs(prev =>
       prev.includes(awbId)
@@ -144,9 +192,12 @@ export default function AWBRepairPage() {
                 prin interogarea API-ului FanCourier pentru a obtine numerele complete.
               </p>
               <p className="text-sm text-muted-foreground">
-                <strong>Cum functioneaza:</strong> Selecteaza AWB-urile de verificat, apoi apasa &quot;Dry Run&quot; pentru a le verifica
-                contra API-ului FanCourier. Sistemul va incerca tracking-ul si va compara cu borderou-ul pentru a gasi
-                numerele corecte. Doar AWB-urile care esueaza la tracking si au un match in borderou vor fi reparate.
+                <strong>Reparare manuala:</strong> Daca stii numarul AWB corect din portalul FanCourier, apasa butonul
+                &quot;Manual&quot; de langa AWB pentru a-l introduce direct. Aceasta este cea mai sigura metoda.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                <strong>Reparare automata:</strong> Selecteaza AWB-urile si apasa &quot;Dry Run&quot; pentru a le verifica
+                contra API-ului FanCourier. Sistemul va incerca tracking-ul si va compara cu borderou-ul.
               </p>
             </div>
           </div>
@@ -231,7 +282,7 @@ export default function AWBRepairPage() {
                   <TableHead>Comanda</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Data</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Actiuni</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -255,9 +306,17 @@ export default function AWBRepairPage() {
                       {formatDate(awb.createdAt)}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700">
-                        Neverificat
-                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setManualRepairAwb(awb);
+                          setCorrectAwbNumber("");
+                        }}
+                      >
+                        <Edit2 className="h-4 w-4 mr-1" />
+                        Manual
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -331,6 +390,64 @@ export default function AWBRepairPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Manual Repair Dialog */}
+      <Dialog open={!!manualRepairAwb} onOpenChange={(open) => !open && setManualRepairAwb(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reparare manuala AWB</DialogTitle>
+            <DialogDescription>
+              Introdu numarul AWB corect din portalul FanCourier.
+            </DialogDescription>
+          </DialogHeader>
+          {manualRepairAwb && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Comanda</Label>
+                <div className="text-sm font-medium">{manualRepairAwb.orderNumber}</div>
+              </div>
+              <div className="space-y-2">
+                <Label>AWB curent (trunchiat)</Label>
+                <div className="font-mono text-sm bg-muted p-2 rounded">
+                  {manualRepairAwb.awbNumber}
+                  <span className="text-muted-foreground ml-2">({manualRepairAwb.awbLength} chars)</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="correctAwb">AWB corect (din FanCourier)</Label>
+                <Input
+                  id="correctAwb"
+                  placeholder="ex: 7000121028926001F2491"
+                  value={correctAwbNumber}
+                  onChange={(e) => setCorrectAwbNumber(e.target.value)}
+                  className="font-mono"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Copiaza numarul AWB complet din portalul FanCourier
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setManualRepairAwb(null)}>
+              Anuleaza
+            </Button>
+            <Button
+              onClick={() => {
+                if (manualRepairAwb && correctAwbNumber) {
+                  manualRepairMutation.mutate({
+                    awbId: manualRepairAwb.id,
+                    correctAwbNumber,
+                  });
+                }
+              }}
+              disabled={!correctAwbNumber || manualRepairMutation.isPending}
+            >
+              {manualRepairMutation.isPending ? "Se repara..." : "Repara AWB"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
