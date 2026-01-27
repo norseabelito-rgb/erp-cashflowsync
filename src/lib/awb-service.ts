@@ -201,6 +201,10 @@ export async function createAWBForOrder(
       };
     }
 
+    // Log credentials info (without password) for debugging
+    console.log(`[AWB Service] Using FanCourier credentials for company "${company.name}"`);
+    console.log(`[AWB Service] ClientId: ${company.fancourierClientId}, Username: ${company.fancourierUsername}`);
+
     const fancourier = createFanCourierClientForCompany(company);
 
     if (!fancourier) {

@@ -79,6 +79,8 @@ export class FanCourierAPI {
     // Construim URL-ul cu parametrii în query string (conform documentației)
     const loginUrl = `${FANCOURIER_API_URL}/login?username=${encodeURIComponent(this.username)}&password=${encodeURIComponent(this.password)}`;
 
+    console.log(`[FanCourier] Attempting login for clientId: ${this.clientId}, username: ${this.username}`);
+
     const response = await fetch(loginUrl, {
       method: "POST",
       headers: {
@@ -88,7 +90,11 @@ export class FanCourierAPI {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData?.message || `Eroare autentificare FanCourier: ${response.status}`);
+      console.error(`[FanCourier] Login FAILED for clientId: ${this.clientId}, username: ${this.username}`);
+      console.error(`[FanCourier] Error response:`, errorData);
+      // Provide more helpful error message that includes credentials info (without password)
+      const errorMessage = errorData?.message || `Eroare autentificare FanCourier: ${response.status}`;
+      throw new Error(`${errorMessage} (ClientId: ${this.clientId}, Username: ${this.username}). Verifică credențialele în Setări > Firme.`);
     }
 
     const data = await response.json();
