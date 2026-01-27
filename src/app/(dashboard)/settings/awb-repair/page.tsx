@@ -175,6 +175,7 @@ export default function AWBRepairPage() {
   });
 
   // Manual repair mutation
+  const manualRepairMutation = useMutation({
     mutationFn: async ({ awbId, correctAwbNumber }: { awbId: string; correctAwbNumber: string }) => {
       const res = await fetch("/api/awb/repair/manual", {
         method: "POST",
