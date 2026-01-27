@@ -61,8 +61,8 @@ export class FanCourierAPI {
       return cachedToken.token;
     }
 
-    // Construim URL-ul cu parametrii în query string (conform documentației)
-    const loginUrl = `${FANCOURIER_API_URL}/login?username=${encodeURIComponent(this.username)}&password=${encodeURIComponent(this.password)}`;
+    // Trimitem credențialele în body (mai sigur pentru parole cu caractere speciale)
+    const loginUrl = `${FANCOURIER_API_URL}/login`;
 
     console.log(`[FanCourier] Login attempt for clientId=${this.clientId}, username=${this.username}`);
     console.log(`[FanCourier] Password length: ${this.password?.length || 0}, has special chars: ${/[^a-zA-Z0-9]/.test(this.password || '')}`);
@@ -72,6 +72,10 @@ export class FanCourierAPI {
       headers: {
         "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        username: this.username,
+        password: this.password,
+      }),
     });
 
     const responseText = await response.text();
