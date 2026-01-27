@@ -2214,14 +2214,20 @@ export async function repairTruncatedAWBs(options?: {
 
         const bordereauAwbs = allBordereauAwbs;
 
-        // Look for AWBs that start with our truncated number
+        // Look for AWBs where barcodes[0] starts with our truncated awbNumber
+        // barcodes[0] contains the full 21-char barcode (e.g., "7000121083646001F1870")
+        // awbNumber is the 13-digit numeric (e.g., "7000121083646")
         const matchingAwbs = bordereauAwbs.filter((item: any) => {
-          const fullAwb = String(item.info?.awbNumber || '');
-          return fullAwb.startsWith(awb.awbNumber!) && fullAwb !== awb.awbNumber;
+          const barcode = item.info?.barcodes?.[0];
+          if (!barcode) return false;
+          const barcodeStr = String(barcode);
+          // Match if barcode starts with our truncated awbNumber and is longer
+          return barcodeStr.startsWith(awb.awbNumber!) && barcodeStr.length > awb.awbNumber!.length;
         });
 
         if (matchingAwbs.length === 1) {
-          const correctAwb = String(matchingAwbs[0].info.awbNumber);
+          // Use the full barcode (barcodes[0]) as the correct AWB
+          const correctAwb = String(matchingAwbs[0].info.barcodes[0]);
           console.log(`   🎯 Found match: ${awb.awbNumber} → ${correctAwb}`);
 
           if (!dryRun) {
@@ -2253,7 +2259,7 @@ export async function repairTruncatedAWBs(options?: {
             orderNumber,
             oldAwb: awb.awbNumber,
             status: "error",
-            message: `Multiple matches found: ${matchingAwbs.map((m: any) => m.info?.awbNumber).join(', ')}`,
+            message: `Multiple matches found: ${matchingAwbs.map((m: any) => m.info?.barcodes?.[0] || m.info?.awbNumber).join(', ')}`,
           });
         } else {
           console.log(`   ℹ️ No matching AWB found in borderou`);

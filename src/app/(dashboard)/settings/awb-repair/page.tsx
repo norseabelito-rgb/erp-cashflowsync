@@ -73,12 +73,14 @@ interface DebugData {
     firstItemRaw: any;
   } | null;
   awbs: Array<{
-    awbNumber: string;
+    barcode: string | null;
+    barcodeLength: number;
+    awbNumber: string | null;
     awbNumberLength: number;
-    fieldSource: string;
-    rawAwbValue: any;
-    rawType: string;
-    allTopLevelKeys: string[];
+    recipient: string;
+    content: string;
+    date: string;
+    barcodeStartsWithAwb: boolean;
   }>;
 }
 
@@ -586,27 +588,37 @@ export default function AWBRepairPage() {
 
               {debugData.awbs && debugData.awbs.length > 0 && (
                 <div className="p-4 bg-muted rounded-lg">
-                  <h4 className="font-medium mb-2">AWB Numbers (First 10)</h4>
+                  <h4 className="font-medium mb-2">AWB Data (First 10)</h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    <strong>Important:</strong> Barcode (barcodes[0]) is what&apos;s printed on labels and scanned.
+                    AWB Number is just the 13-digit numeric ID.
+                  </p>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>AWB Number</TableHead>
-                        <TableHead>Length</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Field Source</TableHead>
+                        <TableHead>Barcode (pe eticheta)</TableHead>
+                        <TableHead>AWB Number (numeric)</TableHead>
+                        <TableHead>Recipient</TableHead>
+                        <TableHead>Content</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {debugData.awbs.slice(0, 10).map((awb, idx) => (
                         <TableRow key={idx}>
-                          <TableCell className="font-mono text-sm">{awb.awbNumber}</TableCell>
-                          <TableCell>
-                            <Badge variant={awb.awbNumberLength < 15 ? "destructive" : "secondary"}>
-                              {awb.awbNumberLength} chars
+                          <TableCell className="font-mono text-sm">
+                            {awb.barcode || "-"}
+                            <Badge variant="default" className="ml-2">
+                              {awb.barcodeLength} chars
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-sm">{awb.rawType}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{awb.fieldSource}</TableCell>
+                          <TableCell className="font-mono text-sm text-muted-foreground">
+                            {awb.awbNumber || "-"}
+                            <span className="text-xs ml-1">({awb.awbNumberLength})</span>
+                          </TableCell>
+                          <TableCell className="text-sm">{awb.recipient}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground truncate max-w-[200px]">
+                            {awb.content}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

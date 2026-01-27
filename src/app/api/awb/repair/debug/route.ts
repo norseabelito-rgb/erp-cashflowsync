@@ -89,39 +89,34 @@ export async function GET(request: NextRequest) {
     }
     console.log("\n");
 
-    // Extract AWB info for easier reading - try multiple field paths
+    // Extract AWB info for easier reading
+    // KEY INSIGHT: barcodes[0] contains the full 21-char barcode that's printed on labels
+    // awbNumber is just the 13-digit numeric identifier
     let awbList = allAwbs.map((item: any) => {
-      // Try multiple possible field paths for AWB number
-      const awbFromInfoAwbNumber = item.info?.awbNumber;
-      const awbFromInfoAwb = item.info?.awb;
-      const awbFromAwbNumber = item.awbNumber;
-      const awbFromAwb = item.awb;
-
-      // Use the first non-empty value
-      const awbValue = awbFromInfoAwbNumber || awbFromInfoAwb || awbFromAwbNumber || awbFromAwb || '';
+      const awbNumber = item.info?.awbNumber;
+      const barcode = item.info?.barcodes?.[0];
 
       return {
-        awbNumber: String(awbValue),
-        awbNumberLength: String(awbValue).length,
-        recipient: item.info?.recipientName || item.recipientName || item.recipient || '',
-        address: item.info?.address || item.address || '',
-        status: item.info?.status || item.status || '',
-        // Debug fields to show which path the AWB came from
-        rawAwbValue: awbValue,
-        rawType: typeof awbValue,
-        fieldSource: awbFromInfoAwbNumber ? 'info.awbNumber' :
-                     awbFromInfoAwb ? 'info.awb' :
-                     awbFromAwbNumber ? 'awbNumber' :
-                     awbFromAwb ? 'awb' : 'none',
-        // Show all fields for debugging
-        allTopLevelKeys: Object.keys(item),
+        // The barcode is what's scanned - this is the "correct" AWB for matching
+        barcode: barcode ? String(barcode) : null,
+        barcodeLength: barcode ? String(barcode).length : 0,
+        // awbNumber is the numeric ID (13 digits)
+        awbNumber: awbNumber ? String(awbNumber) : null,
+        awbNumberLength: awbNumber ? String(awbNumber).length : 0,
+        // Other useful info
+        recipient: item.recipient?.name || '',
+        content: item.info?.content || '',
+        date: item.info?.date || '',
+        // Show if barcode matches expected pattern
+        barcodeStartsWithAwb: barcode && awbNumber ? String(barcode).startsWith(String(awbNumber)) : false,
       };
     });
 
-    // Apply search filter if provided
+    // Apply search filter if provided (searches both barcode and awbNumber)
     if (search) {
       awbList = awbList.filter((awb: any) =>
-        awb.awbNumber.includes(search)
+        (awb.barcode && awb.barcode.includes(search)) ||
+        (awb.awbNumber && awb.awbNumber.includes(search))
       );
     }
 
