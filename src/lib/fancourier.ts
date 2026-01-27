@@ -601,23 +601,34 @@ export class FanCourierAPI {
     error?: string;
   }> {
     try {
-      const response = await this.authRequest("GET", "/reports/awb", null, {
-        clientId: this.clientId,
-        date: date,
-        perPage: 200,
-        page: 1,
-      });
+      const allData: any[] = [];
+      let page = 1;
+      let hasMore = true;
 
-      if (response.data.status === "success" && response.data.data) {
-        return {
-          success: true,
-          data: response.data.data,
-        };
+      // Fetch all pages
+      while (hasMore) {
+        const response = await this.authRequest("GET", "/reports/awb", null, {
+          clientId: this.clientId,
+          date: date,
+          perPage: 200,
+          page: page,
+        });
+
+        if (response.data.status === "success" && response.data.data) {
+          allData.push(...response.data.data);
+          // If we got fewer than 200, we've reached the last page
+          hasMore = response.data.data.length === 200;
+          page++;
+        } else {
+          hasMore = false;
+        }
       }
+
+      console.log(`   Fetched ${allData.length} AWBs from borderou for ${date} (${page - 1} pages)`);
 
       return {
         success: true,
-        data: [],
+        data: allData,
       };
     } catch (error: any) {
       console.error(`Error getting AWBs for date ${date}:`, error.message);
@@ -2049,6 +2060,9 @@ export async function repairTruncatedAWBs(options?: {
   dryRun?: boolean;
   limit?: number;
   awbIds?: string[]; // Specific AWB IDs to repair (if provided, ignores date range and limit)
+  skipTracking?: boolean; // Skip tracking check and go directly to borderou comparison
+  bordereauxStartDate?: Date; // Start date for fetching bordereaux (default: 60 days ago)
+  bordereauxEndDate?: Date; // End date for fetching bordereaux (default: today)
 }): Promise<{
   checked: number;
   repaired: number;
@@ -2085,10 +2099,14 @@ export async function repairTruncatedAWBs(options?: {
   const endDate = options?.endDate ?? new Date();
   const startDate = options?.startDate ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const awbIds = options?.awbIds;
+  const skipTracking = options?.skipTracking ?? false;
+  const bordereauxEndDate = options?.bordereauxEndDate ?? new Date();
+  const bordereauxStartDate = options?.bordereauxStartDate ?? new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
 
   console.log("\n" + "=".repeat(60));
   console.log("🔧 REPAIR TRUNCATED AWB NUMBERS");
   console.log("=".repeat(60));
+  console.log(`🔍 Skip tracking check: ${skipTracking}`);
   if (awbIds && awbIds.length > 0) {
     console.log(`🎯 Specific AWBs: ${awbIds.length} selected`);
   } else {
@@ -2144,44 +2162,57 @@ export async function repairTruncatedAWBs(options?: {
 
       // First, try tracking the AWB - if it works, the AWB is correct
       try {
-        const tracking = await fancourier.trackAWB(awb.awbNumber);
+        if (!skipTracking) {
+          const tracking = await fancourier.trackAWB(awb.awbNumber);
 
-        if (tracking.success && tracking.events && tracking.events.length > 0) {
-          console.log(`   ✅ Tracking OK - AWB is valid (${tracking.events.length} events)`);
-          result.skipped++;
-          result.details.push({
-            awbId: awb.id,
-            orderId: awb.orderId,
-            orderNumber,
-            oldAwb: awb.awbNumber,
-            status: "skipped",
-            message: "Tracking successful - AWB is valid",
-          });
-          continue;
-        }
-
-        // Tracking failed - might be truncated
-        console.log(`   ⚠️ Tracking failed: ${tracking.error}`);
-
-        // Get AWB creation date
-        const awbDate = awb.createdAt.toISOString().split('T')[0];
-
-        // Check if we already have the borderou data for this date
-        if (!awbsByDate.has(awbDate)) {
-          console.log(`   📥 Fetching borderou for ${awbDate}...`);
-
-          const bordereauResponse = await fancourier.getAllAWBsForDate(awbDate);
-
-          if (bordereauResponse.success && bordereauResponse.data) {
-            awbsByDate.set(awbDate, bordereauResponse.data);
-            console.log(`   📋 Found ${bordereauResponse.data.length} AWBs in borderou`);
-          } else {
-            awbsByDate.set(awbDate, []);
-            console.log(`   ℹ️ No AWBs in borderou for ${awbDate}`);
+          if (tracking.success && tracking.events && tracking.events.length > 0) {
+            console.log(`   ✅ Tracking OK - AWB is valid (${tracking.events.length} events)`);
+            result.skipped++;
+            result.details.push({
+              awbId: awb.id,
+              orderId: awb.orderId,
+              orderNumber,
+              oldAwb: awb.awbNumber,
+              status: "skipped",
+              message: "Tracking successful - AWB is valid",
+            });
+            continue;
           }
+
+          // Tracking failed - might be truncated
+          console.log(`   ⚠️ Tracking failed: ${tracking.error}`);
+        } else {
+          console.log(`   ⏭️ Skipping tracking check - going directly to borderou`);
         }
 
-        const bordereauAwbs = awbsByDate.get(awbDate) || [];
+        // Get AWB creation date and adjacent dates (to handle timezone issues)
+        const awbDateObj = new Date(awb.createdAt);
+        const datesToCheck = [
+          awbDateObj.toISOString().split('T')[0],
+          new Date(awbDateObj.getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0], // day before
+          new Date(awbDateObj.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], // day after
+        ];
+
+        // Fetch borderou data for all dates we need to check
+        let allBordereauAwbs: any[] = [];
+        for (const dateToCheck of datesToCheck) {
+          if (!awbsByDate.has(dateToCheck)) {
+            console.log(`   📥 Fetching borderou for ${dateToCheck}...`);
+
+            const bordereauResponse = await fancourier.getAllAWBsForDate(dateToCheck);
+
+            if (bordereauResponse.success && bordereauResponse.data) {
+              awbsByDate.set(dateToCheck, bordereauResponse.data);
+              console.log(`   📋 Found ${bordereauResponse.data.length} AWBs in borderou for ${dateToCheck}`);
+            } else {
+              awbsByDate.set(dateToCheck, []);
+              console.log(`   ℹ️ No AWBs in borderou for ${dateToCheck}`);
+            }
+          }
+          allBordereauAwbs = allBordereauAwbs.concat(awbsByDate.get(dateToCheck) || []);
+        }
+
+        const bordereauAwbs = allBordereauAwbs;
 
         // Look for AWBs that start with our truncated number
         const matchingAwbs = bordereauAwbs.filter((item: any) => {

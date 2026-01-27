@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
       endDate,
       dryRun = true, // Default to dry run for safety
       limit = 10, // Default to small batch for testing
+      skipTracking = false, // Skip tracking check and go directly to borderou
     } = body;
 
     console.log("\n" + "=".repeat(60));
@@ -58,6 +59,7 @@ export async function POST(request: NextRequest) {
     console.log("=".repeat(60));
     console.log(`User: ${session.user.email}`);
     console.log(`Dry Run: ${dryRun}`);
+    console.log(`Skip Tracking: ${skipTracking}`);
     if (awbIds && awbIds.length > 0) {
       console.log(`AWB IDs: ${awbIds.join(', ')}`);
     } else {
@@ -73,6 +75,7 @@ export async function POST(request: NextRequest) {
       endDate: endDate ? new Date(endDate) : undefined,
       dryRun,
       limit,
+      skipTracking,
     });
 
     return NextResponse.json({

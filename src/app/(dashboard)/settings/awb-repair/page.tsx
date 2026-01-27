@@ -67,6 +67,7 @@ export default function AWBRepairPage() {
   const [repairResult, setRepairResult] = useState<RepairResult | null>(null);
   const [manualRepairAwb, setManualRepairAwb] = useState<AWBItem | null>(null);
   const [correctAwbNumber, setCorrectAwbNumber] = useState("");
+  const [skipTracking, setSkipTracking] = useState(true); // Default to skip tracking since it's unreliable for truncated AWBs
 
   // Fetch AWB list
   const { data: awbData, isLoading, refetch } = useQuery({
@@ -81,11 +82,11 @@ export default function AWBRepairPage() {
 
   // Repair mutation
   const repairMutation = useMutation({
-    mutationFn: async ({ awbIds, dryRun }: { awbIds: string[]; dryRun: boolean }) => {
+    mutationFn: async ({ awbIds, dryRun, skipTracking }: { awbIds: string[]; dryRun: boolean; skipTracking: boolean }) => {
       const res = await fetch("/api/awb/repair", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ awbIds, dryRun }),
+        body: JSON.stringify({ awbIds, dryRun, skipTracking }),
       });
       return res.json();
     },
@@ -243,9 +244,19 @@ export default function AWBRepairPage() {
               Sterge selectia
             </Button>
             <div className="flex-1" />
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="skipTracking"
+                checked={skipTracking}
+                onCheckedChange={(checked) => setSkipTracking(checked === true)}
+              />
+              <Label htmlFor="skipTracking" className="text-sm cursor-pointer">
+                Skip tracking (recomandat)
+              </Label>
+            </div>
             <Button
               variant="outline"
-              onClick={() => repairMutation.mutate({ awbIds: selectedAwbs, dryRun: true })}
+              onClick={() => repairMutation.mutate({ awbIds: selectedAwbs, dryRun: true, skipTracking })}
               disabled={selectedAwbs.length === 0 || repairMutation.isPending}
             >
               <Search className="h-4 w-4 mr-2" />
@@ -253,7 +264,7 @@ export default function AWBRepairPage() {
             </Button>
             <Button
               variant="default"
-              onClick={() => repairMutation.mutate({ awbIds: selectedAwbs, dryRun: false })}
+              onClick={() => repairMutation.mutate({ awbIds: selectedAwbs, dryRun: false, skipTracking })}
               disabled={selectedAwbs.length === 0 || repairMutation.isPending}
             >
               <Wrench className="h-4 w-4 mr-2" />
