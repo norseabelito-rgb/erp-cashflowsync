@@ -66,7 +66,6 @@ export default function AWBRepairPage() {
   });
 
   const awbs: AWBItem[] = awbData?.awbs || [];
-  const truncatedAwbs = awbs.filter(a => a.possiblyTruncated);
 
   // Repair mutation
   const repairMutation = useMutation({
@@ -118,10 +117,6 @@ export default function AWBRepairPage() {
     );
   };
 
-  const selectAllTruncated = () => {
-    setSelectedAwbs(truncatedAwbs.map(a => a.id));
-  };
-
   const clearSelection = () => {
     setSelectedAwbs([]);
     setRepairResult(null);
@@ -149,8 +144,9 @@ export default function AWBRepairPage() {
                 prin interogarea API-ului FanCourier pentru a obtine numerele complete.
               </p>
               <p className="text-sm text-muted-foreground">
-                <strong>Recomandat:</strong> Testeaza mai intai cu Dry Run pentru a vedea ce AWB-uri ar fi reparate,
-                apoi aplica repararea pe un numar mic (1-2) pentru verificare.
+                <strong>Cum functioneaza:</strong> Selecteaza AWB-urile de verificat, apoi apasa &quot;Dry Run&quot; pentru a le verifica
+                contra API-ului FanCourier. Sistemul va incerca tracking-ul si va compara cu borderou-ul pentru a gasi
+                numerele corecte. Doar AWB-urile care esueaza la tracking si au un match in borderou vor fi reparate.
               </p>
             </div>
           </div>
@@ -166,10 +162,7 @@ export default function AWBRepairPage() {
               AWB-uri pentru reparare
             </CardTitle>
             <CardDescription>
-              {truncatedAwbs.length > 0
-                ? `${truncatedAwbs.length} AWB-uri posibil truncate din ${awbs.length} total`
-                : `${awbs.length} AWB-uri verificate - niciuna posibil truncata`
-              }
+              {awbs.length} AWB-uri in baza de date - selecteaza-le si apasa Dry Run pentru verificare
             </CardDescription>
           </div>
           <div className="flex gap-2">
@@ -185,10 +178,10 @@ export default function AWBRepairPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={selectAllTruncated}
-              disabled={truncatedAwbs.length === 0}
+              onClick={() => setSelectedAwbs(awbs.map(a => a.id))}
+              disabled={awbs.length === 0}
             >
-              Selecteaza toate truncate ({truncatedAwbs.length})
+              Selecteaza toate ({awbs.length})
             </Button>
             <Button
               variant="outline"
@@ -243,10 +236,7 @@ export default function AWBRepairPage() {
               </TableHeader>
               <TableBody>
                 {awbs.map((awb) => (
-                  <TableRow
-                    key={awb.id}
-                    className={awb.possiblyTruncated ? "bg-amber-50/50 dark:bg-amber-950/20" : ""}
-                  >
+                  <TableRow key={awb.id}>
                     <TableCell>
                       <Checkbox
                         checked={selectedAwbs.includes(awb.id)}
@@ -265,15 +255,9 @@ export default function AWBRepairPage() {
                       {formatDate(awb.createdAt)}
                     </TableCell>
                     <TableCell>
-                      {awb.possiblyTruncated ? (
-                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                          Posibil truncat
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          OK
-                        </Badge>
-                      )}
+                      <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700">
+                        Neverificat
+                      </Badge>
                     </TableCell>
                   </TableRow>
                 ))}

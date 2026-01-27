@@ -86,8 +86,9 @@ export async function GET(request: NextRequest) {
         ? `${awb.order.customerFirstName || ''} ${awb.order.customerLastName || ''}`.trim() || "N/A"
         : "N/A",
       createdAt: awb.createdAt.toISOString(),
-      // Flag AWBs that might be truncated (less than 13 chars is suspicious for FanCourier)
-      possiblyTruncated: (awb.awbNumber?.length || 0) < 13,
+      // We can't reliably detect truncation by length alone - the repair function
+      // checks against FanCourier tracking/borderou to determine if repair is needed
+      possiblyTruncated: false, // All AWBs need to be checked via Dry Run
     }));
 
     return NextResponse.json({
