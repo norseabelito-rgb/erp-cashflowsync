@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
-import { prisma } from "@/lib/prisma";
+import prisma from "@/lib/db";
 
 /**
  * GET /api/awb/repair/list
