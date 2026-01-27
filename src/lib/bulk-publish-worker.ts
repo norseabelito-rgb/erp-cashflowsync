@@ -1,5 +1,6 @@
 import prisma from "./db";
 import { ShopifyClient } from "./shopify";
+import { convertDescriptionToHtml } from "./utils";
 
 // Local enum pentru status (nu depinde de Prisma generate)
 const BulkPublishStatus = {
@@ -256,7 +257,7 @@ export async function processBulkPublishJob(jobId: string): Promise<void> {
 
         const productData = {
           title: product.title,
-          body_html: product.description || "",
+          body_html: convertDescriptionToHtml(product.description) || "",
           tags: product.tags || [],
           variants: [
             {

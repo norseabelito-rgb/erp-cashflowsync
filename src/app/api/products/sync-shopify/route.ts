@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 import { ShopifyClient } from "@/lib/shopify";
+import { convertDescriptionToHtml } from "@/lib/utils";
 
 /**
  * Convertește URL-ul imaginii în URL public Google Drive
@@ -134,7 +135,7 @@ export async function POST(request: NextRequest) {
             // Creează produs nou în Shopify
             const shopifyProduct = await shopifyClient.createProduct({
               title: finalTitle,
-              body_html: finalDescription || undefined,
+              body_html: convertDescriptionToHtml(finalDescription) || undefined,
               tags: product.tags || [],
               variants: [{
                 sku: product.sku,
@@ -168,7 +169,7 @@ export async function POST(request: NextRequest) {
             // Actualizează produs existent în Shopify
             await shopifyClient.updateProduct(pc.externalId, {
               title: finalTitle,
-              body_html: finalDescription || undefined,
+              body_html: convertDescriptionToHtml(finalDescription) || undefined,
               tags: product.tags || [],
               variants: [{
                 sku: product.sku,

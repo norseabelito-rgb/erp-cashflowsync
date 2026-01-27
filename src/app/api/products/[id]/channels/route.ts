@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { ShopifyClient } from "@/lib/shopify";
+import { convertDescriptionToHtml } from "@/lib/utils";
 
 /**
  * Convertește URL-ul imaginii în URL public Google Drive
@@ -162,7 +163,7 @@ export async function POST(
         // Creează produsul în Shopify
         const shopifyProduct = await shopifyClient.createProduct({
           title: finalTitle,
-          body_html: finalDescription || undefined,
+          body_html: convertDescriptionToHtml(finalDescription) || undefined,
           tags: product.tags || [],
           variants: [{
             sku: product.sku,
@@ -327,7 +328,7 @@ export async function PUT(
 
         await shopifyClient.updateProduct(existing.externalId, {
           title: finalTitle,
-          body_html: finalDescription || undefined,
+          body_html: convertDescriptionToHtml(finalDescription) || undefined,
           tags: existing.product.tags || [],
           variants: [{
             sku: existing.product.sku,

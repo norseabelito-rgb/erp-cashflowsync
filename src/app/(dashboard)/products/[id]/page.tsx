@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -377,10 +378,10 @@ export default function ProductEditPage() {
                   </div>
                   <div className="grid gap-2">
                     <Label>Descriere</Label>
-                    <Textarea
-                      rows={5}
+                    <RichTextEditor
                       value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      onChange={(value) => setFormData({ ...formData, description: value })}
+                      placeholder="Descrierea produsului..."
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

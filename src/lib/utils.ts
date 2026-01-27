@@ -99,3 +99,39 @@ export function getDriveImageUrl(url: string): string {
   // Dacă nu e URL Google Drive, returnează-l așa cum e
   return url;
 }
+
+/**
+ * Convertește text plain cu newlines în HTML pentru Shopify body_html
+ * - Detectează dacă textul e deja HTML (conține tag-uri comune)
+ * - Dacă e plain text, convertește paragrafele și line breaks
+ * - Păstrează emoji-urile și caracterele speciale
+ */
+export function convertDescriptionToHtml(text: string | null | undefined): string {
+  if (!text) return "";
+
+  // Verifică dacă textul conține deja tag-uri HTML comune
+  const htmlTagPattern = /<(p|br|div|span|h[1-6]|ul|ol|li|strong|em|a|b|i)\b[^>]*>/i;
+  if (htmlTagPattern.test(text)) {
+    // E deja HTML, returnează așa cum e
+    return text;
+  }
+
+  // E plain text - convertește în HTML
+  // 1. Escape HTML entities (pentru securitate)
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // 2. Împarte în paragrafe (2+ newlines = paragraf nou)
+  const paragraphs = escaped.split(/\n\s*\n+/);
+
+  // 3. Convertește fiecare paragraf
+  const htmlParagraphs = paragraphs.map(para => {
+    // Convertește single newlines în <br>
+    const withBreaks = para.trim().replace(/\n/g, "<br>\n");
+    return `<p>${withBreaks}</p>`;
+  });
+
+  return htmlParagraphs.join("\n");
+}

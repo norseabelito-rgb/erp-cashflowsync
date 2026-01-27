@@ -99,6 +99,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, getDriveImageUrl } from "@/lib/utils";
 import { SyncOverlay, useSyncOverlay } from "@/components/ui/sync-overlay";
@@ -1124,11 +1125,10 @@ export default function ProductsPage() {
 
               <div className="grid gap-2">
                 <Label>Descriere</Label>
-                <Textarea
-                  placeholder="Descrierea produsului..."
-                  rows={3}
+                <RichTextEditor
                   value={newProduct.description}
-                  onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                  onChange={(value) => setNewProduct({ ...newProduct, description: value })}
+                  placeholder="Descrierea produsului..."
                 />
               </div>
 
