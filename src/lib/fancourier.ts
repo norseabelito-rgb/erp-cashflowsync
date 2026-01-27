@@ -57,48 +57,30 @@ export class FanCourierAPI {
 
     // Verifică dacă avem token valid în cache pentru această companie
     if (cachedToken && cachedToken.expiresAt > new Date()) {
-      console.log(`[FanCourier] Using cached token for clientId=${this.clientId}, username=${this.username}`);
       return cachedToken.token;
     }
 
-    // Trimitem credențialele în body (mai sigur pentru parole cu caractere speciale)
-    const loginUrl = `${FANCOURIER_API_URL}/login`;
-
-    console.log(`[FanCourier] Login attempt for clientId=${this.clientId}, username=${this.username}`);
-    console.log(`[FanCourier] Password length: ${this.password?.length || 0}, has special chars: ${/[^a-zA-Z0-9]/.test(this.password || '')}`);
+    // Construim URL-ul cu parametrii în query string (conform documentației)
+    const loginUrl = `${FANCOURIER_API_URL}/login?username=${encodeURIComponent(this.username)}&password=${encodeURIComponent(this.password)}`;
 
     const response = await fetch(loginUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        username: this.username,
-        password: this.password,
-      }),
     });
 
-    const responseText = await response.text();
-    console.log(`[FanCourier] Login response status: ${response.status}`);
-    console.log(`[FanCourier] Login response body: ${responseText.substring(0, 500)}`);
-
-    let data: any = {};
-    try {
-      data = JSON.parse(responseText);
-    } catch (e) {
-      console.error(`[FanCourier] Failed to parse response as JSON`);
-    }
-
     if (!response.ok) {
-      throw new Error(data?.message || `Eroare autentificare FanCourier: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData?.message || `Eroare autentificare FanCourier: ${response.status}`);
     }
+
+    const data = await response.json();
     const token = data?.data?.token;
 
     if (!token) {
       throw new Error("Nu s-a putut obține token de la FanCourier");
     }
-
-    console.log(`[FanCourier] Token obtained successfully for clientId=${this.clientId}`);
 
     // Cache token pentru 23 ore pentru această companie specifică
     tokenCache.set(cacheKey, {
