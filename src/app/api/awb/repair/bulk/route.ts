@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     const bordereauxEndDate = endDate ? new Date(endDate) : new Date();
     const bordereauxStartDate = startDate
       ? new Date(startDate)
-      : new Date(Date.now() - 60 * 24 * 60 * 60 * 1000); // 60 days ago
+      : new Date(Date.now() - 14 * 24 * 60 * 60 * 1000); // 14 days ago (reduced for faster response)
 
     console.log("\n" + "=".repeat(60));
     console.log("BULK AWB REPAIR - PREFIX MATCHING");

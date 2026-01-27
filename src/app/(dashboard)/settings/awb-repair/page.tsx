@@ -67,6 +67,7 @@ export default function AWBRepairPage() {
   const [repairResult, setRepairResult] = useState<RepairResult | null>(null);
   const [manualRepairAwb, setManualRepairAwb] = useState<AWBItem | null>(null);
   const [correctAwbNumber, setCorrectAwbNumber] = useState("");
+  const [daysBack, setDaysBack] = useState(14); // Days of borderou data to fetch
 
   // Fetch AWB list
   const { data: awbData, isLoading, refetch } = useQuery({
@@ -123,11 +124,12 @@ export default function AWBRepairPage() {
 
   // Bulk repair mutation (smarter prefix matching)
   const bulkRepairMutation = useMutation({
-    mutationFn: async ({ awbIds, dryRun }: { awbIds: string[]; dryRun: boolean }) => {
+    mutationFn: async ({ awbIds, dryRun, daysBack }: { awbIds: string[]; dryRun: boolean; daysBack: number }) => {
+      const startDate = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const res = await fetch("/api/awb/repair/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ awbIds, dryRun, limit: awbIds.length || 100 }),
+        body: JSON.stringify({ awbIds, dryRun, limit: awbIds.length || 100, startDate }),
       });
       return res.json();
     },
@@ -242,10 +244,9 @@ export default function AWBRepairPage() {
                 prin interogarea API-ului FanCourier pentru a obtine numerele complete.
               </p>
               <p className="text-sm text-muted-foreground">
-                <strong>Reparare automata (Bulk):</strong> Selecteaza AWB-urile, apoi apasa &quot;Bulk Dry Run&quot;.
-                Sistemul va descarca toate AWB-urile din FanCourier din ultimele 60 de zile si va cauta
-                AWB-uri care incep cu primele 13 caractere ale AWB-ului trunchiat. Aceasta metoda gaseste match-uri
-                chiar daca data de creare nu se potriveste exact.
+                <strong>Reparare automata (Bulk):</strong> Selecteaza AWB-urile si numarul de zile, apoi apasa &quot;Bulk Dry Run&quot;.
+                Sistemul va descarca toate AWB-urile din FanCourier pentru perioada selectata si va cauta
+                AWB-uri care incep cu primele 13 caractere ale AWB-ului trunchiat. Incepe cu 7-14 zile pentru viteza.
               </p>
               <p className="text-sm text-muted-foreground">
                 <strong>Reparare manuala:</strong> Daca stii numarul AWB corect din portalul FanCourier, apasa butonul
@@ -295,9 +296,23 @@ export default function AWBRepairPage() {
               Sterge selectia
             </Button>
             <div className="flex-1" />
+            <div className="flex items-center gap-2">
+              <Label htmlFor="daysBack" className="text-sm whitespace-nowrap">Zile:</Label>
+              <select
+                id="daysBack"
+                value={daysBack}
+                onChange={(e) => setDaysBack(Number(e.target.value))}
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value={7}>7 zile</option>
+                <option value={14}>14 zile</option>
+                <option value={30}>30 zile</option>
+                <option value={60}>60 zile</option>
+              </select>
+            </div>
             <Button
               variant="outline"
-              onClick={() => bulkRepairMutation.mutate({ awbIds: selectedAwbs, dryRun: true })}
+              onClick={() => bulkRepairMutation.mutate({ awbIds: selectedAwbs, dryRun: true, daysBack })}
               disabled={selectedAwbs.length === 0 || bulkRepairMutation.isPending}
             >
               <Search className="h-4 w-4 mr-2" />
@@ -305,7 +320,7 @@ export default function AWBRepairPage() {
             </Button>
             <Button
               variant="default"
-              onClick={() => bulkRepairMutation.mutate({ awbIds: selectedAwbs, dryRun: false })}
+              onClick={() => bulkRepairMutation.mutate({ awbIds: selectedAwbs, dryRun: false, daysBack })}
               disabled={selectedAwbs.length === 0 || bulkRepairMutation.isPending}
             >
               <Wrench className="h-4 w-4 mr-2" />
