@@ -43,21 +43,26 @@ export async function GET(request: NextRequest) {
     const endDateParam = searchParams.get("endDate");
     const limitParam = searchParams.get("limit");
 
-    const limit = limitParam ? parseInt(limitParam, 10) : 50;
-    const endDate = endDateParam ? new Date(endDateParam) : new Date();
-    const startDate = startDateParam
-      ? new Date(startDateParam)
-      : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const limit = limitParam ? parseInt(limitParam, 10) : 200;
 
-    // Get all FanCourier AWBs in the date range
+    // Build where clause - only filter by date if explicitly provided
+    const whereClause: any = {
+      awbNumber: { not: null },
+    };
+
+    if (startDateParam || endDateParam) {
+      whereClause.createdAt = {};
+      if (startDateParam) {
+        whereClause.createdAt.gte = new Date(startDateParam);
+      }
+      if (endDateParam) {
+        whereClause.createdAt.lte = new Date(endDateParam);
+      }
+    }
+
+    // Get all FanCourier AWBs
     const awbs = await prisma.aWB.findMany({
-      where: {
-        awbNumber: { not: null },
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
+      where: whereClause,
       include: {
         order: {
           select: {

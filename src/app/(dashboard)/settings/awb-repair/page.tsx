@@ -226,7 +226,7 @@ export default function AWBRepairPage() {
           ) : awbs.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <AlertCircle className="h-8 w-8 mx-auto mb-4 opacity-50" />
-              <p>Nu exista AWB-uri in ultimele 30 de zile</p>
+              <p>Nu exista AWB-uri cu numar valid in baza de date</p>
             </div>
           ) : (
             <Table>
