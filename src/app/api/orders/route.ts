@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
     const containsSku = searchParams.get("containsSku"); // Filtru după SKU produs
     const containsBarcode = searchParams.get("containsBarcode"); // Filtru după barcode
     const hasAwb = searchParams.get("hasAwb"); // "true" sau "false"
+    const awbStatus = searchParams.get("awbStatus"); // "tranzit" | "livrat" | "retur" | "pending" | "anulat"
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = (page - 1) * limit;
@@ -88,7 +89,17 @@ export async function GET(request: NextRequest) {
 
     // Filtru după existența AWB
     if (hasAwb === "true") {
-      where.awb = { isNot: null };
+      // Sub-filtru după status AWB (doar când hasAwb=true)
+      if (awbStatus && awbStatus !== "all") {
+        where.awb = {
+          currentStatus: {
+            contains: awbStatus,
+            mode: "insensitive",
+          },
+        };
+      } else {
+        where.awb = { isNot: null };
+      }
     } else if (hasAwb === "false") {
       where.awb = { is: null };
     }

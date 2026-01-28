@@ -28,6 +28,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const paymentStatus = searchParams.get("paymentStatus");
     const search = searchParams.get("search");
+    const hasAwb = searchParams.get("hasAwb"); // "true" sau "false"
+    const awbStatus = searchParams.get("awbStatus"); // "tranzit" | "livrat" | "retur" | "pending" | "anulat"
 
     const where: any = {};
 
@@ -37,6 +39,32 @@ export async function GET(request: NextRequest) {
 
     if (paymentStatus && paymentStatus !== "all") {
       where.paymentStatus = paymentStatus;
+    }
+
+    // Filtru după existența AWB pe comanda asociată
+    if (hasAwb === "true") {
+      // Sub-filtru după status AWB
+      if (awbStatus && awbStatus !== "all") {
+        where.order = {
+          ...where.order,
+          awb: {
+            currentStatus: {
+              contains: awbStatus,
+              mode: "insensitive",
+            },
+          },
+        };
+      } else {
+        where.order = {
+          ...where.order,
+          awb: { isNot: null },
+        };
+      }
+    } else if (hasAwb === "false") {
+      where.order = {
+        ...where.order,
+        awb: { is: null },
+      };
     }
 
     if (search) {

@@ -327,6 +327,8 @@ export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [storeFilter, setStoreFilter] = useState<string>("all");
+  const [awbFilter, setAwbFilter] = useState<string>("all"); // "all" | "with" | "without"
+  const [awbStatusFilter, setAwbStatusFilter] = useState<string>("all"); // "all" | "tranzit" | "livrat" | "retur" | "pending" | "anulat"
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [page, setPage] = useState(1);
@@ -390,11 +392,14 @@ export default function OrdersPage() {
   const [selectedDbErrors, setSelectedDbErrors] = useState<string[]>([]);
 
   const { data: ordersData, isLoading: ordersLoading, isError: ordersError, refetch: refetchOrders } = useQuery({
-    queryKey: ["orders", statusFilter, storeFilter, searchQuery, startDate, endDate, page, limit],
+    queryKey: ["orders", statusFilter, storeFilter, awbFilter, awbStatusFilter, searchQuery, startDate, endDate, page, limit],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (storeFilter !== "all") params.set("storeId", storeFilter);
+      if (awbFilter === "with") params.set("hasAwb", "true");
+      if (awbFilter === "without") params.set("hasAwb", "false");
+      if (awbFilter === "with" && awbStatusFilter !== "all") params.set("awbStatus", awbStatusFilter);
       if (searchQuery) params.set("search", searchQuery);
       if (startDate) params.set("startDate", startDate);
       if (endDate) params.set("endDate", endDate);
@@ -1063,6 +1068,27 @@ export default function OrdersPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={awbFilter} onValueChange={(v) => { setAwbFilter(v); if (v !== "with") setAwbStatusFilter("all"); setPage(1); }}>
+              <SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="AWB" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate AWB</SelectItem>
+                <SelectItem value="with">Cu AWB emis</SelectItem>
+                <SelectItem value="without">Fara AWB</SelectItem>
+              </SelectContent>
+            </Select>
+            {awbFilter === "with" && (
+              <Select value={awbStatusFilter} onValueChange={(v) => { setAwbStatusFilter(v); setPage(1); }}>
+                <SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="Status AWB" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate statusurile</SelectItem>
+                  <SelectItem value="tranzit">In tranzit</SelectItem>
+                  <SelectItem value="livrat">Livrate</SelectItem>
+                  <SelectItem value="retur">Retururi</SelectItem>
+                  <SelectItem value="pending">In asteptare</SelectItem>
+                  <SelectItem value="anulat">Anulate</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
           
           {/* Filtre pe date */}
@@ -1257,13 +1283,15 @@ export default function OrdersPage() {
                   </>
                 ) : orders.length === 0 ? (
                   (() => {
-                    const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || storeFilter !== "all" || startDate !== "" || endDate !== "";
+                    const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || storeFilter !== "all" || awbFilter !== "all" || awbStatusFilter !== "all" || startDate !== "" || endDate !== "";
                     const emptyStateType = determineEmptyStateType(hasActiveFilters, ordersError);
                     const emptyConfig = getEmptyState("orders", emptyStateType);
                     const clearFilters = () => {
                       setSearchQuery("");
                       setStatusFilter("all");
                       setStoreFilter("all");
+                      setAwbFilter("all");
+                      setAwbStatusFilter("all");
                       setStartDate("");
                       setEndDate("");
                     };

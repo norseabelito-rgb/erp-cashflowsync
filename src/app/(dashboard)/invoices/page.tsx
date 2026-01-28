@@ -94,6 +94,8 @@ export default function InvoicesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
+  const [awbFilter, setAwbFilter] = useState<string>("all"); // "all" | "with" | "without"
+  const [awbStatusFilter, setAwbStatusFilter] = useState<string>("all"); // "all" | "tranzit" | "livrat" | "retur" | "pending" | "anulat"
   
   // Dialog pentru anulare factură
   const [cancelDialog, setCancelDialog] = useState<{ open: boolean; invoice: Invoice | null }>({
@@ -114,11 +116,14 @@ export default function InvoicesPage() {
   const [paymentMethod, setPaymentMethod] = useState("cash");
 
   const { data: invoicesData, isLoading, isError, refetch } = useQuery({
-    queryKey: ["invoices", statusFilter, paymentFilter, searchQuery],
+    queryKey: ["invoices", statusFilter, paymentFilter, awbFilter, awbStatusFilter, searchQuery],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (paymentFilter !== "all") params.set("paymentStatus", paymentFilter);
+      if (awbFilter === "with") params.set("hasAwb", "true");
+      if (awbFilter === "without") params.set("hasAwb", "false");
+      if (awbFilter === "with" && awbStatusFilter !== "all") params.set("awbStatus", awbStatusFilter);
       if (searchQuery) params.set("search", searchQuery);
       const res = await fetch(`/api/invoices?${params}`);
       return res.json();
@@ -421,6 +426,31 @@ export default function InvoicesPage() {
                 <SelectItem value="partial">Parțial plătite</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={awbFilter} onValueChange={(v) => { setAwbFilter(v); if (v !== "with") setAwbStatusFilter("all"); }}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="AWB" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate AWB</SelectItem>
+                <SelectItem value="with">Cu AWB emis</SelectItem>
+                <SelectItem value="without">Fara AWB</SelectItem>
+              </SelectContent>
+            </Select>
+            {awbFilter === "with" && (
+              <Select value={awbStatusFilter} onValueChange={setAwbStatusFilter}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Status AWB" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate statusurile</SelectItem>
+                  <SelectItem value="tranzit">In tranzit</SelectItem>
+                  <SelectItem value="livrat">Livrate</SelectItem>
+                  <SelectItem value="retur">Retururi</SelectItem>
+                  <SelectItem value="pending">In asteptare</SelectItem>
+                  <SelectItem value="anulat">Anulate</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -455,13 +485,15 @@ export default function InvoicesPage() {
                   </>
                 ) : invoices.length === 0 ? (
                   (() => {
-                    const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || paymentFilter !== "all";
+                    const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || paymentFilter !== "all" || awbFilter !== "all" || awbStatusFilter !== "all";
                     const emptyStateType = determineEmptyStateType(hasActiveFilters, isError);
                     const emptyConfig = getEmptyState("invoices", emptyStateType);
                     const clearFilters = () => {
                       setSearchQuery("");
                       setStatusFilter("all");
                       setPaymentFilter("all");
+                      setAwbFilter("all");
+                      setAwbStatusFilter("all");
                     };
                     return (
                       <tr>
