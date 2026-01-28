@@ -123,6 +123,7 @@ Recent decisions affecting current work:
 **DATABASE MIGRATION NEEDED:**
 - Apply `prisma/migrations/manual/add_task_management.sql` to create tasks and task_attachments tables
 - Apply `prisma/migrations/manual/add_bulk_push_job.sql` to create bulk_push_jobs table
+- Run `npx prisma db push` to create return_awbs table (q002)
 - Regenerate Prisma client with `npx prisma generate` (permission issue on node_modules/.prisma)
 
 **CRITICAL (Blocheaza munca):**
@@ -135,11 +136,12 @@ Recent decisions affecting current work:
 | Task | Status | Summary |
 |------|--------|---------|
 | q001 | Complete | Bulk product push to all Shopify stores with progress tracking |
+| q002 | Complete | Return AWB scanning with auto-mapping to original orders |
 
 ## Session Continuity
 
-Last session: 2026-01-26
-Stopped at: Completed quick/001-PLAN.md (bulk product push)
+Last session: 2026-01-28
+Stopped at: Completed quick/002-PLAN.md (return AWB mapping)
 Resume file: None
 
 ## Phase 7 Features
@@ -154,6 +156,9 @@ Task Management Core components:
 
 ## Recent Commits
 
+- `f034c87` feat(q002): add returns scan page with sidebar navigation
+- `398f7a0` feat(q002): add return AWB scan API and business logic
+- `2170e8b` feat(q002): add ReturnAWB model for return shipment tracking
 - `0dee1cb` feat(q001): add Bulk Push navigation link to products page
 - `e25b8cb` feat(q001): create bulk push UI page with real-time polling
 - `faf2420` feat(q001): create GET /api/products/bulk-push/[jobId] endpoint
@@ -161,10 +166,7 @@ Task Management Core components:
 - `b57b26b` chore(q001): add BulkPushJob model to Prisma schema
 - `097d5b6` feat(07-05): wire delete button to API with confirmation dialog
 - `b659081` feat(07-04): add tasks navigation entry to sidebar
-- `d2db178` feat(07-04): integrate task form dialog into tasks page
-- `1a0018a` feat(07-04): create task form dialog component
-- `5996e5c` feat(07-02): create task completion toggle API endpoint
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-26 (quick/001 complete - bulk product push)*
+*Last updated: 2026-01-28 (quick/002 complete - return AWB mapping)*
