@@ -79,6 +79,7 @@ interface HandoverStats {
   totalIssued: number;
   totalHandedOver: number;
   totalNotHandedOver: number;
+  totalNotHandedOverAll: number;
   totalPending: number;
   totalFromPrevDays: number;
   totalC0Alerts: number;
@@ -164,6 +165,7 @@ export default function HandoverPage() {
     totalIssued: 0,
     totalHandedOver: 0,
     totalNotHandedOver: 0,
+    totalNotHandedOverAll: 0,
     totalPending: 0,
     totalFromPrevDays: 0,
     totalC0Alerts: 0,
@@ -370,7 +372,7 @@ export default function HandoverPage() {
             <Link href="/handover/not-handed">
               <Button variant="outline" size="sm" className="border-status-warning/30 text-status-warning hover:bg-status-warning/10">
                 <XCircle className="h-4 w-4 mr-2" />
-                Nepredate ({stats.totalNotHandedOver})
+                Nepredate ({stats.totalNotHandedOverAll})
               </Button>
             </Link>
             <Link href="/handover/report">

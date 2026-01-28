@@ -55,6 +55,7 @@ export interface HandoverStats {
   totalIssued: number;
   totalHandedOver: number;
   totalNotHandedOver: number;
+  totalNotHandedOverAll: number; // Total nepredate din toate zilele
   totalPending: number;
   totalFromPrevDays: number;
   totalC0Alerts: number;
@@ -212,9 +213,18 @@ export async function getTodayStats(storeId?: string): Promise<HandoverStats> {
     where: { ...baseWhere, handedOverAt: { not: null } },
   });
 
-  // Total nepredate (marcate explicit)
+  // Total nepredate (marcate explicit) - doar de azi
   const totalNotHandedOver = await prisma.aWB.count({
     where: { ...baseWhere, notHandedOver: true },
+  });
+
+  // Total nepredate din TOATE zilele (pentru afișare în butonul "Nepredate")
+  const totalNotHandedOverAll = await prisma.aWB.count({
+    where: {
+      notHandedOver: true,
+      awbNumber: { not: null },
+      ...(storeId ? { order: { storeId } } : {}),
+    },
   });
 
   // Total în așteptare (niciuna din cele de mai sus)
@@ -240,6 +250,7 @@ export async function getTodayStats(storeId?: string): Promise<HandoverStats> {
     totalIssued,
     totalHandedOver,
     totalNotHandedOver,
+    totalNotHandedOverAll,
     totalPending,
     totalFromPrevDays,
     totalC0Alerts,
@@ -877,6 +888,7 @@ export async function getHandoverReport(date: Date, storeId?: string): Promise<H
       totalIssued,
       totalHandedOver,
       totalNotHandedOver,
+      totalNotHandedOverAll: totalNotHandedOver, // Pentru rapoarte istorice, e același cu totalNotHandedOver
       totalPending,
       totalFromPrevDays: fromPrevDaysAwbs.length,
       totalC0Alerts: 0, // Nu e relevant pentru rapoarte istorice
