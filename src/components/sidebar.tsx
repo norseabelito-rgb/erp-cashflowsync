@@ -34,6 +34,7 @@ import {
   Beaker,
   ChefHat,
   PackageCheck,
+  PackageX,
   Megaphone,
   BarChart3,
   Bell,
@@ -151,6 +152,7 @@ const navigation: NavItem[] = [
       { name: "AWB-uri", href: "/tracking", icon: Truck, permissions: ["awb.view"] },
       { name: "Picking Lists", href: "/picking", icon: ClipboardList, permissions: ["picking.view"] },
       { name: "Predare Curier", href: "/handover", icon: PackageCheck, permissions: ["handover.view"] },
+      { name: "Scanare Retururi", href: "/returns", icon: PackageX, permissions: ["handover.scan"] },
     ],
   },
 
