@@ -296,7 +296,7 @@ export async function createAWBForOrder(
       recipientZipCode: order.shippingZip || undefined,
       // AWB details
       service,
-      payment: isRamburs ? "recipient" : "sender",
+      payment: "sender", // Shipping is always paid by sender (included in order price)
       parcels: options?.packages || settings?.defaultPackages || 1,
       weight: options?.weight || Number(settings?.defaultWeight) || 1,
       content: `Comandă ${order.shopifyOrderNumber || order.id}`,

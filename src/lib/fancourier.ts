@@ -335,7 +335,7 @@ export class FanCourierAPI {
               weight: data.weight || 1,
               cod: data.cod || 0,
               declaredValue: data.declaredValue || 0,
-              payment: data.payment || "recipient",
+              payment: data.payment || "sender", // Default: sender pays for shipping
               refund: null,
               returnPayment: null,
               observation: data.observation || "",
@@ -1145,7 +1145,7 @@ export async function createAWBForOrder(
       recipientStreetNo: "",
       recipientZipCode: order.shippingZip || undefined,
       service,
-      payment: isRamburs ? "recipient" : "sender",
+      payment: "sender", // Shipping is always paid by sender (included in order price)
       parcels: options?.packages || settings?.defaultPackages || 1,
       weight: options?.weight || Number(settings?.defaultWeight) || 1,
       content: `Comandă ${order.shopifyOrderNumber}`,
