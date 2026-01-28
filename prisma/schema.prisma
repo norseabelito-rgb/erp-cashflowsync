@@ -466,6 +466,7 @@ model Order {
   intercompanyLink      IntercompanyOrderLink?
   failedInvoiceAttempts FailedInvoiceAttempt[]
   tasks                 Task[]
+  returnAwbs            ReturnAWB[]
 
   @@unique([shopifyOrderId, storeId])
   @@index([status])
@@ -664,6 +665,9 @@ model AWB {
 
   // Comentarii
   comments AWBComment[]
+
+  // Return AWBs (when this AWB was returned)
+  returnAwbs ReturnAWB[] @relation("OriginalToReturn")
 
   @@index([companyId])
   @@index([currentStatus])
@@ -3431,4 +3435,49 @@ model BulkPublishJob {
   @@index([userId])
   @@index([createdAt])
   @@map("bulk_publish_jobs")
+}
+
+// ==========================================
+// RETURNS MANAGEMENT
+// ==========================================
+
+// Return AWB tracking - maps return shipments to original orders
+model ReturnAWB {
+  id String @id @default(cuid())
+
+  // The return AWB number (scanned at warehouse)
+  returnAwbNumber String @unique
+
+  // Link to original AWB (the outbound shipment that was returned)
+  originalAwbId String?
+  originalAwb   AWB?    @relation("OriginalToReturn", fields: [originalAwbId], references: [id])
+
+  // Direct link to order (for cases where original AWB might be deleted)
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id])
+
+  // Status tracking
+  status String @default("received") // received, processed, stock_returned, invoice_reversed
+
+  // Scan info
+  scannedAt     DateTime @default(now())
+  scannedBy     String?
+  scannedByName String?
+
+  // Processing info
+  processedAt     DateTime?
+  processedBy     String?
+  processedByName String?
+
+  // Notes
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([originalAwbId])
+  @@index([status])
+  @@index([scannedAt])
+  @@map("return_awbs")
 }
