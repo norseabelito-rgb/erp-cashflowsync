@@ -88,9 +88,13 @@ export async function sendTrackingToTrendyol(
 
     if (result.success) {
       // Update TrendyolOrder with success
+      // Note: The Trendyol API updateTrackingNumber endpoint should automatically
+      // transition the order status to "Shipped" on Trendyol's side.
+      // We also update the local status to reflect this change.
       await prisma.trendyolOrder.update({
         where: { id: trendyolOrder.id },
         data: {
+          status: "Shipped", // Update local status to reflect Trendyol status
           trackingSentToTrendyol: true,
           trackingSentAt: new Date(),
           localAwbNumber: awbNumber,
