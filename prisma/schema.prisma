@@ -396,8 +396,9 @@ enum ValidationStatus {
 // Comenzile sincronizate din Shopify
 model Order {
   id                 String @id @default(cuid())
-  shopifyOrderId     String // ID-ul comenzii în Shopify
+  shopifyOrderId     String // ID-ul comenzii în Shopify sau Trendyol
   shopifyOrderNumber String // Numărul vizibil al comenzii (#1001, etc.)
+  source             String @default("shopify") // "shopify" | "trendyol" | "manual"
   storeId            String
   store              Store  @relation(fields: [storeId], references: [id])
 
@@ -475,6 +476,7 @@ model Order {
   @@index([storeId, status, createdAt])
   @@index([billingCompanyId])
   @@index([intercompanyStatus])
+  @@index([source])
   @@map("orders")
 }
 
