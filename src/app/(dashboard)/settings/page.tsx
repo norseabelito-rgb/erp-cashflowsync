@@ -79,6 +79,9 @@ interface Settings {
   trendyolIsTestMode: boolean;
   trendyolCurrencyRate: string;
   trendyolStoreFrontCode: string;
+  // Trendyol Webhook & Company
+  trendyolWebhookSecret: string;
+  trendyolCompanyId: string;
   // AI Insights
   aiApiKey: string;
   aiModel: string;
@@ -168,6 +171,9 @@ export default function SettingsPage() {
     trendyolIsTestMode: false,
     trendyolCurrencyRate: "5.0",
     trendyolStoreFrontCode: "",
+    // Trendyol Webhook & Company
+    trendyolWebhookSecret: "",
+    trendyolCompanyId: "",
     // AI Insights
     aiApiKey: "",
     aiModel: "claude-sonnet-4-20250514",
@@ -246,6 +252,9 @@ export default function SettingsPage() {
         trendyolIsTestMode: settingsData.settings.trendyolIsTestMode || false,
         trendyolCurrencyRate: settingsData.settings.trendyolCurrencyRate || "5.0",
         trendyolStoreFrontCode: settingsData.settings.trendyolStoreFrontCode || "",
+        // Trendyol Webhook & Company
+        trendyolWebhookSecret: settingsData.settings.trendyolWebhookSecret || "",
+        trendyolCompanyId: settingsData.settings.trendyolCompanyId || "",
         // AI Insights
         aiApiKey: settingsData.settings.aiApiKey || "",
         aiModel: settingsData.settings.aiModel || "claude-sonnet-4-20250514",
@@ -710,9 +719,136 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
+          {/* Trendyol Webhook & Company Association */}
           <Card>
             <CardHeader>
-              <CardTitle>Informații Trendyol</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Webhook className="h-5 w-5" />
+                Webhook si Firma Asociata
+              </CardTitle>
+              <CardDescription>
+                Configureaza primirea automata a evenimentelor de la Trendyol si firma pentru facturare
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Company Selection */}
+              <div className="grid gap-2">
+                <Label>Firma de facturare</Label>
+                <Select
+                  value={settings.trendyolCompanyId || "none"}
+                  onValueChange={(value) => setSettings({ ...settings, trendyolCompanyId: value === "none" ? "" : value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecteaza firma" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">-- Nicio firma --</SelectItem>
+                    {companies.map((company) => (
+                      <SelectItem key={company.id} value={company.id}>
+                        {company.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Comenzile Trendyol vor fi facturate pe firma selectata
+                </p>
+              </div>
+
+              {/* Webhook Secret */}
+              <div className="grid gap-2">
+                <Label>Secret Webhook (HMAC)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="password"
+                    placeholder="Genereaza sau introdu manual"
+                    value={settings.trendyolWebhookSecret}
+                    onChange={(e) => setSettings({ ...settings, trendyolWebhookSecret: e.target.value })}
+                    className="flex-1"
+                  />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            const res = await fetch("/api/trendyol", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ action: "generateWebhookSecret" }),
+                            });
+                            const data = await res.json();
+                            if (data.success && data.secret) {
+                              setSettings({ ...settings, trendyolWebhookSecret: data.secret });
+                              toast({ title: "Secret generat", description: "Secretul webhook a fost generat. Salveaza pentru a-l activa." });
+                            } else {
+                              toast({ title: "Eroare", description: data.error || "Nu s-a putut genera secretul", variant: "destructive" });
+                            }
+                          } catch (error: unknown) {
+                            const errorMessage = error instanceof Error ? error.message : "Eroare necunoscuta";
+                            toast({ title: "Eroare", description: errorMessage, variant: "destructive" });
+                          }
+                        }}
+                      >
+                        Genereaza
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Genereaza un secret criptografic pentru validarea webhook-urilor
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Acest secret valideaza ca notificarile vin de la Trendyol (HMAC-SHA256)
+                </p>
+              </div>
+
+              {/* Webhook URL */}
+              <div className="grid gap-2">
+                <Label>URL Webhook pentru Trendyol</Label>
+                <div className="flex gap-2">
+                  <code className="flex-1 bg-muted px-3 py-2 rounded-md text-sm font-mono overflow-hidden text-ellipsis">
+                    {typeof window !== 'undefined' ? `${window.location.origin}/api/trendyol/webhook` : '/api/trendyol/webhook'}
+                  </code>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const url = typeof window !== 'undefined' ? `${window.location.origin}/api/trendyol/webhook` : '/api/trendyol/webhook';
+                          navigator.clipboard.writeText(url);
+                          toast({ title: "Copiat", description: "URL-ul a fost copiat in clipboard" });
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Copiaza URL-ul in clipboard
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Configureaza acest URL in panoul Trendyol Partner pentru a primi notificari despre comenzi
+                </p>
+              </div>
+
+              {/* Info box */}
+              <div className="bg-status-info/10 border border-status-info/30 rounded-lg p-4">
+                <p className="text-sm">
+                  <strong>Cum configurezi webhook-ul in Trendyol:</strong><br />
+                  1. Mergi la <a href="https://partner.trendyol.com" target="_blank" rel="noopener noreferrer" className="underline">partner.trendyol.com</a><br />
+                  2. Navigheaza la Integrari API sau Setari Webhook<br />
+                  3. Adauga URL-ul de mai sus si selecteaza evenimentele dorite<br />
+                  4. Salveaza si testeaza notificarile
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Informatii Trendyol</CardTitle>
               <CardDescription>
                 Vizualizează categorii, branduri și alte date din Trendyol
               </CardDescription>
