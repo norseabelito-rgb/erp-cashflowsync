@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 7 - Task Management Core - COMPLETE (with gap closure)
+**Current focus:** Phase 7.1 - Trendyol Complete Integration - IN PROGRESS
 
 ## Current Position
 
-Phase: 7 of 10 (Task Management Core)
-Plan: 5 of 5 complete (including gap closure)
-Status: Phase complete
-Last activity: 2026-01-26 - Completed 07-05-PLAN.md (gap closure)
+Phase: 7.1 of 10 (Trendyol Complete Integration - INSERTED)
+Plan: 1 of 6 (webhook receiver & company association complete)
+Status: In progress
+Last activity: 2026-01-30 - Completed 07.1-01-PLAN.md
 
-Progress: [██████████████████░░] 90%
+Progress: [██████████████████░░] ~72% (7/10 integer phases + 1/6 of 7.1)
 
 ## Phase 7 Progress
 
@@ -31,9 +31,9 @@ Progress: [██████████████████░░] 90%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 32
-- Average duration: ~5.4 minutes
-- Total execution time: ~174 minutes
+- Total plans completed: 33
+- Average duration: ~5.3 minutes
+- Total execution time: ~180 minutes
 
 **By Phase:**
 
@@ -46,6 +46,7 @@ Progress: [██████████████████░░] 90%
 | 05-known-bug-fixes | 4/4 | ~18 min | ~4.5 min |
 | 06-ux-foundation | 6/6 | ~22 min | ~3.7 min |
 | 07-task-management-core | 5/5 | ~28 min | ~5.6 min |
+| 07.1-trendyol-integration | 1/6 | ~6 min | ~6 min |
 
 ## Accumulated Context
 
@@ -53,6 +54,9 @@ Progress: [██████████████████░░] 90%
 
 Recent decisions affecting current work:
 
+- **07.1-01:** trendyolCompanyId uses @unique for one-to-one relation (one company per Trendyol account)
+- **07.1-01:** Webhook validation uses timing-safe comparison to prevent timing attacks
+- **07.1-01:** Process webhook events synchronously for simplicity
 - **07-05:** AlertDialog confirmation before delete (prevent accidental deletion)
 - **07-05:** Show task title in confirmation for user clarity
 - **07-05:** Use status-error color for delete action button
@@ -118,12 +122,33 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 **NEXT:**
-- Start Phase 8: Notifications and Automation
+- Continue Phase 7.1: Plan 07.1-02 (Order table integration with source field)
+- After 7.1: Start Phase 8: Notifications and Automation
+
+### Roadmap Evolution
+
+- Phase 7.1 inserted after Phase 7: Trendyol Complete Integration (URGENT) - 2026-01-30
+  - Reason: Complete Trendyol channel implementation needed now
+  - Existing: ~60-70% foundation (API client, models, product pages)
+  - Missing: webhooks, Order integration, AWB feedback, auto stock sync
+  - Plans created: 6 plans in 5 waves
+
+## Phase 7.1 Progress
+
+| Plan | Wave | Status | Summary |
+|------|------|--------|---------|
+| 07.1-01 | 1 | Complete | Webhook receiver with HMAC validation, company association |
+| 07.1-02 | 2 | Pending | Order table integration with source field |
+| 07.1-03 | 3 | Pending | Invoice auto-send to Trendyol |
+| 07.1-04 | 3 | Pending | AWB tracking auto-send to Trendyol |
+| 07.1-05 | 4 | Pending | Automatic stock & price sync |
+| 07.1-06 | 5 | Pending | Unified dashboard & gap closure |
 
 **DATABASE MIGRATION NEEDED:**
 - Apply `prisma/migrations/manual/add_task_management.sql` to create tasks and task_attachments tables
 - Apply `prisma/migrations/manual/add_bulk_push_job.sql` to create bulk_push_jobs table
 - Run `npx prisma db push` to create return_awbs table (q002)
+- Run `npx prisma db push` to add trendyolWebhookSecret and trendyolCompanyId to settings (07.1-01)
 - Regenerate Prisma client with `npx prisma generate` (permission issue on node_modules/.prisma)
 
 **CRITICAL (Blocheaza munca):**
@@ -140,8 +165,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-01-28
-Stopped at: Completed quick/002-PLAN.md (return AWB mapping)
+Last session: 2026-01-30
+Stopped at: Completed 07.1-01-PLAN.md (Webhook receiver & company association)
 Resume file: None
 
 ## Phase 7 Features
@@ -156,17 +181,17 @@ Task Management Core components:
 
 ## Recent Commits
 
+- `ce0281a` feat(07.1-01): add webhook management actions to Trendyol API
+- `8d973c4` feat(07.1-01): add Trendyol webhook and company settings UI
+- `f40eeab` feat(07.1-01): add webhook registration methods to TrendyolClient
+- `21fc25c` feat(07.1-01): create Trendyol webhook receiver endpoint
+- `52b2ea2` feat(07.1-01): extend Settings schema for Trendyol webhook & company
 - `f034c87` feat(q002): add returns scan page with sidebar navigation
 - `398f7a0` feat(q002): add return AWB scan API and business logic
 - `2170e8b` feat(q002): add ReturnAWB model for return shipment tracking
 - `0dee1cb` feat(q001): add Bulk Push navigation link to products page
 - `e25b8cb` feat(q001): create bulk push UI page with real-time polling
-- `faf2420` feat(q001): create GET /api/products/bulk-push/[jobId] endpoint
-- `9a96009` feat(q001): create POST /api/products/bulk-push endpoint
-- `b57b26b` chore(q001): add BulkPushJob model to Prisma schema
-- `097d5b6` feat(07-05): wire delete button to API with confirmation dialog
-- `b659081` feat(07-04): add tasks navigation entry to sidebar
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-28 (quick/002 complete - return AWB mapping)*
+*Last updated: 2026-01-30 (Completed 07.1-01 - Webhook receiver & company association)*
