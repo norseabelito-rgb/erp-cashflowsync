@@ -8,6 +8,7 @@
 import prisma from "./db";
 import { FanCourierAPI } from "./fancourier";
 import { logWarningOverride, logAWBCreated } from "./activity-log";
+import { sendTrackingToTrendyol } from "./trendyol-awb";
 
 export interface AWBWarning {
   type: "AWB_MISMATCH";
@@ -382,6 +383,15 @@ export async function createAWBForOrder(
     }
 
     console.log(`✅ AWB creat cu succes: ${result.awb}`);
+
+    // If this is a Trendyol order, send tracking number to Trendyol
+    // This is non-blocking - AWB was created successfully regardless
+    if (order.source === "trendyol") {
+      sendTrackingToTrendyol(order.id, result.awb, "fancourier").catch((err) => {
+        console.error("[Trendyol] Failed to send tracking:", err);
+        // Don't throw - AWB was created successfully
+      });
+    }
 
     return {
       success: true,
