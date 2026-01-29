@@ -786,9 +786,9 @@ model Settings {
   trendyolInvoiceSeries  String? // Seria de facturare pentru comenzi Trendyol
 
   // Trendyol Webhook & Company Association
-  trendyolWebhookSecret  String? // HMAC secret for webhook validation
-  trendyolCompanyId      String? @unique // Company associated with this Trendyol account
-  trendyolCompany        Company? @relation("TrendyolCompany", fields: [trendyolCompanyId], references: [id])
+  trendyolWebhookSecret String? // HMAC secret for webhook validation
+  trendyolCompanyId     String?  @unique // Company associated with this Trendyol account
+  trendyolCompany       Company? @relation("TrendyolCompany", fields: [trendyolCompanyId], references: [id])
 
   // Handover (Predare Curier)
   handoverAutoCloseTime String @default("20:00") // Ora finalizării automate (HH:mm)
@@ -2430,6 +2430,12 @@ model TrendyolOrder {
   // Line items
   lineItems TrendyolOrderItem[]
 
+  // Invoice tracking - for sending invoice link back to Trendyol
+  invoiceSentToTrendyol Boolean   @default(false)
+  invoiceSentAt         DateTime?
+  invoiceSendError      String?
+  oblioInvoiceLink      String? // The public link sent to Trendyol
+
   // Timestamps
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -3171,7 +3177,7 @@ model Company {
   invoiceSeries                InvoiceSeries[]
   intercompanyInvoicesIssued   IntercompanyInvoice[] @relation("IssuedBy")
   intercompanyInvoicesReceived IntercompanyInvoice[] @relation("ReceivedBy")
-  trendyolSettings             Settings? @relation("TrendyolCompany")
+  trendyolSettings             Settings?             @relation("TrendyolCompany")
 
   @@index([cif])
   @@index([isPrimary])
@@ -3392,12 +3398,12 @@ model BulkPushJob {
 
 // Status pentru job-uri de publicare bulk
 enum BulkPublishStatus {
-  PENDING              // În așteptare
-  RUNNING              // În curs
-  COMPLETED            // Finalizat cu succes
+  PENDING // În așteptare
+  RUNNING // În curs
+  COMPLETED // Finalizat cu succes
   COMPLETED_WITH_ERRORS // Finalizat dar cu erori
-  FAILED               // Eșuat complet
-  CANCELLED            // Anulat de user
+  FAILED // Eșuat complet
+  CANCELLED // Anulat de user
 }
 
 // Job pentru publicare bulk produse pe canale multiple
@@ -3409,14 +3415,14 @@ model BulkPublishJob {
   status BulkPublishStatus @default(PENDING)
 
   // Input
-  productIds    Json @default("[]") @map("product_ids")   // Array de product IDs
-  channelIds    Json @default("[]") @map("channel_ids")   // Array de channel IDs selectate
+  productIds    Json @default("[]") @map("product_ids") // Array de product IDs
+  channelIds    Json @default("[]") @map("channel_ids") // Array de channel IDs selectate
   totalProducts Int  @default(0) @map("total_products")
   totalChannels Int  @default(0) @map("total_channels")
 
   // Progress global
   processedItems Int @default(0) @map("processed_items") // produse × canale procesate
-  totalItems     Int @default(0) @map("total_items")     // produse × canale total
+  totalItems     Int @default(0) @map("total_items") // produse × canale total
   createdCount   Int @default(0) @map("created_count")
   updatedCount   Int @default(0) @map("updated_count")
   failedCount    Int @default(0) @map("failed_count")
