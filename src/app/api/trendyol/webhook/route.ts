@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import prisma from "@/lib/db";
-import { normalizeStatus } from "@/lib/trendyol-status";
+import { normalizeStatus, mapTrendyolToInternalStatus } from "@/lib/trendyol-status";
+import { syncTrendyolOrderToMainOrder } from "@/lib/trendyol-order-sync";
 
 export const dynamic = "force-dynamic";
 
@@ -149,17 +150,45 @@ async function processWebhookEvent(event: TrendyolWebhookEvent): Promise<{ proce
 
   switch (eventType) {
     case "OrderCreated": {
-      // Queue new order for sync
-      // For now, we log it - full sync will be implemented in Plan 07.1-02
+      // Sync new order to main Order table
       console.log(`[Trendyol Webhook] New order created: ${data.orderNumber}`);
 
-      // Log to a webhook_events table or audit log for tracking
-      // This will be picked up by the order sync job
-      return { processed: true, message: "Order queued for sync" };
+      const settings = await prisma.settings.findFirst();
+      if (!settings) {
+        return { processed: false, message: "Settings not configured" };
+      }
+
+      // Find the TrendyolOrder (should be created by the regular sync job)
+      // or this webhook arrived before the sync job
+      const orderNumber = data.orderNumber;
+      const shipmentPackageId = data.shipmentPackageId?.toString();
+
+      let trendyolOrder = await prisma.trendyolOrder.findFirst({
+        where: shipmentPackageId
+          ? { shipmentPackageId }
+          : { trendyolOrderNumber: orderNumber },
+        include: { lineItems: true },
+      });
+
+      if (trendyolOrder) {
+        // Sync to main Order table
+        try {
+          const order = await syncTrendyolOrderToMainOrder(trendyolOrder, settings);
+          console.log(`[Trendyol Webhook] Synced order ${orderNumber} to Order ${order.id}`);
+          return { processed: true, message: `Order synced: ${order.id}` };
+        } catch (syncError: any) {
+          console.error(`[Trendyol Webhook] Failed to sync order ${orderNumber}:`, syncError);
+          return { processed: false, message: `Sync failed: ${syncError.message}` };
+        }
+      } else {
+        // Order not yet in database - will be synced by regular job
+        console.log(`[Trendyol Webhook] Order ${orderNumber} not in database yet, will be synced later`);
+        return { processed: true, message: "Order queued for sync" };
+      }
     }
 
     case "OrderStatusChanged": {
-      // Update TrendyolOrder status
+      // Update TrendyolOrder status and linked Order
       const orderNumber = data.orderNumber;
       const shipmentPackageId = data.shipmentPackageId?.toString();
       const newStatus = data.status;
@@ -169,22 +198,40 @@ async function processWebhookEvent(event: TrendyolWebhookEvent): Promise<{ proce
         return { processed: false, message: "Missing order identifier" };
       }
 
-      // Find and update the TrendyolOrder
+      // Find and update the TrendyolOrder with linked Order
       const existingOrder = await prisma.trendyolOrder.findFirst({
         where: shipmentPackageId
           ? { shipmentPackageId }
           : { trendyolOrderNumber: orderNumber },
+        include: { order: true },
       });
 
       if (existingOrder && newStatus) {
+        const normalizedStatus = normalizeStatus(newStatus);
+
+        // Update TrendyolOrder status
         await prisma.trendyolOrder.update({
           where: { id: existingOrder.id },
           data: {
-            status: normalizeStatus(newStatus),
+            status: normalizedStatus,
             lastSyncedAt: new Date(),
           },
         });
-        console.log(`[Trendyol Webhook] Updated order ${orderNumber} status to ${newStatus}`);
+
+        // Update linked Order status if exists
+        if (existingOrder.order) {
+          const mappedStatus = mapTrendyolToInternalStatus(normalizedStatus);
+          await prisma.order.update({
+            where: { id: existingOrder.order.id },
+            data: {
+              status: mappedStatus as any,
+            },
+          });
+          console.log(`[Trendyol Webhook] Updated order ${orderNumber} status to ${newStatus} (Order: ${mappedStatus})`);
+        } else {
+          console.log(`[Trendyol Webhook] Updated TrendyolOrder ${orderNumber} status to ${newStatus} (no linked Order)`);
+        }
+
         return { processed: true, message: `Status updated to ${newStatus}` };
       }
 
@@ -205,9 +252,11 @@ async function processWebhookEvent(event: TrendyolWebhookEvent): Promise<{ proce
         where: shipmentPackageId
           ? { shipmentPackageId }
           : { trendyolOrderNumber: orderNumber },
+        include: { order: true },
       });
 
       if (existingOrder) {
+        // Update TrendyolOrder
         await prisma.trendyolOrder.update({
           where: { id: existingOrder.id },
           data: {
@@ -215,6 +264,17 @@ async function processWebhookEvent(event: TrendyolWebhookEvent): Promise<{ proce
             lastSyncedAt: new Date(),
           },
         });
+
+        // Update linked Order if exists
+        if (existingOrder.order) {
+          await prisma.order.update({
+            where: { id: existingOrder.order.id },
+            data: {
+              status: "CANCELLED",
+            },
+          });
+        }
+
         console.log(`[Trendyol Webhook] Order ${orderNumber} marked as cancelled`);
         return { processed: true, message: "Order cancelled" };
       }
@@ -235,9 +295,11 @@ async function processWebhookEvent(event: TrendyolWebhookEvent): Promise<{ proce
         where: shipmentPackageId
           ? { shipmentPackageId }
           : { trendyolOrderNumber: orderNumber },
+        include: { order: true },
       });
 
       if (existingOrder) {
+        // Update TrendyolOrder
         await prisma.trendyolOrder.update({
           where: { id: existingOrder.id },
           data: {
@@ -245,6 +307,17 @@ async function processWebhookEvent(event: TrendyolWebhookEvent): Promise<{ proce
             lastSyncedAt: new Date(),
           },
         });
+
+        // Update linked Order if exists
+        if (existingOrder.order) {
+          await prisma.order.update({
+            where: { id: existingOrder.order.id },
+            data: {
+              status: "RETURNED",
+            },
+          });
+        }
+
         console.log(`[Trendyol Webhook] Order ${orderNumber} marked as returned`);
         return { processed: true, message: "Order returned" };
       }
@@ -253,16 +326,18 @@ async function processWebhookEvent(event: TrendyolWebhookEvent): Promise<{ proce
     }
 
     case "ShipmentDelivered": {
-      // Update tracking info
+      // Update tracking info and mark as delivered
       const shipmentPackageId = data.shipmentPackageId?.toString();
       const trackingNumber = data.trackingNumber;
 
       if (shipmentPackageId) {
         const existingOrder = await prisma.trendyolOrder.findFirst({
           where: { shipmentPackageId },
+          include: { order: true },
         });
 
         if (existingOrder) {
+          // Update TrendyolOrder
           await prisma.trendyolOrder.update({
             where: { id: existingOrder.id },
             data: {
@@ -271,6 +346,17 @@ async function processWebhookEvent(event: TrendyolWebhookEvent): Promise<{ proce
               lastSyncedAt: new Date(),
             },
           });
+
+          // Update linked Order if exists
+          if (existingOrder.order) {
+            await prisma.order.update({
+              where: { id: existingOrder.order.id },
+              data: {
+                status: "DELIVERED",
+              },
+            });
+          }
+
           console.log(`[Trendyol Webhook] Order ${shipmentPackageId} marked as delivered`);
           return { processed: true, message: "Order delivered" };
         }
