@@ -2436,6 +2436,13 @@ model TrendyolOrder {
   invoiceSendError      String?
   oblioInvoiceLink      String? // The public link sent to Trendyol
 
+  // AWB tracking - for sending tracking number back to Trendyol
+  trackingSentToTrendyol Boolean   @default(false)
+  trackingSentAt         DateTime?
+  trackingSendError      String?
+  localAwbNumber         String?   // AWB from FanCourier/Sameday
+  localCarrier           String?   // "fancourier" | "sameday" | etc.
+
   // Timestamps
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
