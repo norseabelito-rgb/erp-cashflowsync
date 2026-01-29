@@ -89,6 +89,7 @@ interface Order {
   id: string;
   shopifyOrderId: string;
   shopifyOrderNumber: string;
+  source: string;
   storeId: string;
   store: { id: string; name: string };
   customerEmail: string | null;
@@ -327,6 +328,7 @@ export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [storeFilter, setStoreFilter] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all"); // "all" | "shopify" | "trendyol"
   const [awbFilter, setAwbFilter] = useState<string>("all"); // "all" | "with" | "without"
   const [awbStatusFilter, setAwbStatusFilter] = useState<string>("all"); // "all" | "tranzit" | "livrat" | "retur" | "pending" | "anulat"
   const [startDate, setStartDate] = useState<string>("");
@@ -392,11 +394,12 @@ export default function OrdersPage() {
   const [selectedDbErrors, setSelectedDbErrors] = useState<string[]>([]);
 
   const { data: ordersData, isLoading: ordersLoading, isError: ordersError, refetch: refetchOrders } = useQuery({
-    queryKey: ["orders", statusFilter, storeFilter, awbFilter, awbStatusFilter, searchQuery, startDate, endDate, page, limit],
+    queryKey: ["orders", statusFilter, storeFilter, sourceFilter, awbFilter, awbStatusFilter, searchQuery, startDate, endDate, page, limit],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (storeFilter !== "all") params.set("storeId", storeFilter);
+      if (sourceFilter !== "all") params.set("source", sourceFilter);
       if (awbFilter === "with") params.set("hasAwb", "true");
       if (awbFilter === "without") params.set("hasAwb", "false");
       if (awbFilter === "with" && awbStatusFilter !== "all") params.set("awbStatus", awbStatusFilter);
@@ -1068,6 +1071,14 @@ export default function OrdersPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={sourceFilter} onValueChange={(v) => { setSourceFilter(v); setPage(1); }}>
+              <SelectTrigger className="w-full sm:w-[140px]"><SelectValue placeholder="Sursa" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate sursele</SelectItem>
+                <SelectItem value="shopify">Shopify</SelectItem>
+                <SelectItem value="trendyol">Trendyol</SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={awbFilter} onValueChange={(v) => { setAwbFilter(v); if (v !== "with") setAwbStatusFilter("all"); setPage(1); }}>
               <SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="AWB" /></SelectTrigger>
               <SelectContent>
@@ -1283,13 +1294,14 @@ export default function OrdersPage() {
                   </>
                 ) : orders.length === 0 ? (
                   (() => {
-                    const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || storeFilter !== "all" || awbFilter !== "all" || awbStatusFilter !== "all" || startDate !== "" || endDate !== "";
+                    const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || storeFilter !== "all" || sourceFilter !== "all" || awbFilter !== "all" || awbStatusFilter !== "all" || startDate !== "" || endDate !== "";
                     const emptyStateType = determineEmptyStateType(hasActiveFilters, ordersError);
                     const emptyConfig = getEmptyState("orders", emptyStateType);
                     const clearFilters = () => {
                       setSearchQuery("");
                       setStatusFilter("all");
                       setStoreFilter("all");
+                      setSourceFilter("all");
                       setAwbFilter("all");
                       setAwbStatusFilter("all");
                       setStartDate("");
@@ -1327,7 +1339,15 @@ export default function OrdersPage() {
                       <td className="p-4" onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedOrders.includes(order.id)} onCheckedChange={() => handleSelectOrder(order.id)} /></td>
                       <td className="p-4">
                         <span className="font-medium">{order.shopifyOrderNumber}</span>
-                        <div className="flex items-center gap-1 mt-1"><Badge variant="outline" className="text-xs">{order.store.name}</Badge></div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <Badge variant="outline" className="text-xs">{order.store.name}</Badge>
+                          <Badge
+                            variant={order.source === "trendyol" ? "secondary" : "default"}
+                            className={cn("text-xs", order.source === "trendyol" ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" : "")}
+                          >
+                            {order.source === "trendyol" ? "Trendyol" : "Shopify"}
+                          </Badge>
+                        </div>
                         <p className="text-xs text-muted-foreground mt-1">{formatDate(order.createdAt)}</p>
                       </td>
                       <td className="p-4">
