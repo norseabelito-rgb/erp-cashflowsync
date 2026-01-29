@@ -726,6 +726,26 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Retry sending AWB tracking for a specific order
+    if (action === "retrySendTracking") {
+      const { orderId } = body;
+
+      if (!orderId) {
+        return NextResponse.json({
+          success: false,
+          error: "orderId is required",
+        });
+      }
+
+      const { retrySendTrackingToTrendyol } = await import("@/lib/trendyol-awb");
+      const result = await retrySendTrackingToTrendyol(orderId);
+
+      return NextResponse.json({
+        success: result.success,
+        error: result.error,
+      });
+    }
+
     return NextResponse.json({
       success: false,
       error: "Unknown action",
