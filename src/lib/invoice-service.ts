@@ -673,6 +673,20 @@ export async function issueInvoiceForOrder(
     const finalFormattedInvoice = `${finalInvoiceSeries}${String(finalInvoiceNumber).padStart(6, "0")}`;
     console.log(`[Invoice] Factura emisa cu succes: ${finalFormattedInvoice}`);
 
+    // 14. Send invoice link to Trendyol (non-blocking, for Trendyol orders only)
+    if (order.source === "trendyol") {
+      const invoiceLink = result.link || `https://oblio.eu/facturi/${finalInvoiceSeries}${finalInvoiceNumber}`;
+      // Dynamic import to avoid circular dependencies
+      import("./trendyol-invoice").then(({ sendInvoiceToTrendyol }) => {
+        sendInvoiceToTrendyol(order.id, invoiceLink).catch(err => {
+          console.error("[Trendyol] Failed to send invoice link:", err);
+          // Non-blocking - invoice was created successfully regardless
+        });
+      }).catch(err => {
+        console.error("[Trendyol] Failed to load trendyol-invoice module:", err);
+      });
+    }
+
     return {
       success: true,
       invoiceNumber: finalInvoiceNumber.toString(),
