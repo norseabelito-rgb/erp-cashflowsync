@@ -111,6 +111,20 @@ interface Order {
   createdAt: string;
   invoice: { id: string; invoiceNumber: string | null; invoiceSeriesName: string | null; oblioId: string | null; status: string; errorMessage: string | null } | null;
   awb: { id: string; awbNumber: string; currentStatus: string; currentStatusDate: string | null; errorMessage: string | null } | null;
+  trendyolOrder?: {
+    id: string;
+    trendyolOrderNumber: string;
+    shipmentPackageId: string | null;
+    invoiceSentToTrendyol: boolean;
+    invoiceSentAt: string | null;
+    invoiceSendError: string | null;
+    oblioInvoiceLink: string | null;
+    trackingSentToTrendyol: boolean;
+    trackingSentAt: string | null;
+    trackingSendError: string | null;
+    localAwbNumber: string | null;
+    localCarrier: string | null;
+  } | null;
   lineItems?: Array<{
     id: string;
     title: string;
@@ -2099,6 +2113,60 @@ export default function OrdersPage() {
                   )}
                 </div>
               </div>
+
+              {/* Trendyol Invoice Status - only show for Trendyol orders */}
+              {viewOrder.source === "trendyol" && viewOrder.invoice?.status === "issued" && (
+                <div className="p-4 rounded-lg border bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2 text-orange-700 dark:text-orange-300">
+                    <ExternalLink className="h-4 w-4" />
+                    Status Trendyol
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-orange-900 dark:text-orange-200">Factura trimisa:</span>
+                    {viewOrder.trendyolOrder?.invoiceSentToTrendyol ? (
+                      <Badge variant="success" className="gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Da
+                      </Badge>
+                    ) : viewOrder.trendyolOrder?.invoiceSendError ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="destructive" className="gap-1 cursor-help">
+                              <XCircle className="h-3 w-3" />
+                              Eroare
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p className="text-sm">{viewOrder.trendyolOrder.invoiceSendError}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <Badge variant="secondary" className="gap-1">
+                        <Clock className="h-3 w-3" />
+                        In asteptare
+                      </Badge>
+                    )}
+                  </div>
+                  {viewOrder.trendyolOrder?.invoiceSentAt && (
+                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-2">
+                      Trimisa la: {new Date(viewOrder.trendyolOrder.invoiceSentAt).toLocaleString('ro-RO')}
+                    </p>
+                  )}
+                  {viewOrder.trendyolOrder?.oblioInvoiceLink && (
+                    <a
+                      href={viewOrder.trendyolOrder.oblioInvoiceLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-orange-600 dark:text-orange-400 mt-1 hover:underline flex items-center gap-1"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Vezi factura
+                    </a>
+                  )}
+                </div>
+              )}
 
               {/* Produse comandă */}
               <div>
