@@ -44,10 +44,12 @@ export async function GET() {
       },
     });
 
-    // Adaugă flag pentru hasOblioCredentials la fiecare store
+    // Adaugă flag pentru hasOblioCredentials și hasWebhookSecret la fiecare store
     const storesWithFlags = stores.map(store => ({
       ...store,
+      webhookSecret: undefined, // Nu expunem secretul
       hasOblioCredentials: !!(store.company?.oblioEmail && store.company?.oblioSecretToken),
+      hasWebhookSecret: !!store.webhookSecret,
       company: store.company ? {
         id: store.company.id,
         name: store.company.name,

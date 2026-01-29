@@ -11,6 +11,9 @@ import {
   CheckCircle2,
   XCircle,
   RefreshCw,
+  Webhook,
+  Copy,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +53,7 @@ interface StoreData {
   name: string;
   shopifyDomain: string;
   isActive: boolean;
+  hasWebhookSecret: boolean;
   createdAt: string;
   _count: {
     orders: number;
@@ -60,6 +64,7 @@ interface StoreFormData {
   name: string;
   shopifyDomain: string;
   accessToken: string;
+  webhookSecret: string;
 }
 
 export default function StoresPage() {
@@ -72,6 +77,7 @@ export default function StoresPage() {
     name: "",
     shopifyDomain: "",
     accessToken: "",
+    webhookSecret: "",
   });
 
   // Fetch stores
@@ -251,6 +257,7 @@ export default function StoresPage() {
       name: "",
       shopifyDomain: "",
       accessToken: "",
+      webhookSecret: "",
     });
   };
 
@@ -260,6 +267,7 @@ export default function StoresPage() {
       name: store.name,
       shopifyDomain: store.shopifyDomain,
       accessToken: "", // Nu afișăm token-ul existent
+      webhookSecret: "", // Nu afișăm secretul existent
     });
     setDialogOpen(true);
   };
@@ -274,6 +282,9 @@ export default function StoresPage() {
       };
       if (formData.accessToken) {
         updateData.accessToken = formData.accessToken;
+      }
+      if (formData.webhookSecret) {
+        updateData.webhookSecret = formData.webhookSecret;
       }
       updateMutation.mutate({ id: selectedStore.id, data: updateData });
     } else {
@@ -372,6 +383,58 @@ export default function StoresPage() {
                     Token-ul Admin API din Shopify (cu permisiuni pentru comenzi)
                   </p>
                 </div>
+
+                {/* Webhook Secret - doar la editare */}
+                {selectedStore && (
+                  <div className="grid gap-2 pt-4 border-t">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="webhookSecret">Webhook Secret</Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-xs">
+                          <p>Secretul pentru verificarea webhook-urilor. Îl găsești în Shopify Admin → Settings → Notifications → Webhooks.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <Input
+                      id="webhookSecret"
+                      type="password"
+                      placeholder={selectedStore.hasWebhookSecret ? "Lasă gol pentru a păstra secretul existent" : "Introdu secretul webhook..."}
+                      value={formData.webhookSecret}
+                      onChange={(e) =>
+                        setFormData({ ...formData, webhookSecret: e.target.value })
+                      }
+                    />
+                    <div className="p-3 bg-muted rounded-md space-y-2">
+                      <p className="text-xs font-medium">URL Webhook pentru Shopify:</p>
+                      <div className="flex items-center gap-2">
+                        <code className="text-xs bg-background px-2 py-1 rounded flex-1 overflow-hidden text-ellipsis">
+                          {typeof window !== 'undefined' ? `${window.location.origin}/api/webhooks/shopify` : '/api/webhooks/shopify'}
+                        </code>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const url = `${window.location.origin}/api/webhooks/shopify`;
+                            navigator.clipboard.writeText(url);
+                            toast({
+                              title: "Copiat",
+                              description: "URL-ul a fost copiat în clipboard.",
+                            });
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Configurează acest URL în Shopify pentru: Order creation, Order update, Order cancellation
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <DialogFooter>
@@ -458,23 +521,40 @@ export default function StoresPage() {
                       </CardDescription>
                     </div>
                   </div>
-                  <Badge
-                    variant={store.isActive ? "success" : "neutral"}
-                    className="cursor-pointer"
-                    onClick={() => handleToggleActive(store)}
-                  >
-                    {store.isActive ? (
-                      <>
-                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                        Activ
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="h-3 w-3 mr-1" />
-                        Inactiv
-                      </>
-                    )}
-                  </Badge>
+                  <div className="flex items-center gap-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge
+                          variant={store.hasWebhookSecret ? "success" : "outline"}
+                          className="cursor-help"
+                        >
+                          <Webhook className="h-3 w-3" />
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        {store.hasWebhookSecret
+                          ? "Webhook configurat - comenzile se sincronizează în timp real"
+                          : "Webhook neconfigurat - click pe Editează pentru configurare"}
+                      </TooltipContent>
+                    </Tooltip>
+                    <Badge
+                      variant={store.isActive ? "success" : "neutral"}
+                      className="cursor-pointer"
+                      onClick={() => handleToggleActive(store)}
+                    >
+                      {store.isActive ? (
+                        <>
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          Activ
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="h-3 w-3 mr-1" />
+                          Inactiv
+                        </>
+                      )}
+                    </Badge>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>

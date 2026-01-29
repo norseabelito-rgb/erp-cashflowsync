@@ -8,7 +8,7 @@ async function updateStore(
 ) {
   try {
     const body = await request.json();
-    const { name, shopifyDomain, accessToken, isActive, companyId, invoiceSeriesId } = body;
+    const { name, shopifyDomain, accessToken, isActive, companyId, invoiceSeriesId, webhookSecret } = body;
 
     const updateData: any = {};
 
@@ -18,6 +18,8 @@ async function updateStore(
     if (isActive !== undefined) updateData.isActive = isActive;
     // companyId poate fi null pentru a dezasocia
     if (companyId !== undefined) updateData.companyId = companyId;
+    // webhookSecret poate fi null pentru a dezactiva verificarea
+    if (webhookSecret !== undefined) updateData.webhookSecret = webhookSecret || null;
 
     // Handle invoiceSeriesId with validation
     if (invoiceSeriesId !== undefined) {
