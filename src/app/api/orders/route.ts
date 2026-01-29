@@ -157,6 +157,22 @@ export async function GET(request: NextRequest) {
             errorMessage: true,
           },
         },
+        trendyolOrder: {
+          select: {
+            id: true,
+            trendyolOrderNumber: true,
+            shipmentPackageId: true,
+            invoiceSentToTrendyol: true,
+            invoiceSentAt: true,
+            invoiceSendError: true,
+            oblioInvoiceLink: true,
+            trackingSentToTrendyol: true,
+            trackingSentAt: true,
+            trackingSendError: true,
+            localAwbNumber: true,
+            localCarrier: true,
+          },
+        },
         lineItems: true,
       },
       orderBy: {

@@ -2114,57 +2114,135 @@ export default function OrdersPage() {
                 </div>
               </div>
 
-              {/* Trendyol Invoice Status - only show for Trendyol orders */}
-              {viewOrder.source === "trendyol" && viewOrder.invoice?.status === "issued" && (
+              {/* Trendyol Status - only show for Trendyol orders when invoice is issued or AWB exists */}
+              {viewOrder.source === "trendyol" && (viewOrder.invoice?.status === "issued" || viewOrder.awb?.awbNumber) && (
                 <div className="p-4 rounded-lg border bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800">
-                  <h4 className="font-semibold mb-2 flex items-center gap-2 text-orange-700 dark:text-orange-300">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2 text-orange-700 dark:text-orange-300">
                     <ExternalLink className="h-4 w-4" />
                     Status Trendyol
                   </h4>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-orange-900 dark:text-orange-200">Factura trimisa:</span>
-                    {viewOrder.trendyolOrder?.invoiceSentToTrendyol ? (
-                      <Badge variant="success" className="gap-1">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Da
-                      </Badge>
-                    ) : viewOrder.trendyolOrder?.invoiceSendError ? (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Badge variant="destructive" className="gap-1 cursor-help">
-                              <XCircle className="h-3 w-3" />
-                              Eroare
+                  <div className="space-y-3">
+                    {/* Invoice status */}
+                    {viewOrder.invoice?.status === "issued" && (
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-orange-900 dark:text-orange-200">Factura trimisa:</span>
+                          {viewOrder.trendyolOrder?.invoiceSentToTrendyol ? (
+                            <Badge variant="success" className="gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Da
                             </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <p className="text-sm">{viewOrder.trendyolOrder.invoiceSendError}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ) : (
-                      <Badge variant="secondary" className="gap-1">
-                        <Clock className="h-3 w-3" />
-                        In asteptare
-                      </Badge>
+                          ) : viewOrder.trendyolOrder?.invoiceSendError ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="destructive" className="gap-1 cursor-help">
+                                    <XCircle className="h-3 w-3" />
+                                    Eroare
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-sm">{viewOrder.trendyolOrder.invoiceSendError}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <Badge variant="secondary" className="gap-1">
+                              <Clock className="h-3 w-3" />
+                              In asteptare
+                            </Badge>
+                          )}
+                        </div>
+                        {viewOrder.trendyolOrder?.invoiceSentAt && (
+                          <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                            Trimisa la: {new Date(viewOrder.trendyolOrder.invoiceSentAt).toLocaleString('ro-RO')}
+                          </p>
+                        )}
+                        {viewOrder.trendyolOrder?.oblioInvoiceLink && (
+                          <a
+                            href={viewOrder.trendyolOrder.oblioInvoiceLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-orange-600 dark:text-orange-400 mt-1 hover:underline flex items-center gap-1"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Vezi factura
+                          </a>
+                        )}
+                      </div>
+                    )}
+
+                    {/* AWB tracking status */}
+                    {viewOrder.awb?.awbNumber && (
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-orange-900 dark:text-orange-200">AWB trimis:</span>
+                          {viewOrder.trendyolOrder?.trackingSentToTrendyol ? (
+                            <Badge variant="success" className="gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Da ({viewOrder.trendyolOrder.localAwbNumber})
+                            </Badge>
+                          ) : viewOrder.trendyolOrder?.trackingSendError ? (
+                            <div className="flex items-center gap-2">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="destructive" className="gap-1 cursor-help">
+                                      <XCircle className="h-3 w-3" />
+                                      Eroare
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <p className="text-sm">{viewOrder.trendyolOrder.trackingSendError}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2 text-xs"
+                                onClick={() => {
+                                  fetch("/api/trendyol", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ action: "retrySendTracking", orderId: viewOrder.id }),
+                                  })
+                                    .then(res => res.json())
+                                    .then(data => {
+                                      if (data.success) {
+                                        toast({ title: "Succes", description: "AWB trimis catre Trendyol" });
+                                        // Refresh order data
+                                        fetch(`/api/orders/${viewOrder.id}`).then(res => res.json()).then(orderData => {
+                                          if (orderData.order) setViewOrder(orderData.order);
+                                        });
+                                      } else {
+                                        toast({ title: "Eroare", description: data.error || "Nu s-a putut trimite AWB", variant: "destructive" });
+                                      }
+                                    })
+                                    .catch(() => {
+                                      toast({ title: "Eroare", description: "Eroare de retea", variant: "destructive" });
+                                    });
+                                }}
+                              >
+                                <RotateCcw className="h-3 w-3 mr-1" />
+                                Reincearca
+                              </Button>
+                            </div>
+                          ) : (
+                            <Badge variant="secondary" className="gap-1">
+                              <Clock className="h-3 w-3" />
+                              In asteptare
+                            </Badge>
+                          )}
+                        </div>
+                        {viewOrder.trendyolOrder?.trackingSentAt && (
+                          <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                            Trimis la: {new Date(viewOrder.trendyolOrder.trackingSentAt).toLocaleString('ro-RO')}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
-                  {viewOrder.trendyolOrder?.invoiceSentAt && (
-                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-2">
-                      Trimisa la: {new Date(viewOrder.trendyolOrder.invoiceSentAt).toLocaleString('ro-RO')}
-                    </p>
-                  )}
-                  {viewOrder.trendyolOrder?.oblioInvoiceLink && (
-                    <a
-                      href={viewOrder.trendyolOrder.oblioInvoiceLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-orange-600 dark:text-orange-400 mt-1 hover:underline flex items-center gap-1"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      Vezi factura
-                    </a>
-                  )}
                 </div>
               )}
 
