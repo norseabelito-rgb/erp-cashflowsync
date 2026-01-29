@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.1 of 10 (Trendyol Complete Integration - INSERTED)
-Plan: 2 of 6 (order table integration complete)
+Plan: 4 of 6 (Wave 3 complete)
 Status: In progress
-Last activity: 2026-01-30 - Completed 07.1-02-PLAN.md
+Last activity: 2026-01-30 - Completed 07.1-04-PLAN.md
 
-Progress: [██████████████████░░] ~73% (7/10 integer phases + 2/6 of 7.1)
+Progress: [██████████████████░░] ~77% (7/10 integer phases + 4/6 of 7.1)
 
 ## Phase 7 Progress
 
@@ -46,7 +46,7 @@ Progress: [██████████████████░░] ~73% (7
 | 05-known-bug-fixes | 4/4 | ~18 min | ~4.5 min |
 | 06-ux-foundation | 6/6 | ~22 min | ~3.7 min |
 | 07-task-management-core | 5/5 | ~28 min | ~5.6 min |
-| 07.1-trendyol-integration | 2/6 | ~14 min | ~7 min |
+| 07.1-trendyol-integration | 4/6 | ~28 min | ~7 min |
 
 ## Accumulated Context
 
@@ -54,6 +54,9 @@ Progress: [██████████████████░░] ~73% (7
 
 Recent decisions affecting current work:
 
+- **07.1-04:** Non-blocking tracking sends - AWB creation succeeds even if Trendyol fails
+- **07.1-04:** FanCourier as default carrier for retry logic
+- **07.1-04:** TrendyolOrder.status set to 'Shipped' after successful tracking send
 - **07.1-02:** Keep shopifyOrderId/shopifyOrderNumber names for backward compat (Trendyol uses same fields)
 - **07.1-02:** Virtual store per Trendyol supplier ID (Store required for Order)
 - **07.1-02:** Trendyol orders default to PASSED validation status (Trendyol validates)
@@ -126,7 +129,7 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 **NEXT:**
-- Continue Phase 7.1: Plan 07.1-03 (Invoice auto-send to Trendyol)
+- Continue Phase 7.1: Plan 07.1-05 (Automatic stock & price sync)
 - After 7.1: Start Phase 8: Notifications and Automation
 
 ### Roadmap Evolution
@@ -143,8 +146,8 @@ Recent decisions affecting current work:
 |------|------|--------|---------|
 | 07.1-01 | 1 | Complete | Webhook receiver with HMAC validation, company association |
 | 07.1-02 | 2 | Complete | Order table integration with source field + sync service |
-| 07.1-03 | 3 | Pending | Invoice auto-send to Trendyol |
-| 07.1-04 | 3 | Pending | AWB tracking auto-send to Trendyol |
+| 07.1-03 | 3 | Complete | Invoice auto-send to Trendyol |
+| 07.1-04 | 3 | Complete | AWB tracking auto-send to Trendyol |
 | 07.1-05 | 4 | Pending | Automatic stock & price sync |
 | 07.1-06 | 5 | Pending | Unified dashboard & gap closure |
 
@@ -154,6 +157,7 @@ Recent decisions affecting current work:
 - Run `npx prisma db push` to create return_awbs table (q002)
 - Run `npx prisma db push` to add trendyolWebhookSecret and trendyolCompanyId to settings (07.1-01)
 - Run `npx prisma migrate dev --name add_order_source_field` to add source field to orders (07.1-02)
+- Run `npx prisma db push` to add AWB tracking fields to TrendyolOrder (07.1-04)
 - Regenerate Prisma client with `npx prisma generate` (permission issue on node_modules/.prisma)
 
 **CRITICAL (Blocheaza munca):**
@@ -171,7 +175,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed 07.1-02-PLAN.md (Order table integration)
+Stopped at: Completed 07.1-04-PLAN.md (AWB tracking auto-send)
 Resume file: None
 
 ## Phase 7 Features
@@ -186,17 +190,17 @@ Task Management Core components:
 
 ## Recent Commits
 
+- `314b55e` feat(07.1-04): update TrendyolOrder status to Shipped after tracking sent
+- `c4ac4f1` feat(07.1-04): add retrySendTracking API endpoint
+- `e75cf6e` feat(07.1-04): add AWB tracking status to order detail UI
+- `5ac3b26` feat(07.1-04): hook Trendyol tracking into AWB creation flow
+- `0f8c4e3` feat(07.1-04): create Trendyol AWB send service
+- `a5a2798` feat(07.1-04): create courier name mapping for Trendyol
+- `c014860` feat(07.1-04): add AWB tracking fields to TrendyolOrder schema
 - `1327973` feat(07.1-02): add source filter to orders API
 - `678abf5` feat(07.1-02): add source filter and badge to orders page
 - `4e9effc` feat(07.1-02): update webhook handler to sync orders to main Order table
-- `126bc6d` feat(07.1-02): create Trendyol order sync service
-- `38fed07` feat(07.1-02): add source field to Order schema for multi-source support
-- `ce0281a` feat(07.1-01): add webhook management actions to Trendyol API
-- `8d973c4` feat(07.1-01): add Trendyol webhook and company settings UI
-- `f40eeab` feat(07.1-01): add webhook registration methods to TrendyolClient
-- `21fc25c` feat(07.1-01): create Trendyol webhook receiver endpoint
-- `52b2ea2` feat(07.1-01): extend Settings schema for Trendyol webhook & company
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-30 (Completed 07.1-02 - Order table integration)*
+*Last updated: 2026-01-30 (Completed 07.1-04 - AWB tracking auto-send)*
