@@ -576,6 +576,83 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Generate webhook secret (cryptographically random)
+    if (action === "generateWebhookSecret") {
+      const crypto = await import("crypto");
+      const secret = crypto.randomBytes(32).toString("hex");
+
+      // Save to settings
+      await prisma.settings.upsert({
+        where: { id: "default" },
+        update: { trendyolWebhookSecret: secret },
+        create: { id: "default", trendyolWebhookSecret: secret },
+      });
+
+      return NextResponse.json({
+        success: true,
+        secret,
+        message: "Webhook secret generated and saved",
+      });
+    }
+
+    // Register webhook with Trendyol
+    if (action === "registerWebhook") {
+      const { callbackUrl, events } = body;
+
+      if (!callbackUrl) {
+        return NextResponse.json({
+          success: false,
+          error: "callbackUrl is required",
+        });
+      }
+
+      const defaultEvents = [
+        "OrderCreated",
+        "OrderStatusChanged",
+        "OrderCancelled",
+        "OrderReturned",
+        "ShipmentDelivered",
+      ];
+
+      const result = await client.registerWebhook(callbackUrl, events || defaultEvents);
+
+      return NextResponse.json({
+        success: result.success,
+        webhookId: result.data?.webhookId,
+        error: result.error,
+      });
+    }
+
+    // List registered webhooks
+    if (action === "listWebhooks") {
+      const result = await client.listWebhooks();
+
+      return NextResponse.json({
+        success: result.success,
+        webhooks: result.data?.webhooks || [],
+        error: result.error,
+      });
+    }
+
+    // Unregister webhook
+    if (action === "unregisterWebhook") {
+      const { webhookId } = body;
+
+      if (!webhookId) {
+        return NextResponse.json({
+          success: false,
+          error: "webhookId is required",
+        });
+      }
+
+      const result = await client.deleteWebhook(webhookId);
+
+      return NextResponse.json({
+        success: result.success,
+        error: result.error,
+      });
+    }
+
     return NextResponse.json({
       success: false,
       error: "Unknown action",
