@@ -7,7 +7,7 @@ import {
   Store, Calculator, Truck, Plus, Trash2, Copy, Edit2,
   Download, Apple, Monitor, Package, FolderOpen, Wifi, WifiOff,
   ShoppingBag, Search, ExternalLink, Sparkles, Brain, Clock, Zap,
-  HardDrive, Upload, Database
+  HardDrive, Upload, Database, Webhook, Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,6 +102,7 @@ interface StoreType {
   name: string;
   shopifyDomain: string;
   isActive: boolean;
+  hasWebhookSecret: boolean;
   createdAt: string;
   companyId: string | null;
   company: { id: string; name: string } | null;
@@ -141,6 +142,7 @@ export default function SettingsPage() {
   const [editingStore, setEditingStore] = useState<StoreType | null>(null);
   const [editStoreCompanyId, setEditStoreCompanyId] = useState<string | null>(null);
   const [editStoreSeriesId, setEditStoreSeriesId] = useState<string | null>(null);
+  const [editStoreWebhookSecret, setEditStoreWebhookSecret] = useState<string>("");
 
   const [settings, setSettings] = useState<Settings>({
     fancourierClientId: "",
@@ -352,14 +354,18 @@ export default function SettingsPage() {
 
   // Update store (pentru asociere cu firma si serie)
   const updateStoreMutation = useMutation({
-    mutationFn: async (data: { storeId: string; companyId: string | null; invoiceSeriesId?: string | null }) => {
+    mutationFn: async (data: { storeId: string; companyId: string | null; invoiceSeriesId?: string | null; webhookSecret?: string }) => {
+      const payload: Record<string, unknown> = {
+        companyId: data.companyId,
+        invoiceSeriesId: data.invoiceSeriesId ?? null,
+      };
+      if (data.webhookSecret) {
+        payload.webhookSecret = data.webhookSecret;
+      }
       const res = await fetch(`/api/stores/${data.storeId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyId: data.companyId,
-          invoiceSeriesId: data.invoiceSeriesId ?? null,
-        }),
+        body: JSON.stringify(payload),
       });
       return res.json();
     },
@@ -380,6 +386,7 @@ export default function SettingsPage() {
     setEditingStore(store);
     setEditStoreCompanyId(store.companyId);
     setEditStoreSeriesId(store.invoiceSeriesId);
+    setEditStoreWebhookSecret("");
     setEditStoreDialogOpen(true);
   };
 
@@ -457,6 +464,7 @@ export default function SettingsPage() {
                       <TableHead>Domeniu Shopify</TableHead>
                       <TableHead>Firmă Facturare</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Webhook</TableHead>
                       <TableHead>Comenzi</TableHead>
                       <TableHead className="text-right">Acțiuni</TableHead>
                     </TableRow>
@@ -481,6 +489,21 @@ export default function SettingsPage() {
                           <Badge variant={store.isActive ? "success" : "neutral"}>
                             {store.isActive ? "Activ" : "Inactiv"}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant={store.hasWebhookSecret ? "success" : "outline"} className="cursor-help">
+                                <Webhook className="h-3 w-3 mr-1" />
+                                {store.hasWebhookSecret ? "Activ" : "Neconfigurat"}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {store.hasWebhookSecret
+                                ? "Webhook configurat - comenzile se sincronizează în timp real"
+                                : "Click pe Editează pentru a configura webhook-ul"}
+                            </TooltipContent>
+                          </Tooltip>
                         </TableCell>
                         <TableCell>{store._count?.orders || 0}</TableCell>
                         <TableCell className="text-right">
@@ -1661,6 +1684,60 @@ export default function SettingsPage() {
                 </p>
               </div>
             )}
+
+            {/* Webhook Secret pentru sincronizare în timp real */}
+            <div className="grid gap-2 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="webhookSecret" className="flex items-center gap-2">
+                  <Webhook className="h-4 w-4" />
+                  Webhook Secret
+                </Label>
+                {editingStore?.hasWebhookSecret && (
+                  <Badge variant="success" className="text-xs">Configurat</Badge>
+                )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-xs">
+                    <p>Secretul pentru verificarea webhook-urilor. Îl găsești în Shopify Admin → Settings → Notifications → Webhooks (la sfârșitul paginii).</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <Input
+                id="webhookSecret"
+                type="password"
+                placeholder={editingStore?.hasWebhookSecret ? "Lasă gol pentru a păstra secretul existent" : "Introdu secretul webhook..."}
+                value={editStoreWebhookSecret}
+                onChange={(e) => setEditStoreWebhookSecret(e.target.value)}
+              />
+              <div className="p-3 bg-muted rounded-md space-y-2">
+                <p className="text-xs font-medium">URL Webhook pentru Shopify:</p>
+                <div className="flex items-center gap-2">
+                  <code className="text-xs bg-background px-2 py-1 rounded flex-1 overflow-hidden text-ellipsis">
+                    {typeof window !== 'undefined' ? `${window.location.origin}/api/webhooks/shopify` : '/api/webhooks/shopify'}
+                  </code>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const url = `${window.location.origin}/api/webhooks/shopify`;
+                      navigator.clipboard.writeText(url);
+                      toast({
+                        title: "Copiat",
+                        description: "URL-ul a fost copiat în clipboard.",
+                      });
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Configurează acest URL în Shopify pentru: Order creation, Order update, Order cancellation
+                </p>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditStoreDialogOpen(false)}>
@@ -1673,6 +1750,7 @@ export default function SettingsPage() {
                     storeId: editingStore.id,
                     companyId: editStoreCompanyId,
                     invoiceSeriesId: editStoreSeriesId,
+                    webhookSecret: editStoreWebhookSecret || undefined,
                   });
                 }
               }}
