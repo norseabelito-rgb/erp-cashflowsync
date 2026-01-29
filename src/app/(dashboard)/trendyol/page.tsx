@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { 
-  ShoppingBag, RefreshCw, Search, ChevronLeft, ChevronRight, 
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  ShoppingBag, RefreshCw, Search, ChevronLeft, ChevronRight,
   Package, AlertCircle, CheckCircle2, Clock, XCircle,
-  ExternalLink, Settings, FolderTree, Upload
+  ExternalLink, Settings, FolderTree, Upload, Loader2, ArrowUpDown
 } from "lucide-react";
 import {
   Tooltip,
@@ -42,10 +43,20 @@ interface TrendyolProduct {
   images?: Array<{ url: string }>;
 }
 
+interface SyncResult {
+  success: boolean;
+  synced: number;
+  failed: number;
+  errors: string[];
+  batchRequestId?: string;
+}
+
 export default function TrendyolProductsPage() {
   const [page, setPage] = useState(0);
   const [searchBarcode, setSearchBarcode] = useState("");
   const [filterApproved, setFilterApproved] = useState<string>("all");
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const pageSize = 20;
 
   // Verifică dacă Trendyol e configurat
@@ -78,6 +89,31 @@ export default function TrendyolProductsPage() {
   const products: TrendyolProduct[] = data?.products || [];
   const total = data?.total || 0;
   const totalPages = Math.ceil(total / pageSize);
+
+  // Sync all products to Trendyol
+  const handleSyncAll = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+
+    try {
+      const response = await fetch("/api/trendyol", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "syncInventory" }),
+      });
+      const result = await response.json();
+      setSyncResult(result);
+    } catch (error) {
+      setSyncResult({
+        success: false,
+        synced: 0,
+        failed: 0,
+        errors: ["Eroare la sincronizare"],
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const getStatusBadge = (product: TrendyolProduct) => {
     if (product.rejected) {
@@ -141,18 +177,44 @@ export default function TrendyolProductsPage() {
           <Link href="/trendyol/publish">
             <Button size="sm" className="md:size-default">
               <Upload className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Publică Produse</span>
+              <span className="hidden md:inline">Publica Produse</span>
             </Button>
           </Link>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="outline" size="sm" className="md:size-default" onClick={() => refetch()} disabled={isFetching}>
-                <RefreshCw className={`h-4 w-4 md:mr-2 ${isFetching ? 'animate-spin' : ''}`} />
-                <span className="hidden md:inline">Reîncarcă</span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="md:size-default"
+                onClick={handleSyncAll}
+                disabled={syncing}
+              >
+                {syncing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin md:mr-2" />
+                    <span className="hidden md:inline">Se sincronizeaza...</span>
+                  </>
+                ) : (
+                  <>
+                    <ArrowUpDown className="h-4 w-4 md:mr-2" />
+                    <span className="hidden md:inline">Sincronizeaza stoc</span>
+                  </>
+                )}
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-xs">
-              <p>Reîncarcă lista de produse din Trendyol.</p>
+              <p>Sincronizeaza stocul si preturile catre Trendyol pentru toate produsele aprobate.</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="sm" className="md:size-default" onClick={() => refetch()} disabled={isFetching}>
+                <RefreshCw className={`h-4 w-4 md:mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+                <span className="hidden md:inline">Reincarca</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs">
+              <p>Reincarca lista de produse din Trendyol.</p>
             </TooltipContent>
           </Tooltip>
           <Link href="https://partner.trendyol.com" target="_blank">
@@ -162,6 +224,22 @@ export default function TrendyolProductsPage() {
           </Link>
         </div>
       </div>
+
+      {/* Sync Result Alert */}
+      {syncResult && (
+        <Alert variant={syncResult.success ? "default" : "destructive"}>
+          {syncResult.success ? (
+            <CheckCircle2 className="h-4 w-4" />
+          ) : (
+            <AlertCircle className="h-4 w-4" />
+          )}
+          <AlertDescription>
+            {syncResult.success
+              ? `Sincronizat cu succes: ${syncResult.synced} produse`
+              : `Eroare: ${syncResult.errors.join(", ")}${syncResult.failed > 0 ? ` (${syncResult.failed} produse esuate)` : ""}`}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
