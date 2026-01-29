@@ -653,6 +653,79 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Retry sending invoice for a specific order
+    if (action === "retrySendInvoice") {
+      const { orderId } = body;
+
+      if (!orderId) {
+        return NextResponse.json({
+          success: false,
+          error: "orderId is required",
+        });
+      }
+
+      // Get the TrendyolOrder and check if there's an invoice link to retry
+      const trendyolOrder = await prisma.trendyolOrder.findFirst({
+        where: { orderId },
+        include: {
+          order: {
+            include: { invoice: true }
+          }
+        }
+      });
+
+      if (!trendyolOrder) {
+        return NextResponse.json({
+          success: false,
+          error: "Not a Trendyol order or order not found",
+        }, { status: 404 });
+      }
+
+      if (!trendyolOrder.oblioInvoiceLink) {
+        return NextResponse.json({
+          success: false,
+          error: "No invoice link available - invoice may not have been issued yet",
+        }, { status: 400 });
+      }
+
+      // Import and call the send function
+      const { sendInvoiceToTrendyol } = await import("@/lib/trendyol-invoice");
+      const retryResult = await sendInvoiceToTrendyol(orderId, trendyolOrder.oblioInvoiceLink);
+
+      return NextResponse.json({
+        success: retryResult.success,
+        error: retryResult.error,
+        orderNumber: trendyolOrder.trendyolOrderNumber,
+      });
+    }
+
+    // Retry all failed invoice sends
+    if (action === "retryAllFailedInvoices") {
+      const { retryFailedInvoiceSends } = await import("@/lib/trendyol-invoice");
+      const result = await retryFailedInvoiceSends();
+
+      return NextResponse.json({
+        success: result.failed === 0 && result.total > 0,
+        total: result.total,
+        successCount: result.success,
+        failedCount: result.failed,
+        errors: result.errors,
+      });
+    }
+
+    // Get pending/failed invoice sends
+    if (action === "getPendingInvoiceSends") {
+      const { getPendingInvoiceSends } = await import("@/lib/trendyol-invoice");
+      const result = await getPendingInvoiceSends();
+
+      return NextResponse.json({
+        success: true,
+        pending: result.pending,
+        failed: result.failed,
+        orders: result.orders,
+      });
+    }
+
     return NextResponse.json({
       success: false,
       error: "Unknown action",
