@@ -783,6 +783,11 @@ model Settings {
   trendyolStoreFrontCode String? // Codul țării: RO, DE, BG, etc.
   trendyolInvoiceSeries  String? // Seria de facturare pentru comenzi Trendyol
 
+  // Trendyol Webhook & Company Association
+  trendyolWebhookSecret  String? // HMAC secret for webhook validation
+  trendyolCompanyId      String? @unique // Company associated with this Trendyol account
+  trendyolCompany        Company? @relation("TrendyolCompany", fields: [trendyolCompanyId], references: [id])
+
   // Handover (Predare Curier)
   handoverAutoCloseTime String @default("20:00") // Ora finalizării automate (HH:mm)
   handoverTimezone      String @default("Europe/Bucharest") // Timezone
@@ -3164,6 +3169,7 @@ model Company {
   invoiceSeries                InvoiceSeries[]
   intercompanyInvoicesIssued   IntercompanyInvoice[] @relation("IssuedBy")
   intercompanyInvoicesReceived IntercompanyInvoice[] @relation("ReceivedBy")
+  trendyolSettings             Settings? @relation("TrendyolCompany")
 
   @@index([cif])
   @@index([isPrimary])
