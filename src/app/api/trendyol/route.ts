@@ -746,6 +746,31 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Sync all products stock and prices to Trendyol
+    if (action === "syncInventory") {
+      const { syncAllProductsToTrendyol } = await import("@/lib/trendyol-stock-sync");
+      const syncResult = await syncAllProductsToTrendyol();
+
+      return NextResponse.json(syncResult);
+    }
+
+    // Sync a single product stock and price to Trendyol
+    if (action === "syncProduct") {
+      const { productId } = body;
+
+      if (!productId) {
+        return NextResponse.json({
+          success: false,
+          error: "productId is required",
+        });
+      }
+
+      const { syncSingleProductToTrendyol } = await import("@/lib/trendyol-stock-sync");
+      const productSyncResult = await syncSingleProductToTrendyol(productId);
+
+      return NextResponse.json(productSyncResult);
+    }
+
     return NextResponse.json({
       success: false,
       error: "Unknown action",
