@@ -484,6 +484,68 @@ export class TrendyolClient {
     );
   }
 
+  // ============ WEBHOOKS ============
+
+  /**
+   * Register a webhook with Trendyol
+   * Note: Trendyol International may have different webhook endpoints
+   * This implementation follows the standard Trendyol API pattern
+   */
+  async registerWebhook(
+    callbackUrl: string,
+    events: string[]
+  ): Promise<TrendyolApiResponse<{ webhookId: string }>> {
+    return this.request<{ webhookId: string }>(
+      `/integration/product/sellers/${this.config.supplierId}/webhooks`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          url: callbackUrl,
+          events: events,
+          // Active by default
+          isActive: true,
+        }),
+      }
+    );
+  }
+
+  /**
+   * List all registered webhooks for this supplier
+   */
+  async listWebhooks(): Promise<TrendyolApiResponse<{ webhooks: Array<{ id: string; url: string; events: string[]; isActive: boolean }> }>> {
+    return this.request<{ webhooks: Array<{ id: string; url: string; events: string[]; isActive: boolean }> }>(
+      `/integration/product/sellers/${this.config.supplierId}/webhooks`
+    );
+  }
+
+  /**
+   * Delete a registered webhook
+   */
+  async deleteWebhook(webhookId: string): Promise<TrendyolApiResponse<void>> {
+    return this.request<void>(
+      `/integration/product/sellers/${this.config.supplierId}/webhooks/${webhookId}`,
+      {
+        method: "DELETE",
+      }
+    );
+  }
+
+  /**
+   * Update a webhook (enable/disable or change URL)
+   */
+  async updateWebhook(
+    webhookId: string,
+    updates: { url?: string; events?: string[]; isActive?: boolean }
+  ): Promise<TrendyolApiResponse<void>> {
+    return this.request<void>(
+      `/integration/product/sellers/${this.config.supplierId}/webhooks/${webhookId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(updates),
+      }
+    );
+  }
+
   // ============ TEST CONNECTION ============
 
   async testConnection(): Promise<TrendyolApiResponse<{ supplierId: string; productCount: number; storeFrontCode?: string; rawResponse?: any }>> {
