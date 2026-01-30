@@ -29,6 +29,7 @@ import {
   Pencil,
   ExternalLink,
   BoxIcon,
+  ShoppingBag,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -641,11 +642,11 @@ export default function OrdersPage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      
+
       // Construim mesajul de rezultat
       const messages: string[] = [];
       messages.push(`${data.synced || 0} comenzi sincronizate din Shopify`);
-      
+
       // Verificăm rezultatele sincronizării bilaterale
       if (data.bilateral) {
         if (data.bilateral.invoices) {
@@ -660,7 +661,7 @@ export default function OrdersPage() {
             messages.push(`🚚 ${awb.statusChanges} AWB-uri cu status schimbat`);
           }
         }
-        
+
         // Afișăm detalii dacă au fost modificări
         if (data.bilateral.changes && data.bilateral.changes.length > 0) {
           data.bilateral.changes.forEach((change: any) => {
@@ -669,22 +670,54 @@ export default function OrdersPage() {
           });
         }
       }
-      
+
       if (data.errors && data.errors.length > 0) {
-        toast({ 
-          title: "Sincronizare parțială", 
-          description: messages.join('\n') + `\n⚠️ ${data.errors.length} erori.`, 
-          variant: "default" 
+        toast({
+          title: "Sincronizare parțială",
+          description: messages.join('\n') + `\n⚠️ ${data.errors.length} erori.`,
+          variant: "default"
         });
       } else {
-        toast({ 
-          title: "Sincronizare completă", 
+        toast({
+          title: "Sincronizare completă",
           description: messages.join(' • '),
         });
       }
     },
     onError: (error: any) => {
       toast({ title: "Eroare sincronizare", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Trendyol sync mutation
+  const syncTrendyolMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/trendyol/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        }),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      if (data.success) {
+        toast({
+          title: "Sincronizare Trendyol",
+          description: `${data.synced} comenzi sincronizate (${data.created} noi, ${data.updated} actualizate)`,
+        });
+      } else {
+        toast({
+          title: "Eroare Trendyol",
+          description: data.error || "Eroare la sincronizare",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({ title: "Eroare sincronizare Trendyol", description: error.message, variant: "destructive" });
     },
   });
 
@@ -1039,14 +1072,25 @@ export default function OrdersPage() {
               </TooltipContent>
             </Tooltip>
             <ActionTooltip
-              action="Sincronizeaza comenzi"
+              action="Sincronizeaza comenzi Shopify"
               consequence="Se importa comenzile noi din Shopify"
               disabled={syncMutation.isPending}
               disabledReason="Sincronizare in curs..."
             >
               <Button onClick={() => syncMutation.mutate()} loading={syncMutation.isPending} size="sm" className="md:size-default">
                 <RefreshCw className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">Sincronizare</span>
+                <span className="hidden md:inline">Sync Shopify</span>
+              </Button>
+            </ActionTooltip>
+            <ActionTooltip
+              action="Sincronizeaza comenzi Trendyol"
+              consequence="Se importa comenzile din ultimele 7 zile din Trendyol"
+              disabled={syncTrendyolMutation.isPending}
+              disabledReason="Sincronizare Trendyol in curs..."
+            >
+              <Button onClick={() => syncTrendyolMutation.mutate()} loading={syncTrendyolMutation.isPending} variant="outline" size="sm" className="md:size-default">
+                <ShoppingBag className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Sync Trendyol</span>
               </Button>
             </ActionTooltip>
           </>
