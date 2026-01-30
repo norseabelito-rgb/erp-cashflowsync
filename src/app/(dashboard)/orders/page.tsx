@@ -1336,6 +1336,7 @@ export default function OrdersPage() {
                   <th className="p-4 text-left text-sm font-medium">Status</th>
                   <th className="p-4 text-left text-sm font-medium">Factură</th>
                   <th className="p-4 text-left text-sm font-medium">AWB</th>
+                  <th className="p-4 text-left text-sm font-medium">Sync Status</th>
                   <th className="p-4 text-left text-sm font-medium">Acțiuni</th>
                 </tr>
               </thead>
@@ -1344,7 +1345,7 @@ export default function OrdersPage() {
                   <>
                     {Array.from({ length: 10 }).map((_, i) => (
                       <tr key={i} className="border-b">
-                        <td colSpan={9} className="p-0">
+                        <td colSpan={10} className="p-0">
                           <SkeletonTableRow cols={9} />
                         </td>
                       </tr>
@@ -1367,7 +1368,7 @@ export default function OrdersPage() {
                     };
                     return (
                       <tr>
-                        <td colSpan={9}>
+                        <td colSpan={10}>
                           <EmptyState
                             icon={emptyConfig.icon}
                             title={emptyConfig.title}
@@ -1491,6 +1492,32 @@ export default function OrdersPage() {
                           >
                             <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpenAwbModal(order.id); }} disabled={awbMutation.isPending}><Truck className="h-4 w-4" /></Button>
                           </ActionTooltip>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        {order.source === "trendyol" && order.trendyolOrder ? (
+                          <div className="flex items-center gap-2">
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <FileText className={cn("h-4 w-4", order.trendyolOrder.invoiceSentToTrendyol ? "text-status-success" : order.trendyolOrder.invoiceSendError ? "text-status-error" : "text-muted-foreground")} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {order.trendyolOrder.invoiceSentToTrendyol ? "Factura trimisa la Trendyol" : order.trendyolOrder.invoiceSendError ? `Eroare: ${order.trendyolOrder.invoiceSendError}` : "Factura netrimisa"}
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Truck className={cn("h-4 w-4", order.trendyolOrder.trackingSentToTrendyol ? "text-status-success" : order.trendyolOrder.trackingSendError ? "text-status-error" : "text-muted-foreground")} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {order.trendyolOrder.trackingSentToTrendyol ? `AWB trimis: ${order.trendyolOrder.localAwbNumber || "Da"}` : order.trendyolOrder.trackingSendError ? `Eroare: ${order.trendyolOrder.trackingSendError}` : "AWB netrimis"}
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        ) : order.source === "shopify" ? (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
                         )}
                       </td>
                       <td className="p-4" onClick={(e) => e.stopPropagation()}>
