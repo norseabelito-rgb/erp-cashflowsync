@@ -328,6 +328,36 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Get sync info (last synced time and count)
+    if (action === "syncInfo") {
+      const syncedProducts = await prisma.masterProduct.findMany({
+        where: {
+          trendyolBarcode: { not: null },
+          trendyolLastSyncedAt: { not: null },
+        },
+        select: {
+          trendyolLastSyncedAt: true,
+        },
+        orderBy: {
+          trendyolLastSyncedAt: "desc",
+        },
+        take: 1,
+      });
+
+      const syncedCount = await prisma.masterProduct.count({
+        where: {
+          trendyolBarcode: { not: null },
+          trendyolLastSyncedAt: { not: null },
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        lastSyncedAt: syncedProducts[0]?.trendyolLastSyncedAt || null,
+        syncedCount,
+      });
+    }
+
     // Default - returnează statusul configurării
     return NextResponse.json({
       success: true,

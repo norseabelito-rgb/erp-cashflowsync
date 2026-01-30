@@ -79,11 +79,24 @@ export default function TrendyolProductsPage() {
       if (searchBarcode) params.set("barcode", searchBarcode);
       if (filterApproved === "approved") params.set("approved", "true");
       if (filterApproved === "pending") params.set("approved", "false");
-      
+
       const res = await fetch(`/api/trendyol?${params.toString()}`);
       return res.json();
     },
     enabled: configData?.configured,
+  });
+
+  // Fetch last sync info from local products
+  const { data: syncInfoData } = useQuery({
+    queryKey: ["trendyol-sync-info"],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.set("action", "syncInfo");
+      const res = await fetch(`/api/trendyol?${params.toString()}`);
+      return res.json();
+    },
+    enabled: configData?.configured,
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   const products: TrendyolProduct[] = data?.products || [];
@@ -164,8 +177,14 @@ export default function TrendyolProductsPage() {
             Produse Trendyol
           </h1>
           <p className="text-muted-foreground mt-1 text-sm md:text-base">
-            Vizualizează și gestionează produsele din contul Trendyol
+            Vizualizeaza si gestioneaza produsele din contul Trendyol
           </p>
+          {syncInfoData?.lastSyncedAt && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Ultima sincronizare: {new Date(syncInfoData.lastSyncedAt).toLocaleString("ro-RO")}
+              {syncInfoData.syncedCount > 0 && ` (${syncInfoData.syncedCount} produse sincronizate)`}
+            </p>
+          )}
         </div>
         <div className="flex gap-2 flex-wrap">
           <Link href="/trendyol/mapping">
