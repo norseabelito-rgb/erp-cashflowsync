@@ -424,7 +424,12 @@ export default function OrdersPage() {
       params.set("page", String(page));
       params.set("limit", String(limit));
       const res = await fetch(`/api/orders?${params}`);
-      return res.json();
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        console.error('[Orders] API Error:', data);
+        throw new Error(data.error || data.details || 'Eroare la incarcarea comenzilor');
+      }
+      return data;
     },
   });
 
