@@ -3,6 +3,13 @@ import crypto from "crypto";
 import prisma from "@/lib/db";
 import { normalizeStatus, mapTrendyolToInternalStatus } from "@/lib/trendyol-status";
 import { syncTrendyolOrderToMainOrder } from "@/lib/trendyol-order-sync";
+import {
+  handleTrendyolReturn,
+  handleTrendyolCancellation,
+  markOrderDelivered,
+  updateOrderStatus,
+} from "@/lib/trendyol-returns";
+import { logActivity } from "@/lib/activity-log";
 
 export const dynamic = "force-dynamic";
 
@@ -232,6 +239,18 @@ async function processWebhookEvent(event: TrendyolWebhookEvent): Promise<{ proce
           console.log(`[Trendyol Webhook] Updated TrendyolOrder ${orderNumber} status to ${newStatus} (no linked Order)`);
         }
 
+        // Log activity for audit
+        await logActivity({
+          entityType: "TRENDYOL_ORDER",
+          entityId: existingOrder.id,
+          action: "UPDATE",
+          description: `Trendyol order status changed to ${normalizedStatus}`,
+          orderId: existingOrder.order?.id,
+          orderNumber: existingOrder.trendyolOrderNumber,
+          success: true,
+          source: "trendyol_webhook",
+        });
+
         return { processed: true, message: `Status updated to ${newStatus}` };
       }
 
@@ -240,129 +259,49 @@ async function processWebhookEvent(event: TrendyolWebhookEvent): Promise<{ proce
     }
 
     case "OrderCancelled": {
-      // Mark order as cancelled
+      // Mark order as cancelled using reusable function
       const orderNumber = data.orderNumber;
       const shipmentPackageId = data.shipmentPackageId?.toString();
+      const cancellationReason = data.cancellationReason || data.reason;
+      const identifier = shipmentPackageId || orderNumber;
 
-      if (!orderNumber && !shipmentPackageId) {
+      if (!identifier) {
         return { processed: false, message: "Missing order identifier" };
       }
 
-      const existingOrder = await prisma.trendyolOrder.findFirst({
-        where: shipmentPackageId
-          ? { shipmentPackageId }
-          : { trendyolOrderNumber: orderNumber },
-        include: { order: true },
-      });
-
-      if (existingOrder) {
-        // Update TrendyolOrder
-        await prisma.trendyolOrder.update({
-          where: { id: existingOrder.id },
-          data: {
-            status: "Cancelled",
-            lastSyncedAt: new Date(),
-          },
-        });
-
-        // Update linked Order if exists
-        if (existingOrder.order) {
-          await prisma.order.update({
-            where: { id: existingOrder.order.id },
-            data: {
-              status: "CANCELLED",
-            },
-          });
-        }
-
-        console.log(`[Trendyol Webhook] Order ${orderNumber} marked as cancelled`);
-        return { processed: true, message: "Order cancelled" };
-      }
-
-      return { processed: false, message: "Order not found" };
+      const result = await handleTrendyolCancellation(identifier, cancellationReason);
+      return { processed: result.success, message: result.message };
     }
 
     case "OrderReturned": {
-      // Mark order as returned
+      // Mark order as returned using reusable function
       const orderNumber = data.orderNumber;
       const shipmentPackageId = data.shipmentPackageId?.toString();
+      const returnReason = data.returnReason || data.reason;
+      const identifier = shipmentPackageId || orderNumber;
 
-      if (!orderNumber && !shipmentPackageId) {
+      if (!identifier) {
         return { processed: false, message: "Missing order identifier" };
       }
 
-      const existingOrder = await prisma.trendyolOrder.findFirst({
-        where: shipmentPackageId
-          ? { shipmentPackageId }
-          : { trendyolOrderNumber: orderNumber },
-        include: { order: true },
-      });
-
-      if (existingOrder) {
-        // Update TrendyolOrder
-        await prisma.trendyolOrder.update({
-          where: { id: existingOrder.id },
-          data: {
-            status: "Returned",
-            lastSyncedAt: new Date(),
-          },
-        });
-
-        // Update linked Order if exists
-        if (existingOrder.order) {
-          await prisma.order.update({
-            where: { id: existingOrder.order.id },
-            data: {
-              status: "RETURNED",
-            },
-          });
-        }
-
-        console.log(`[Trendyol Webhook] Order ${orderNumber} marked as returned`);
-        return { processed: true, message: "Order returned" };
-      }
-
-      return { processed: false, message: "Order not found" };
+      const result = await handleTrendyolReturn(identifier, returnReason);
+      return { processed: result.success, message: result.message };
     }
 
-    case "ShipmentDelivered": {
-      // Update tracking info and mark as delivered
+    case "ShipmentDelivered":
+    case "OrderDelivered": {
+      // Update tracking info and mark as delivered using reusable function
       const shipmentPackageId = data.shipmentPackageId?.toString();
+      const orderNumber = data.orderNumber;
       const trackingNumber = data.trackingNumber;
+      const identifier = shipmentPackageId || orderNumber;
 
-      if (shipmentPackageId) {
-        const existingOrder = await prisma.trendyolOrder.findFirst({
-          where: { shipmentPackageId },
-          include: { order: true },
-        });
-
-        if (existingOrder) {
-          // Update TrendyolOrder
-          await prisma.trendyolOrder.update({
-            where: { id: existingOrder.id },
-            data: {
-              status: "Delivered",
-              cargoTrackingNumber: trackingNumber || existingOrder.cargoTrackingNumber,
-              lastSyncedAt: new Date(),
-            },
-          });
-
-          // Update linked Order if exists
-          if (existingOrder.order) {
-            await prisma.order.update({
-              where: { id: existingOrder.order.id },
-              data: {
-                status: "DELIVERED",
-              },
-            });
-          }
-
-          console.log(`[Trendyol Webhook] Order ${shipmentPackageId} marked as delivered`);
-          return { processed: true, message: "Order delivered" };
-        }
+      if (!identifier) {
+        return { processed: false, message: "Missing order identifier" };
       }
 
-      return { processed: false, message: "Order not found" };
+      const result = await markOrderDelivered(identifier, trackingNumber);
+      return { processed: result.success, message: result.message };
     }
 
     default: {
