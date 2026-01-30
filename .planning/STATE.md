@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 7.1 - Trendyol Complete Integration - IN PROGRESS
+**Current focus:** Phase 7.1 - Trendyol Complete Integration - EXECUTING Wave 5
 
 ## Current Position
 
 Phase: 7.1 of 10 (Trendyol Complete Integration - INSERTED)
-Plan: 4 of 6 (Wave 3 complete)
-Status: In progress
-Last activity: 2026-01-30 - Completed 07.1-04-PLAN.md
+Plan: 5 of 6 (Wave 4 complete)
+Status: Executing Wave 5
+Last activity: 2026-01-30 - Completed 07.1-05-PLAN.md (Stock & price sync)
 
-Progress: [██████████████████░░] ~77% (7/10 integer phases + 4/6 of 7.1)
+Progress: [███████████████████░] ~80% (7/10 integer phases + 5/6 of 7.1)
 
 ## Phase 7 Progress
 
@@ -46,7 +46,7 @@ Progress: [██████████████████░░] ~77% (7
 | 05-known-bug-fixes | 4/4 | ~18 min | ~4.5 min |
 | 06-ux-foundation | 6/6 | ~22 min | ~3.7 min |
 | 07-task-management-core | 5/5 | ~28 min | ~5.6 min |
-| 07.1-trendyol-integration | 4/6 | ~28 min | ~7 min |
+| 07.1-trendyol-integration | 5/6 | ~36 min | ~7.2 min |
 
 ## Accumulated Context
 
@@ -54,6 +54,10 @@ Progress: [██████████████████░░] ~77% (7
 
 Recent decisions affecting current work:
 
+- **07.1-05:** Non-blocking sync triggers - product updates fire-and-forget to Trendyol
+- **07.1-05:** Stock source: InventoryItem.currentStock first, fallback to MasterProduct.stock
+- **07.1-05:** Batch size 100 for Trendyol API price/inventory updates
+- **07.1-05:** Only sync approved products (trendyolStatus === 'approved')
 - **07.1-04:** Non-blocking tracking sends - AWB creation succeeds even if Trendyol fails
 - **07.1-04:** FanCourier as default carrier for retry logic
 - **07.1-04:** TrendyolOrder.status set to 'Shipped' after successful tracking send
@@ -129,7 +133,7 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 **NEXT:**
-- Continue Phase 7.1: Plan 07.1-05 (Automatic stock & price sync)
+- Continue Phase 7.1: Plan 07.1-06 (Unified dashboard & gap closure)
 - After 7.1: Start Phase 8: Notifications and Automation
 
 ### Roadmap Evolution
@@ -148,7 +152,7 @@ Recent decisions affecting current work:
 | 07.1-02 | 2 | Complete | Order table integration with source field + sync service |
 | 07.1-03 | 3 | Complete | Invoice auto-send to Trendyol |
 | 07.1-04 | 3 | Complete | AWB tracking auto-send to Trendyol |
-| 07.1-05 | 4 | Pending | Automatic stock & price sync |
+| 07.1-05 | 4 | Complete | Automatic stock & price sync |
 | 07.1-06 | 5 | Pending | Unified dashboard & gap closure |
 
 **DATABASE MIGRATION NEEDED:**
@@ -175,7 +179,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed 07.1-04-PLAN.md (AWB tracking auto-send)
+Stopped at: Completed 07.1-05-PLAN.md (Stock & price sync)
 Resume file: None
 
 ## Phase 7 Features
@@ -190,17 +194,17 @@ Task Management Core components:
 
 ## Recent Commits
 
+- `d8095d5` feat(07.1-05): add cron endpoint for scheduled Trendyol sync
+- `9cc0927` feat(07.1-05): add last synced indicator to Trendyol page
+- `c4751e0` feat(07.1-05): add sync endpoints to Trendyol API
+- `6bae91d` feat(07.1-05): add manual stock sync button to Trendyol page
+- `226d9de` feat(07.1-05): add Trendyol sync trigger on product update
+- `e0ce1b1` feat(07.1-05): create Trendyol stock sync service
 - `314b55e` feat(07.1-04): update TrendyolOrder status to Shipped after tracking sent
 - `c4ac4f1` feat(07.1-04): add retrySendTracking API endpoint
 - `e75cf6e` feat(07.1-04): add AWB tracking status to order detail UI
 - `5ac3b26` feat(07.1-04): hook Trendyol tracking into AWB creation flow
-- `0f8c4e3` feat(07.1-04): create Trendyol AWB send service
-- `a5a2798` feat(07.1-04): create courier name mapping for Trendyol
-- `c014860` feat(07.1-04): add AWB tracking fields to TrendyolOrder schema
-- `1327973` feat(07.1-02): add source filter to orders API
-- `678abf5` feat(07.1-02): add source filter and badge to orders page
-- `4e9effc` feat(07.1-02): update webhook handler to sync orders to main Order table
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-30 (Completed 07.1-04 - AWB tracking auto-send)*
+*Last updated: 2026-01-30 (Completed 07.1-05 - Stock & price sync)*
