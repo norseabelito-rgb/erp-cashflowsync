@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 7.1 - Trendyol Complete Integration - EXECUTING Wave 5
+**Current focus:** Phase 7.1 - Trendyol Complete Integration - COMPLETE
 
 ## Current Position
 
 Phase: 7.1 of 10 (Trendyol Complete Integration - INSERTED)
-Plan: 5 of 6 (Wave 4 complete)
-Status: Executing Wave 5
-Last activity: 2026-01-30 - Completed 07.1-05-PLAN.md (Stock & price sync)
+Plan: 6 of 6 (COMPLETE)
+Status: Phase 7.1 Complete
+Last activity: 2026-01-30 - Completed 07.1-06-PLAN.md (Unified dashboard & gap closure)
 
-Progress: [███████████████████░] ~80% (7/10 integer phases + 5/6 of 7.1)
+Progress: [████████████████████] ~85% (7/10 integer phases + 6/6 of 7.1)
 
 ## Phase 7 Progress
 
@@ -31,9 +31,9 @@ Progress: [███████████████████░] ~80% (7
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 34
+- Total plans completed: 35
 - Average duration: ~5.3 minutes
-- Total execution time: ~188 minutes
+- Total execution time: ~198 minutes
 
 **By Phase:**
 
@@ -46,7 +46,7 @@ Progress: [███████████████████░] ~80% (7
 | 05-known-bug-fixes | 4/4 | ~18 min | ~4.5 min |
 | 06-ux-foundation | 6/6 | ~22 min | ~3.7 min |
 | 07-task-management-core | 5/5 | ~28 min | ~5.6 min |
-| 07.1-trendyol-integration | 5/6 | ~36 min | ~7.2 min |
+| 07.1-trendyol-integration | 6/6 | ~46 min | ~7.7 min |
 
 ## Accumulated Context
 
@@ -54,6 +54,11 @@ Progress: [███████████████████░] ~80% (7
 
 Recent decisions affecting current work:
 
+- **07.1-06:** Reusable functions in trendyol-returns.ts for webhook handlers
+- **07.1-06:** Activity logging for all Trendyol status changes
+- **07.1-06:** Sync button fetches last 7 days of orders
+- **07.1-06:** Dashboard uses server-side data fetching for Trendyol stats
+- **07.1-06:** Trendyol navigation separated into its own sidebar section
 - **07.1-05:** Non-blocking sync triggers - product updates fire-and-forget to Trendyol
 - **07.1-05:** Stock source: InventoryItem.currentStock first, fallback to MasterProduct.stock
 - **07.1-05:** Batch size 100 for Trendyol API price/inventory updates
@@ -133,8 +138,8 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 **NEXT:**
-- Continue Phase 7.1: Plan 07.1-06 (Unified dashboard & gap closure)
-- After 7.1: Start Phase 8: Notifications and Automation
+- Start Phase 8: Notifications and Automation
+- Or address critical technical debt items below
 
 ### Roadmap Evolution
 
@@ -143,6 +148,7 @@ Recent decisions affecting current work:
   - Existing: ~60-70% foundation (API client, models, product pages)
   - Missing: webhooks, Order integration, AWB feedback, auto stock sync
   - Plans created: 6 plans in 5 waves
+  - Status: COMPLETE (2026-01-30)
 
 ## Phase 7.1 Progress
 
@@ -153,7 +159,7 @@ Recent decisions affecting current work:
 | 07.1-03 | 3 | Complete | Invoice auto-send to Trendyol |
 | 07.1-04 | 3 | Complete | AWB tracking auto-send to Trendyol |
 | 07.1-05 | 4 | Complete | Automatic stock & price sync |
-| 07.1-06 | 5 | Pending | Unified dashboard & gap closure |
+| 07.1-06 | 5 | Complete | Unified dashboard & gap closure |
 
 **DATABASE MIGRATION NEEDED:**
 - Apply `prisma/migrations/manual/add_task_management.sql` to create tasks and task_attachments tables
@@ -179,7 +185,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed 07.1-05-PLAN.md (Stock & price sync)
+Stopped at: Completed 07.1-06-PLAN.md (Unified dashboard & gap closure)
 Resume file: None
 
 ## Phase 7 Features
@@ -192,19 +198,26 @@ Task Management Core components:
 - [x] 07-04: Task create/edit modal + sidebar navigation
 - [x] 07-05: Delete button wired to API with confirmation dialog
 
+## Phase 7.1 Features (Trendyol Complete Integration)
+
+- [x] 07.1-01: Webhook receiver with HMAC-SHA256 validation
+- [x] 07.1-02: Order table integration with source field
+- [x] 07.1-03: Invoice auto-send to Trendyol
+- [x] 07.1-04: AWB tracking auto-send to Trendyol
+- [x] 07.1-05: Automatic stock & price sync with cron
+- [x] 07.1-06: Unified dashboard, sidebar nav, complete webhook handling
+
 ## Recent Commits
 
-- `d8095d5` feat(07.1-05): add cron endpoint for scheduled Trendyol sync
-- `9cc0927` feat(07.1-05): add last synced indicator to Trendyol page
-- `c4751e0` feat(07.1-05): add sync endpoints to Trendyol API
-- `6bae91d` feat(07.1-05): add manual stock sync button to Trendyol page
-- `226d9de` feat(07.1-05): add Trendyol sync trigger on product update
-- `e0ce1b1` feat(07.1-05): create Trendyol stock sync service
-- `314b55e` feat(07.1-04): update TrendyolOrder status to Shipped after tracking sent
-- `c4ac4f1` feat(07.1-04): add retrySendTracking API endpoint
-- `e75cf6e` feat(07.1-04): add AWB tracking status to order detail UI
-- `5ac3b26` feat(07.1-04): hook Trendyol tracking into AWB creation flow
+- `075bda3` feat(07.1-06): organize Trendyol navigation in sidebar
+- `766e1f0` feat(07.1-06): add Trendyol sync status column to orders table
+- `c580690` feat(07.1-06): complete webhook handler for all Trendyol events
+- `80af44d` feat(07.1-06): add Trendyol return handling library
+- `c280540` feat(07.1-06): add Trendyol sync button to orders page
+- `d139786` feat(07.1-06): integrate Trendyol orders into process-all flow
+- `8c2df55` feat(07.1-06): update Trendyol orders page as secondary view
+- `d0ff1a7` feat(07.1-06): add Trendyol metrics to main dashboard
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-30 (Completed 07.1-05 - Stock & price sync)*
+*Last updated: 2026-01-30 (Phase 7.1 COMPLETE - Trendyol Integration)*
