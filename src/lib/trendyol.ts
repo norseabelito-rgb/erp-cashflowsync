@@ -1058,6 +1058,24 @@ export async function mapTrendyolProduct(
   console.log(`[Trendyol] Manually mapped ${barcode} → ${masterProduct.sku}`);
 }
 
+/**
+ * Creates a TrendyolClient from a TrendyolStore record
+ * Use this when you have a TrendyolStore from database
+ */
+export function createTrendyolClientFromStore(store: {
+  supplierId: string;
+  apiKey: string;
+  apiSecret: string;
+  isTestMode: boolean;
+}): TrendyolClient {
+  return new TrendyolClient({
+    supplierId: store.supplierId,
+    apiKey: store.apiKey,
+    apiSecret: store.apiSecret,
+    isTestMode: store.isTestMode,
+  });
+}
+
 export async function getTrendyolStats(): Promise<{
   totalOrders: number;
   ordersToday: number;

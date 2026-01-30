@@ -3,9 +3,11 @@
  *
  * Sends AWB tracking numbers to Trendyol after local AWB creation.
  * This allows customers to track their packages on Trendyol.
+ *
+ * Updated to support multiple TrendyolStores.
  */
 
-import { TrendyolClient } from "./trendyol";
+import { createTrendyolClientFromStore } from "./trendyol";
 import prisma from "./db";
 import { getTrendyolCargoProvider, getTrackingUrl } from "./trendyol-courier-map";
 
@@ -31,9 +33,12 @@ export async function sendTrackingToTrendyol(
   carrier: string
 ): Promise<SendTrackingResult> {
   try {
-    // 1. Get the TrendyolOrder linked to this Order
+    // 1. Get the TrendyolOrder linked to this Order, including TrendyolStore
     const trendyolOrder = await prisma.trendyolOrder.findFirst({
       where: { orderId },
+      include: {
+        trendyolStore: true,
+      },
     });
 
     if (!trendyolOrder) {
@@ -48,19 +53,20 @@ export async function sendTrackingToTrendyol(
       };
     }
 
-    // 2. Get Trendyol settings
-    const settings = await prisma.settings.findFirst();
-    if (!settings?.trendyolApiKey || !settings?.trendyolApiSecret) {
-      return {
-        success: false,
-        error: "Trendyol API credentials not configured",
-      };
+    // 2. Get the TrendyolStore for this order
+    let store = trendyolOrder.trendyolStore;
+
+    // If no store linked, try to find one (for backward compatibility)
+    if (!store) {
+      store = await prisma.trendyolStore.findFirst({
+        where: { isActive: true },
+      });
     }
 
-    if (!settings.trendyolSupplierId) {
+    if (!store) {
       return {
         success: false,
-        error: "Trendyol Supplier ID not configured",
+        error: "No TrendyolStore configured for this order",
       };
     }
 
@@ -69,15 +75,10 @@ export async function sendTrackingToTrendyol(
     const trackingUrl = getTrackingUrl(carrier, awbNumber);
 
     // 4. Send tracking to Trendyol
-    const client = new TrendyolClient({
-      supplierId: settings.trendyolSupplierId,
-      apiKey: settings.trendyolApiKey,
-      apiSecret: settings.trendyolApiSecret,
-      isTestMode: settings.trendyolIsTestMode ?? false,
-    });
+    const client = createTrendyolClientFromStore(store);
 
     console.log(
-      `[Trendyol AWB] Sending tracking for order ${trendyolOrder.trendyolOrderNumber}: ${awbNumber} (${cargoProviderName})`
+      `[Trendyol AWB] Sending tracking for order ${trendyolOrder.trendyolOrderNumber}: ${awbNumber} (${cargoProviderName}) [Store: ${store.name}]`
     );
 
     const result = await client.updateTrackingNumber(
@@ -88,13 +89,10 @@ export async function sendTrackingToTrendyol(
 
     if (result.success) {
       // Update TrendyolOrder with success
-      // Note: The Trendyol API updateTrackingNumber endpoint should automatically
-      // transition the order status to "Shipped" on Trendyol's side.
-      // We also update the local status to reflect this change.
       await prisma.trendyolOrder.update({
         where: { id: trendyolOrder.id },
         data: {
-          status: "Shipped", // Update local status to reflect Trendyol status
+          status: "Shipped",
           trackingSentToTrendyol: true,
           trackingSentAt: new Date(),
           localAwbNumber: awbNumber,
@@ -177,7 +175,6 @@ export async function retrySendTrackingToTrendyol(
   }
 
   // Determine carrier from AWB data or default to FanCourier
-  // Most AWBs in Romania are FanCourier, adjust as needed
   const carrier = order.awb.serviceType?.toLowerCase().includes("sameday")
     ? "sameday"
     : "fancourier";

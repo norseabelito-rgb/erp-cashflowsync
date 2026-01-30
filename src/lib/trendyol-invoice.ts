@@ -3,9 +3,11 @@
  *
  * Handles sending invoice links to Trendyol after Oblio invoice creation.
  * Also provides retry mechanism for failed sends.
+ *
+ * Updated to support multiple TrendyolStores.
  */
 
-import { TrendyolClient } from "./trendyol";
+import { createTrendyolClientFromStore } from "./trendyol";
 import prisma from "./db";
 
 interface SendInvoiceResult {
@@ -24,14 +26,15 @@ export async function sendInvoiceToTrendyol(
   orderId: string,
   invoiceLink: string
 ): Promise<SendInvoiceResult> {
-  // 1. Get the TrendyolOrder linked to this Order
+  // 1. Get the TrendyolOrder linked to this Order, including the TrendyolStore
   const trendyolOrder = await prisma.trendyolOrder.findFirst({
     where: { orderId },
     include: {
       order: {
-        include: { store: true }
-      }
-    }
+        include: { store: true },
+      },
+      trendyolStore: true,
+    },
   });
 
   if (!trendyolOrder) {
@@ -43,60 +46,49 @@ export async function sendInvoiceToTrendyol(
     const error = "Missing shipmentPackageId - cannot send invoice to Trendyol";
     console.error(`[Trendyol Invoice] ${error} for order ${trendyolOrder.trendyolOrderNumber}`);
 
-    // Store the error for visibility
     await prisma.trendyolOrder.update({
       where: { id: trendyolOrder.id },
       data: {
         invoiceSendError: error,
-        oblioInvoiceLink: invoiceLink  // Store link even if send failed
-      }
+        oblioInvoiceLink: invoiceLink,
+      },
     });
 
     return { success: false, error };
   }
 
-  // 2. Get Trendyol settings
-  const settings = await prisma.settings.findFirst();
-  if (!settings?.trendyolApiKey || !settings?.trendyolApiSecret) {
-    const error = "Trendyol API credentials not configured";
+  // 2. Get the TrendyolStore for this order
+  let store = trendyolOrder.trendyolStore;
+
+  // If no store linked, try to find one (for backward compatibility)
+  if (!store) {
+    store = await prisma.trendyolStore.findFirst({
+      where: { isActive: true },
+    });
+  }
+
+  if (!store) {
+    const error = "No TrendyolStore configured for this order";
     console.error(`[Trendyol Invoice] ${error}`);
 
     await prisma.trendyolOrder.update({
       where: { id: trendyolOrder.id },
       data: {
         invoiceSendError: error,
-        oblioInvoiceLink: invoiceLink
-      }
-    });
-
-    return { success: false, error };
-  }
-
-  if (!settings.trendyolSupplierId) {
-    const error = "Trendyol Supplier ID not configured";
-    console.error(`[Trendyol Invoice] ${error}`);
-
-    await prisma.trendyolOrder.update({
-      where: { id: trendyolOrder.id },
-      data: {
-        invoiceSendError: error,
-        oblioInvoiceLink: invoiceLink
-      }
+        oblioInvoiceLink: invoiceLink,
+      },
     });
 
     return { success: false, error };
   }
 
   // 3. Send invoice link to Trendyol
-  const client = new TrendyolClient({
-    supplierId: settings.trendyolSupplierId,
-    apiKey: settings.trendyolApiKey,
-    apiSecret: settings.trendyolApiSecret,
-    isTestMode: settings.trendyolIsTestMode ?? false
-  });
+  const client = createTrendyolClientFromStore(store);
 
   try {
-    console.log(`[Trendyol Invoice] Sending invoice link for order ${trendyolOrder.trendyolOrderNumber}, package ${trendyolOrder.shipmentPackageId}`);
+    console.log(
+      `[Trendyol Invoice] Sending invoice link for order ${trendyolOrder.trendyolOrderNumber}, package ${trendyolOrder.shipmentPackageId} (Store: ${store.name})`
+    );
 
     const result = await client.sendInvoiceLink(
       parseInt(trendyolOrder.shipmentPackageId),
@@ -111,11 +103,13 @@ export async function sendInvoiceToTrendyol(
           invoiceSentToTrendyol: true,
           invoiceSentAt: new Date(),
           oblioInvoiceLink: invoiceLink,
-          invoiceSendError: null  // Clear any previous error
-        }
+          invoiceSendError: null,
+        },
       });
 
-      console.log(`[Trendyol Invoice] Successfully sent invoice link for order ${trendyolOrder.trendyolOrderNumber}`);
+      console.log(
+        `[Trendyol Invoice] Successfully sent invoice link for order ${trendyolOrder.trendyolOrderNumber}`
+      );
       return { success: true };
     } else {
       // Update with error
@@ -125,24 +119,29 @@ export async function sendInvoiceToTrendyol(
         where: { id: trendyolOrder.id },
         data: {
           invoiceSendError: error,
-          oblioInvoiceLink: invoiceLink
-        }
+          oblioInvoiceLink: invoiceLink,
+        },
       });
 
-      console.error(`[Trendyol Invoice] Failed to send invoice for order ${trendyolOrder.trendyolOrderNumber}: ${error}`);
+      console.error(
+        `[Trendyol Invoice] Failed to send invoice for order ${trendyolOrder.trendyolOrderNumber}: ${error}`
+      );
       return { success: false, error };
     }
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Unknown error";
 
-    console.error(`[Trendyol Invoice] Exception sending invoice for order ${trendyolOrder.trendyolOrderNumber}:`, error);
+    console.error(
+      `[Trendyol Invoice] Exception sending invoice for order ${trendyolOrder.trendyolOrderNumber}:`,
+      error
+    );
 
     await prisma.trendyolOrder.update({
       where: { id: trendyolOrder.id },
       data: {
         invoiceSendError: errorMsg,
-        oblioInvoiceLink: invoiceLink
-      }
+        oblioInvoiceLink: invoiceLink,
+      },
     });
 
     return { success: false, error: errorMsg };
@@ -166,20 +165,20 @@ export async function retryFailedInvoiceSends(): Promise<{
     where: {
       invoiceSentToTrendyol: false,
       invoiceSendError: { not: null },
-      oblioInvoiceLink: { not: null }  // Has link but failed to send
+      oblioInvoiceLink: { not: null },
     },
     include: {
       order: {
-        include: { invoice: true }
-      }
-    }
+        include: { invoice: true },
+      },
+    },
   });
 
   const result = {
     total: failedOrders.length,
     success: 0,
     failed: 0,
-    errors: [] as string[]
+    errors: [] as string[],
   };
 
   console.log(`[Trendyol Invoice] Retrying ${failedOrders.length} failed invoice sends`);
@@ -199,7 +198,7 @@ export async function retryFailedInvoiceSends(): Promise<{
       }
 
       // Small delay between retries to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 200));
     }
   }
 
@@ -227,12 +226,12 @@ export async function getPendingInvoiceSends(): Promise<{
   const orders = await prisma.trendyolOrder.findMany({
     where: {
       invoiceSentToTrendyol: false,
-      orderId: { not: null },  // Must have a local order linked
+      orderId: { not: null },
       order: {
         invoice: {
-          status: "issued"  // Only orders with issued invoices
-        }
-      }
+          status: "issued",
+        },
+      },
     },
     select: {
       id: true,
@@ -240,17 +239,17 @@ export async function getPendingInvoiceSends(): Promise<{
       orderId: true,
       invoiceSendError: true,
       oblioInvoiceLink: true,
-      orderDate: true
+      orderDate: true,
     },
-    orderBy: { orderDate: 'desc' }
+    orderBy: { orderDate: "desc" },
   });
 
-  const failed = orders.filter(o => o.invoiceSendError !== null).length;
+  const failed = orders.filter((o) => o.invoiceSendError !== null).length;
   const pending = orders.length - failed;
 
   return {
     pending,
     failed,
-    orders
+    orders,
   };
 }

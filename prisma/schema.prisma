@@ -775,21 +775,6 @@ model Settings {
   googleDriveCredentials String?   @db.Text // JSON cu Service Account credentials
   googleDriveLastSync    DateTime? // Ultima sincronizare imagini
 
-  // Trendyol Marketplace
-  trendyolSupplierId     String? // Supplier ID (Satıcı ID)
-  trendyolApiKey         String? // API Key
-  trendyolApiSecret      String? // API Secret
-  trendyolIsTestMode     Boolean  @default(false) // Test mode (stage API)
-  trendyolDefaultBrandId Int? // Brand ID default pentru produse
-  trendyolCurrencyRate   Decimal? @db.Decimal(10, 4) // Curs RON -> EUR (ex: 5.0)
-  trendyolStoreFrontCode String? // Codul țării: RO, DE, BG, etc.
-  trendyolInvoiceSeries  String? // Seria de facturare pentru comenzi Trendyol
-
-  // Trendyol Webhook & Company Association
-  trendyolWebhookSecret String? // HMAC secret for webhook validation
-  trendyolCompanyId     String?  @unique // Company associated with this Trendyol account
-  trendyolCompany       Company? @relation("TrendyolCompany", fields: [trendyolCompanyId], references: [id])
-
   // Handover (Predare Curier)
   handoverAutoCloseTime String @default("20:00") // Ora finalizării automate (HH:mm)
   handoverTimezone      String @default("Europe/Bucharest") // Timezone
@@ -2394,6 +2379,35 @@ model AIAnalysisRun {
 // TRENDYOL INTEGRATION
 // ==========================================
 
+// Magazine Trendyol (multiple per firma)
+model TrendyolStore {
+  id                String   @id @default(cuid())
+  name              String   // "Trendyol RO", "Trendyol DE"
+  supplierId        String   @unique // Supplier ID din Trendyol
+  apiKey            String
+  apiSecret         String
+  webhookSecret     String   // HMAC secret unic per magazin
+  storeFrontCode    String   // "RO", "DE", "BG", "TR"
+  isTestMode        Boolean  @default(false)
+  defaultBrandId    Int?
+  currencyRate      Decimal? @db.Decimal(10, 4) // Curs RON -> valuta locala
+  invoiceSeriesName String?  // Seria de facturare
+
+  // Firma asociata
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relatii
+  orders TrendyolOrder[]
+
+  @@index([companyId])
+  @@map("trendyol_stores")
+}
+
 // Comenzi Trendyol
 model TrendyolOrder {
   id                  String   @id @default(cuid())
@@ -2427,6 +2441,10 @@ model TrendyolOrder {
   orderId String? @unique
   order   Order?  @relation(fields: [orderId], references: [id])
 
+  // Magazin Trendyol (pentru multi-store support)
+  trendyolStoreId String?
+  trendyolStore   TrendyolStore? @relation(fields: [trendyolStoreId], references: [id])
+
   // Line items
   lineItems TrendyolOrderItem[]
 
@@ -2451,6 +2469,7 @@ model TrendyolOrder {
   @@index([status])
   @@index([orderDate])
   @@index([trendyolOrderNumber])
+  @@index([trendyolStoreId])
   @@map("trendyol_orders")
 }
 
@@ -3184,7 +3203,7 @@ model Company {
   invoiceSeries                InvoiceSeries[]
   intercompanyInvoicesIssued   IntercompanyInvoice[] @relation("IssuedBy")
   intercompanyInvoicesReceived IntercompanyInvoice[] @relation("ReceivedBy")
-  trendyolSettings             Settings?             @relation("TrendyolCompany")
+  trendyolStores               TrendyolStore[]
 
   @@index([cif])
   @@index([isPrimary])
