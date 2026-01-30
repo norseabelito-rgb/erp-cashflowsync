@@ -28,16 +28,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  RefreshCw, 
-  Search, 
-  ChevronLeft, 
+import {
+  RefreshCw,
+  Search,
+  ChevronLeft,
   ChevronRight,
   Loader2,
   AlertTriangle,
   Package,
   MapPin,
-  ExternalLink
+  ExternalLink,
+  InfoIcon,
+  FileText,
+  Truck,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "@/hooks/use-toast";
@@ -48,6 +52,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Alert,
+  AlertDescription,
+} from "@/components/ui/alert";
 
 export default function TrendyolOrdersPage() {
   const queryClient = useQueryClient();
@@ -177,6 +185,15 @@ export default function TrendyolOrdersPage() {
           </div>
         </div>
 
+        {/* Info Alert */}
+        <Alert>
+          <InfoIcon className="h-4 w-4" />
+          <AlertDescription>
+            Comenzile Trendyol apar si in <Link href="/orders?source=trendyol" className="font-medium text-primary hover:underline">lista principala de comenzi</Link>.
+            Aceasta pagina ofera detalii specifice Trendyol precum status sincronizare factura/AWB.
+          </AlertDescription>
+        </Alert>
+
         {/* Filters */}
         <Card>
           <CardContent className="pt-6">
@@ -246,13 +263,14 @@ export default function TrendyolOrdersPage() {
                     <TableHead>Data</TableHead>
                     <TableHead>Produse</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Sync Trendyol</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {orders.map((order: any) => (
-                    <TableRow 
-                      key={order.id} 
+                    <TableRow
+                      key={order.id}
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => setViewOrder(order)}
                     >
@@ -282,6 +300,26 @@ export default function TrendyolOrdersPage() {
                         </div>
                       </TableCell>
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <FileText className={`h-4 w-4 ${order.invoiceSentToTrendyol ? 'text-status-success' : order.invoiceSendError ? 'text-status-error' : 'text-muted-foreground'}`} />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {order.invoiceSentToTrendyol ? 'Factura trimisa' : order.invoiceSendError ? `Eroare: ${order.invoiceSendError}` : 'Factura netrimisa'}
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Truck className={`h-4 w-4 ${order.trackingSentToTrendyol ? 'text-status-success' : order.trackingSendError ? 'text-status-error' : 'text-muted-foreground'}`} />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {order.trackingSentToTrendyol ? `AWB trimis: ${order.localAwbNumber || 'Da'}` : order.trackingSendError ? `Eroare: ${order.trackingSendError}` : 'AWB netrimis'}
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right font-medium">
                         {formatCurrency(Number(order.totalPrice), order.currency)}
                       </TableCell>
@@ -424,6 +462,58 @@ export default function TrendyolOrdersPage() {
                   </div>
                 </div>
 
+                {/* Trendyol Sync Status */}
+                <div>
+                  <h4 className="font-semibold mb-2">Sincronizare Trendyol</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 rounded-lg border bg-muted/50">
+                      <div className="flex items-center gap-2 mb-1">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Factura</span>
+                      </div>
+                      {viewOrder.invoiceSentToTrendyol ? (
+                        <div className="flex items-center gap-1 text-status-success">
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span className="text-xs">
+                            Trimisa {viewOrder.invoiceSentAt && new Date(viewOrder.invoiceSentAt).toLocaleString("ro-RO")}
+                          </span>
+                        </div>
+                      ) : viewOrder.invoiceSendError ? (
+                        <div className="text-xs text-status-error">
+                          Eroare: {viewOrder.invoiceSendError}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Netrimisa</span>
+                      )}
+                    </div>
+                    <div className="p-3 rounded-lg border bg-muted/50">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Truck className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">AWB / Tracking</span>
+                      </div>
+                      {viewOrder.trackingSentToTrendyol ? (
+                        <div className="flex items-center gap-1 text-status-success">
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span className="text-xs">
+                            {viewOrder.localAwbNumber || "Trimis"} {viewOrder.trackingSentAt && `- ${new Date(viewOrder.trackingSentAt).toLocaleString("ro-RO")}`}
+                          </span>
+                        </div>
+                      ) : viewOrder.trackingSendError ? (
+                        <div className="text-xs text-status-error">
+                          Eroare: {viewOrder.trackingSendError}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Netrimis</span>
+                      )}
+                    </div>
+                  </div>
+                  {viewOrder.shipmentPackageId && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Shipment Package ID: <code>{viewOrder.shipmentPackageId}</code>
+                    </p>
+                  )}
+                </div>
+
                 {/* Unmapped warning */}
                 {hasUnmappedItems(viewOrder) && (
                   <div className="p-4 bg-status-warning/10 border border-status-warning/20 rounded-lg">
@@ -432,7 +522,7 @@ export default function TrendyolOrdersPage() {
                       <span className="font-medium">Produse nemapate</span>
                     </div>
                     <p className="text-sm text-status-warning mt-1">
-                      Unele produse nu au fost mapate la SKU-uri locale. 
+                      Unele produse nu au fost mapate la SKU-uri locale.
                       <Link href="/trendyol/mapping" className="underline ml-1">
                         Mapează acum
                       </Link>
