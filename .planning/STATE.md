@@ -166,14 +166,21 @@ Recent decisions affecting current work:
 | 07.1-05 | 4 | Complete | Automatic stock & price sync |
 | 07.1-06 | 5 | Complete | Unified dashboard & gap closure |
 
-**DATABASE MIGRATION NEEDED:**
+**DATABASE MIGRATION STATUS:**
+
+*STAGING (APPLIED 2026-01-30):*
+- [x] add_order_source_field.sql - coloana `source` pe orders
+- [x] add_trendyol_stores.sql - tabelul trendyol_stores + FK pe trendyol_orders
+- [x] add_trendyol_order_tracking_fields.sql - coloane invoice/AWB tracking
+
+*PRODUCTION (PENDING - aplica dupa validare staging):*
+- [ ] add_order_source_field.sql
+- [ ] add_trendyol_stores.sql
+- [ ] add_trendyol_order_tracking_fields.sql
+
+*OLDER (status necunoscut):*
 - Apply `prisma/migrations/manual/add_task_management.sql` to create tasks and task_attachments tables
 - Apply `prisma/migrations/manual/add_bulk_push_job.sql` to create bulk_push_jobs table
-- Run `npx prisma db push` to create return_awbs table (q002)
-- Run `npx prisma db push` to add trendyolWebhookSecret and trendyolCompanyId to settings (07.1-01)
-- Run `npx prisma migrate dev --name add_order_source_field` to add source field to orders (07.1-02)
-- Run `npx prisma db push` to add AWB tracking fields to TrendyolOrder (07.1-04)
-- Regenerate Prisma client with `npx prisma generate` (permission issue on node_modules/.prisma)
 
 **CRITICAL (Blocheaza munca):**
 - TD-01: Order processing no transaction - partial failures cause inconsistent data
@@ -190,11 +197,27 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Phase 7.1 complete, cleanup needed before Phase 8
+Stopped at: Staging Trendyol multi-store - migrations applied, deploy in progress
 Resume context:
-- Phase 7.1 (Trendyol Complete Integration) finished and verified
-- Cleanup task: Remove old Trendyol integration from Settings (product pull functionality)
-- After cleanup: Ready for Phase 8 (Task Management Advanced)
+- **STAGING BRANCH** - verificare Trendyol multi-store inainte de merge in production
+- Migratii aplicate pe staging DB (Railway psql):
+  - add_order_source_field.sql (coloana `source` pe orders)
+  - add_trendyol_stores.sql (tabelul trendyol_stores)
+  - add_trendyol_order_tracking_fields.sql (coloane tracking pe trendyol_orders)
+- Commit `fc4a00a`: Re-enabled trendyolOrder include in /api/orders/route.ts
+- Deploy staging in curs (push facut la origin/staging)
+
+**NEXT STEPS pentru staging:**
+1. Asteapta deploy sa termine (~2 min)
+2. Testeaza pe staging:
+   - Pagina comenzi se incarca fara erori
+   - Procesare bulk (factura + AWB) functioneaza
+   - Comenzile Trendyol apar cu sync status
+3. Daca OK -> merge staging in main pentru production
+4. Aplica aceleasi migratii si pe production DB
+
+**ACUM:** User a plecat sa rezolve bug-uri pe production. Revine cu /gsd:resume-work staging.
+
 Resume file: None
 
 ## Phase 7 Features
