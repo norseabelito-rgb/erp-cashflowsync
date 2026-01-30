@@ -9,6 +9,6 @@ buildCommand = "npx prisma generate && npm run build"
 # 2. Custom migration script - runs manual SQL migrations with IF NOT EXISTS
 # 3. Backfill postal codes (limit 5 for debugging)
 # 4. Start the app
-startCommand = "npx prisma migrate deploy && node scripts/force-migration.js && (LIMIT=5 npm run backfill:postal-codes || echo 'Backfill failed') && npm run start"
+startCommand = "(npx prisma migrate deploy || echo 'Migration skipped - baseline needed') && node scripts/force-migration.js && (LIMIT=5 npm run backfill:postal-codes || echo 'Backfill failed') && npm run start"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
