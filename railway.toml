@@ -5,9 +5,10 @@ installCommand = "npm install --legacy-peer-deps"
 buildCommand = "npx prisma generate && npm run build"
 
 [deploy]
-# Safe migration script that uses IF NOT EXISTS - won't delete data
-# After migration, backfill postal codes for orders missing them (limit 200 per deploy)
-# DEBUG: Backfill cu 5 comenzi pentru a vedea răspunsurile raw FanCourier
-startCommand = "node scripts/force-migration.js && (LIMIT=5 npm run backfill:postal-codes || echo 'Backfill failed') && npm run start"
+# 1. Prisma migrate deploy - creates/updates all standard tables (safe, idempotent)
+# 2. Custom migration script - runs manual SQL migrations with IF NOT EXISTS
+# 3. Backfill postal codes (limit 5 for debugging)
+# 4. Start the app
+startCommand = "npx prisma migrate deploy && node scripts/force-migration.js && (LIMIT=5 npm run backfill:postal-codes || echo 'Backfill failed') && npm run start"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
