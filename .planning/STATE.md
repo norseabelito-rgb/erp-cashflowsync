@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 7.1 - Trendyol Complete Integration - COMPLETE
+**Current focus:** Cleanup old Trendyol integration, then Phase 8
 
 ## Current Position
 
@@ -137,9 +137,14 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
+**CLEANUP NEEDED (Phase 7.1 follow-up):**
+- Vechea integrare Trendyol din Settings (tragea produse din Trendyol) trebuie eliminata/inlocuita
+- Functionalitatea veche e redundanta acum ca avem push bidirectional si sync automat
+
 **NEXT:**
-- Start Phase 8: Notifications and Automation
-- Or address critical technical debt items below
+- Cleanup: Elimina integrarea veche Trendyol din Settings (product pull)
+- Apoi: Start Phase 8: Notifications and Automation
+- Sau: Address critical technical debt items below
 
 ### Roadmap Evolution
 
@@ -185,7 +190,11 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed 07.1-06-PLAN.md (Unified dashboard & gap closure)
+Stopped at: Phase 7.1 complete, cleanup needed before Phase 8
+Resume context:
+- Phase 7.1 (Trendyol Complete Integration) finished and verified
+- Cleanup task: Remove old Trendyol integration from Settings (product pull functionality)
+- After cleanup: Ready for Phase 8 (Task Management Advanced)
 Resume file: None
 
 ## Phase 7 Features
