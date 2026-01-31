@@ -320,12 +320,13 @@ export class TrendyolClient {
     );
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       return { success: false, error: "Failed to search brands" };
     }
 
-    return { success: true, data: data.brands || [data] };
+    // API returns array directly, not {brands: [...]}
+    return { success: true, data: Array.isArray(data) ? data : (data.brands || [data]) };
   }
 
   // ============ SUPPLIER/SELLER INFO ============
