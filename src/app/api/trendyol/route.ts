@@ -394,19 +394,32 @@ export async function POST(request: NextRequest) {
       where: { id: "default" },
     });
 
-    if (!settings?.trendyolSupplierId || !settings?.trendyolApiKey || !settings?.trendyolApiSecret) {
+    // Try TrendyolStore first (new multi-store), fallback to Settings (legacy)
+    const trendyolStore = await prisma.trendyolStore.findFirst({
+      where: { isActive: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    const credentials = trendyolStore ? {
+      supplierId: trendyolStore.supplierId,
+      apiKey: trendyolStore.apiKey,
+      apiSecret: trendyolStore.apiSecret,
+      isTestMode: trendyolStore.isTestMode,
+    } : settings?.trendyolSupplierId ? {
+      supplierId: settings.trendyolSupplierId,
+      apiKey: settings.trendyolApiKey!,
+      apiSecret: settings.trendyolApiSecret!,
+      isTestMode: settings.trendyolIsTestMode,
+    } : null;
+
+    if (!credentials) {
       return NextResponse.json({
         success: false,
         error: "Credențialele Trendyol nu sunt configurate",
       });
     }
 
-    const client = new TrendyolClient({
-      supplierId: settings.trendyolSupplierId,
-      apiKey: settings.trendyolApiKey,
-      apiSecret: settings.trendyolApiSecret,
-      isTestMode: settings.trendyolIsTestMode,
-    });
+    const client = new TrendyolClient(credentials);
 
     // Creare produs
     if (action === "createProduct") {
