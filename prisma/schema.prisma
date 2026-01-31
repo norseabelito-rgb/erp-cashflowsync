@@ -2445,24 +2445,24 @@ model TrendyolOrder {
   order   Order?  @relation(fields: [orderId], references: [id])
 
   // Magazin Trendyol (pentru multi-store support)
-  trendyolStoreId String?
+  trendyolStoreId String?        @map("trendyol_store_id")
   trendyolStore   TrendyolStore? @relation(fields: [trendyolStoreId], references: [id])
 
   // Line items
   lineItems TrendyolOrderItem[]
 
   // Invoice tracking - for sending invoice link back to Trendyol
-  invoiceSentToTrendyol Boolean   @default(false)
-  invoiceSentAt         DateTime?
-  invoiceSendError      String?
-  oblioInvoiceLink      String? // The public link sent to Trendyol
+  invoiceSentToTrendyol Boolean   @default(false) @map("invoice_sent_to_trendyol")
+  invoiceSentAt         DateTime? @map("invoice_sent_at")
+  invoiceSendError      String?   @map("invoice_send_error")
+  oblioInvoiceLink      String?   @map("oblio_invoice_link") // The public link sent to Trendyol
 
   // AWB tracking - for sending tracking number back to Trendyol
-  trackingSentToTrendyol Boolean   @default(false)
-  trackingSentAt         DateTime?
-  trackingSendError      String?
-  localAwbNumber         String?   // AWB from FanCourier/Sameday
-  localCarrier           String?   // "fancourier" | "sameday" | etc.
+  trackingSentToTrendyol Boolean   @default(false) @map("tracking_sent_to_trendyol")
+  trackingSentAt         DateTime? @map("tracking_sent_at")
+  trackingSendError      String?   @map("tracking_send_error")
+  localAwbNumber         String?   @map("local_awb_number") // AWB from FanCourier/Sameday
+  localCarrier           String?   @map("local_carrier") // "fancourier" | "sameday" | etc.
 
   // Timestamps
   createdAt    DateTime  @default(now())
