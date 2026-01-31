@@ -581,7 +581,7 @@ export async function POST(request: NextRequest) {
           currencyType: "EUR" as const,
           listPrice: priceEUR,
           salePrice: priceEUR,
-          vatRate: 19,
+          vatRate: 20, // Trendyol accepts only 0, 1, 10, 20
           cargoCompanyId: 17, // Default cargo
           images: product.images.slice(0, 8).map(img => ({ url: img.url })),
           attributes: attributes.length > 0 ? attributes : undefined,
