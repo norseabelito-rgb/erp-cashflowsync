@@ -585,14 +585,15 @@ export async function POST(request: NextRequest) {
           cargoCompanyId: 17, // Default cargo
           images: product.images.slice(0, 8).map(img => {
             let url = img.url;
-            // Convert relative URLs to absolute
+            const baseUrl = process.env.NEXTAUTH_URL || 'https://erp-cashflowsync-staging.up.railway.app';
+            // Convert relative URLs to absolute with .jpg extension for Trendyol
             if (url.startsWith('/api/drive-image/')) {
               const fileId = url.replace('/api/drive-image/', '');
-              // Use Google Drive direct URL (requires public sharing)
-              url = `https://drive.google.com/uc?export=view&id=${fileId}`;
+              // Use our proxy with .jpg extension (Trendyol requires image extension)
+              url = `${baseUrl}/api/drive-image/${fileId}.jpg`;
             } else if (url.startsWith('/')) {
               // Other relative URLs - make absolute
-              url = `${process.env.NEXTAUTH_URL || 'https://erp-cashflowsync-staging.up.railway.app'}${url}`;
+              url = `${baseUrl}${url}`;
             }
             return { url };
           }),
