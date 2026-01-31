@@ -2383,23 +2383,23 @@ model AIAnalysisRun {
 model TrendyolStore {
   id                String   @id @default(cuid())
   name              String   // "Trendyol RO", "Trendyol DE"
-  supplierId        String   @unique // Supplier ID din Trendyol
-  apiKey            String
-  apiSecret         String
-  webhookSecret     String   // HMAC secret unic per magazin
-  storeFrontCode    String   // "RO", "DE", "BG", "TR"
-  isTestMode        Boolean  @default(false)
-  defaultBrandId    Int?
-  currencyRate      Decimal? @db.Decimal(10, 4) // Curs RON -> valuta locala
-  invoiceSeriesName String?  // Seria de facturare
+  supplierId        String   @unique @map("supplier_id") // Supplier ID din Trendyol
+  apiKey            String   @map("api_key")
+  apiSecret         String   @map("api_secret")
+  webhookSecret     String   @map("webhook_secret") // HMAC secret unic per magazin
+  storeFrontCode    String   @map("store_front_code") // "RO", "DE", "BG", "TR"
+  isTestMode        Boolean  @default(false) @map("is_test_mode")
+  defaultBrandId    Int?     @map("default_brand_id")
+  currencyRate      Decimal? @db.Decimal(10, 4) @map("currency_rate") // Curs RON -> valuta locala
+  invoiceSeriesName String?  @map("invoice_series_name") // Seria de facturare
 
   // Firma asociata
-  companyId String
+  companyId String  @map("company_id")
   company   Company @relation(fields: [companyId], references: [id])
 
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relatii
   orders TrendyolOrder[]
