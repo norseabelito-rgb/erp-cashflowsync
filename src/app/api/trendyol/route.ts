@@ -583,7 +583,19 @@ export async function POST(request: NextRequest) {
           salePrice: priceEUR,
           vatRate: 20, // Trendyol accepts only 0, 1, 10, 20
           cargoCompanyId: 17, // Default cargo
-          images: product.images.slice(0, 8).map(img => ({ url: img.url })),
+          images: product.images.slice(0, 8).map(img => {
+            let url = img.url;
+            // Convert relative URLs to absolute
+            if (url.startsWith('/api/drive-image/')) {
+              const fileId = url.replace('/api/drive-image/', '');
+              // Use Google Drive direct URL (requires public sharing)
+              url = `https://drive.google.com/uc?export=view&id=${fileId}`;
+            } else if (url.startsWith('/')) {
+              // Other relative URLs - make absolute
+              url = `${process.env.NEXTAUTH_URL || 'https://erp-cashflowsync-staging.up.railway.app'}${url}`;
+            }
+            return { url };
+          }),
           attributes: attributes.length > 0 ? attributes : undefined,
         };
       });
