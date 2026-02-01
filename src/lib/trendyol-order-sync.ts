@@ -5,11 +5,24 @@
  * invoice/AWB workflow. Called from:
  * - Webhook handler (real-time)
  * - Manual import/sync actions
+ *
+ * NOTE: Uses TrendyolStore.companyId for multi-company support.
+ * The old Settings.trendyolCompanyId is deprecated.
  */
 
 import prisma from "@/lib/db";
-import { Order, TrendyolOrder, Settings, Store, Prisma } from "@prisma/client";
+import { Order, TrendyolOrder, Store, Prisma } from "@prisma/client";
 import { mapTrendyolToInternalStatus } from "@/lib/trendyol-status";
+
+// Type for TrendyolStore data needed for sync
+export type TrendyolStoreForSync = {
+  id: string;
+  name: string;
+  supplierId: string;
+  companyId: string;
+  storeFrontCode: string;
+  company: { id: string; name: string } | null;
+};
 
 // Type for TrendyolOrder with line items included
 type TrendyolOrderWithItems = TrendyolOrder & {
@@ -59,12 +72,10 @@ function convertCurrency(trendyolCurrency: string): string {
 
 /**
  * Find or create a virtual store for Trendyol orders
+ * Uses TrendyolStore data for multi-company support
  */
-export async function findOrCreateTrendyolStore(settings: Settings): Promise<Store> {
-  const storeFrontCode = (settings as any).trendyolStoreFrontCode || "RO";
-  const supplierId = settings.trendyolSupplierId || "unknown";
-  const storeName = `Trendyol ${storeFrontCode}`;
-  const shopifyDomain = `trendyol-${supplierId}`;
+export async function findOrCreateTrendyolVirtualStore(trendyolStore: TrendyolStoreForSync): Promise<Store> {
+  const shopifyDomain = `trendyol-${trendyolStore.supplierId}`;
 
   // Try to find existing Trendyol store by domain pattern
   let store = await prisma.store.findFirst({
@@ -75,19 +86,24 @@ export async function findOrCreateTrendyolStore(settings: Settings): Promise<Sto
 
   if (!store) {
     // Create virtual store for Trendyol
-    const companyId = (settings as any).trendyolCompanyId;
-
     store = await prisma.store.create({
       data: {
-        name: storeName,
+        name: trendyolStore.name,
         shopifyDomain: shopifyDomain,
         accessToken: "", // Not used for Trendyol
         isActive: true,
-        companyId: companyId || null,
+        companyId: trendyolStore.companyId,
       },
     });
 
-    console.log(`[Trendyol Sync] Created virtual store: ${storeName} (ID: ${store.id})`);
+    console.log(`[Trendyol Sync] Created virtual store: ${trendyolStore.name} (ID: ${store.id})`);
+  } else if (store.companyId !== trendyolStore.companyId) {
+    // Update company if changed
+    store = await prisma.store.update({
+      where: { id: store.id },
+      data: { companyId: trendyolStore.companyId },
+    });
+    console.log(`[Trendyol Sync] Updated virtual store company: ${store.id} -> ${trendyolStore.companyId}`);
   }
 
   return store;
@@ -145,15 +161,15 @@ async function updateOrderFromTrendyol(
  * Syncs a TrendyolOrder to the main Order table
  *
  * @param trendyolOrder - The TrendyolOrder record with line items
- * @param settings - Application settings with Trendyol config
+ * @param trendyolStore - TrendyolStore data for company resolution
  * @returns The created or updated Order record
  */
 export async function syncTrendyolOrderToMainOrder(
   trendyolOrder: TrendyolOrderWithItems,
-  settings: Settings
+  trendyolStore: TrendyolStoreForSync
 ): Promise<Order> {
   // 1. Find or create Store for Trendyol (virtual store)
-  const store = await findOrCreateTrendyolStore(settings);
+  const store = await findOrCreateTrendyolVirtualStore(trendyolStore);
 
   // 2. Check if Order already exists for this Trendyol order
   const existingOrder = await prisma.order.findFirst({
@@ -178,16 +194,14 @@ export async function syncTrendyolOrderToMainOrder(
     return updatedOrder;
   }
 
-  // 3. Create new Order
-  const companyId = (settings as any).trendyolCompanyId;
-
+  // 3. Create new Order - use TrendyolStore.companyId for billing
   const order = await prisma.order.create({
     data: {
       shopifyOrderId: trendyolOrder.trendyolOrderId,
       shopifyOrderNumber: trendyolOrder.trendyolOrderNumber,
       source: "trendyol",
       storeId: store.id,
-      billingCompanyId: companyId || null,
+      billingCompanyId: trendyolStore.companyId,
 
       // Customer data
       customerEmail: trendyolOrder.customerEmail,
@@ -200,7 +214,7 @@ export async function syncTrendyolOrderToMainOrder(
       shippingCity: trendyolOrder.customerCity,
       shippingProvince: trendyolOrder.customerDistrict || "",
       shippingZip: trendyolOrder.customerPostalCode || "",
-      shippingCountry: "RO", // Default to RO for Trendyol RO marketplace
+      shippingCountry: trendyolStore.storeFrontCode === "RO" ? "RO" : trendyolStore.storeFrontCode,
 
       // Financial
       totalPrice: trendyolOrder.totalPrice,
@@ -225,6 +239,8 @@ export async function syncTrendyolOrderToMainOrder(
           shipmentPackageId: trendyolOrder.shipmentPackageId,
           cargoProviderName: trendyolOrder.cargoProviderName,
           cargoTrackingNumber: trendyolOrder.cargoTrackingNumber,
+          trendyolStoreId: trendyolStore.id,
+          trendyolStoreName: trendyolStore.name,
         },
       },
 
@@ -246,7 +262,7 @@ export async function syncTrendyolOrderToMainOrder(
   });
 
   console.log(
-    `[Trendyol Sync] Created Order ${order.id} for Trendyol order ${trendyolOrder.trendyolOrderNumber}`
+    `[Trendyol Sync] Created Order ${order.id} for Trendyol order ${trendyolOrder.trendyolOrderNumber} (Store: ${trendyolStore.name}, Company: ${trendyolStore.companyId})`
   );
 
   return order;
@@ -254,6 +270,7 @@ export async function syncTrendyolOrderToMainOrder(
 
 /**
  * Sync all unlinked TrendyolOrders to main Order table
+ * Uses TrendyolStore for each order's company resolution
  *
  * @returns Stats about the sync operation
  */
@@ -265,19 +282,24 @@ export async function syncAllTrendyolOrdersToMain(): Promise<{
 }> {
   const result = { synced: 0, created: 0, updated: 0, errors: [] as string[] };
 
-  const settings = await prisma.settings.findFirst();
-  if (!settings) {
-    result.errors.push("Settings not found");
-    return result;
-  }
-
   // Find all TrendyolOrders that don't have a linked Order
+  // Include the TrendyolStore for company resolution
   const unlinkedOrders = await prisma.trendyolOrder.findMany({
     where: {
       orderId: null,
     },
     include: {
       lineItems: true,
+      trendyolStore: {
+        include: {
+          company: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -285,6 +307,14 @@ export async function syncAllTrendyolOrdersToMain(): Promise<{
 
   for (const trendyolOrder of unlinkedOrders) {
     try {
+      // Skip orders without a TrendyolStore (shouldn't happen but be safe)
+      if (!trendyolOrder.trendyolStore) {
+        result.errors.push(
+          `Order ${trendyolOrder.trendyolOrderNumber}: No TrendyolStore linked`
+        );
+        continue;
+      }
+
       // Check if Order already exists but not linked
       const existingOrder = await prisma.order.findFirst({
         where: {
@@ -301,8 +331,19 @@ export async function syncAllTrendyolOrdersToMain(): Promise<{
         });
         result.updated++;
       } else {
-        // Create new Order
-        await syncTrendyolOrderToMainOrder(trendyolOrder as TrendyolOrderWithItems, settings);
+        // Create new Order using TrendyolStore for company resolution
+        const trendyolStore = trendyolOrder.trendyolStore;
+        await syncTrendyolOrderToMainOrder(
+          trendyolOrder as TrendyolOrderWithItems,
+          {
+            id: trendyolStore.id,
+            name: trendyolStore.name,
+            supplierId: trendyolStore.supplierId,
+            companyId: trendyolStore.companyId,
+            storeFrontCode: trendyolStore.storeFrontCode,
+            company: trendyolStore.company,
+          }
+        );
         result.created++;
       }
       result.synced++;
