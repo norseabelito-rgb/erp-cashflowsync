@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 ## Current Position
 
-Phase: 7.1 of 10 (Trendyol Complete Integration - INSERTED)
-Plan: 6 of 6 (COMPLETE)
-Status: Phase 7.1 Complete
-Last activity: 2026-01-30 - Completed 07.1-06-PLAN.md (Unified dashboard & gap closure)
+Phase: 7.2 of 10 (Trendyol Complete Fix - INSERTED)
+Plan: 1 of 6
+Status: In progress
+Last activity: 2026-02-01 - Completed 07.2-01-PLAN.md (Batch status verification)
 
-Progress: [████████████████████] ~85% (7/10 integer phases + 6/6 of 7.1)
+Progress: [████████████████████] ~86% (7/10 integer phases + 6/6 of 7.1 + 1/6 of 7.2)
 
 ## Phase 7 Progress
 
@@ -54,6 +54,9 @@ Progress: [████████████████████] ~85% (7
 
 Recent decisions affecting current work:
 
+- **07.2-01:** 3-second polling interval for batch status (balance between responsiveness and API load)
+- **07.2-01:** Auto-stop polling when status is COMPLETED or FAILED
+- **07.2-01:** Romanian error translations for common Trendyol rejection codes
 - **07.1-06:** Reusable functions in trendyol-returns.ts for webhook handlers
 - **07.1-06:** Activity logging for all Trendyol status changes
 - **07.1-06:** Sync button fetches last 7 days of orders
@@ -166,6 +169,17 @@ Recent decisions affecting current work:
 | 07.1-05 | 4 | Complete | Automatic stock & price sync |
 | 07.1-06 | 5 | Complete | Unified dashboard & gap closure |
 
+## Phase 7.2 Progress
+
+| Plan | Wave | Status | Summary |
+|------|------|--------|---------|
+| 07.2-01 | 1 | Complete | Batch status verification UI with error display |
+| 07.2-02 | 1 | Pending | Attribute mapping UI |
+| 07.2-03 | 1 | Pending | Order sync webhook fix |
+| 07.2-04 | 1 | Pending | Webhook TrendyolStore association |
+| 07.2-05 | 1 | Pending | Price/stock sync improvements |
+| 07.2-06 | 1 | Pending | Product publish improvements |
+
 **DATABASE MIGRATION STATUS:**
 
 *STAGING (APPLIED 2026-01-30):*
@@ -196,27 +210,17 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-01-30
-Stopped at: Staging Trendyol multi-store - migrations applied, deploy in progress
+Last session: 2026-02-01
+Stopped at: Completed 07.2-01-PLAN.md (Batch status verification)
 Resume context:
-- **STAGING BRANCH** - verificare Trendyol multi-store inainte de merge in production
-- Migratii aplicate pe staging DB (Railway psql):
-  - add_order_source_field.sql (coloana `source` pe orders)
-  - add_trendyol_stores.sql (tabelul trendyol_stores)
-  - add_trendyol_order_tracking_fields.sql (coloane tracking pe trendyol_orders)
-- Commit `fc4a00a`: Re-enabled trendyolOrder include in /api/orders/route.ts
-- Deploy staging in curs (push facut la origin/staging)
+- **STAGING BRANCH** - Phase 7.2 in progress
+- Completed 07.2-01: Batch status verification UI
+- Created: src/lib/trendyol-batch-status.ts, src/app/api/trendyol/batch-status/route.ts
+- Modified: src/app/(dashboard)/trendyol/publish/page.tsx (BatchStatusDialog)
 
-**NEXT STEPS pentru staging:**
-1. Asteapta deploy sa termine (~2 min)
-2. Testeaza pe staging:
-   - Pagina comenzi se incarca fara erori
-   - Procesare bulk (factura + AWB) functioneaza
-   - Comenzile Trendyol apar cu sync status
-3. Daca OK -> merge staging in main pentru production
-4. Aplica aceleasi migratii si pe production DB
-
-**ACUM:** User a plecat sa rezolve bug-uri pe production. Revine cu /gsd:resume-work staging.
+**NEXT STEPS:**
+1. Continue with 07.2-02-PLAN.md (Attribute mapping UI)
+2. Or verify batch status UI works on staging
 
 Resume file: None
 
@@ -241,15 +245,15 @@ Task Management Core components:
 
 ## Recent Commits
 
+- `33f7613` feat(07.2-01): add BatchStatusDialog to publish page
+- `145407b` feat(07.2-01): add batch status library and API endpoint
 - `075bda3` feat(07.1-06): organize Trendyol navigation in sidebar
 - `766e1f0` feat(07.1-06): add Trendyol sync status column to orders table
 - `c580690` feat(07.1-06): complete webhook handler for all Trendyol events
 - `80af44d` feat(07.1-06): add Trendyol return handling library
 - `c280540` feat(07.1-06): add Trendyol sync button to orders page
 - `d139786` feat(07.1-06): integrate Trendyol orders into process-all flow
-- `8c2df55` feat(07.1-06): update Trendyol orders page as secondary view
-- `d0ff1a7` feat(07.1-06): add Trendyol metrics to main dashboard
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-30 (Phase 7.1 COMPLETE - Trendyol Integration)*
+*Last updated: 2026-02-01 (Phase 7.2 Plan 01 COMPLETE - Batch status verification)*
