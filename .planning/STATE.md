@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 ## Current Position
 
-Phase: 7.2 of 10 (Trendyol Complete Fix - INSERTED)
-Plan: 3 of 6
-Status: In progress
-Last activity: 2026-02-01 - Completed 07.2-03-PLAN.md (Invoice series integration)
+Phase: 7.2 of 10 (Trendyol Complete Fix - COMPLETE)
+Plan: 4 of 4
+Status: Phase 7.2 Complete
+Last activity: 2026-02-01 - Completed 07.2-04-PLAN.md (Fix order sync to use TrendyolStore.companyId)
 
-Progress: [████████████████████] ~88% (7/10 integer phases + 6/6 of 7.1 + 3/6 of 7.2)
+Progress: [████████████████████] ~88% (7/10 integer phases + 6/6 of 7.1 + 4/4 of 7.2)
 
 ## Phase 7 Progress
 
@@ -31,9 +31,9 @@ Progress: [████████████████████] ~88% (7
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 35
+- Total plans completed: 39
 - Average duration: ~5.3 minutes
-- Total execution time: ~198 minutes
+- Total execution time: ~218 minutes
 
 **By Phase:**
 
@@ -47,6 +47,7 @@ Progress: [████████████████████] ~88% (7
 | 06-ux-foundation | 6/6 | ~22 min | ~3.7 min |
 | 07-task-management-core | 5/5 | ~28 min | ~5.6 min |
 | 07.1-trendyol-integration | 6/6 | ~46 min | ~7.7 min |
+| 07.2-trendyol-fix | 4/4 | ~20 min | ~5 min |
 
 ## Accumulated Context
 
@@ -54,6 +55,9 @@ Progress: [████████████████████] ~88% (7
 
 Recent decisions affecting current work:
 
+- **07.2-04:** TrendyolStoreForSync type exported for cross-module use
+- **07.2-04:** trendyolStoreId set on TrendyolOrder during sync
+- **07.2-04:** Virtual store company updated if TrendyolStore company changes
 - **07.2-03:** TrendyolStore.invoiceSeriesName used as Priority 0 for invoice series resolution
 - **07.2-03:** trendyolStoreId consistently set on TrendyolOrder during sync (create and update)
 - **07.2-03:** New syncTrendyolOrdersForStore export for multi-store API sync
@@ -179,9 +183,7 @@ Recent decisions affecting current work:
 | 07.2-01 | 1 | Complete | Batch status verification UI with error display |
 | 07.2-02 | 1 | Complete | Attribute mapping UI |
 | 07.2-03 | 1 | Complete | Invoice series integration for TrendyolStore |
-| 07.2-04 | 1 | Pending | Webhook TrendyolStore association |
-| 07.2-05 | 1 | Pending | Price/stock sync improvements |
-| 07.2-06 | 1 | Pending | Product publish improvements |
+| 07.2-04 | 1 | Complete | Order sync uses TrendyolStore.companyId for billing |
 
 **DATABASE MIGRATION STATUS:**
 
@@ -214,17 +216,17 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed 07.2-03-PLAN.md (Invoice series integration)
+Stopped at: Completed 07.2-04-PLAN.md (Fix order sync to use TrendyolStore.companyId)
 Resume context:
-- **STAGING BRANCH** - Phase 7.2 in progress
-- Completed 07.2-03: Invoice series integration for TrendyolStore
-- Modified: src/lib/invoice-service.ts (Priority 0 TrendyolStore series)
-- Modified: src/lib/trendyol-order-sync.ts (trendyolStoreId linking)
-- Modified: src/lib/trendyol.ts (syncTrendyolOrdersForStore export)
+- **STAGING BRANCH** - Phase 7.2 COMPLETE
+- Multi-company order sync now uses TrendyolStore.companyId
+- Orders correctly linked to their TrendyolStore
+- Ready for final testing and merge to production
 
 **NEXT STEPS:**
-1. Continue with 07.2-04-PLAN.md (Webhook TrendyolStore association)
-2. Or run Prisma generate to fix TypeScript errors
+1. Test multi-company order sync on staging
+2. Merge staging to main for production
+3. Apply migrations to production DB
 
 Resume file: None
 
@@ -247,17 +249,24 @@ Task Management Core components:
 - [x] 07.1-05: Automatic stock & price sync with cron
 - [x] 07.1-06: Unified dashboard, sidebar nav, complete webhook handling
 
+## Phase 7.2 Features (Trendyol Complete Fix)
+
+- [x] 07.2-01: Batch status verification UI with error display
+- [x] 07.2-02: Attribute mapping UI
+- [x] 07.2-03: Invoice series integration for TrendyolStore
+- [x] 07.2-04: Order sync uses TrendyolStore.companyId for billing
+
 ## Recent Commits
 
+- `702bf97` feat(07.2-04): update webhook to pass TrendyolStore to sync
+- `dfbeef7` feat(07.2-04): refactor order sync to use TrendyolStore for company
 - `7c908ca` feat(07.2-03): ensure TrendyolStore is linked during order sync
 - `e42f7ff` feat(07.2-03): add TrendyolStore invoice series resolution
 - `33f7613` feat(07.2-01): add BatchStatusDialog to publish page
 - `145407b` feat(07.2-01): add batch status library and API endpoint
 - `075bda3` feat(07.1-06): organize Trendyol navigation in sidebar
 - `766e1f0` feat(07.1-06): add Trendyol sync status column to orders table
-- `c580690` feat(07.1-06): complete webhook handler for all Trendyol events
-- `80af44d` feat(07.1-06): add Trendyol return handling library
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-01 (Phase 7.2 Plan 03 COMPLETE - Invoice series integration)*
+*Last updated: 2026-02-01 (Phase 7.2 COMPLETE - Trendyol Complete Fix)*
