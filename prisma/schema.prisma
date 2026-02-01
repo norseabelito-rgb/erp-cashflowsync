@@ -1263,6 +1263,8 @@ model MasterProduct {
   trendyolError        String? // Mesajul de eroare (dacă rejected)
   trendyolAttributes   Json?     @default("[]") // Atributele produsului pentru Trendyol
   trendyolLastSyncedAt DateTime?
+  trendyolCategoryId   Int?      // ID-ul categoriei Trendyol pentru acest produs
+  trendyolAttributeValues Json?  @map("trendyol_attribute_values") // Format: { [attributeId: number]: { attributeValueId?: number, customValue?: string } }
 
   // Mapare la articol inventar local
   inventoryItemId String?
