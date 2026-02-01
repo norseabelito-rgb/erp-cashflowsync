@@ -547,26 +547,64 @@ export async function POST(request: NextRequest) {
       const currencyRate = settings.trendyolCurrencyRate ? 
         parseFloat(settings.trendyolCurrencyRate.toString()) : 5.0;
 
+      // Validate attributes before publishing
+      const productsWithMissingAttrs: string[] = [];
+
+      for (const product of products) {
+        if (!product.category?.trendyolCategoryId) continue;
+
+        const categoryAttrs = product.category?.trendyolAttributes as any[] || [];
+        const requiredAttrs = categoryAttrs.filter((a: any) => a.required);
+        const savedAttrs = (product as any).trendyolAttributeValues as Record<string, { attributeValueId?: number; customValue?: string }> || {};
+
+        const missingAttrs = requiredAttrs.filter((attr: any) => {
+          const attrId = (attr.attribute?.id || attr.id).toString();
+          const saved = savedAttrs[attrId];
+          return !saved || (!saved.attributeValueId && !saved.customValue);
+        });
+
+        if (missingAttrs.length > 0) {
+          const missingNames = missingAttrs.map((a: any) => a.attribute?.name || a.name).join(", ");
+          productsWithMissingAttrs.push(`${product.sku}: ${missingNames}`);
+        }
+      }
+
+      if (productsWithMissingAttrs.length > 0) {
+        return NextResponse.json({
+          success: false,
+          error: `Urmatoarele produse nu au atributele obligatorii configurate:\n${productsWithMissingAttrs.join("\n")}`,
+          missingAttributes: productsWithMissingAttrs,
+        });
+      }
+
       // Construim produsele pentru Trendyol
       const trendyolProducts = products
-        .filter(product => product.category?.trendyolCategoryId) // Filtrăm produsele fără categorie Trendyol
+        .filter(product => product.category?.trendyolCategoryId) // Filtram produsele fara categorie Trendyol
         .map(product => {
-        // Generăm barcode din SKU dacă nu există
+        // Generam barcode din SKU daca nu exista
         const barcode = product.trendyolBarcode || generateBarcode(product.sku);
-        
-        // Convertim prețul din RON în EUR
+
+        // Convertim pretul din RON in EUR
         const priceEUR = Math.round((parseFloat(product.price.toString()) / currencyRate) * 100) / 100;
-        
+
         // Atributele categoriei (obligatorii)
         const categoryAttrs = product.category?.trendyolAttributes as any[] || [];
-        const requiredAttrs = categoryAttrs.filter(a => a.required);
-        
-        // Construim atributele de bază (pot fi extinse ulterior în UI)
-        const attributes = requiredAttrs.map(attr => ({
-          attributeId: attr.attribute?.id || attr.id,
-          // Folosim prima valoare disponibilă ca placeholder
-          attributeValueId: attr.attributeValues?.[0]?.id || null,
-        })).filter(a => a.attributeValueId);
+        const requiredAttrs = categoryAttrs.filter((a: any) => a.required);
+
+        // Use saved attribute values from product.trendyolAttributeValues
+        const savedAttrs = (product as any).trendyolAttributeValues as Record<string, { attributeValueId?: number; customValue?: string }> || {};
+
+        const attributes = requiredAttrs.map((attr: any) => {
+          const attrId = attr.attribute?.id || attr.id;
+          const saved = savedAttrs[attrId.toString()];
+          if (!saved) return null;
+
+          return {
+            attributeId: attrId,
+            ...(saved.attributeValueId ? { attributeValueId: saved.attributeValueId } : {}),
+            ...(saved.customValue ? { customAttributeValue: saved.customValue } : {}),
+          };
+        }).filter(Boolean);
 
         return {
           barcode,
