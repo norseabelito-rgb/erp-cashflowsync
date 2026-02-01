@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import prisma from "@/lib/db";
 import { normalizeStatus, mapTrendyolToInternalStatus } from "@/lib/trendyol-status";
-import { syncTrendyolOrderToMainOrder } from "@/lib/trendyol-order-sync";
+import { syncTrendyolOrderToMainOrder, TrendyolStoreForSync } from "@/lib/trendyol-order-sync";
 import {
   handleTrendyolReturn,
   handleTrendyolCancellation,
@@ -185,15 +185,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
 /**
  * Processes different webhook event types with store context
+ * Uses TrendyolStore for company resolution in order sync
  */
 async function processWebhookEvent(
   event: TrendyolWebhookEvent,
-  store: {
-    id: string;
-    name: string;
-    supplierId: string;
-    company: { id: string; name: string } | null;
-  }
+  store: TrendyolStoreForSync
 ): Promise<{ processed: boolean; message?: string }> {
   const { eventType, data } = event;
 
@@ -202,17 +198,11 @@ async function processWebhookEvent(
       // Sync new order to main Order table
       console.log(`[Trendyol Webhook] New order created: ${data.orderNumber} for store ${store.name}`);
 
-      // Load settings (for invoice series, etc.)
-      const settings = await prisma.settings.findFirst();
-      if (!settings) {
-        return { processed: false, message: "Settings not configured" };
-      }
-
       const orderNumber = data.orderNumber;
       const shipmentPackageId = data.shipmentPackageId?.toString();
 
       // Find TrendyolOrder associated with this store
-      let trendyolOrder = await prisma.trendyolOrder.findFirst({
+      const trendyolOrder = await prisma.trendyolOrder.findFirst({
         where: {
           ...(shipmentPackageId
             ? { shipmentPackageId }
@@ -224,8 +214,9 @@ async function processWebhookEvent(
 
       if (trendyolOrder) {
         try {
-          const order = await syncTrendyolOrderToMainOrder(trendyolOrder, settings);
-          console.log(`[Trendyol Webhook] Synced order ${orderNumber} to Order ${order.id}`);
+          // Pass TrendyolStore for company resolution (multi-company support)
+          const order = await syncTrendyolOrderToMainOrder(trendyolOrder, store);
+          console.log(`[Trendyol Webhook] Synced order ${orderNumber} to Order ${order.id} (Company: ${store.companyId})`);
           return { processed: true, message: `Order synced: ${order.id}` };
         } catch (syncError: any) {
           console.error(`[Trendyol Webhook] Failed to sync order ${orderNumber}:`, syncError);
