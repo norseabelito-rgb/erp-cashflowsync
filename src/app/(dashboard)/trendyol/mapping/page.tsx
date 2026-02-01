@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { 
-  FolderTree, RefreshCw, Search, Check, X, ChevronRight,
-  AlertCircle, Settings, Link2, Unlink
+import {
+  FolderTree, RefreshCw, Search, Check, X, ChevronRight, ChevronDown,
+  AlertCircle, Settings, Link2, Unlink, Package, Save, Loader2
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "@/hooks/use-toast";
@@ -22,13 +23,17 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface Category {
   id: string;
@@ -44,11 +49,266 @@ interface Category {
 
 interface TrendyolCategory {
   id: number;
-  name: string;           // Numele tradus în română
-  nameOriginal: string;   // Numele original în turcă
-  fullPath: string;       // Calea completă tradusă
-  fullPathOriginal: string; // Calea completă originală
+  name: string;
+  nameOriginal: string;
+  fullPath: string;
+  fullPathOriginal: string;
   parentId?: number;
+}
+
+interface TrendyolAttribute {
+  id: number;
+  name: string;
+  required: boolean;
+  allowCustom: boolean;
+  varianter?: boolean;
+  attributeValues: Array<{
+    id: number;
+    name: string;
+  }>;
+}
+
+interface Product {
+  id: string;
+  sku: string;
+  title: string;
+  trendyolCategoryId?: number;
+  trendyolAttributeValues?: Record<string, { attributeValueId?: number; customValue?: string }>;
+  category?: {
+    id: string;
+    name: string;
+    trendyolCategoryId?: number;
+    trendyolCategoryName?: string;
+  };
+}
+
+// Component for attribute selection
+function AttributeSelector({
+  attribute,
+  value,
+  onChange,
+}: {
+  attribute: TrendyolAttribute;
+  value: { attributeValueId?: number; customValue?: string } | undefined;
+  onChange: (val: { attributeValueId?: number; customValue?: string }) => void;
+}) {
+  const [useCustom, setUseCustom] = useState(!!value?.customValue && !value?.attributeValueId);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label className="text-sm">
+          {attribute.name}
+          {attribute.required && <span className="text-red-500 ml-1">*</span>}
+        </Label>
+        {attribute.allowCustom && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-xs"
+            onClick={() => {
+              setUseCustom(!useCustom);
+              onChange({}); // Reset value when switching
+            }}
+          >
+            {useCustom ? "Alege din lista" : "Valoare custom"}
+          </Button>
+        )}
+      </div>
+
+      {useCustom ? (
+        <Input
+          placeholder={`Introdu valoare pentru ${attribute.name}...`}
+          value={value?.customValue || ""}
+          onChange={(e) => onChange({ customValue: e.target.value })}
+          className="h-9"
+        />
+      ) : (
+        <Select
+          value={value?.attributeValueId?.toString() || ""}
+          onValueChange={(val) => onChange({ attributeValueId: parseInt(val) })}
+        >
+          <SelectTrigger className="h-9">
+            <SelectValue placeholder={`Selecteaza ${attribute.name}...`} />
+          </SelectTrigger>
+          <SelectContent>
+            {attribute.attributeValues.map((av) => (
+              <SelectItem key={av.id} value={av.id.toString()}>
+                {av.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+    </div>
+  );
+}
+
+// Component for product attribute mapping
+function ProductAttributeMapping({
+  product,
+  onClose,
+}: {
+  product: Product;
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [attributeValues, setAttributeValues] = useState<Record<string, { attributeValueId?: number; customValue?: string }>>(
+    product.trendyolAttributeValues || {}
+  );
+
+  // Fetch attributes for this product's category
+  const { data: attrData, isLoading } = useQuery({
+    queryKey: ["product-attributes", product.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/trendyol/attributes?productId=${product.id}`);
+      return res.json();
+    },
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/trendyol/attributes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: product.id,
+          attributeValues,
+        }),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: ["products-need-attributes"] });
+        toast({
+          title: "Atribute salvate",
+          description: data.allRequiredFilled
+            ? "Toate atributele obligatorii sunt completate."
+            : `Atribute salvate. Lipsesc: ${data.missingRequired?.join(", ")}`,
+        });
+        onClose();
+      } else {
+        toast({
+          title: "Eroare",
+          description: data.error || "Nu s-au putut salva atributele",
+          variant: "destructive",
+        });
+      }
+    },
+  });
+
+  const attributes: TrendyolAttribute[] = attrData?.attributes || [];
+  const requiredAttributes = attributes.filter((a) => a.required);
+  const optionalAttributes = attributes.filter((a) => !a.required);
+
+  const filledRequired = requiredAttributes.filter((attr) => {
+    const val = attributeValues[attr.id.toString()];
+    return val?.attributeValueId || val?.customValue;
+  }).length;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!attrData?.categoryId) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+        <p>Produsul nu are o categorie Trendyol mapata.</p>
+        <p className="text-sm">Mapeaza mai intai categoria produsului.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Progress indicator */}
+      <div className="flex items-center gap-2">
+        {filledRequired === requiredAttributes.length ? (
+          <Check className="h-5 w-5 text-green-500" />
+        ) : (
+          <AlertCircle className="h-5 w-5 text-amber-500" />
+        )}
+        <span className="text-sm">
+          {filledRequired} / {requiredAttributes.length} atribute obligatorii completate
+        </span>
+      </div>
+
+      {/* Required attributes */}
+      {requiredAttributes.length > 0 && (
+        <div className="space-y-4">
+          <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+            Atribute Obligatorii
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {requiredAttributes.map((attr) => (
+              <AttributeSelector
+                key={attr.id}
+                attribute={attr}
+                value={attributeValues[attr.id.toString()]}
+                onChange={(val) => setAttributeValues({
+                  ...attributeValues,
+                  [attr.id.toString()]: val,
+                })}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Optional attributes (collapsible) */}
+      {optionalAttributes.length > 0 && (
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="w-full justify-between">
+              <span className="text-sm text-muted-foreground">
+                Atribute Optionale ({optionalAttributes.length})
+              </span>
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {optionalAttributes.map((attr) => (
+                <AttributeSelector
+                  key={attr.id}
+                  attribute={attr}
+                  value={attributeValues[attr.id.toString()]}
+                  onChange={(val) => setAttributeValues({
+                    ...attributeValues,
+                    [attr.id.toString()]: val,
+                  })}
+                />
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
+      {/* Save button */}
+      <div className="flex justify-end gap-2 pt-4 border-t">
+        <Button variant="outline" onClick={onClose}>
+          Anuleaza
+        </Button>
+        <Button
+          onClick={() => saveMutation.mutate()}
+          disabled={saveMutation.isPending}
+        >
+          {saveMutation.isPending ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4 mr-2" />
+          )}
+          Salveaza Atribute
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 export default function TrendyolMappingPage() {
@@ -57,6 +317,9 @@ export default function TrendyolMappingPage() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
   const [trendyolSearchTerm, setTrendyolSearchTerm] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [attributeDialogOpen, setAttributeDialogOpen] = useState(false);
+  const [productSearchTerm, setProductSearchTerm] = useState("");
 
   // Fetch categorii ERP
   const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
@@ -76,8 +339,30 @@ export default function TrendyolMappingPage() {
     },
   });
 
+  // Fetch products that need attribute configuration
+  const { data: productsData, isLoading: productsLoading } = useQuery({
+    queryKey: ["products-need-attributes", productSearchTerm],
+    queryFn: async () => {
+      // Fetch products that have a Trendyol category but may need attributes
+      const params = new URLSearchParams();
+      params.set("hasTrendyolCategory", "true");
+      params.set("limit", "50");
+      if (productSearchTerm) {
+        params.set("search", productSearchTerm);
+      }
+      const res = await fetch(`/api/products?${params.toString()}`);
+      return res.json();
+    },
+  });
+
   const categories: Category[] = categoriesData?.categories || [];
   const trendyolCategories: TrendyolCategory[] = trendyolCategoriesData?.flatCategories || [];
+  const products: Product[] = productsData?.products || [];
+
+  // Filter products to those with mapped categories
+  const productsWithCategory = products.filter(
+    (p) => p.trendyolCategoryId || p.category?.trendyolCategoryId
+  );
 
   // Mutation pentru salvare mapping
   const saveMappingMutation = useMutation({
@@ -85,7 +370,7 @@ export default function TrendyolMappingPage() {
       // Fetch atributele pentru categoria Trendyol
       const attrRes = await fetch(`/api/trendyol?action=attributes&categoryId=${data.trendyolCategoryId}`);
       const attrData = await attrRes.json();
-      
+
       const res = await fetch(`/api/categories/${data.categoryId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -100,8 +385,8 @@ export default function TrendyolMappingPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["erp-categories"] });
       toast({
-        title: "✅ Mapping salvat",
-        description: "Categoria a fost mapată cu succes la Trendyol.",
+        title: "Mapping salvat",
+        description: "Categoria a fost mapata cu succes la Trendyol.",
       });
       setMappingDialogOpen(false);
       setSelectedCategory(null);
@@ -132,8 +417,8 @@ export default function TrendyolMappingPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["erp-categories"] });
       toast({
-        title: "Mapping șters",
-        description: "Categoria nu mai este mapată la Trendyol.",
+        title: "Mapping sters",
+        description: "Categoria nu mai este mapata la Trendyol.",
       });
     },
   });
@@ -152,10 +437,16 @@ export default function TrendyolMappingPage() {
       cat.fullPathOriginal?.toLowerCase().includes(searchLower) ||
       cat.nameOriginal?.toLowerCase().includes(searchLower)
     );
-  }).slice(0, 50); // Limităm la 50 pentru performanță
+  }).slice(0, 50);
 
   const mappedCount = categories.filter(c => c.trendyolCategoryId).length;
   const unmappedCount = categories.filter(c => !c.trendyolCategoryId).length;
+
+  // Count products needing attributes
+  const productsNeedingAttrs = productsWithCategory.filter((p) => {
+    const attrs = p.trendyolAttributeValues || {};
+    return Object.keys(attrs).length === 0;
+  }).length;
 
   return (
     <div className="p-6 space-y-6">
@@ -167,13 +458,13 @@ export default function TrendyolMappingPage() {
             Mapare Categorii Trendyol
           </h1>
           <p className="text-muted-foreground mt-1">
-            Conectează categoriile ERP la categoriile Trendyol pentru a putea publica produse
+            Conecteaza categoriile ERP la categoriile Trendyol pentru a putea publica produse
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => refetchTrendyol()} disabled={trendyolLoading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${trendyolLoading ? 'animate-spin' : ''}`} />
-            Reîncarcă Trendyol
+            Reincarca Trendyol
           </Button>
           <Link href="/trendyol">
             <Button variant="outline">
@@ -184,7 +475,7 @@ export default function TrendyolMappingPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -218,6 +509,17 @@ export default function TrendyolMappingPage() {
             </div>
           </CardContent>
         </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Produse fara atribute</p>
+                <p className="text-2xl font-bold text-amber-500">{productsNeedingAttrs}</p>
+              </div>
+              <Package className="h-8 w-8 text-amber-500" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Search */}
@@ -225,8 +527,8 @@ export default function TrendyolMappingPage() {
         <CardContent className="pt-6">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Caută categorie ERP..." 
+            <Input
+              placeholder="Cauta categorie ERP..."
               className="pl-9"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -245,9 +547,9 @@ export default function TrendyolMappingPage() {
           ) : filteredCategories.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
               <FolderTree className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Nu au fost găsite categorii</p>
+              <p className="text-muted-foreground">Nu au fost gasite categorii</p>
               <Link href="/categories" className="mt-4">
-                <Button variant="outline">Creează Categorii</Button>
+                <Button variant="outline">Creeaza Categorii</Button>
               </Link>
             </div>
           ) : (
@@ -258,7 +560,7 @@ export default function TrendyolMappingPage() {
                   <TableHead>Produse</TableHead>
                   <TableHead>Categorie Trendyol</TableHead>
                   <TableHead>Atribute</TableHead>
-                  <TableHead className="text-right">Acțiuni</TableHead>
+                  <TableHead className="text-right">Actiuni</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -317,7 +619,7 @@ export default function TrendyolMappingPage() {
                             setTrendyolSearchTerm("");
                           }}
                         >
-                          {category.trendyolCategoryId ? "Schimbă" : "Mapează"}
+                          {category.trendyolCategoryId ? "Schimba" : "Mapeaza"}
                         </Button>
                         {category.trendyolCategoryId && (
                           <Button
@@ -338,16 +640,127 @@ export default function TrendyolMappingPage() {
         </CardContent>
       </Card>
 
-      {/* Mapping Dialog */}
+      {/* Product Attribute Mapping Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Atribute Produse
+          </CardTitle>
+          <CardDescription>
+            Configureaza atributele obligatorii pentru produsele cu categorii Trendyol mapate
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {/* Product Search */}
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cauta produs dupa SKU sau titlu..."
+                className="pl-9"
+                value={productSearchTerm}
+                onChange={(e) => setProductSearchTerm(e.target.value)}
+              />
+            </div>
+
+            {/* Products Table */}
+            {productsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : productsWithCategory.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Nu exista produse cu categorii Trendyol mapate.</p>
+                <p className="text-sm">Mapeaza mai intai categoriile de mai sus.</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Produs</TableHead>
+                    <TableHead>SKU</TableHead>
+                    <TableHead>Categorie Trendyol</TableHead>
+                    <TableHead>Status Atribute</TableHead>
+                    <TableHead className="text-right">Actiuni</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {productsWithCategory.slice(0, 20).map((product) => {
+                    const hasAttrs = product.trendyolAttributeValues &&
+                      Object.keys(product.trendyolAttributeValues).length > 0;
+                    const categoryName = product.category?.trendyolCategoryName || "Din produs";
+
+                    return (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          <div className="font-medium truncate max-w-xs" title={product.title}>
+                            {product.title}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                            {product.sku}
+                          </code>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground truncate max-w-[150px] block">
+                            {categoryName.split(' > ').pop()}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {hasAttrs ? (
+                            <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                              <Check className="h-3 w-3 mr-1" />
+                              Configurat
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Necesita configurare
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedProduct(product);
+                              setAttributeDialogOpen(true);
+                            }}
+                          >
+                            <Settings className="h-4 w-4 mr-1" />
+                            {hasAttrs ? "Editeaza" : "Configureaza"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+
+            {productsWithCategory.length > 20 && (
+              <p className="text-sm text-muted-foreground text-center">
+                Se afiseaza primele 20 de produse. Foloseste cautarea pentru a gasi produse specifice.
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Category Mapping Dialog */}
       <Dialog open={mappingDialogOpen} onOpenChange={setMappingDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>
-              Mapează "{selectedCategory?.name}" la Trendyol
+              Mapeaza "{selectedCategory?.name}" la Trendyol
             </DialogTitle>
             <DialogDescription>
-              Caută și selectează categoria Trendyol corespunzătoare. 
-              Categoriile sunt traduse automat din turcă în română.
+              Cauta si selecteaza categoria Trendyol corespunzatoare.
+              Categoriile sunt traduse automat din turca in romana.
             </DialogDescription>
           </DialogHeader>
 
@@ -355,7 +768,7 @@ export default function TrendyolMappingPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Caută în română sau turcă (ex: rochie, elbise, pantaloni)..."
+                placeholder="Cauta in romana sau turca (ex: rochie, elbise, pantaloni)..."
                 className="pl-9"
                 value={trendyolSearchTerm}
                 onChange={(e) => setTrendyolSearchTerm(e.target.value)}
@@ -370,7 +783,7 @@ export default function TrendyolMappingPage() {
               <div className="border rounded-lg max-h-[400px] overflow-y-auto">
                 {filteredTrendyolCategories.length === 0 ? (
                   <div className="p-4 text-center text-muted-foreground">
-                    {trendyolSearchTerm ? "Nu s-au găsit categorii" : "Introdu un termen de căutare"}
+                    {trendyolSearchTerm ? "Nu s-au gasit categorii" : "Introdu un termen de cautare"}
                   </div>
                 ) : (
                   <div className="divide-y">
@@ -383,7 +796,7 @@ export default function TrendyolMappingPage() {
                             saveMappingMutation.mutate({
                               categoryId: selectedCategory.id,
                               trendyolCategoryId: cat.id,
-                              trendyolCategoryName: cat.fullPath, // Salvăm traducerea
+                              trendyolCategoryName: cat.fullPath,
                             });
                           }
                         }}
@@ -415,9 +828,33 @@ export default function TrendyolMappingPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setMappingDialogOpen(false)}>
-              Anulează
+              Anuleaza
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Product Attribute Dialog */}
+      <Dialog open={attributeDialogOpen} onOpenChange={setAttributeDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Configureaza Atribute Trendyol
+            </DialogTitle>
+            <DialogDescription>
+              {selectedProduct?.title} ({selectedProduct?.sku})
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedProduct && (
+            <ProductAttributeMapping
+              product={selectedProduct}
+              onClose={() => {
+                setAttributeDialogOpen(false);
+                setSelectedProduct(null);
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>
