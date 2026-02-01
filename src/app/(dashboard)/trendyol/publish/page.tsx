@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { 
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
   Upload, RefreshCw, Search, Package, AlertCircle, Check, X,
-  ChevronLeft, ChevronRight, Settings, ExternalLink, Loader2
+  ChevronLeft, ChevronRight, Settings, ExternalLink, Loader2,
+  CheckCircle2, XCircle, Clock
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -24,6 +26,25 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+
+// Types for batch status
+interface BatchItem {
+  barcode: string;
+  status: "SUCCESS" | "FAILED" | "PROCESSING";
+  failureReasons?: string[];
+}
+
+interface BatchStatusResponse {
+  success: boolean;
+  batchRequestId?: string;
+  status?: "IN_PROGRESS" | "COMPLETED" | "FAILED";
+  totalItems?: number;
+  successCount?: number;
+  failedCount?: number;
+  items?: BatchItem[];
+  errors?: Array<{ barcode: string; message: string }>;
+  error?: string;
+}
 
 interface MasterProduct {
   id: string;
@@ -61,6 +82,10 @@ export default function TrendyolPublishPage() {
   const [publishing, setPublishing] = useState(false);
   const pageSize = 20;
 
+  // Batch status tracking
+  const [activeBatchId, setActiveBatchId] = useState<string | null>(null);
+  const [batchDialogOpen, setBatchDialogOpen] = useState(false);
+
   // Fetch produse ERP care au categorie mapată
   const { data: productsData, isLoading: productsLoading, refetch } = useQuery({
     queryKey: ["erp-products-for-trendyol", page, searchTerm],
@@ -96,6 +121,38 @@ export default function TrendyolPublishPage() {
     },
   });
 
+  // Fetch batch status when dialog is open and we have an active batch
+  const { data: batchStatusData, isLoading: batchStatusLoading } = useQuery<BatchStatusResponse>({
+    queryKey: ["trendyol-batch-status", activeBatchId],
+    queryFn: async () => {
+      if (!activeBatchId) return { success: false };
+      const res = await fetch(`/api/trendyol/batch-status?batchRequestId=${activeBatchId}&updateProducts=true`);
+      return res.json();
+    },
+    enabled: !!activeBatchId && batchDialogOpen,
+    refetchInterval: (data) => {
+      // Stop polling when batch is complete or failed
+      if (data?.state?.data?.status === "COMPLETED" || data?.state?.data?.status === "FAILED") {
+        return false;
+      }
+      // Poll every 3 seconds while in progress
+      return 3000;
+    },
+  });
+
+  // Effect to show toast and refresh products when batch completes
+  useEffect(() => {
+    if (batchStatusData?.status === "COMPLETED") {
+      toast({
+        title: "Procesare completa",
+        description: `${batchStatusData.successCount || 0} produse aprobate, ${batchStatusData.failedCount || 0} respinse`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["erp-products-for-trendyol"] });
+    } else if (batchStatusData?.status === "FAILED") {
+      queryClient.invalidateQueries({ queryKey: ["erp-products-for-trendyol"] });
+    }
+  }, [batchStatusData?.status, batchStatusData?.successCount, batchStatusData?.failedCount, queryClient]);
+
   const products: MasterProduct[] = productsData?.products || [];
   const total = productsData?.pagination?.total || 0;
   const totalPages = Math.ceil(total / pageSize);
@@ -117,12 +174,15 @@ export default function TrendyolPublishPage() {
       return res.json();
     },
     onSuccess: (data) => {
-      if (data.success) {
+      if (data.success && data.batchRequestId) {
         toast({
-          title: "✅ Produse trimise",
-          description: `${data.sent} produse trimise către Trendyol. Batch ID: ${data.batchRequestId}`,
+          title: "Produse trimise",
+          description: `${data.sent} produse trimise catre Trendyol. Se verifica statusul...`,
         });
         setSelectedProducts(new Set());
+        // Open the batch status dialog
+        setActiveBatchId(data.batchRequestId);
+        setBatchDialogOpen(true);
         queryClient.invalidateQueries({ queryKey: ["erp-products-for-trendyol"] });
       } else {
         toast({
@@ -508,6 +568,140 @@ export default function TrendyolPublishPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setBrandDialogOpen(false)}>
               Anulează
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch Status Dialog */}
+      <Dialog open={batchDialogOpen} onOpenChange={(open) => {
+        setBatchDialogOpen(open);
+        if (!open) {
+          // Clear batch ID when dialog is closed
+          setActiveBatchId(null);
+        }
+      }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {batchStatusData?.status === "IN_PROGRESS" && (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin text-yellow-500" />
+                  Se proceseaza...
+                </>
+              )}
+              {batchStatusData?.status === "COMPLETED" && (
+                <>
+                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  Procesare completa
+                </>
+              )}
+              {batchStatusData?.status === "FAILED" && (
+                <>
+                  <XCircle className="h-5 w-5 text-red-500" />
+                  Procesare finalizata cu erori
+                </>
+              )}
+              {!batchStatusData?.status && batchStatusLoading && (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Se incarca...
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              Batch ID: {activeBatchId}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Status Summary */}
+            {batchStatusData?.success && (
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-3 rounded-lg bg-muted">
+                  <p className="text-2xl font-bold">{batchStatusData.totalItems || 0}</p>
+                  <p className="text-xs text-muted-foreground">Total produse</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-green-500/10">
+                  <p className="text-2xl font-bold text-green-600">{batchStatusData.successCount || 0}</p>
+                  <p className="text-xs text-muted-foreground">Acceptate</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-red-500/10">
+                  <p className="text-2xl font-bold text-red-600">{batchStatusData.failedCount || 0}</p>
+                  <p className="text-xs text-muted-foreground">Respinse</p>
+                </div>
+              </div>
+            )}
+
+            {/* Progress indicator for IN_PROGRESS */}
+            {batchStatusData?.status === "IN_PROGRESS" && (
+              <div className="flex items-center justify-center py-4">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span className="text-sm">Se actualizeaza automat la fiecare 3 secunde...</span>
+                </div>
+              </div>
+            )}
+
+            {/* Error list */}
+            {batchStatusData?.errors && batchStatusData.errors.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  <XCircle className="h-4 w-4 text-red-500" />
+                  Produse respinse ({batchStatusData.errors.length})
+                </h4>
+                <ScrollArea className="h-[200px] rounded-md border">
+                  <div className="p-4 space-y-3">
+                    {batchStatusData.errors.map((error, index) => (
+                      <div key={index} className="p-3 bg-red-500/5 rounded-lg border border-red-500/20">
+                        <p className="font-mono text-xs text-muted-foreground">{error.barcode}</p>
+                        <p className="text-sm text-red-600 mt-1">{error.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+
+            {/* Success items list (collapsed by default) */}
+            {batchStatusData?.items && batchStatusData.items.filter(i => i.status === "SUCCESS").length > 0 && (
+              <div className="space-y-2">
+                <details className="group">
+                  <summary className="font-medium text-sm flex items-center gap-2 cursor-pointer list-none">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    Produse acceptate ({batchStatusData.items.filter(i => i.status === "SUCCESS").length})
+                    <span className="text-xs text-muted-foreground ml-2">(click pentru detalii)</span>
+                  </summary>
+                  <ScrollArea className="h-[150px] rounded-md border mt-2">
+                    <div className="p-4 space-y-2">
+                      {batchStatusData.items
+                        .filter(i => i.status === "SUCCESS")
+                        .map((item, index) => (
+                          <div key={index} className="flex items-center gap-2 p-2 bg-green-500/5 rounded">
+                            <Check className="h-4 w-4 text-green-500" />
+                            <span className="font-mono text-xs">{item.barcode}</span>
+                          </div>
+                        ))}
+                    </div>
+                  </ScrollArea>
+                </details>
+              </div>
+            )}
+
+            {/* Error state */}
+            {batchStatusData?.success === false && batchStatusData?.error && (
+              <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/20">
+                <p className="text-sm text-red-600">{batchStatusData.error}</p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setBatchDialogOpen(false);
+              setActiveBatchId(null);
+            }}>
+              Inchide
             </Button>
           </DialogFooter>
         </DialogContent>
