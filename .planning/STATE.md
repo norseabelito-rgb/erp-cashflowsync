@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 ## Current Position
 
-Phase: 7.2 of 10 (Trendyol Complete Fix - COMPLETE)
-Plan: 4 of 4
-Status: Phase 7.2 Complete
-Last activity: 2026-02-01 - Completed 07.2-04-PLAN.md (Fix order sync to use TrendyolStore.companyId)
+Phase: 7.2 of 10 (Trendyol Complete Fix - Wave 2 in progress)
+Plan: 6 of 6 (Wave 2)
+Status: Plan 06 complete - AI category suggestion
+Last activity: 2026-02-01 - Completed 07.2-06-PLAN.md (AI category suggestion)
 
-Progress: [████████████████████] ~88% (7/10 integer phases + 6/6 of 7.1 + 4/4 of 7.2)
+Progress: [████████████████████] ~89% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2)
 
 ## Phase 7 Progress
 
@@ -47,7 +47,7 @@ Progress: [████████████████████] ~88% (7
 | 06-ux-foundation | 6/6 | ~22 min | ~3.7 min |
 | 07-task-management-core | 5/5 | ~28 min | ~5.6 min |
 | 07.1-trendyol-integration | 6/6 | ~46 min | ~7.7 min |
-| 07.2-trendyol-fix | 4/4 | ~20 min | ~5 min |
+| 07.2-trendyol-fix | 6/6 | ~30 min | ~5 min |
 
 ## Accumulated Context
 
@@ -55,6 +55,9 @@ Progress: [████████████████████] ~88% (7
 
 Recent decisions affecting current work:
 
+- **07.2-06:** Use claude-sonnet-4-20250514 for fast category suggestions
+- **07.2-06:** Limit categories to 500 in prompt to prevent context overflow
+- **07.2-06:** Show confidence score and reasoning with each suggestion
 - **07.2-04:** TrendyolStoreForSync type exported for cross-module use
 - **07.2-04:** trendyolStoreId set on TrendyolOrder during sync
 - **07.2-04:** Virtual store company updated if TrendyolStore company changes
@@ -184,6 +187,8 @@ Recent decisions affecting current work:
 | 07.2-02 | 1 | Complete | Attribute mapping UI |
 | 07.2-03 | 1 | Complete | Invoice series integration for TrendyolStore |
 | 07.2-04 | 1 | Complete | Order sync uses TrendyolStore.companyId for billing |
+| 07.2-05 | 2 | Complete | AWB tracking sync uses awb-service |
+| 07.2-06 | 2 | Complete | AI category suggestion with Claude |
 
 **DATABASE MIGRATION STATUS:**
 
@@ -216,17 +221,16 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed 07.2-04-PLAN.md (Fix order sync to use TrendyolStore.companyId)
+Stopped at: Completed 07.2-06-PLAN.md (AI category suggestion)
 Resume context:
-- **STAGING BRANCH** - Phase 7.2 COMPLETE
-- Multi-company order sync now uses TrendyolStore.companyId
-- Orders correctly linked to their TrendyolStore
-- Ready for final testing and merge to production
+- **STAGING BRANCH** - Phase 7.2 Wave 2 complete
+- AI category suggestion using Claude for Trendyol product mapping
+- "Sugereaza Categorie" button in mapping page with confidence display
+- Wave 1 (plans 01-04) and Wave 2 (plans 05-06) complete
 
 **NEXT STEPS:**
-1. Test multi-company order sync on staging
-2. Merge staging to main for production
-3. Apply migrations to production DB
+1. Continue with remaining 7.2 plans (if any)
+2. Or move to Phase 8: Notifications and Automation
 
 Resume file: None
 
@@ -255,18 +259,20 @@ Task Management Core components:
 - [x] 07.2-02: Attribute mapping UI
 - [x] 07.2-03: Invoice series integration for TrendyolStore
 - [x] 07.2-04: Order sync uses TrendyolStore.companyId for billing
+- [x] 07.2-05: AWB tracking sync uses awb-service
+- [x] 07.2-06: AI category suggestion with Claude
 
 ## Recent Commits
 
+- `49f6db7` feat(07.2-06): add AI category suggestion UI to mapping page
+- `b949da8` feat(07.2-06): add category suggestion API endpoint
+- `91d28ea` feat(07.2-06): create AI category suggestion library
+- `7061889` feat(07.2-05): use awb-service for Trendyol tracking sync
 - `702bf97` feat(07.2-04): update webhook to pass TrendyolStore to sync
 - `dfbeef7` feat(07.2-04): refactor order sync to use TrendyolStore for company
 - `7c908ca` feat(07.2-03): ensure TrendyolStore is linked during order sync
 - `e42f7ff` feat(07.2-03): add TrendyolStore invoice series resolution
-- `33f7613` feat(07.2-01): add BatchStatusDialog to publish page
-- `145407b` feat(07.2-01): add batch status library and API endpoint
-- `075bda3` feat(07.1-06): organize Trendyol navigation in sidebar
-- `766e1f0` feat(07.1-06): add Trendyol sync status column to orders table
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-01 (Phase 7.2 COMPLETE - Trendyol Complete Fix)*
+*Last updated: 2026-02-01 (Phase 7.2 Wave 2 complete - AI category suggestion)*
