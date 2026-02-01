@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 ## Current Position
 
-Phase: 7.2 of 10 (Trendyol Complete Fix - Wave 2 in progress)
-Plan: 6 of 6 (Wave 2)
-Status: Plan 06 complete - AI category suggestion
-Last activity: 2026-02-01 - Completed 07.2-06-PLAN.md (AI category suggestion)
+Phase: 7.2 of 10 (Trendyol Complete Fix)
+Plan: 5 of 6 (PAUSED - checkpoint deferred)
+Status: Code complete, Plan 05 verification deferred (needs Trendyol products first)
+Last activity: 2026-02-02 - Paused at 07.2-05 checkpoint (user will verify after product push)
 
-Progress: [████████████████████] ~89% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2)
+Progress: [██████████████████░░] ~88% (7/10 integer phases + 6/6 of 7.1 + 5/6 of 7.2)
 
 ## Phase 7 Progress
 
@@ -187,7 +187,7 @@ Recent decisions affecting current work:
 | 07.2-02 | 1 | Complete | Attribute mapping UI |
 | 07.2-03 | 1 | Complete | Invoice series integration for TrendyolStore |
 | 07.2-04 | 1 | Complete | Order sync uses TrendyolStore.companyId for billing |
-| 07.2-05 | 2 | Complete | AWB tracking sync uses awb-service |
+| 07.2-05 | 2 | **PENDING VERIFICATION** | Bulk process Trendyol - code done, needs manual test |
 | 07.2-06 | 2 | Complete | AI category suggestion with Claude |
 
 **DATABASE MIGRATION STATUS:**
@@ -220,17 +220,35 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-01
-Stopped at: Completed 07.2-06-PLAN.md (AI category suggestion)
+Last session: 2026-02-02
+Stopped at: Phase 7.2 execution - Plan 05 checkpoint pending verification
 Resume context:
-- **STAGING BRANCH** - Phase 7.2 Wave 2 complete
-- AI category suggestion using Claude for Trendyol product mapping
-- "Sugereaza Categorie" button in mapping page with confidence display
-- Wave 1 (plans 01-04) and Wave 2 (plans 05-06) complete
+- **STAGING BRANCH** - Phase 7.2 code COMPLETE, verification pending
+- Plan 05 (Bulk process Trendyol) - 2/3 tasks done, checkpoint deferred
+- Verification blocked: Need Trendyol products first, then Trendyol orders will exist
 
-**NEXT STEPS:**
-1. Continue with remaining 7.2 plans (if any)
-2. Or move to Phase 8: Notifications and Automation
+**CHECKPOINT 07.2-05 DEFERRED:**
+- Code changes complete (commit 7061889)
+- Changed process-all/route.ts to use awb-service instead of fancourier
+- awb-service.ts calls sendTrackingToTrendyol automatically for Trendyol orders
+- invoice-service.ts calls sendInvoiceToTrendyol automatically
+- **TO VERIFY LATER:**
+  1. Go to /orders, select Trendyol order
+  2. Click "Proceseaza" (bulk process)
+  3. Check console for "Folosesc seria TrendyolStore" and Trendyol sync logs
+  4. Type "approved" when verified
+
+**IMMEDIATE PRIORITY:**
+- User needs to push master product list to Trendyol FIRST
+- Use /trendyol/mapping to map categories + attributes
+- Use /trendyol/publish to push products
+- Then orders will come in and bulk process can be verified
+
+**AFTER VERIFICATION:**
+1. Complete 07.2-05 checkpoint
+2. Run phase verifier
+3. Update ROADMAP.md
+4. Move to Phase 8
 
 Resume file: None
 
@@ -259,7 +277,7 @@ Task Management Core components:
 - [x] 07.2-02: Attribute mapping UI
 - [x] 07.2-03: Invoice series integration for TrendyolStore
 - [x] 07.2-04: Order sync uses TrendyolStore.companyId for billing
-- [x] 07.2-05: AWB tracking sync uses awb-service
+- [ ] 07.2-05: Bulk process Trendyol (code done, VERIFICATION PENDING)
 - [x] 07.2-06: AI category suggestion with Claude
 
 ## Recent Commits
