@@ -220,15 +220,23 @@ export async function createAWBForOrder(
     // Obținem setările default din Settings (ca fallback)
     const settings = await prisma.settings.findUnique({ where: { id: "default" } });
 
-    // Determinăm suma ramburs
+    // Determinăm suma ramburs și tipul de plată
     let cod = options?.cashOnDelivery;
-    const paymentType = options?.paymentType || settings?.defaultPaymentType || "destinatar";
+    let paymentType = options?.paymentType || settings?.defaultPaymentType || "destinatar";
 
-    // Verificăm dacă e ramburs (destinatar = ramburs)
-    const isRamburs = paymentType === "destinatar" || paymentType === "recipient";
+    // IMPORTANT: Dacă comanda e plătită (card/online), forțăm ramburs 0
+    const isPaidOrder = order.financialStatus === "paid";
+    if (isPaidOrder) {
+      cod = 0;
+      paymentType = "expeditor";
+      console.log(`[AWB] Comanda ${order.shopifyOrderNumber || order.id} e plătită - setăm ramburs 0`);
+    } else {
+      // Verificăm dacă e ramburs (destinatar = ramburs)
+      const isRamburs = paymentType === "destinatar" || paymentType === "recipient";
 
-    if (cod === undefined && isRamburs) {
-      cod = Math.round(Number(order.totalPrice) * 100) / 100;
+      if (cod === undefined && isRamburs) {
+        cod = Math.round(Number(order.totalPrice) * 100) / 100;
+      }
     }
 
     // Determinăm serviciul (Cont Colector dacă e ramburs și serviciul nu e deja Cont Colector)
