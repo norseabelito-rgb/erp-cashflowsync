@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   FolderTree, RefreshCw, Search, Check, X, ChevronRight, ChevronDown,
-  AlertCircle, Settings, Link2, Unlink, Package, Save, Loader2
+  AlertCircle, Settings, Link2, Unlink, Package, Save, Loader2, Sparkles
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "@/hooks/use-toast";
@@ -148,14 +148,30 @@ function AttributeSelector({
 function ProductAttributeMapping({
   product,
   onClose,
+  onCategorySuggested,
 }: {
   product: Product;
   onClose: () => void;
+  onCategorySuggested?: (suggestion: {
+    categoryId: number;
+    categoryName: string;
+    categoryPath: string;
+    confidence: number;
+    reasoning: string;
+  }) => void;
 }) {
   const queryClient = useQueryClient();
   const [attributeValues, setAttributeValues] = useState<Record<string, { attributeValueId?: number; customValue?: string }>>(
     product.trendyolAttributeValues || {}
   );
+  const [suggesting, setSuggesting] = useState(false);
+  const [localSuggestion, setLocalSuggestion] = useState<{
+    categoryId: number;
+    categoryName: string;
+    categoryPath: string;
+    confidence: number;
+    reasoning: string;
+  } | null>(null);
 
   // Fetch attributes for this product's category
   const { data: attrData, isLoading } = useQuery({
@@ -163,6 +179,43 @@ function ProductAttributeMapping({
     queryFn: async () => {
       const res = await fetch(`/api/trendyol/attributes?productId=${product.id}`);
       return res.json();
+    },
+  });
+
+  // AI suggestion mutation
+  const suggestMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/trendyol/category-suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product.id }),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success && data.suggestion) {
+        setLocalSuggestion(data.suggestion);
+        if (onCategorySuggested) {
+          onCategorySuggested(data.suggestion);
+        }
+        toast({
+          title: "Sugestie generata",
+          description: `${data.suggestion.categoryName} (${data.suggestion.confidence}% incredere)`,
+        });
+      } else {
+        toast({
+          title: "Eroare",
+          description: data.error || "Nu s-a putut genera sugestia",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Eroare",
+        description: error.message || "Nu s-a putut genera sugestia",
+        variant: "destructive",
+      });
     },
   });
 
@@ -217,10 +270,48 @@ function ProductAttributeMapping({
 
   if (!attrData?.categoryId) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-        <p>Produsul nu are o categorie Trendyol mapata.</p>
-        <p className="text-sm">Mapeaza mai intai categoria produsului.</p>
+      <div className="space-y-4">
+        <div className="text-center py-4 text-muted-foreground">
+          <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+          <p>Produsul nu are o categorie Trendyol mapata.</p>
+          <p className="text-sm">Foloseste AI pentru a sugera o categorie sau mapeaza manual.</p>
+        </div>
+
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={() => suggestMutation.mutate()}
+            disabled={suggestMutation.isPending}
+          >
+            {suggestMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-2" />
+            )}
+            Sugereaza Categorie
+          </Button>
+        </div>
+
+        {localSuggestion && (
+          <Card className="border-primary/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Sugestie AI
+                <Badge variant={localSuggestion.confidence >= 70 ? "default" : "secondary"}>
+                  {localSuggestion.confidence}% incredere
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="font-medium">{localSuggestion.categoryPath}</p>
+              <p className="text-sm text-muted-foreground mt-1">{localSuggestion.reasoning}</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                ID Categorie: {localSuggestion.categoryId}
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   }
@@ -320,6 +411,13 @@ export default function TrendyolMappingPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [attributeDialogOpen, setAttributeDialogOpen] = useState(false);
   const [productSearchTerm, setProductSearchTerm] = useState("");
+  const [suggestion, setSuggestion] = useState<{
+    categoryId: number;
+    categoryName: string;
+    categoryPath: string;
+    confidence: number;
+    reasoning: string;
+  } | null>(null);
 
   // Fetch categorii ERP
   const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
@@ -747,6 +845,48 @@ export default function TrendyolMappingPage() {
                 Se afiseaza primele 20 de produse. Foloseste cautarea pentru a gasi produse specifice.
               </p>
             )}
+
+            {/* AI Suggestion display */}
+            {suggestion && (
+              <Card className="mt-4 border-primary/50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    Sugestie AI Categorie
+                    <Badge variant={suggestion.confidence >= 70 ? "default" : "secondary"}>
+                      {suggestion.confidence}% incredere
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="font-medium">{suggestion.categoryPath}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{suggestion.reasoning}</p>
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        // Search for this category in the trendyol categories
+                        setTrendyolSearchTerm(suggestion.categoryName);
+                        toast({
+                          title: "Categorie gasita",
+                          description: `Cauta categoria ${suggestion.categoryName} (ID: ${suggestion.categoryId}) in lista de categorii pentru a o mapa.`,
+                        });
+                        setSuggestion(null);
+                      }}
+                    >
+                      Aplica Sugestia
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSuggestion(null)}
+                    >
+                      Inchide
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -852,6 +992,9 @@ export default function TrendyolMappingPage() {
               onClose={() => {
                 setAttributeDialogOpen(false);
                 setSelectedProduct(null);
+              }}
+              onCategorySuggested={(sug) => {
+                setSuggestion(sug);
               }}
             />
           )}
