@@ -51,15 +51,24 @@ interface SyncResult {
   batchRequestId?: string;
 }
 
+interface TrendyolStore {
+  id: string;
+  name: string;
+  supplierId: string;
+  companyId: string;
+  companyName: string;
+}
+
 export default function TrendyolProductsPage() {
   const [page, setPage] = useState(0);
   const [searchBarcode, setSearchBarcode] = useState("");
   const [filterApproved, setFilterApproved] = useState<string>("all");
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
+  const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
   const pageSize = 20;
 
-  // Verifică dacă Trendyol e configurat
+  // Verifică dacă Trendyol e configurat și obține lista de stores
   const { data: configData } = useQuery({
     queryKey: ["trendyol-config"],
     queryFn: async () => {
@@ -68,9 +77,13 @@ export default function TrendyolProductsPage() {
     },
   });
 
+  // Set default store when config loads
+  const stores: TrendyolStore[] = configData?.stores || [];
+  const currentStoreId = selectedStoreId || configData?.selectedStoreId || stores[0]?.id;
+
   // Fetch produse
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["trendyol-products", page, searchBarcode, filterApproved],
+    queryKey: ["trendyol-products", page, searchBarcode, filterApproved, currentStoreId],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set("action", "products");
@@ -79,6 +92,7 @@ export default function TrendyolProductsPage() {
       if (searchBarcode) params.set("barcode", searchBarcode);
       if (filterApproved === "approved") params.set("approved", "true");
       if (filterApproved === "pending") params.set("approved", "false");
+      if (currentStoreId) params.set("storeId", currentStoreId);
 
       const res = await fetch(`/api/trendyol?${params.toString()}`);
       return res.json();
@@ -88,10 +102,11 @@ export default function TrendyolProductsPage() {
 
   // Fetch last sync info from local products
   const { data: syncInfoData } = useQuery({
-    queryKey: ["trendyol-sync-info"],
+    queryKey: ["trendyol-sync-info", currentStoreId],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set("action", "syncInfo");
+      if (currentStoreId) params.set("storeId", currentStoreId);
       const res = await fetch(`/api/trendyol?${params.toString()}`);
       return res.json();
     },
@@ -144,6 +159,9 @@ export default function TrendyolProductsPage() {
     return <Badge variant="warning" className="gap-1"><Clock className="h-3 w-3" /> În așteptare</Badge>;
   };
 
+  // Get current store name for display
+  const currentStore = stores.find(s => s.id === currentStoreId);
+
   if (!configData?.configured) {
     return (
       <div className="p-6">
@@ -151,13 +169,14 @@ export default function TrendyolProductsPage() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">Trendyol nu este configurat</h3>
-            <p className="text-muted-foreground mb-4">
-              Configurează credențialele Trendyol pentru a vedea produsele.
+            <p className="text-muted-foreground mb-4 text-center">
+              Adauga un magazin Trendyol pentru a incepe.<br/>
+              Mergi la Setari → Magazine Trendyol
             </p>
-            <Link href="/settings">
+            <Link href="/settings?tab=trendyol">
               <Button>
                 <Settings className="h-4 w-4 mr-2" />
-                Mergi la Setări
+                Configureaza Trendyol
               </Button>
             </Link>
           </CardContent>
@@ -172,12 +191,35 @@ export default function TrendyolProductsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <ShoppingBag className="h-6 w-6 md:h-8 md:w-8" />
-            Produse Trendyol
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
+              <ShoppingBag className="h-6 w-6 md:h-8 md:w-8" />
+              Produse Trendyol
+            </h1>
+            {/* Store selector - show only if multiple stores */}
+            {stores.length > 1 && (
+              <select
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm font-medium"
+                value={currentStoreId || ""}
+                onChange={(e) => {
+                  setSelectedStoreId(e.target.value);
+                  setPage(0);
+                }}
+              >
+                {stores.map((store) => (
+                  <option key={store.id} value={store.id}>
+                    {store.name} ({store.companyName})
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
           <p className="text-muted-foreground mt-1 text-sm md:text-base">
-            Vizualizeaza si gestioneaza produsele din contul Trendyol
+            {currentStore ? (
+              <>Magazin: <span className="font-medium">{currentStore.name}</span> ({currentStore.companyName})</>
+            ) : (
+              "Vizualizeaza si gestioneaza produsele din contul Trendyol"
+            )}
           </p>
           {syncInfoData?.lastSyncedAt && (
             <p className="text-xs text-muted-foreground mt-1">
