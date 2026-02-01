@@ -194,8 +194,9 @@ Plans:
 ### Phase 7.2: Trendyol Complete Fix (INSERTED)
 **Goal**: Fix all Trendyol integration issues: product push works reliably, proper multi-company support with invoice series per store, and Trendyol orders work seamlessly in bulk processing
 **Depends on**: Phase 7.1 (base integration exists but has issues)
-**Requirements**: TRND-01, TRND-02, TRND-03, TRND-04, TRND-05, TRND-06, TRND-07, TRND-08, TRND-09
-**Plans**: 6 plans in 4 waves
+**Requirements**: TRND-01, TRND-02, TRND-03, TRND-04, TRND-05, TRND-06, TRND-07
+**Deferred**: TRND-08 (webhook retry - enhancement), TRND-09 (stock mismatch logging - monitoring)
+**Plans**: 6 plans in 3 waves
 **Success Criteria** (what must be TRUE):
   1. Products pushed to Trendyol appear on seller dashboard (batch errors shown in ERP)
   2. Each TrendyolStore has its own invoice series from Oblio for correct invoicing
@@ -215,10 +216,10 @@ Plans:
 Plans:
 - [ ] 07.2-01-PLAN.md — Batch status verification & error display UI (Wave 1)
 - [ ] 07.2-02-PLAN.md — Category attribute mapping UI with required field handling (Wave 1)
-- [ ] 07.2-03-PLAN.md — TrendyolStore invoice series integration (Wave 2)
-- [ ] 07.2-04-PLAN.md — Order sync multi-company fix (Wave 2)
-- [ ] 07.2-05-PLAN.md — Bulk process Trendyol orders verification (Wave 3)
-- [ ] 07.2-06-PLAN.md — AI category suggestion & gap closure (Wave 4)
+- [ ] 07.2-03-PLAN.md — TrendyolStore invoice series integration (Wave 1)
+- [ ] 07.2-04-PLAN.md — Order sync multi-company fix (Wave 1)
+- [ ] 07.2-05-PLAN.md — Bulk process Trendyol orders verification (Wave 2)
+- [ ] 07.2-06-PLAN.md — AI category suggestion (Wave 2)
 
 ### Phase 8: Task Management Advanced
 **Goal**: Automated task creation, notifications, and activity reporting
