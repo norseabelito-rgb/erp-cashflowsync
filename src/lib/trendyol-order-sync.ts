@@ -183,11 +183,14 @@ export async function syncTrendyolOrderToMainOrder(
     // Update status only
     const updatedOrder = await updateOrderFromTrendyol(existingOrder, trendyolOrder);
 
-    // Ensure TrendyolOrder is linked
-    if (!trendyolOrder.orderId) {
+    // Ensure TrendyolOrder is linked and has trendyolStoreId set
+    if (!trendyolOrder.orderId || !trendyolOrder.trendyolStoreId) {
       await prisma.trendyolOrder.update({
         where: { id: trendyolOrder.id },
-        data: { orderId: updatedOrder.id },
+        data: {
+          orderId: updatedOrder.id,
+          trendyolStoreId: trendyolStore.id,
+        },
       });
     }
 
@@ -255,10 +258,13 @@ export async function syncTrendyolOrderToMainOrder(
     await createLineItemsFromTrendyol(order.id, trendyolOrder.lineItems);
   }
 
-  // 5. Link TrendyolOrder to Order
+  // 5. Link TrendyolOrder to Order and TrendyolStore
   await prisma.trendyolOrder.update({
     where: { id: trendyolOrder.id },
-    data: { orderId: order.id },
+    data: {
+      orderId: order.id,
+      trendyolStoreId: trendyolStore.id,
+    },
   });
 
   console.log(

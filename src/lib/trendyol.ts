@@ -873,9 +873,9 @@ export async function syncTrendyolOrders(options?: {
   return result;
 }
 
-async function syncSingleTrendyolOrder(orderData: any): Promise<boolean> {
+async function syncSingleTrendyolOrder(orderData: any, trendyolStoreId?: string): Promise<boolean> {
   const trendyolOrderId = orderData.shipmentPackageId?.toString() || orderData.id?.toString();
-  
+
   const existing = await prisma.trendyolOrder.findUnique({
     where: { trendyolOrderId },
   });
@@ -884,12 +884,12 @@ async function syncSingleTrendyolOrder(orderData: any): Promise<boolean> {
     trendyolOrderNumber: orderData.orderNumber,
     orderDate: new Date(orderData.orderDate),
     status: normalizeStatus(orderData.status),
-    customerName: orderData.shipmentAddress?.fullName || 
+    customerName: orderData.shipmentAddress?.fullName ||
                   `${orderData.customerFirstName || ""} ${orderData.customerLastName || ""}`.trim() ||
                   "Unknown",
     customerEmail: orderData.customerEmail || null,
     customerPhone: null,
-    customerAddress: orderData.shipmentAddress?.fullAddress || 
+    customerAddress: orderData.shipmentAddress?.fullAddress ||
                      orderData.shipmentAddress?.address1 || "",
     customerCity: orderData.shipmentAddress?.city || "",
     customerDistrict: orderData.shipmentAddress?.district || null,
@@ -901,6 +901,8 @@ async function syncSingleTrendyolOrder(orderData: any): Promise<boolean> {
     currency: orderData.currencyCode || "TRY",
     shipmentPackageId: orderData.shipmentPackageId?.toString() || null,
     lastSyncedAt: new Date(),
+    // Link to TrendyolStore if provided (for multi-store support)
+    ...(trendyolStoreId ? { trendyolStoreId } : {}),
   };
 
   if (existing) {
@@ -1075,6 +1077,100 @@ export function createTrendyolClientFromStore(store: {
     apiSecret: store.apiSecret,
     isTestMode: store.isTestMode,
   });
+}
+
+/**
+ * Sync orders from Trendyol API for a specific TrendyolStore
+ * This properly links orders to the TrendyolStore for multi-store support
+ */
+export async function syncTrendyolOrdersForStore(
+  store: {
+    id: string;
+    supplierId: string;
+    apiKey: string;
+    apiSecret: string;
+    isTestMode: boolean;
+  },
+  options?: {
+    startDate?: Date;
+    endDate?: Date;
+    status?: string;
+    onProgress?: (current: number, total: number, item: string) => void;
+  }
+): Promise<{
+  synced: number;
+  created: number;
+  updated: number;
+  errors: string[];
+}> {
+  const result = { synced: 0, created: 0, updated: 0, errors: [] as string[] };
+
+  try {
+    const client = createTrendyolClientFromStore(store);
+
+    const startDate = options?.startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const endDate = options?.endDate || new Date();
+
+    let page = 0;
+    let hasMore = true;
+    let totalItems = 0;
+    let processedItems = 0;
+
+    // First, get total count
+    const firstResponse = await client.getOrders({
+      startDate: startDate.getTime(),
+      endDate: endDate.getTime(),
+      status: options?.status,
+      page: 0,
+      size: 1,
+    });
+    totalItems = firstResponse.data?.totalElements || 0;
+
+    while (hasMore) {
+      const response = await client.getOrders({
+        startDate: startDate.getTime(),
+        endDate: endDate.getTime(),
+        status: options?.status,
+        page,
+        size: 50,
+        orderByField: "CreatedDate",
+        orderByDirection: "DESC",
+      });
+
+      const content = response.data?.content || [];
+      const totalPages = Math.ceil((response.data?.totalElements || 0) / 50);
+
+      for (const orderData of content) {
+        try {
+          processedItems++;
+          if (options?.onProgress) {
+            options.onProgress(processedItems, totalItems, `Comanda ${orderData.orderNumber}`);
+          }
+
+          // Pass storeId to link order to TrendyolStore
+          const wasCreated = await syncSingleTrendyolOrder(orderData, store.id);
+          if (wasCreated) {
+            result.created++;
+          } else {
+            result.updated++;
+          }
+          result.synced++;
+        } catch (error: any) {
+          result.errors.push(`Order ${orderData.orderNumber}: ${error.message}`);
+        }
+      }
+
+      page++;
+      hasMore = page < totalPages;
+    }
+
+    console.log(`[Trendyol Sync] Store ${store.id}: Synced ${result.synced} orders (${result.created} created, ${result.updated} updated), ${result.errors.length} errors`);
+  } catch (error: any) {
+    console.error(`[Trendyol Sync] Store ${store.id} failed:`, error);
+    result.errors.push(`Sync failed: ${error.message}`);
+  }
+
+  return result;
 }
 
 export async function getTrendyolStats(): Promise<{
