@@ -18,6 +18,7 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
 - [x] **Phase 6: UX Foundation** - Consistent design, tooltips, and feedback across all pages
 - [x] **Phase 7: Task Management Core** - Data model and basic UI for task tracking
 - [x] **Phase 7.1: Trendyol Complete Integration** - Full Trendyol channel with real-time sync, order processing, and product push (INSERTED)
+- [ ] **Phase 7.2: Trendyol Complete Fix** - Fix product push, multi-company invoice series, category mapping (INSERTED)
 - [ ] **Phase 8: Task Management Advanced** - Automation, notifications, and reporting
 - [ ] **Phase 9: Documentation** - In-app documentation for all modules
 - [ ] **Phase 10: Quality Assurance** - Final verification and test coverage for critical flows
@@ -190,6 +191,35 @@ Plans:
 - [x] 07.1-05-PLAN.md — Automatic stock & price sync (Wave 4)
 - [x] 07.1-06-PLAN.md — Unified dashboard & gap closure (Wave 5)
 
+### Phase 7.2: Trendyol Complete Fix (INSERTED)
+**Goal**: Fix all Trendyol integration issues: product push works reliably, proper multi-company support with invoice series per store, and Trendyol orders work seamlessly in bulk processing
+**Depends on**: Phase 7.1 (base integration exists but has issues)
+**Requirements**: TRND-01, TRND-02, TRND-03, TRND-04, TRND-05, TRND-06, TRND-07, TRND-08, TRND-09
+**Plans**: 6 plans in 4 waves
+**Success Criteria** (what must be TRUE):
+  1. Products pushed to Trendyol appear on seller dashboard (batch errors shown in ERP)
+  2. Each TrendyolStore has its own invoice series from Oblio for correct invoicing
+  3. Trendyol orders use TrendyolStore.companyId for company resolution (not global Settings)
+  4. Bulk process (factură + AWB) works correctly for Trendyol orders
+  5. Category attributes are properly mapped (not placeholder values)
+  6. Batch status checked automatically and errors displayed to user
+  7. AI-based category suggestion reduces manual mapping overhead
+
+**Context (issues identified during audit):**
+- Product push returns batch ID but products rejected by Trendyol (attribute validation)
+- TrendyolStore.invoiceSeriesName exists but never used in invoice-service.ts
+- Order sync uses Settings.trendyolCompanyId instead of TrendyolStore.companyId
+- Category attributes use first available value as placeholder (invalid)
+- No UI to check batch status and see Trendyol rejection reasons
+
+Plans:
+- [ ] 07.2-01-PLAN.md — Batch status verification & error display UI (Wave 1)
+- [ ] 07.2-02-PLAN.md — Category attribute mapping UI with required field handling (Wave 1)
+- [ ] 07.2-03-PLAN.md — TrendyolStore invoice series integration (Wave 2)
+- [ ] 07.2-04-PLAN.md — Order sync multi-company fix (Wave 2)
+- [ ] 07.2-05-PLAN.md — Bulk process Trendyol orders verification (Wave 3)
+- [ ] 07.2-06-PLAN.md — AI category suggestion & gap closure (Wave 4)
+
 ### Phase 8: Task Management Advanced
 **Goal**: Automated task creation, notifications, and activity reporting
 **Depends on**: Phase 7 (core task system must exist)
@@ -249,7 +279,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 8 > 9 > 10
+Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 8 > 9 > 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -261,6 +291,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 8 > 9 > 10
 | 6. UX Foundation | 6/6 | ✓ Complete | 2026-01-25 |
 | 7. Task Management Core | 5/5 | ✓ Complete | 2026-01-26 |
 | 7.1. Trendyol Complete Integration | 6/6 | ✓ Complete | 2026-01-30 |
+| 7.2. Trendyol Complete Fix | 0/6 | Not started | - |
 | 8. Task Management Advanced | 0/5 | Not started | - |
 | 9. Documentation | 0/4 | Not started | - |
 | 10. Quality Assurance | 0/4 | Not started | - |
@@ -274,4 +305,5 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 8 > 9 > 10
 *Phase 8 planned: 2026-01-26*
 *Phase 7.1 inserted: 2026-01-30 (URGENT: Trendyol complete integration)*
 *Phase 7.1 completed: 2026-01-30*
-*Depth: comprehensive (11 phases including insertions)*
+*Phase 7.2 inserted: 2026-02-01 (URGENT: Fix Trendyol product push, invoice series, multi-company)*
+*Depth: comprehensive (12 phases including insertions)*
