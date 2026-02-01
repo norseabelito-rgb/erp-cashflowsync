@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.2 of 10 (Trendyol Complete Fix - INSERTED)
-Plan: 1 of 6
+Plan: 3 of 6
 Status: In progress
-Last activity: 2026-02-01 - Completed 07.2-01-PLAN.md (Batch status verification)
+Last activity: 2026-02-01 - Completed 07.2-03-PLAN.md (Invoice series integration)
 
-Progress: [████████████████████] ~86% (7/10 integer phases + 6/6 of 7.1 + 1/6 of 7.2)
+Progress: [████████████████████] ~88% (7/10 integer phases + 6/6 of 7.1 + 3/6 of 7.2)
 
 ## Phase 7 Progress
 
@@ -54,6 +54,9 @@ Progress: [████████████████████] ~86% (7
 
 Recent decisions affecting current work:
 
+- **07.2-03:** TrendyolStore.invoiceSeriesName used as Priority 0 for invoice series resolution
+- **07.2-03:** trendyolStoreId consistently set on TrendyolOrder during sync (create and update)
+- **07.2-03:** New syncTrendyolOrdersForStore export for multi-store API sync
 - **07.2-01:** 3-second polling interval for batch status (balance between responsiveness and API load)
 - **07.2-01:** Auto-stop polling when status is COMPLETED or FAILED
 - **07.2-01:** Romanian error translations for common Trendyol rejection codes
@@ -174,8 +177,8 @@ Recent decisions affecting current work:
 | Plan | Wave | Status | Summary |
 |------|------|--------|---------|
 | 07.2-01 | 1 | Complete | Batch status verification UI with error display |
-| 07.2-02 | 1 | Pending | Attribute mapping UI |
-| 07.2-03 | 1 | Pending | Order sync webhook fix |
+| 07.2-02 | 1 | Complete | Attribute mapping UI |
+| 07.2-03 | 1 | Complete | Invoice series integration for TrendyolStore |
 | 07.2-04 | 1 | Pending | Webhook TrendyolStore association |
 | 07.2-05 | 1 | Pending | Price/stock sync improvements |
 | 07.2-06 | 1 | Pending | Product publish improvements |
@@ -211,16 +214,17 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed 07.2-01-PLAN.md (Batch status verification)
+Stopped at: Completed 07.2-03-PLAN.md (Invoice series integration)
 Resume context:
 - **STAGING BRANCH** - Phase 7.2 in progress
-- Completed 07.2-01: Batch status verification UI
-- Created: src/lib/trendyol-batch-status.ts, src/app/api/trendyol/batch-status/route.ts
-- Modified: src/app/(dashboard)/trendyol/publish/page.tsx (BatchStatusDialog)
+- Completed 07.2-03: Invoice series integration for TrendyolStore
+- Modified: src/lib/invoice-service.ts (Priority 0 TrendyolStore series)
+- Modified: src/lib/trendyol-order-sync.ts (trendyolStoreId linking)
+- Modified: src/lib/trendyol.ts (syncTrendyolOrdersForStore export)
 
 **NEXT STEPS:**
-1. Continue with 07.2-02-PLAN.md (Attribute mapping UI)
-2. Or verify batch status UI works on staging
+1. Continue with 07.2-04-PLAN.md (Webhook TrendyolStore association)
+2. Or run Prisma generate to fix TypeScript errors
 
 Resume file: None
 
@@ -245,15 +249,15 @@ Task Management Core components:
 
 ## Recent Commits
 
+- `7c908ca` feat(07.2-03): ensure TrendyolStore is linked during order sync
+- `e42f7ff` feat(07.2-03): add TrendyolStore invoice series resolution
 - `33f7613` feat(07.2-01): add BatchStatusDialog to publish page
 - `145407b` feat(07.2-01): add batch status library and API endpoint
 - `075bda3` feat(07.1-06): organize Trendyol navigation in sidebar
 - `766e1f0` feat(07.1-06): add Trendyol sync status column to orders table
 - `c580690` feat(07.1-06): complete webhook handler for all Trendyol events
 - `80af44d` feat(07.1-06): add Trendyol return handling library
-- `c280540` feat(07.1-06): add Trendyol sync button to orders page
-- `d139786` feat(07.1-06): integrate Trendyol orders into process-all flow
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-01 (Phase 7.2 Plan 01 COMPLETE - Batch status verification)*
+*Last updated: 2026-02-01 (Phase 7.2 Plan 03 COMPLETE - Invoice series integration)*
