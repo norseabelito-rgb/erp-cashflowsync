@@ -28,8 +28,11 @@ import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import Link from "next/link";
 import { DashboardCharts } from "./dashboard-charts";
 import { DashboardAIInsights } from "./dashboard-ai-insights";
+import { DashboardFilters } from "./dashboard-filters";
 
-async function getStats(storeId?: string | null) {
+async function getStats(options?: { storeId?: string | null; startDate?: string | null; endDate?: string | null }) {
+  const { storeId, startDate: _startDate, endDate: _endDate } = options || {};
+  // Note: startDate and endDate will be used in future plans to filter all dashboard queries
   // Data de azi la miezul nopții (UTC pentru consistență)
   const now = new Date();
   const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
@@ -424,10 +427,12 @@ function getStatusBadge(status: string) {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { store?: string };
+  searchParams: { store?: string; startDate?: string; endDate?: string };
 }) {
   const storeId = searchParams.store || null;
-  const stats = await getStats(storeId);
+  const startDate = searchParams.startDate || null;
+  const endDate = searchParams.endDate || null;
+  const stats = await getStats({ storeId, startDate, endDate });
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
@@ -449,6 +454,16 @@ export default async function DashboardPage({
           ) : undefined
         }
       />
+
+      {/* Global Filters */}
+      <Suspense fallback={<div className="h-[76px] animate-pulse bg-muted/30 rounded-lg mb-6" />}>
+        <DashboardFilters
+          stores={stats.stores.map((s: { id: string; name: string }) => ({
+            id: s.id,
+            name: s.name,
+          }))}
+        />
+      </Suspense>
 
       {/* Vânzări de azi - Row Principal */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -527,10 +542,8 @@ export default async function DashboardPage({
       <div className="grid gap-6 lg:grid-cols-3 mb-6">
         <div className="lg:col-span-2">
           <Suspense fallback={<Card className="h-[300px] animate-pulse" />}>
-            <DashboardCharts 
+            <DashboardCharts
               salesData={stats.salesLast7Days}
-              stores={stats.stores}
-              currentStoreId={stats.currentStoreId}
             />
           </Suspense>
         </div>
