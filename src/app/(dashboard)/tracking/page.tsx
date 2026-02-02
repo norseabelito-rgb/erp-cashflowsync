@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   Clock,
   MapPin,
-  RefreshCw,
   Search,
   AlertCircle,
   RotateCcw,
@@ -20,6 +19,7 @@ import {
   Phone,
   History,
 } from "lucide-react";
+import { getStatusCategory, type StatusCategory } from "@/lib/awb-status";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -67,57 +67,7 @@ interface AWBWithOrder {
   }>;
 }
 
-// Funcție pentru a determina categoria de status
-type StatusCategory = 'pending' | 'in_transit' | 'delivered' | 'returned' | 'cancelled' | 'deleted' | 'error' | 'unknown';
-
-function getStatusCategory(status: string | null): StatusCategory {
-  if (!status) return 'pending';
-  
-  const s = status.toLowerCase();
-  
-  // Șters
-  if (s.includes('șters') || s.includes('sters') || s.includes('deleted')) {
-    return 'deleted';
-  }
-  
-  // Anulat
-  if (s.includes('anulat') || s.includes('cancelled') || s.includes('canceled')) {
-    return 'cancelled';
-  }
-  
-  // Returnat/Refuzat
-  if (s.includes('retur') || s.includes('refuz') || s.includes('return')) {
-    return 'returned';
-  }
-  
-  // Livrat
-  if (s.includes('livrat') || s.includes('delivered')) {
-    return 'delivered';
-  }
-  
-  // În tranzit/livrare
-  if (s.includes('tranzit') || s.includes('transit') || s.includes('livrare') || 
-      s.includes('preluat') || s.includes('ridicat') || s.includes('sortare') ||
-      s.includes('depozit') || s.includes('expedit')) {
-    return 'in_transit';
-  }
-  
-  // În așteptare
-  if (s.includes('așteptare') || s.includes('asteptare') || s.includes('pending') ||
-      s.includes('avizat') || s.includes('contact') || s.includes('reprogramat')) {
-    return 'pending';
-  }
-  
-  // Eroare
-  if (s.includes('eroare') || s.includes('error') || s.includes('greșit') ||
-      s.includes('incomplet') || s.includes('nu raspunde')) {
-    return 'error';
-  }
-  
-  return 'unknown';
-}
-
-// Configurație vizuală pentru categorii
+// Configurație vizuală pentru categorii (extended from awb-status.ts categoryConfig)
 const categoryConfig: Record<StatusCategory, {
   label: string;
   bgColor: string;
