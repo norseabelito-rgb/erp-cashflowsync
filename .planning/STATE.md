@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.3 of 10 (Dashboard Rework)
-Plan: 3 of 5
+Plan: 4 of 5
 Status: In progress
-Last activity: 2026-02-03 - Completed 07.3-03-PLAN.md (Stat card tooltips with Romanian explanations)
+Last activity: 2026-02-03 - Completed 07.3-04-PLAN.md (Clickable stat cards with filter context)
 
-Progress: [██████████████████░░] ~91% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 3/5 of 7.3)
+Progress: [██████████████████░░] ~92% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 4/5 of 7.3)
 
 ## Phase 7 Progress
 
@@ -55,6 +55,9 @@ Progress: [██████████████████░░] ~91% (7
 
 Recent decisions affecting current work:
 
+- **07.3-04:** buildFilteredHref function defined inside DashboardPage (needs access to searchParams)
+- **07.3-04:** All stat card navigation preserves date range and store filter context
+- **07.3-04:** Extra params (status, source) combined with preserved filters via URLSearchParams
 - **07.3-03:** StatCard tooltip prop optional - not all cards need explanation
 - **07.3-03:** InfoTooltip positioned side='right' for visibility
 - **07.3-02:** Use buildDateWhere helper for consistent date filtering across all queries
@@ -244,18 +247,18 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 07.3-03-PLAN.md (Stat card tooltips with Romanian explanations)
+Stopped at: Completed 07.3-04-PLAN.md (Clickable stat cards with filter context)
 Resume context:
 - **STAGING BRANCH** - Phase 7.3 in progress
-- Plan 03 complete - InfoTooltip integration, all 8 stat cards have Romanian tooltips
-- Ready for Plan 04 or 05 (remaining 7.3 plans)
+- Plan 04 complete - buildFilteredHref helper, all stat card navigation preserves filters
+- Ready for Plan 05 (final 7.3 plan)
 
 **NEXT STEPS:**
-1. Execute 07.3-04-PLAN.md or 07.3-05-PLAN.md
+1. Execute 07.3-05-PLAN.md (if exists)
 2. Complete Phase 7.3
 3. Then 7.4, 7.5 phases
 
-Resume file: .planning/phases/07.3-dashboard-rework/07.3-04-PLAN.md
+Resume file: .planning/phases/07.3-dashboard-rework/07.3-05-PLAN.md
 
 ## Phase 7 Features
 
@@ -292,17 +295,19 @@ Task Management Core components:
 | 07.3-01 | 1 | Complete | Dashboard global filters with URL persistence |
 | 07.3-02 | 1 | Complete | Apply filters to dashboard queries |
 | 07.3-03 | 2 | Complete | Stat card tooltips with Romanian explanations |
-| 07.3-04 | 3 | Pending | Add tooltips to dashboard elements |
-| 07.3-05 | 4 | Pending | Remove Ads and AI sections |
+| 07.3-04 | 2 | Complete | Clickable stat cards preserve filter context |
+| 07.3-05 | 3 | Pending | Gap closure / remaining dashboard fixes |
 
 ## Phase 7.3 Features (Dashboard Rework)
 
 - [x] 07.3-01: DashboardFilters component with date range and store selector
 - [x] 07.3-02: getFilteredDashboardStats service with consistent filter application
 - [x] 07.3-03: InfoTooltip integration with Romanian explanations for all 8 stat cards
+- [x] 07.3-04: buildFilteredHref helper - clickable stat cards preserve filter context
 
 ## Recent Commits
 
+- `e5c43d8` feat(07.3-04): add buildFilteredHref helper function
 - `449ba27` feat(07.3-03): add Romanian tooltip explanations to all stat cards
 - `ce92d32` feat(07.3-03): extend StatCard with tooltip support
 - `be22094` feat(07.3-02): update dashboard page to use filtered stats
@@ -311,8 +316,7 @@ Task Management Core components:
 - `ba3ceff` feat(07.3-01): integrate DashboardFilters into dashboard page
 - `23c7167` feat(07.3-01): create DashboardFilters component
 - `49f6db7` feat(07.2-06): add AI category suggestion UI to mapping page
-- `b949da8` feat(07.2-06): add category suggestion API endpoint
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-03 (Phase 7.3 Plan 03 complete - Stat card tooltips with Romanian explanations)*
+*Last updated: 2026-02-03 (Phase 7.3 Plan 04 complete - Clickable stat cards with filter context)*
