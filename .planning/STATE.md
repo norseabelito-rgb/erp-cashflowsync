@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.3 of 10 (Dashboard Rework)
-Plan: 1 of 5
+Plan: 2 of 5
 Status: In progress
-Last activity: 2026-02-03 - Completed 07.3-01-PLAN.md (Dashboard global filters)
+Last activity: 2026-02-03 - Completed 07.3-02-PLAN.md (Metric calculations with filtered queries)
 
-Progress: [██████████████████░░] ~89% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 1/5 of 7.3)
+Progress: [██████████████████░░] ~90% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 2/5 of 7.3)
 
 ## Phase 7 Progress
 
@@ -55,6 +55,10 @@ Progress: [██████████████████░░] ~89% (7
 
 Recent decisions affecting current work:
 
+- **07.3-02:** Use buildDateWhere helper for consistent date filtering across all queries
+- **07.3-02:** pendingOrders/validatedOrders include invoice:null check (De Procesat = nefacturate)
+- **07.3-02:** Removed Ads card and AI Insights section from dashboard
+- **07.3-02:** Sales data for chart uses separate function with try/catch for raw SQL
 - **07.3-01:** Use native HTML date inputs for date range picker (follows existing pattern)
 - **07.3-01:** Remove store filter from DashboardCharts (now uses global DashboardFilters)
 - **07.3-01:** Default date filter is today (single day) - most common use case
@@ -238,18 +242,18 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 07.3-01-PLAN.md (Dashboard global filters)
+Stopped at: Completed 07.3-02-PLAN.md (Metric calculations with filtered queries)
 Resume context:
 - **STAGING BRANCH** - Phase 7.3 in progress
-- Plan 01 complete - DashboardFilters component with URL persistence
-- Ready for Plan 02 - Apply filters to dashboard queries
+- Plan 02 complete - getFilteredDashboardStats service, all metrics use filters
+- Ready for Plan 03 - Fix card counts and meanings
 
 **NEXT STEPS:**
-1. Execute 07.3-02-PLAN.md (Apply filters to dashboard queries)
-2. Continue through remaining 7.3 plans
+1. Execute 07.3-03-PLAN.md (Fix card counts and meanings)
+2. Continue through remaining 7.3 plans (04, 05)
 3. Then 7.4, 7.5 phases
 
-Resume file: .planning/phases/07.3-dashboard-rework/07.3-02-PLAN.md
+Resume file: .planning/phases/07.3-dashboard-rework/07.3-03-PLAN.md
 
 ## Phase 7 Features
 
@@ -284,7 +288,7 @@ Task Management Core components:
 | Plan | Wave | Status | Summary |
 |------|------|--------|---------|
 | 07.3-01 | 1 | Complete | Dashboard global filters with URL persistence |
-| 07.3-02 | 1 | Pending | Apply filters to dashboard queries |
+| 07.3-02 | 1 | Complete | Apply filters to dashboard queries |
 | 07.3-03 | 2 | Pending | Fix card counts and meanings |
 | 07.3-04 | 3 | Pending | Add tooltips to dashboard elements |
 | 07.3-05 | 4 | Pending | Remove Ads and AI sections |
@@ -292,18 +296,19 @@ Task Management Core components:
 ## Phase 7.3 Features (Dashboard Rework)
 
 - [x] 07.3-01: DashboardFilters component with date range and store selector
+- [x] 07.3-02: getFilteredDashboardStats service with consistent filter application
 
 ## Recent Commits
 
+- `be22094` feat(07.3-02): update dashboard page to use filtered stats
+- `9e0853c` feat(07.3-02): create dashboard-stats.ts with filtered queries
 - `a90c6e3` fix(07.3-01): restore missing imports in dashboard page
 - `ba3ceff` feat(07.3-01): integrate DashboardFilters into dashboard page
 - `23c7167` feat(07.3-01): create DashboardFilters component
 - `49f6db7` feat(07.2-06): add AI category suggestion UI to mapping page
 - `b949da8` feat(07.2-06): add category suggestion API endpoint
 - `91d28ea` feat(07.2-06): create AI category suggestion library
-- `7061889` feat(07.2-05): use awb-service for Trendyol tracking sync
-- `702bf97` feat(07.2-04): update webhook to pass TrendyolStore to sync
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-03 (Phase 7.3 Plan 01 complete - Dashboard global filters)*
+*Last updated: 2026-02-03 (Phase 7.3 Plan 02 complete - Metric calculations with filtered queries)*
