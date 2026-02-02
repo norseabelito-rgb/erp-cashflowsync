@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import {
   ShoppingCart,
-  FileText,
   Truck,
   AlertTriangle,
   TrendingUp,
@@ -9,320 +8,23 @@ import {
   Package,
   CheckCircle2,
   Clock,
-  DollarSign,
-  Megaphone,
-  RefreshCw,
   ArrowRight,
-  Sparkles,
   BarChart3,
   ShoppingBag,
+  FileText,
+  DollarSign,
+  Megaphone,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { StatusBadge } from "@/components/ui/status-badge";
-import prisma from "@/lib/db";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import Link from "next/link";
 import { DashboardCharts } from "./dashboard-charts";
-import { DashboardAIInsights } from "./dashboard-ai-insights";
 import { DashboardFilters } from "./dashboard-filters";
-
-async function getStats(options?: { storeId?: string | null; startDate?: string | null; endDate?: string | null }) {
-  const { storeId, startDate: _startDate, endDate: _endDate } = options || {};
-  // Note: startDate and endDate will be used in future plans to filter all dashboard queries
-  // Data de azi la miezul nopții (UTC pentru consistență)
-  const now = new Date();
-  const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-  
-  // Data acum 7 zile
-  const sevenDaysAgo = new Date(today);
-  sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 7);
-  
-  // Data acum 14 zile (pentru comparație)
-  const fourteenDaysAgo = new Date(today);
-  fourteenDaysAgo.setUTCDate(fourteenDaysAgo.getUTCDate() - 14);
-
-  const [
-    totalOrders,
-    pendingOrders,
-    validatedOrders,
-    validationFailed,
-    invoiced,
-    shipped,
-    delivered,
-    recentOrders,
-    storeStats,
-    // Statistici stoc
-    productStats,
-    lowStockProducts,
-    // Ads stats
-    adsStats,
-    // AI Insights pending
-    pendingInsights,
-    // Trendyol stats
-    trendyolOrdersToday,
-    trendyolPendingOrders,
-    trendyolRevenue,
-    // Shopify stats (for comparison)
-    shopifyOrdersToday,
-    shopifyRevenue,
-  ] = await Promise.all([
-    // Aceste statistici sunt GLOBALE (nu se filtrează după magazin)
-    prisma.order.count(),
-    prisma.order.count({ where: { status: "PENDING" } }),
-    prisma.order.count({ where: { status: "VALIDATED" } }),
-    prisma.order.count({ where: { status: "VALIDATION_FAILED" } }),
-    prisma.order.count({ where: { status: "INVOICED" } }),
-    prisma.order.count({ where: { status: "SHIPPED" } }),
-    prisma.order.count({ where: { status: "DELIVERED" } }),
-    prisma.order.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      include: { store: true },
-    }),
-    prisma.store.findMany({
-      where: { isActive: true },
-      include: {
-        _count: {
-          select: { orders: true },
-        },
-      },
-    }),
-    // Statistici produse
-    prisma.product.aggregate({
-      where: { isActive: true },
-      _count: true,
-      _sum: {
-        stockQuantity: true,
-      },
-    }),
-    // Produse cu stoc scăzut
-    prisma.product.findMany({
-      where: {
-        isActive: true,
-        stockQuantity: { lte: 5 },
-      },
-      orderBy: { stockQuantity: "asc" },
-      take: 5,
-    }),
-    // Ads aggregate stats
-    prisma.adsCampaign.aggregate({
-      where: { status: "ACTIVE" },
-      _sum: {
-        spend: true,
-        conversions: true,
-        revenue: true,
-      },
-      _count: true,
-    }),
-    // AI Insights pending count
-    prisma.aIInsight.count({
-      where: { status: "PENDING" },
-    }).catch(() => 0),
-    // Trendyol orders today
-    prisma.order.count({
-      where: {
-        source: "trendyol",
-        createdAt: { gte: today },
-      },
-    }),
-    // Trendyol pending orders
-    prisma.order.count({
-      where: {
-        source: "trendyol",
-        status: { in: ["PENDING", "VALIDATED"] },
-      },
-    }),
-    // Trendyol revenue today
-    prisma.order.aggregate({
-      where: {
-        source: "trendyol",
-        createdAt: { gte: today },
-      },
-      _sum: { totalPrice: true },
-    }),
-    // Shopify orders today (for comparison)
-    prisma.order.count({
-      where: {
-        source: "shopify",
-        createdAt: { gte: today },
-      },
-    }),
-    // Shopify revenue today
-    prisma.order.aggregate({
-      where: {
-        source: "shopify",
-        createdAt: { gte: today },
-      },
-      _sum: { totalPrice: true },
-    }),
-  ]);
-
-  // Calculăm vânzări din comenzi - ultimele 7 zile (grupat per zi)
-  // FĂRĂ filtru pe status - toate comenzile
-  // CU filtru opțional pe magazin (doar pentru chart)
-  const salesQuery = storeId 
-    ? prisma.$queryRaw<Array<{
-        date: Date;
-        totalSales: number;
-        orderCount: bigint;
-      }>>`
-        SELECT 
-          DATE("createdAt" AT TIME ZONE 'UTC') as date,
-          COALESCE(SUM("totalPrice"::numeric), 0) as "totalSales",
-          COUNT(*) as "orderCount"
-        FROM orders
-        WHERE "createdAt" >= ${sevenDaysAgo}
-          AND "storeId" = ${storeId}
-        GROUP BY DATE("createdAt" AT TIME ZONE 'UTC')
-        ORDER BY date ASC
-      `
-    : prisma.$queryRaw<Array<{
-        date: Date;
-        totalSales: number;
-        orderCount: bigint;
-      }>>`
-        SELECT 
-          DATE("createdAt" AT TIME ZONE 'UTC') as date,
-          COALESCE(SUM("totalPrice"::numeric), 0) as "totalSales",
-          COUNT(*) as "orderCount"
-        FROM orders
-        WHERE "createdAt" >= ${sevenDaysAgo}
-        GROUP BY DATE("createdAt" AT TIME ZONE 'UTC')
-        ORDER BY date ASC
-      `;
-
-  const salesLast7DaysRaw = await salesQuery;
-
-  // Vânzări perioada anterioară (7-14 zile în urmă) pentru trend
-  const previousWeekQuery = storeId
-    ? prisma.$queryRaw<Array<{
-        totalSales: number;
-        orderCount: bigint;
-      }>>`
-        SELECT 
-          COALESCE(SUM("totalPrice"::numeric), 0) as "totalSales",
-          COUNT(*) as "orderCount"
-        FROM orders
-        WHERE "createdAt" >= ${fourteenDaysAgo}
-          AND "createdAt" < ${sevenDaysAgo}
-          AND "storeId" = ${storeId}
-      `
-    : prisma.$queryRaw<Array<{
-        totalSales: number;
-        orderCount: bigint;
-      }>>`
-        SELECT 
-          COALESCE(SUM("totalPrice"::numeric), 0) as "totalSales",
-          COUNT(*) as "orderCount"
-        FROM orders
-        WHERE "createdAt" >= ${fourteenDaysAgo}
-          AND "createdAt" < ${sevenDaysAgo}
-      `;
-
-  const salesPreviousWeekRaw = await previousWeekQuery;
-
-  // Generăm array complet pentru ultimele 7 zile (inclusiv zilele fără vânzări)
-  const salesByDate = new Map<string, { sales: number; orders: number }>();
-  salesLast7DaysRaw.forEach((row: { date: Date; totalSales: number; orderCount: bigint }) => {
-    // Folosim UTC pentru consistență
-    const d = new Date(row.date);
-    const dateKey = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
-    salesByDate.set(dateKey, {
-      sales: Number(row.totalSales),
-      orders: Number(row.orderCount),
-    });
-  });
-
-  const salesLast7Days: Array<{ date: string; sales: number; orders: number }> = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(today);
-    d.setUTCDate(d.getUTCDate() - i);
-    const dateKey = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
-    const data = salesByDate.get(dateKey) || { sales: 0, orders: 0 };
-    salesLast7Days.push({
-      date: dateKey,
-      ...data,
-    });
-  }
-
-  // Calculăm totalurile
-  const totalSalesLast7Days = salesLast7Days.reduce((sum, d) => sum + d.sales, 0);
-  const totalOrdersLast7Days = salesLast7Days.reduce((sum, d) => sum + d.orders, 0);
-  const previousWeekSales = Number(salesPreviousWeekRaw[0]?.totalSales) || 0;
-
-  // Trend: comparație cu săptămâna anterioară
-  const salesTrend = previousWeekSales > 0 
-    ? ((totalSalesLast7Days - Number(previousWeekSales)) / Number(previousWeekSales) * 100)
-    : 0;
-
-  // Vânzări de azi (din chart data)
-  const todayKey = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, '0')}-${String(today.getUTCDate()).padStart(2, '0')}`;
-  const todayData = salesByDate.get(todayKey) || { sales: 0, orders: 0 };
-  const todaySalesTotal = todayData.sales;
-  const todayOrderCount = todayData.orders;
-
-  // Facturi emise azi (global, nu filtrat)
-  const todayInvoices = await prisma.invoice.count({
-    where: {
-      status: "issued",
-      issuedAt: { gte: today },
-    },
-  });
-
-  // Ads stats procesate
-  const adsSpend = Number(adsStats._sum?.spend) || 0;
-  const adsRevenue = Number(adsStats._sum?.revenue) || 0;
-  const adsROAS = adsSpend > 0 ? (adsRevenue / adsSpend) : 0;
-
-  return {
-    totalOrders,
-    pendingOrders,
-    validatedOrders,
-    validationFailed,
-    invoiced,
-    shipped,
-    delivered,
-    recentOrders,
-    storeStats,
-    // Vânzări
-    todayInvoices,
-    todaySalesTotal,
-    todayOrderCount,
-    salesTrend,
-    totalSalesLast7Days,
-    totalOrdersLast7Days,
-    salesLast7Days,
-    // Stoc
-    totalProducts: productStats._count || 0,
-    lowStockProducts,
-    lowStockCount: lowStockProducts.length,
-    // Ads
-    adsSpend,
-    adsRevenue,
-    adsROAS,
-    activeCampaigns: adsStats._count || 0,
-    // AI
-    pendingInsights,
-    // Trendyol
-    trendyolOrdersToday,
-    trendyolPendingOrders,
-    trendyolRevenueToday: Number(trendyolRevenue._sum?.totalPrice) || 0,
-    // Shopify
-    shopifyOrdersToday,
-    shopifyRevenueToday: Number(shopifyRevenue._sum?.totalPrice) || 0,
-    // Pentru filtru
-    stores: storeStats.map((s: typeof storeStats[number]) => ({
-      id: s.id,
-      name: s.name,
-      ordersCount: s._count.orders,
-    })),
-    currentStoreId: storeId || null,
-  };
-}
+import { DashboardAIInsights } from "./dashboard-ai-insights";
+import { getFilteredDashboardStats } from "@/lib/dashboard-stats";
 
 function StatCard({
   title,
@@ -429,30 +131,24 @@ export default async function DashboardPage({
 }: {
   searchParams: { store?: string; startDate?: string; endDate?: string };
 }) {
-  const storeId = searchParams.store || null;
-  const startDate = searchParams.startDate || null;
-  const endDate = searchParams.endDate || null;
-  const stats = await getStats({ storeId, startDate, endDate });
+  // Parse filter parameters from URL
+  const storeId = searchParams.store || undefined;
+  const startDate = searchParams.startDate || undefined;
+  const endDate = searchParams.endDate || undefined;
+
+  // Fetch filtered stats using the new dashboard-stats service
+  const stats = await getFilteredDashboardStats({
+    storeId,
+    startDate,
+    endDate,
+  });
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
       {/* Header */}
       <PageHeader
         title="Dashboard"
-        description="Bine ai venit! Iată o privire de ansamblu asupra afacerii tale."
-        badge={
-          stats.pendingInsights > 0 ? (
-            <Link href="/dashboard#ai-insights">
-              <Badge
-                variant="secondary"
-                className="bg-primary/10 text-primary border-primary/20 cursor-pointer hover:bg-primary/20"
-              >
-                <Sparkles className="h-3 w-3 mr-1" />
-                {stats.pendingInsights} recomandări AI
-              </Badge>
-            </Link>
-          ) : undefined
-        }
+        description="Bine ai venit! Iata o privire de ansamblu asupra afacerii tale."
       />
 
       {/* Global Filters */}
