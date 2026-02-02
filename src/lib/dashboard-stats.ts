@@ -74,6 +74,9 @@ export interface DashboardStats {
   totalProducts: number;
   lowStockCount: number;
 
+  // Returns count (AWBs with return status)
+  returns: number;
+
   // Sales data for chart (filtered by date and store)
   salesData: Array<{
     date: string;
@@ -228,6 +231,9 @@ export async function getFilteredDashboardStats(
 
     // Sales data for chart - grouped by date
     salesDataRaw,
+
+    // Returns count (AWBs with return status)
+    returnsCount,
   ] = await Promise.all([
     // Total orders with filters
     prisma.order.count({ where: baseWhere }),
@@ -383,6 +389,22 @@ export async function getFilteredDashboardStats(
       dateWhere.lte ?? new Date(),
       filters.storeId
     ),
+
+    // Returns count: AWBs with return status
+    // Matches tracking page getStatusCategory logic for 'returned'
+    prisma.aWB.count({
+      where: {
+        createdAt: dateWhere,
+        ...(filters.storeId && filters.storeId !== "all" && {
+          order: { storeId: filters.storeId },
+        }),
+        OR: [
+          { currentStatus: { contains: "retur", mode: "insensitive" } },
+          { currentStatus: { contains: "refuz", mode: "insensitive" } },
+          { currentStatus: { contains: "return", mode: "insensitive" } },
+        ],
+      },
+    }),
   ]);
 
   // Process sales data for chart
@@ -478,6 +500,9 @@ export async function getFilteredDashboardStats(
     // Product counts
     totalProducts: productCount,
     lowStockCount: lowStockProducts.length,
+
+    // Returns count
+    returns: returnsCount,
 
     // Sales data for chart
     salesData,
