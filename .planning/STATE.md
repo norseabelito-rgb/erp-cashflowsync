@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 ## Current Position
 
-Phase: 7.2 of 10 (Trendyol Complete Fix)
-Plan: 5 of 6 (PAUSED - checkpoint deferred)
-Status: Code complete, Plan 05 verification deferred (needs Trendyol products first)
-Last activity: 2026-02-02 - Paused at 07.2-05 checkpoint (user will verify after product push)
+Phase: 7.3 of 10 (Dashboard Rework)
+Plan: 1 of 5
+Status: In progress
+Last activity: 2026-02-03 - Completed 07.3-01-PLAN.md (Dashboard global filters)
 
-Progress: [██████████████████░░] ~88% (7/10 integer phases + 6/6 of 7.1 + 5/6 of 7.2)
+Progress: [██████████████████░░] ~89% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 1/5 of 7.3)
 
 ## Phase 7 Progress
 
@@ -55,6 +55,9 @@ Progress: [██████████████████░░] ~88% (7
 
 Recent decisions affecting current work:
 
+- **07.3-01:** Use native HTML date inputs for date range picker (follows existing pattern)
+- **07.3-01:** Remove store filter from DashboardCharts (now uses global DashboardFilters)
+- **07.3-01:** Default date filter is today (single day) - most common use case
 - **07.2-06:** Use claude-sonnet-4-20250514 for fast category suggestions
 - **07.2-06:** Limit categories to 500 in prompt to prevent context overflow
 - **07.2-06:** Show confidence score and reasoning with each suggestion
@@ -168,6 +171,20 @@ Recent decisions affecting current work:
   - Plans created: 6 plans in 5 waves
   - Status: COMPLETE (2026-01-30)
 
+- Phase 7.3, 7.4, 7.5 inserted after Phase 7.2 - 2026-02-03 (URGENT)
+  - Reason: Dashboard/Orders/AWB pages need comprehensive rework
+  - Phase 7.3: Dashboard Rework - global filters, correct metrics, tooltips, remove Ads/AI
+  - Phase 7.4: Orders Channel Split - Shopify/Trendyol/Temu tabs, manual order creation
+  - Phase 7.5: AWB Tracking Fix - correct status logic, accurate card counts
+  - Key issues:
+    - Dashboard cards not filtered by store/date
+    - "De Procesat" and "Expediate" meanings unclear
+    - Expediate count doesn't match AWB tracking "In tranzit"
+    - No returns card
+    - Orders page mixes all channels - increases error risk
+    - AWB card counts don't sum to total
+  - Total new plans: ~15 plans in 7 waves
+
 ## Phase 7.1 Progress
 
 | Plan | Wave | Status | Summary |
@@ -220,37 +237,19 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-02
-Stopped at: Phase 7.2 execution - Plan 05 checkpoint pending verification
+Last session: 2026-02-03
+Stopped at: Completed 07.3-01-PLAN.md (Dashboard global filters)
 Resume context:
-- **STAGING BRANCH** - Phase 7.2 code COMPLETE, verification pending
-- Plan 05 (Bulk process Trendyol) - 2/3 tasks done, checkpoint deferred
-- Verification blocked: Need Trendyol products first, then Trendyol orders will exist
+- **STAGING BRANCH** - Phase 7.3 in progress
+- Plan 01 complete - DashboardFilters component with URL persistence
+- Ready for Plan 02 - Apply filters to dashboard queries
 
-**CHECKPOINT 07.2-05 DEFERRED:**
-- Code changes complete (commit 7061889)
-- Changed process-all/route.ts to use awb-service instead of fancourier
-- awb-service.ts calls sendTrackingToTrendyol automatically for Trendyol orders
-- invoice-service.ts calls sendInvoiceToTrendyol automatically
-- **TO VERIFY LATER:**
-  1. Go to /orders, select Trendyol order
-  2. Click "Proceseaza" (bulk process)
-  3. Check console for "Folosesc seria TrendyolStore" and Trendyol sync logs
-  4. Type "approved" when verified
+**NEXT STEPS:**
+1. Execute 07.3-02-PLAN.md (Apply filters to dashboard queries)
+2. Continue through remaining 7.3 plans
+3. Then 7.4, 7.5 phases
 
-**IMMEDIATE PRIORITY:**
-- User needs to push master product list to Trendyol FIRST
-- Use /trendyol/mapping to map categories + attributes
-- Use /trendyol/publish to push products
-- Then orders will come in and bulk process can be verified
-
-**AFTER VERIFICATION:**
-1. Complete 07.2-05 checkpoint
-2. Run phase verifier
-3. Update ROADMAP.md
-4. Move to Phase 8
-
-Resume file: None
+Resume file: .planning/phases/07.3-dashboard-rework/07.3-02-PLAN.md
 
 ## Phase 7 Features
 
@@ -280,17 +279,31 @@ Task Management Core components:
 - [ ] 07.2-05: Bulk process Trendyol (code done, VERIFICATION PENDING)
 - [x] 07.2-06: AI category suggestion with Claude
 
+## Phase 7.3 Progress
+
+| Plan | Wave | Status | Summary |
+|------|------|--------|---------|
+| 07.3-01 | 1 | Complete | Dashboard global filters with URL persistence |
+| 07.3-02 | 1 | Pending | Apply filters to dashboard queries |
+| 07.3-03 | 2 | Pending | Fix card counts and meanings |
+| 07.3-04 | 3 | Pending | Add tooltips to dashboard elements |
+| 07.3-05 | 4 | Pending | Remove Ads and AI sections |
+
+## Phase 7.3 Features (Dashboard Rework)
+
+- [x] 07.3-01: DashboardFilters component with date range and store selector
+
 ## Recent Commits
 
+- `a90c6e3` fix(07.3-01): restore missing imports in dashboard page
+- `ba3ceff` feat(07.3-01): integrate DashboardFilters into dashboard page
+- `23c7167` feat(07.3-01): create DashboardFilters component
 - `49f6db7` feat(07.2-06): add AI category suggestion UI to mapping page
 - `b949da8` feat(07.2-06): add category suggestion API endpoint
 - `91d28ea` feat(07.2-06): create AI category suggestion library
 - `7061889` feat(07.2-05): use awb-service for Trendyol tracking sync
 - `702bf97` feat(07.2-04): update webhook to pass TrendyolStore to sync
-- `dfbeef7` feat(07.2-04): refactor order sync to use TrendyolStore for company
-- `7c908ca` feat(07.2-03): ensure TrendyolStore is linked during order sync
-- `e42f7ff` feat(07.2-03): add TrendyolStore invoice series resolution
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-01 (Phase 7.2 Wave 2 complete - AI category suggestion)*
+*Last updated: 2026-02-03 (Phase 7.3 Plan 01 complete - Dashboard global filters)*
