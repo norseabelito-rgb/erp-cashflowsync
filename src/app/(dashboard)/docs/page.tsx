@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Book,
   ShoppingCart,
@@ -50,6 +50,40 @@ import {
   Table2,
   Server,
   Terminal,
+  Download,
+  Printer,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  CreditCard,
+  Banknote,
+  Receipt,
+  BarChart3,
+  PieChart,
+  Activity,
+  Settings,
+  HelpCircle,
+  BookOpen,
+  FileCode,
+  Network,
+  Boxes,
+  Factory,
+  Warehouse,
+  CircleDollarSign,
+  CalendarDays,
+  Clock,
+  Bell,
+  Mail,
+  Smartphone,
+  Laptop,
+  Cloud,
+  ShieldCheck,
+  UserCheck,
+  FileCheck,
+  ListChecks,
+  PackageCheck,
+  Gauge,
+  LayoutDashboard,
 } from "lucide-react";
 
 import {
@@ -57,39 +91,77 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
-const DOC_VERSION = "3.1.0";
-const LAST_UPDATED = "2026-01-13";
+const DOC_VERSION = "4.0.0";
+const LAST_UPDATED = "2026-02-02";
 
-const modules = [
-  { id: "overview", name: "Prezentare Generala", icon: Book },
-  { id: "architecture", name: "Arhitectura Sistem", icon: Server },
-  { id: "orders", name: "Comenzi si Procesare", icon: ShoppingCart },
-  { id: "products", name: "Produse si Inventar", icon: Package },
-  { id: "invoices", name: "Facturare Facturis", icon: FileText },
-  { id: "shipping", name: "Livrare si AWB", icon: Truck },
-  { id: "picking", name: "Picking si Predare", icon: ClipboardList },
-  { id: "handover", name: "Predare Curier", icon: Hand },
-  { id: "advertising", name: "Advertising", icon: Megaphone },
-  { id: "rbac", name: "Permisiuni si Roluri", icon: Shield },
-  { id: "database", name: "Baza de Date", icon: Database },
-  { id: "integrations", name: "Integrari Externe", icon: Globe },
-  { id: "api", name: "API Reference", icon: Code },
-  { id: "changelog", name: "Istoric Versiuni", icon: History },
+// ============================================================================
+// TYPES & DATA
+// ============================================================================
+
+interface Module {
+  id: string;
+  name: string;
+  icon: React.ElementType;
+  category: "overview" | "business" | "technical" | "reference";
+}
+
+const modules: Module[] = [
+  // Overview
+  { id: "overview", name: "Prezentare Generala", icon: Book, category: "overview" },
+  { id: "quickstart", name: "Ghid Rapid Start", icon: Zap, category: "overview" },
+
+  // Business Flows
+  { id: "business-flow", name: "Flux Business E2E", icon: Workflow, category: "business" },
+  { id: "orders", name: "Comenzi si Procesare", icon: ShoppingCart, category: "business" },
+  { id: "invoices", name: "Facturare Oblio", icon: FileText, category: "business" },
+  { id: "shipping", name: "Livrare AWB", icon: Truck, category: "business" },
+  { id: "picking", name: "Picking Warehouse", icon: ClipboardList, category: "business" },
+  { id: "handover", name: "Predare Curier", icon: Hand, category: "business" },
+  { id: "products", name: "Produse si Stoc", icon: Package, category: "business" },
+  { id: "advertising", name: "Advertising", icon: Megaphone, category: "business" },
+  { id: "trendyol", name: "Trendyol Marketplace", icon: Globe, category: "business" },
+
+  // Technical
+  { id: "architecture", name: "Arhitectura Sistem", icon: Server, category: "technical" },
+  { id: "database", name: "Baza de Date", icon: Database, category: "technical" },
+  { id: "integrations", name: "Integrari Externe", icon: GitBranch, category: "technical" },
+  { id: "rbac", name: "Permisiuni RBAC", icon: Shield, category: "technical" },
+  { id: "cron", name: "CRON Jobs", icon: Timer, category: "technical" },
+
+  // Reference
+  { id: "api", name: "API Reference", icon: Code, category: "reference" },
+  { id: "env", name: "Variabile Mediu", icon: Key, category: "reference" },
+  { id: "changelog", name: "Istoric Versiuni", icon: History, category: "reference" },
 ];
 
-function SectionTitle({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+// ============================================================================
+// UI COMPONENTS
+// ============================================================================
+
+function SectionTitle({ icon, children, id }: { icon: React.ReactNode; children: React.ReactNode; id?: string }) {
   return (
-    <h2 className="flex items-center gap-3 text-xl font-semibold text-foreground mt-8 mb-4">
-      <span className="text-primary">{icon}</span>
+    <h2 id={id} className="flex items-center gap-3 text-xl font-semibold text-foreground mt-8 mb-4 print:mt-4 print:text-lg">
+      <span className="text-primary print:text-black">{icon}</span>
       {children}
     </h2>
+  );
+}
+
+function SubSectionTitle({ children, id }: { children: React.ReactNode; id?: string }) {
+  return (
+    <h3 id={id} className="text-lg font-semibold text-foreground mt-6 mb-3 print:mt-3 print:text-base">
+      {children}
+    </h3>
   );
 }
 
@@ -111,12 +183,12 @@ function InfoBox({
   const style = styles[variant];
 
   return (
-    <div className={cn("rounded-lg border p-4", style.bg, style.border)}>
+    <div className={cn("rounded-lg border p-4 print:border-gray-300 print:bg-gray-50", style.bg, style.border)}>
       <div className="flex items-center gap-2 font-medium mb-2 text-foreground">
         {style.icon}
         {title}
       </div>
-      <div className="text-sm text-muted-foreground">{children}</div>
+      <div className="text-sm text-muted-foreground print:text-gray-700">{children}</div>
     </div>
   );
 }
@@ -131,21 +203,21 @@ function CodeBlock({ code, title }: { code: string; title?: string }) {
   };
 
   return (
-    <div className="relative rounded-lg border border-border bg-muted overflow-hidden">
+    <div className="relative rounded-lg border border-border bg-muted overflow-hidden print:bg-gray-100 print:border-gray-300">
       {title && (
-        <div className="px-4 py-2 bg-muted/80 border-b border-border text-sm text-muted-foreground">
+        <div className="px-4 py-2 bg-muted/80 border-b border-border text-sm text-muted-foreground print:bg-gray-200">
           {title}
         </div>
       )}
       <Button
         variant="ghost"
         size="sm"
-        className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
+        className="absolute top-2 right-2 text-muted-foreground hover:text-foreground print:hidden"
         onClick={handleCopy}
       >
         {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
       </Button>
-      <pre className="p-4 text-sm text-foreground overflow-x-auto">
+      <pre className="p-4 text-sm text-foreground overflow-x-auto print:text-xs">
         <code>{code}</code>
       </pre>
     </div>
@@ -164,15 +236,15 @@ function StatCard({
   icon: React.ReactNode;
 }) {
   return (
-    <Card>
+    <Card className="print:border-gray-300">
       <CardContent className="pt-6">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-muted-foreground">{label}</p>
-            <p className="text-2xl font-bold text-foreground">{value}</p>
+            <p className="text-2xl font-bold text-foreground print:text-xl">{value}</p>
             <p className="text-xs text-muted-foreground">{description}</p>
           </div>
-          <div className="text-primary">{icon}</div>
+          <div className="text-primary print:text-gray-600">{icon}</div>
         </div>
       </CardContent>
     </Card>
@@ -191,10 +263,10 @@ function FeatureCard({
   badges: string[];
 }) {
   return (
-    <Card>
+    <Card className="print:break-inside-avoid">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <span className="text-primary">{icon}</span>
+          <span className="text-primary print:text-gray-600">{icon}</span>
           {title}
         </CardTitle>
       </CardHeader>
@@ -202,7 +274,7 @@ function FeatureCard({
         <p className="text-sm text-muted-foreground mb-3">{description}</p>
         <div className="flex flex-wrap gap-1">
           {badges.map((badge, i) => (
-            <Badge key={i} variant="secondary" className="text-xs">{badge}</Badge>
+            <Badge key={i} variant="secondary" className="text-xs print:bg-gray-200">{badge}</Badge>
           ))}
         </div>
       </CardContent>
@@ -210,113 +282,253 @@ function FeatureCard({
   );
 }
 
+function FlowStep({ steps }: { steps: { step: string; desc: string }[] }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 p-4 bg-muted rounded-lg print:bg-gray-100">
+      {steps.map((item, i, arr) => (
+        <span key={i} className="flex items-center gap-2">
+          <div className="text-center">
+            <Badge variant="outline" className="px-3 py-1 print:border-gray-400">{item.step}</Badge>
+            <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
+          </div>
+          {i < arr.length - 1 && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ApiEndpoint({ method, path, desc }: { method: string; path: string; desc: string }) {
+  return (
+    <div className="flex items-center gap-4 p-3 bg-muted rounded-lg print:bg-gray-100 print:break-inside-avoid">
+      <Badge
+        variant={method === "GET" ? "secondary" : method === "DELETE" ? "destructive" : "default"}
+        className="w-16 justify-center print:bg-gray-300"
+      >
+        {method}
+      </Badge>
+      <code className="text-sm font-mono text-foreground flex-1">{path}</code>
+      <span className="text-xs text-muted-foreground hidden md:block">{desc}</span>
+    </div>
+  );
+}
+
+function DiagramBox({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn("border rounded-lg overflow-hidden print:break-inside-avoid", className)}>
+      <div className="px-4 py-2 bg-muted font-medium text-sm border-b print:bg-gray-200">{title}</div>
+      <div className="p-4">{children}</div>
+    </div>
+  );
+}
+
+// ============================================================================
+// CONTENT SECTIONS
+// ============================================================================
+
 function OverviewContent() {
   return (
     <div className="space-y-8">
       <div className="prose max-w-none">
         <p className="text-lg text-muted-foreground">
-          ERP CashFlowSync este o platforma enterprise pentru gestionarea completa a operatiunilor
-          e-commerce: comenzi multi-canal, inventar cu sistem dual de stoc, facturare automata Facturis,
-          livrare FanCourier, picking warehouse si advertising Meta/TikTok.
+          <strong>ERP CashFlowSync</strong> este o platforma enterprise completa pentru gestionarea
+          operatiunilor e-commerce end-to-end: import comenzi multi-canal (Shopify, Trendyol),
+          facturare automata Oblio cu e-Factura, AWB FanCourier, picking warehouse,
+          advertising Meta/TikTok, si sistem RBAC cu 124+ permisiuni.
         </p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Permisiuni RBAC" value="124" description="Control granular acces" icon={<Shield className="h-5 w-5" />} />
-        <StatCard label="Integrari" value="8" description="Shopify, Facturis, FanCourier..." icon={<GitBranch className="h-5 w-5" />} />
+        <StatCard label="Module Active" value="12+" description="Functionalitati complete" icon={<Layers className="h-5 w-5" />} />
+        <StatCard label="Integrari" value="8" description="Shopify, Oblio, FanCourier..." icon={<GitBranch className="h-5 w-5" />} />
         <StatCard label="Tabele DB" value="80+" description="PostgreSQL + Prisma ORM" icon={<Database className="h-5 w-5" />} />
-        <StatCard label="Statusuri Comanda" value="14" description="Flux complet de viata" icon={<Workflow className="h-5 w-5" />} />
+        <StatCard label="Permisiuni RBAC" value="124" description="Control granular acces" icon={<Shield className="h-5 w-5" />} />
       </div>
 
       <SectionTitle icon={<Zap className="h-6 w-6" />}>Capabilitati Principale</SectionTitle>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <FeatureCard
           icon={<ShoppingCart className="h-5 w-5" />}
-          title="Gestionare Comenzi Multi-Canal"
-          description="Import automat din Shopify (webhook real-time) si Trendyol (CRON sync). Validare telefon RO, adresa, judet. 14 statusuri cu tranzitii automate."
-          badges={["Shopify Webhook", "Trendyol CRON", "Validare libphonenumber", "14 Statusuri"]}
+          title="Comenzi Multi-Canal"
+          description="Import automat din Shopify (webhook real-time) si Trendyol (CRON sync). Validare telefon RO, 14 statusuri cu tranzitii automate."
+          badges={["Shopify Webhook", "Trendyol CRON", "14 Statusuri"]}
         />
         <FeatureCard
           icon={<FileText className="h-5 w-5" />}
-          title="Facturare Facturis"
-          description="Emitere facturi automate cu serii configurabile (FCT, PRF). Suport persoana fizica/juridica, calcul TVA, PDF storage, storno facturi."
-          badges={["Facturis API", "Serii Multiple", "PDF Auto", "Storno"]}
+          title="Facturare Oblio"
+          description="Emitere facturi automate cu serii configurabile. Suport PF/PJ, e-Factura SPV, PDF storage, storno."
+          badges={["Oblio API", "e-Factura", "Multi-serie"]}
         />
         <FeatureCard
           icon={<Truck className="h-5 w-5" />}
           title="AWB FanCourier"
-          description="Generare AWB-uri cu toate optiunile: ramburs, asigurare, deschidere colet. Tracking automat CRON, mapare 8 statusuri curier la ERP."
-          badges={["FanCourier API", "Ramburs COD", "Tracking Auto", "Status Mapping"]}
+          description="Generare AWB cu ramburs automat (0 pentru comenzi platite). Tracking CRON, 8 statusuri mapate."
+          badges={["Ramburs Auto", "Tracking", "PDF Label"]}
         />
         <FeatureCard
           icon={<Package className="h-5 w-5" />}
           title="Inventar Dual System"
-          description="Sistem dual: MasterProduct (catalog) + InventoryItem (stoc avansat). Suport retete/composite, sincronizare Facturis, alerte stoc scazut."
-          badges={["Dual Stock", "Retete", "Facturis Sync", "Alerte"]}
+          description="MasterProduct (catalog) + InventoryItem (stoc avansat). Retete composite, sincronizare, alerte stoc."
+          badges={["Dual Stock", "Retete", "Alerte"]}
         />
         <FeatureCard
           icon={<ClipboardList className="h-5 w-5" />}
           title="Picking & Handover"
-          description="Liste picking agregate per produs, scanare barcode, sesiuni predare curier cu raport C0, alerte colete nepredate."
-          badges={["Agregare Produse", "Barcode Scan", "Raport C0", "Alerte"]}
+          description="Liste picking agregate, scanare barcode, sesiuni predare curier cu raport, alerte colete nepredate."
+          badges={["Agregare", "Barcode", "Raport C0"]}
         />
         <FeatureCard
           icon={<Megaphone className="h-5 w-5" />}
           title="Advertising Analytics"
-          description="Integrare Meta Ads si TikTok Ads cu OAuth. Sincronizare campanii, calcul ROAS per produs, alerte performanta, actiuni automate."
-          badges={["Meta OAuth", "TikTok OAuth", "ROAS Alerts", "Auto Actions"]}
+          description="Integrare Meta Ads si TikTok Ads OAuth. Sincronizare campanii, ROAS per produs, alerte automate."
+          badges={["Meta OAuth", "TikTok", "ROAS Alerts"]}
         />
-      </div>
-
-      <SectionTitle icon={<Workflow className="h-6 w-6" />}>Fluxul Principal al Comenzii</SectionTitle>
-
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2 p-4 bg-muted rounded-lg">
-          {[
-            { step: "Import", desc: "Shopify/Trendyol" },
-            { step: "Validare", desc: "Tel/Adresa/Judet" },
-            { step: "Facturare", desc: "Facturis API" },
-            { step: "AWB", desc: "FanCourier API" },
-            { step: "Picking", desc: "Lista + Scanare" },
-            { step: "Handover", desc: "Predare C0" },
-            { step: "Tracking", desc: "Status Auto" },
-            { step: "Livrare", desc: "Finalizare" }
-          ].map((item, i, arr) => (
-            <span key={i} className="flex items-center gap-2">
-              <div className="text-center">
-                <Badge variant="outline" className="px-3 py-1">{item.step}</Badge>
-                <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
-              </div>
-              {i < arr.length - 1 && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
-            </span>
-          ))}
-        </div>
-
-        <InfoBox variant="info" title="Procesare Automata">
-          Comenzile pot fi procesate automat: validare, facturare si AWB intr-un singur click
-          prin endpoint-ul <code>/api/orders/process</code>. Fiecare pas actualizeaza statusul
-          si trimite notificari in caz de eroare.
-        </InfoBox>
       </div>
 
       <SectionTitle icon={<Globe className="h-6 w-6" />}>Integrari Externe</SectionTitle>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { name: "Shopify", type: "E-commerce", color: "text-success" },
-          { name: "Trendyol", type: "Marketplace", color: "text-warning" },
-          { name: "Facturis", type: "Facturare", color: "text-primary" },
-          { name: "FanCourier", type: "Curierat", color: "text-accent-foreground" },
-          { name: "Meta Ads", type: "Advertising", color: "text-primary" },
-          { name: "TikTok Ads", type: "Advertising", color: "text-destructive" },
-          { name: "Google Drive", type: "Storage", color: "text-warning" },
-          { name: "NextAuth", type: "Auth", color: "text-muted-foreground" },
+          { name: "Shopify", type: "E-commerce", desc: "Webhook real-time comenzi" },
+          { name: "Trendyol", type: "Marketplace", desc: "Sync comenzi si produse" },
+          { name: "Oblio", type: "Facturare", desc: "Facturi + e-Factura SPV" },
+          { name: "FanCourier", type: "Curierat", desc: "AWB + tracking automat" },
+          { name: "Meta Ads", type: "Advertising", desc: "Campanii FB/Instagram" },
+          { name: "TikTok Ads", type: "Advertising", desc: "Campanii TikTok" },
+          { name: "Google Drive", type: "Storage", desc: "Backup documente" },
+          { name: "Claude AI", type: "AI Analysis", desc: "Insights advertising" },
         ].map((svc, i) => (
-          <Card key={i} className="text-center">
+          <Card key={i} className="text-center print:break-inside-avoid">
             <CardContent className="pt-4 pb-3">
-              <p className={cn("font-semibold", svc.color)}>{svc.name}</p>
-              <p className="text-xs text-muted-foreground">{svc.type}</p>
+              <p className="font-semibold text-foreground">{svc.name}</p>
+              <p className="text-xs text-primary">{svc.type}</p>
+              <p className="text-xs text-muted-foreground mt-1">{svc.desc}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <SectionTitle icon={<Users className="h-6 w-6" />}>Pentru Cine Este</SectionTitle>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Store className="h-5 w-5 text-primary" />
+              Magazine Online
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Gestionare completa comenzi de la import pana la livrare. Automatizare facturare si AWB.
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Warehouse className="h-5 w-5 text-primary" />
+              Echipe Warehouse
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Picking lists agregate, scanare barcode, sesiuni handover, rapoarte predare curier.
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              Marketing Teams
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Analytics campanii Meta/TikTok, ROAS per produs, alerte performanta, actiuni automate.
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function QuickstartContent() {
+  return (
+    <div className="space-y-8">
+      <div className="prose max-w-none">
+        <p className="text-lg text-muted-foreground">
+          Ghid pas cu pas pentru a incepe sa folosesti ERP CashFlowSync in productie.
+          De la configurarea initiala pana la procesarea primei comenzi.
+        </p>
+      </div>
+
+      <SectionTitle icon={<ListChecks className="h-6 w-6" />}>Checklist Initial</SectionTitle>
+
+      <div className="space-y-4">
+        {[
+          { step: "1", title: "Configurare Companie", desc: "Settings > Company - CUI, adresa, date fiscale", status: "required" },
+          { step: "2", title: "Conectare Shopify", desc: "Settings > Integrations - API key magazin", status: "required" },
+          { step: "3", title: "Configurare Oblio", desc: "Settings > Invoices - Credentiale API, serie facturi", status: "required" },
+          { step: "4", title: "Configurare FanCourier", desc: "Settings > Shipping - Cont client, date expeditor", status: "required" },
+          { step: "5", title: "Import Produse", desc: "Products > Sync Shopify sau Import Excel", status: "optional" },
+          { step: "6", title: "Configurare Utilizatori", desc: "Settings > Users - Roluri si permisiuni echipa", status: "optional" },
+        ].map((item, i) => (
+          <div key={i} className="flex items-start gap-4 p-4 border rounded-lg">
+            <div className={cn(
+              "w-8 h-8 rounded-full flex items-center justify-center font-bold text-white",
+              item.status === "required" ? "bg-primary" : "bg-muted-foreground"
+            )}>
+              {item.step}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h4 className="font-semibold">{item.title}</h4>
+                <Badge variant={item.status === "required" ? "default" : "secondary"}>
+                  {item.status === "required" ? "Obligatoriu" : "Optional"}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">{item.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <SectionTitle icon={<ShoppingCart className="h-6 w-6" />}>Prima Comanda</SectionTitle>
+
+      <InfoBox variant="info" title="Flux Automat">
+        Odata configurate integrarile, comenzile din Shopify ajung automat in sistem prin webhook.
+        Poti procesa manual sau automat: validare telefon, emitere factura, generare AWB.
+      </InfoBox>
+
+      <div className="space-y-4">
+        <SubSectionTitle>Procesare Manuala (pas cu pas)</SubSectionTitle>
+        <FlowStep steps={[
+          { step: "1. Verifica", desc: "Orders > vezi comanda" },
+          { step: "2. Valideaza", desc: "Click Validate" },
+          { step: "3. Factureaza", desc: "Click Issue Invoice" },
+          { step: "4. AWB", desc: "Click Create AWB" },
+          { step: "5. Picking", desc: "Adauga in lista" },
+          { step: "6. Handover", desc: "Predare curier" },
+        ]} />
+
+        <SubSectionTitle>Procesare Automata (1-click)</SubSectionTitle>
+        <p className="text-sm text-muted-foreground">
+          Butonul <strong>Process</strong> executa automat: validare + factura + AWB.
+          Pentru procesare batch, selecteaza comenzile si click <strong>Process Selected</strong>.
+        </p>
+      </div>
+
+      <SectionTitle icon={<HelpCircle className="h-6 w-6" />}>Probleme Frecvente</SectionTitle>
+
+      <div className="space-y-3">
+        {[
+          { q: "Comanda ramane in PENDING", a: "Verifica telefonul - trebuie format RO valid (07XXXXXXXX)" },
+          { q: "Eroare la facturare", a: "Verifica credentials Oblio si seria de facturi configurata" },
+          { q: "AWB nu se genereaza", a: "Verifica adresa completa si judetul sa fie valid FanCourier" },
+          { q: "Stocul nu se actualizeaza", a: "Verifica maparea SKU intre Shopify si inventar local" },
+        ].map((item, i) => (
+          <Card key={i}>
+            <CardContent className="pt-4 pb-3">
+              <p className="font-medium text-foreground">{item.q}</p>
+              <p className="text-sm text-muted-foreground">{item.a}</p>
             </CardContent>
           </Card>
         ))}
@@ -325,94 +537,175 @@ function OverviewContent() {
   );
 }
 
-function ArchitectureContent() {
+function BusinessFlowContent() {
   return (
     <div className="space-y-8">
       <div className="prose max-w-none">
         <p className="text-lg text-muted-foreground">
-          Arhitectura ERP CashFlowSync este construita pe principii moderne de dezvoltare,
-          cu separare clara intre UI, business logic si persistenta.
+          Documentatie completa a fluxului de business end-to-end: de la primirea comenzii
+          pana la livrarea catre client si incasarea banilor.
         </p>
       </div>
 
-      <SectionTitle icon={<FolderTree className="h-6 w-6" />}>Structura Proiectului</SectionTitle>
+      <SectionTitle icon={<Workflow className="h-6 w-6" />}>Fluxul Principal E2E</SectionTitle>
 
-      <CodeBlock
-        title="Structura Detaliata"
-        code={`erp-cashflowsync/
-├── src/
-│   ├── app/                    # Next.js App Router
-│   │   ├── (dashboard)/        # Pagini protejate
-│   │   │   ├── dashboard/      # Pagina principala
-│   │   │   ├── orders/         # Modul comenzi
-│   │   │   ├── products/       # Modul produse
-│   │   │   ├── inventory/      # Modul inventar
-│   │   │   ├── invoices/       # Modul facturi
-│   │   │   ├── picking/        # Modul picking
-│   │   │   ├── ads/            # Modul advertising
-│   │   │   └── settings/       # Configurari
-│   │   └── api/                # API Routes (50+)
-│   ├── components/             # Componente React
-│   │   └── ui/                 # shadcn/ui
-│   ├── lib/                    # Business logic
-│   │   ├── shopify.ts          # Client Shopify
-│   │   ├── facturis.ts         # Facturare
-│   │   ├── fancourier.ts       # AWB/Livrare
-│   │   └── permissions.ts      # RBAC
-│   └── hooks/                  # React hooks
-└── prisma/schema.prisma        # Database schema`}
-      />
+      <DiagramBox title="Diagrama Flux Complet Comanda" className="print:break-inside-avoid">
+        <div className="font-mono text-xs whitespace-pre overflow-x-auto">
+{`┌──────────────┐
+│   SHOPIFY    │ ─────── Webhook ───────▶ ┌──────────────┐
+│   STORE      │                          │   COMANDA    │
+└──────────────┘                          │   PENDING    │
+                                          └──────┬───────┘
+┌──────────────┐                                 │
+│   TRENDYOL   │ ─────── CRON Sync ─────▶       │
+│  MARKETPLACE │                                 │
+└──────────────┘                                 ▼
+                                          ┌──────────────┐
+                                          │  VALIDARE    │
+                                          │ Tel/Adresa   │
+                                          └──────┬───────┘
+                                                 │
+                                                 ▼
+                                          ┌──────────────┐
+                                          │  VALIDATED   │
+                                          └──────┬───────┘
+                                                 │
+                    ┌──────────────┐             │
+                    │    OBLIO     │◀────────────┤
+                    │  (Factura)   │             │
+                    └──────────────┘             ▼
+                                          ┌──────────────┐
+                                          │   INVOICED   │
+                                          └──────┬───────┘
+                                                 │
+                    ┌──────────────┐             │
+                    │  FANCOURIER  │◀────────────┤
+                    │    (AWB)     │             │
+                    └──────────────┘             ▼
+                                          ┌──────────────┐
+                                          │ AWB_CREATED  │
+                                          └──────┬───────┘
+                                                 │
+                                                 ▼
+                                          ┌──────────────┐
+                                          │   PICKING    │
+                                          │  (Warehouse) │
+                                          └──────┬───────┘
+                                                 │
+                                                 ▼
+                                          ┌──────────────┐
+                                          │   HANDOVER   │
+                                          │(Predare C0)  │
+                                          └──────┬───────┘
+                                                 │
+                                                 ▼
+                                          ┌──────────────┐
+                                          │   SHIPPED    │
+                                          └──────┬───────┘
+                                                 │ (Tracking CRON)
+                                                 ▼
+                                          ┌──────────────┐
+                                          │  DELIVERED   │
+                                          └──────────────┘`}
+        </div>
+      </DiagramBox>
 
-      <SectionTitle icon={<Layers className="h-6 w-6" />}>Arhitectura pe Straturi</SectionTitle>
+      <SectionTitle icon={<CreditCard className="h-6 w-6" />}>Flux Financiar</SectionTitle>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="border-primary/30">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-primary">
-              <Eye className="h-5 w-5" />
-              Presentation Layer
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-muted-foreground">
-            <p>React components cu Next.js App Router. Shadcn/ui pentru UI consistency.</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-success/30">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-success">
-              <Cog className="h-5 w-5" />
-              Service Layer
+              <CreditCard className="h-5 w-5" />
+              Plata Online (Card)
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-muted-foreground">
-            <p>Fiecare integrare externa are un serviciu dedicat cu functii pure.</p>
+          <CardContent>
+            <ul className="text-sm space-y-2 text-muted-foreground">
+              <li><strong>financialStatus:</strong> paid</li>
+              <li><strong>Factura:</strong> Emisa cu status PLATITA</li>
+              <li><strong>AWB:</strong> Ramburs = 0 RON (automat)</li>
+              <li><strong>Bani:</strong> Deja incasati prin Stripe/PayPal</li>
+            </ul>
+            <InfoBox variant="success" title="Automat din v4.0">
+              Sistemul detecteaza automat comenzile platite si seteaza COD=0
+            </InfoBox>
           </CardContent>
         </Card>
 
-        <Card className="border-accent-foreground/30">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-accent-foreground">
-              <Code className="h-5 w-5" />
-              API Routes
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-muted-foreground">
-            <p>Toate endpoint-urile urmeaza conventii REST cu validare si autorizare.</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-warning/30">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-warning">
-              <Timer className="h-5 w-5" />
-              CRON Jobs
+              <Banknote className="h-5 w-5" />
+              Ramburs (COD)
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-muted-foreground">
-            <p>Task-uri programate pentru sincronizare automata si cleanup.</p>
+          <CardContent>
+            <ul className="text-sm space-y-2 text-muted-foreground">
+              <li><strong>financialStatus:</strong> pending</li>
+              <li><strong>Factura:</strong> Emisa cu status NEPLATITA</li>
+              <li><strong>AWB:</strong> Ramburs = Total comanda</li>
+              <li><strong>Bani:</strong> Incasati de curier la livrare</li>
+            </ul>
+            <InfoBox variant="info" title="Serviciu Cont Colector">
+              Pentru ramburs se foloseste serviciul Cont Colector FanCourier
+            </InfoBox>
           </CardContent>
         </Card>
+      </div>
+
+      <SectionTitle icon={<Receipt className="h-6 w-6" />}>Cele 14 Statusuri ale Comenzii</SectionTitle>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        {[
+          { status: "PENDING", color: "bg-muted", desc: "Comanda noua, nevalidata", next: "VALIDATED / VALIDATION_FAILED" },
+          { status: "VALIDATED", color: "bg-primary/10", desc: "Date validate OK", next: "INVOICE_PENDING" },
+          { status: "VALIDATION_FAILED", color: "bg-destructive/10", desc: "Date invalide (tel/adresa)", next: "PENDING (dupa corectie)" },
+          { status: "INVOICE_PENDING", color: "bg-warning/10", desc: "In curs de facturare", next: "INVOICED / INVOICE_FAILED" },
+          { status: "INVOICED", color: "bg-success/10", desc: "Factura emisa in Oblio", next: "AWB_PENDING" },
+          { status: "INVOICE_FAILED", color: "bg-destructive/10", desc: "Eroare Oblio API", next: "INVOICE_PENDING (retry)" },
+          { status: "AWB_PENDING", color: "bg-warning/10", desc: "In curs de generare AWB", next: "AWB_CREATED / AWB_FAILED" },
+          { status: "AWB_CREATED", color: "bg-success/10", desc: "AWB generat FanCourier", next: "PICKING" },
+          { status: "AWB_FAILED", color: "bg-destructive/10", desc: "Eroare FanCourier API", next: "AWB_PENDING (retry)" },
+          { status: "PICKING", color: "bg-primary/10", desc: "In picking warehouse", next: "PACKED" },
+          { status: "PACKED", color: "bg-success/10", desc: "Colet pregatit expediere", next: "SHIPPED" },
+          { status: "SHIPPED", color: "bg-warning/10", desc: "Predat curier, in tranzit", next: "DELIVERED / RETURNED" },
+          { status: "DELIVERED", color: "bg-success/10", desc: "Livrat cu succes", next: "Final" },
+          { status: "RETURNED", color: "bg-destructive/10", desc: "Returnat la expeditor", next: "Final" },
+        ].map((item, i) => (
+          <div key={i} className={cn("flex items-center justify-between p-3 rounded-lg border print:break-inside-avoid", item.color)}>
+            <div>
+              <Badge variant="outline">{item.status}</Badge>
+              <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
+            </div>
+            <div className="text-right">
+              <span className="text-xs text-muted-foreground">→ {item.next}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <SectionTitle icon={<Clock className="h-6 w-6" />}>Timpi de Procesare</SectionTitle>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { etapa: "Webhook Import", timp: "< 1s", desc: "Shopify → ERP" },
+          { etapa: "Validare Date", timp: "< 2s", desc: "Tel + Adresa" },
+          { etapa: "Emitere Factura", timp: "2-5s", desc: "Oblio API call" },
+          { etapa: "Generare AWB", timp: "3-8s", desc: "FanCourier API" },
+          { etapa: "Tracking Update", timp: "30 min", desc: "CRON periodic" },
+          { etapa: "Picking List", timp: "< 1s", desc: "Agregare produse" },
+          { etapa: "Handover Scan", timp: "< 1s", desc: "Per AWB scanat" },
+          { etapa: "Raport C0", timp: "< 2s", desc: "Generare PDF" },
+        ].map((item, i) => (
+          <Card key={i} className="text-center print:break-inside-avoid">
+            <CardContent className="pt-4 pb-3">
+              <p className="text-xs text-muted-foreground">{item.etapa}</p>
+              <p className="text-xl font-bold text-primary">{item.timp}</p>
+              <p className="text-xs text-muted-foreground">{item.desc}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );
@@ -423,118 +716,83 @@ function OrdersContent() {
     <div className="space-y-8">
       <div className="prose max-w-none">
         <p className="text-lg text-muted-foreground">
-          Modulul de comenzi este inima sistemului ERP. Gestioneaza importul din Shopify (webhook real-time)
-          si Trendyol (CRON periodic), validarea cu libphonenumber-js, procesarea automata si urmarirea
-          prin 14 statusuri distincte pana la livrare.
+          Modulul de comenzi gestioneaza importul din Shopify (webhook real-time) si Trendyol (CRON),
+          validarea datelor, si urmarirea prin toate statusurile pana la livrare.
         </p>
       </div>
 
-      <SectionTitle icon={<GitMerge className="h-6 w-6" />}>Surse de Comenzi si Flux Date</SectionTitle>
+      <SectionTitle icon={<GitMerge className="h-6 w-6" />}>Surse de Comenzi</SectionTitle>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-success/30 bg-success/5">
+        <Card className="border-success/30">
           <CardContent className="pt-6">
             <Store className="h-8 w-8 text-success mx-auto mb-2" />
-            <h3 className="font-semibold text-foreground text-center">Shopify</h3>
+            <h3 className="font-semibold text-center">Shopify</h3>
             <p className="text-sm text-muted-foreground text-center mb-3">Webhook real-time</p>
-            <div className="text-xs space-y-1 text-muted-foreground">
-              <p><strong>Endpoint:</strong> /api/webhooks/shopify/orders</p>
-              <p><strong>Events:</strong> orders/create, orders/updated</p>
-              <p><strong>Mapare:</strong> shopifyOrderId, shopifyCustomerId</p>
-            </div>
+            <ul className="text-xs space-y-1 text-muted-foreground">
+              <li><strong>Endpoint:</strong> /api/webhooks/shopify/orders</li>
+              <li><strong>Events:</strong> orders/create, orders/updated</li>
+              <li><strong>Verificare:</strong> HMAC signature</li>
+            </ul>
           </CardContent>
         </Card>
-        <Card className="border-warning/30 bg-warning/5">
+        <Card className="border-warning/30">
           <CardContent className="pt-6">
             <Globe className="h-8 w-8 text-warning mx-auto mb-2" />
-            <h3 className="font-semibold text-foreground text-center">Trendyol</h3>
-            <p className="text-sm text-muted-foreground text-center mb-3">CRON sync periodic</p>
-            <div className="text-xs space-y-1 text-muted-foreground">
-              <p><strong>Endpoint:</strong> /api/cron/trendyol-orders</p>
-              <p><strong>Frecventa:</strong> La fiecare 15 minute</p>
-              <p><strong>Mapare:</strong> trendyolOrderNumber</p>
-            </div>
+            <h3 className="font-semibold text-center">Trendyol</h3>
+            <p className="text-sm text-muted-foreground text-center mb-3">CRON sync 15 min</p>
+            <ul className="text-xs space-y-1 text-muted-foreground">
+              <li><strong>Endpoint:</strong> /api/cron/trendyol-orders</li>
+              <li><strong>Status filter:</strong> Created, Picking</li>
+              <li><strong>Deduplicare:</strong> trendyolOrderId</li>
+            </ul>
           </CardContent>
         </Card>
-        <Card className="border-muted-foreground/30 bg-muted/50">
+        <Card className="border-muted-foreground/30">
           <CardContent className="pt-6">
             <Plus className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <h3 className="font-semibold text-foreground text-center">Manual</h3>
+            <h3 className="font-semibold text-center">Manual</h3>
             <p className="text-sm text-muted-foreground text-center mb-3">Creare din ERP</p>
-            <div className="text-xs space-y-1 text-muted-foreground">
-              <p><strong>Endpoint:</strong> POST /api/orders</p>
-              <p><strong>Sursa:</strong> source = MANUAL</p>
-              <p><strong>Validare:</strong> Zod schema + libphonenumber</p>
-            </div>
+            <ul className="text-xs space-y-1 text-muted-foreground">
+              <li><strong>Pagina:</strong> Orders → New Order</li>
+              <li><strong>Sursa:</strong> source = MANUAL</li>
+              <li><strong>Validare:</strong> La submit form</li>
+            </ul>
           </CardContent>
         </Card>
       </div>
 
-      <SectionTitle icon={<Workflow className="h-6 w-6" />}>Cele 14 Statusuri ale Comenzii</SectionTitle>
+      <SectionTitle icon={<CheckCircle2 className="h-6 w-6" />}>Validare Comenzi</SectionTitle>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-        {[
-          { status: "PENDING", color: "bg-muted border-border", desc: "Comanda noua, nevalidata", next: "VALIDATED / VALIDATION_FAILED" },
-          { status: "VALIDATED", color: "bg-primary/10 border-primary/30", desc: "Date validate OK", next: "INVOICE_PENDING" },
-          { status: "VALIDATION_FAILED", color: "bg-destructive/10 border-destructive/30", desc: "Date invalide", next: "PENDING (dupa corectie)" },
-          { status: "INVOICE_PENDING", color: "bg-warning/10 border-warning/30", desc: "In curs de facturare", next: "INVOICED / INVOICE_FAILED" },
-          { status: "INVOICED", color: "bg-success/10 border-success/30", desc: "Factura emisa", next: "AWB_PENDING" },
-          { status: "INVOICE_FAILED", color: "bg-destructive/10 border-destructive/30", desc: "Eroare Facturis", next: "INVOICE_PENDING (retry)" },
-          { status: "AWB_PENDING", color: "bg-warning/10 border-warning/30", desc: "In curs de generare AWB", next: "AWB_CREATED / AWB_FAILED" },
-          { status: "AWB_CREATED", color: "bg-success/10 border-success/30", desc: "AWB generat", next: "PICKING" },
-          { status: "AWB_FAILED", color: "bg-destructive/10 border-destructive/30", desc: "Eroare FanCourier", next: "AWB_PENDING (retry)" },
-          { status: "PICKING", color: "bg-primary/10 border-primary/30", desc: "In picking warehouse", next: "PACKED" },
-          { status: "PACKED", color: "bg-success/10 border-success/30", desc: "Colet pregatit", next: "SHIPPED" },
-          { status: "SHIPPED", color: "bg-warning/10 border-warning/30", desc: "Predat curier, in tranzit", next: "DELIVERED / RETURNED" },
-          { status: "DELIVERED", color: "bg-success/10 border-success/30", desc: "Livrat cu succes", next: "Final" },
-          { status: "RETURNED", color: "bg-destructive/10 border-destructive/30", desc: "Returnat", next: "Final" },
-        ].map((item, i) => (
-          <div key={i} className={cn("flex items-center justify-between p-3 rounded-lg border", item.color)}>
-            <div>
-              <Badge variant="outline">{item.status}</Badge>
-              <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
-            </div>
-            <div className="text-right">
-              <span className="text-xs text-muted-foreground">Next: {item.next}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <SectionTitle icon={<Zap className="h-6 w-6" />}>Validarea Comenzilor</SectionTitle>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-success">
-              <CheckCircle2 className="h-5 w-5" />
-              Validari Aplicate (libphonenumber-js)
-            </CardTitle>
+            <CardTitle className="text-success">Validari Aplicate</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-3">
-              <li className="flex items-start gap-2 text-sm text-muted-foreground">
-                <Phone className="h-4 w-4 mt-0.5" />
+              <li className="flex items-start gap-2 text-sm">
+                <Phone className="h-4 w-4 mt-0.5 text-success" />
                 <div>
-                  <strong className="text-foreground">Telefon Romania:</strong>
-                  <p className="text-xs">Format: 07XXXXXXXX sau +407XXXXXXXX</p>
-                  <p className="text-xs">Validare: parsePhoneNumber cu countryCode RO</p>
+                  <strong>Telefon Romania:</strong>
+                  <p className="text-xs text-muted-foreground">Format: 07XXXXXXXX sau +407XXXXXXXX</p>
+                  <p className="text-xs text-muted-foreground">Validare: libphonenumber-js cu countryCode RO</p>
                 </div>
               </li>
-              <li className="flex items-start gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4 mt-0.5" />
+              <li className="flex items-start gap-2 text-sm">
+                <MapPin className="h-4 w-4 mt-0.5 text-success" />
                 <div>
-                  <strong className="text-foreground">Adresa completa:</strong>
-                  <p className="text-xs">Obligatoriu: strada, numar, oras</p>
-                  <p className="text-xs">Optional: bloc, scara, etaj, apartament</p>
+                  <strong>Adresa Completa:</strong>
+                  <p className="text-xs text-muted-foreground">Obligatoriu: strada, numar, oras</p>
+                  <p className="text-xs text-muted-foreground">Optional: bloc, scara, etaj, apartament</p>
                 </div>
               </li>
-              <li className="flex items-start gap-2 text-sm text-muted-foreground">
-                <Building2 className="h-4 w-4 mt-0.5" />
+              <li className="flex items-start gap-2 text-sm">
+                <Building2 className="h-4 w-4 mt-0.5 text-success" />
                 <div>
-                  <strong className="text-foreground">Judet valid FanCourier:</strong>
-                  <p className="text-xs">Mapare automata la nomenclator curier</p>
-                  <p className="text-xs">Corectie automata diacritice</p>
+                  <strong>Judet Valid FanCourier:</strong>
+                  <p className="text-xs text-muted-foreground">Mapare la nomenclator curier</p>
+                  <p className="text-xs text-muted-foreground">Corectie automata diacritice</p>
                 </div>
               </li>
             </ul>
@@ -543,34 +801,31 @@ function OrdersContent() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <XCircle className="h-5 w-5" />
-              Erori si Rezolvare
-            </CardTitle>
+            <CardTitle className="text-destructive">Erori Frecvente</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-3 text-sm">
-              <li className="flex items-start gap-2 text-muted-foreground">
+              <li className="flex items-start gap-2">
                 <XCircle className="h-4 w-4 text-destructive mt-0.5" />
                 <div>
-                  <strong className="text-foreground">PHONE_INVALID:</strong>
-                  <p className="text-xs">Numar prea scurt/lung sau format gresit</p>
-                  <p className="text-xs text-success">Fix: Editare manuala din UI orders</p>
+                  <strong>PHONE_INVALID:</strong>
+                  <p className="text-xs text-muted-foreground">Numar prea scurt/lung sau format gresit</p>
+                  <p className="text-xs text-success">Fix: Editare manuala din Orders</p>
                 </div>
               </li>
-              <li className="flex items-start gap-2 text-muted-foreground">
+              <li className="flex items-start gap-2">
                 <XCircle className="h-4 w-4 text-destructive mt-0.5" />
                 <div>
-                  <strong className="text-foreground">ADDRESS_INCOMPLETE:</strong>
-                  <p className="text-xs">Lipseste strada sau numarul</p>
+                  <strong>ADDRESS_INCOMPLETE:</strong>
+                  <p className="text-xs text-muted-foreground">Lipseste strada sau numarul</p>
                   <p className="text-xs text-success">Fix: Completare din detalii comanda</p>
                 </div>
               </li>
-              <li className="flex items-start gap-2 text-muted-foreground">
+              <li className="flex items-start gap-2">
                 <XCircle className="h-4 w-4 text-destructive mt-0.5" />
                 <div>
-                  <strong className="text-foreground">COUNTY_INVALID:</strong>
-                  <p className="text-xs">Judet necunoscut in nomenclator</p>
+                  <strong>COUNTY_INVALID:</strong>
+                  <p className="text-xs text-muted-foreground">Judet necunoscut in nomenclator</p>
                   <p className="text-xs text-success">Fix: Selectare din dropdown valid</p>
                 </div>
               </li>
@@ -579,164 +834,21 @@ function OrdersContent() {
         </Card>
       </div>
 
-      <SectionTitle icon={<Code className="h-6 w-6" />}>API Endpoints Orders</SectionTitle>
+      <SectionTitle icon={<Terminal className="h-6 w-6" />}>API Endpoints</SectionTitle>
 
       <div className="space-y-2">
         {[
           { method: "GET", path: "/api/orders", desc: "Lista comenzi cu filtrare, sortare, paginare" },
-          { method: "GET", path: "/api/orders/[id]", desc: "Detalii comanda cu LineItems si AWB" },
+          { method: "GET", path: "/api/orders/[id]", desc: "Detalii comanda cu LineItems, Invoice, AWB" },
           { method: "POST", path: "/api/orders", desc: "Creare comanda manuala" },
           { method: "PUT", path: "/api/orders/[id]", desc: "Update date comanda (adresa, telefon)" },
           { method: "POST", path: "/api/orders/validate", desc: "Validare batch comenzi selectate" },
           { method: "POST", path: "/api/orders/process", desc: "Procesare completa: validare + factura + AWB" },
+          { method: "POST", path: "/api/orders/process-all", desc: "Procesare toate comenzile PENDING" },
           { method: "POST", path: "/api/orders/[id]/cancel", desc: "Anulare comanda cu storno factura" },
-          { method: "DELETE", path: "/api/orders/[id]", desc: "Stergere comanda (doar PENDING)" },
+          { method: "GET", path: "/api/orders/export", desc: "Export Excel comenzi filtrate" },
         ].map((ep, i) => (
-          <div key={i} className="flex items-center gap-4 p-3 bg-muted rounded-lg">
-            <Badge variant={ep.method === "GET" ? "secondary" : ep.method === "DELETE" ? "destructive" : "default"} className="w-16 justify-center">
-              {ep.method}
-            </Badge>
-            <code className="text-sm font-mono text-foreground flex-1">{ep.path}</code>
-            <span className="text-xs text-muted-foreground">{ep.desc}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ProductsContent() {
-  return (
-    <div className="space-y-8">
-      <div className="prose max-w-none">
-        <p className="text-lg text-muted-foreground">
-          Sistemul dual de inventar combina MasterProduct (catalog produse cu SKU/barcode)
-          cu InventoryItem (stoc avansat cu retete si loturi). Sincronizare bidirectionala
-          cu Facturis pentru stoc si preturi.
-        </p>
-      </div>
-
-      <SectionTitle icon={<Layers3 className="h-6 w-6" />}>Arhitectura Dual Stock System</SectionTitle>
-
-      <InfoBox variant="info" title="De ce doua sisteme?">
-        <strong>MasterProduct</strong> este sistemul original pentru catalog cu SKU si barcode.
-        <strong>InventoryItem</strong> a fost adaugat pentru features avansate: retete/composite,
-        loturi cu expirare, sincronizare Facturis. Relatia este 1:1 prin <code>inventoryItemId</code>.
-      </InfoBox>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="border-primary/30">
-          <CardHeader>
-            <CardTitle className="text-primary">MasterProduct (Catalog)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="text-sm space-y-2 text-muted-foreground">
-              <li><strong className="text-foreground">SKU:</strong> Cod unic intern (ex: PROD-001)</li>
-              <li><strong className="text-foreground">Barcode:</strong> EAN13/UPC pentru scanare</li>
-              <li><strong className="text-foreground">Titlu/Descriere:</strong> Date produs</li>
-              <li><strong className="text-foreground">Pret vanzare:</strong> RON cu TVA</li>
-              <li><strong className="text-foreground">Stoc:</strong> Cantitate curenta simpla</li>
-              <li><strong className="text-foreground">Imagini:</strong> URL-uri Shopify CDN</li>
-              <li><strong className="text-foreground">shopifyProductId:</strong> Link la Shopify</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card className="border-success/30">
-          <CardHeader>
-            <CardTitle className="text-success">InventoryItem (Stoc Avansat)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="text-sm space-y-2 text-muted-foreground">
-              <li><strong className="text-foreground">facturisCode:</strong> Cod Facturis sync</li>
-              <li><strong className="text-foreground">isComposite:</strong> Flag produs compus</li>
-              <li><strong className="text-foreground">recipeItems:</strong> Lista componente reteta</li>
-              <li><strong className="text-foreground">costPrice:</strong> Pret achizitie furnizor</li>
-              <li><strong className="text-foreground">minStock:</strong> Prag alerta stoc scazut</li>
-              <li><strong className="text-foreground">supplier:</strong> Furnizor principal</li>
-              <li><strong className="text-foreground">StockMovement:</strong> Istoric complet</li>
-            </ul>
-          </CardContent>
-        </Card>
-      </div>
-
-      <SectionTitle icon={<Workflow className="h-6 w-6" />}>Retete / Produse Compuse</SectionTitle>
-
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-sm text-muted-foreground mb-4">
-            Un produs compus (isComposite=true) are o lista de componente cu cantitati.
-            La vanzare, stocul se scade automat din fiecare componenta.
-          </p>
-          <div className="bg-muted p-4 rounded-lg">
-            <p className="text-sm font-mono text-foreground mb-2">Exemplu: Kit Cadou (SKU: KIT-001)</p>
-            <ul className="text-xs text-muted-foreground space-y-1">
-              <li>- 1x Cutie Cadou (CUTIE-001) - scade 1 din stoc</li>
-              <li>- 2x Sapun Natural (SAPUN-001) - scade 2 din stoc</li>
-              <li>- 1x Lumanare (LUMANARE-001) - scade 1 din stoc</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
-
-      <SectionTitle icon={<RefreshCw className="h-6 w-6" />}>Sincronizare Facturis</SectionTitle>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ArrowRight className="h-5 w-5" />
-              Import din Facturis
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="text-sm space-y-1 text-muted-foreground">
-              <li><strong>Endpoint:</strong> /api/inventory/sync-facturis</li>
-              <li><strong>Date importate:</strong> Stoc, pret achizitie, TVA</li>
-              <li><strong>Mapare:</strong> facturisCode = cod produs Facturis</li>
-              <li><strong>Frecventa:</strong> Manual sau CRON zilnic</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <RefreshCw className="h-5 w-5" />
-              Actualizare Automata
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="text-sm space-y-1 text-muted-foreground">
-              <li><strong>La vanzare:</strong> Scade stoc in ambele sisteme</li>
-              <li><strong>Retete:</strong> Expandeaza si scade componente</li>
-              <li><strong>Alerte:</strong> Notificare la stoc sub minStock</li>
-              <li><strong>Istoric:</strong> StockMovement cu reason</li>
-            </ul>
-          </CardContent>
-        </Card>
-      </div>
-
-      <SectionTitle icon={<Code className="h-6 w-6" />}>API Endpoints Products/Inventory</SectionTitle>
-
-      <div className="space-y-2">
-        {[
-          { method: "GET", path: "/api/products", desc: "Lista MasterProducts cu filtrare" },
-          { method: "GET", path: "/api/inventory-items", desc: "Lista InventoryItems cu stoc" },
-          { method: "POST", path: "/api/inventory-items", desc: "Creare articol inventar nou" },
-          { method: "PUT", path: "/api/inventory-items/[id]", desc: "Update stoc, pret, reteta" },
-          { method: "POST", path: "/api/inventory/sync-facturis", desc: "Sincronizare stoc Facturis" },
-          { method: "POST", path: "/api/inventory/adjust", desc: "Ajustare manuala stoc cu motiv" },
-          { method: "GET", path: "/api/inventory/movements", desc: "Istoric miscari stoc" },
-          { method: "GET", path: "/api/inventory/alerts", desc: "Produse sub stoc minim" },
-        ].map((ep, i) => (
-          <div key={i} className="flex items-center gap-4 p-3 bg-muted rounded-lg">
-            <Badge variant={ep.method === "GET" ? "secondary" : "default"} className="w-16 justify-center">
-              {ep.method}
-            </Badge>
-            <code className="text-sm font-mono text-foreground flex-1">{ep.path}</code>
-            <span className="text-xs text-muted-foreground">{ep.desc}</span>
-          </div>
+          <ApiEndpoint key={i} {...ep} />
         ))}
       </div>
     </div>
@@ -748,66 +860,34 @@ function InvoicesContent() {
     <div className="space-y-8">
       <div className="prose max-w-none">
         <p className="text-lg text-muted-foreground">
-          Integrare completa cu Facturis Cloud pentru facturare electronica. Suport pentru
-          persoane fizice si juridice, multiple serii de facturi, TVA diferentiat,
-          PDF automat si stornare facturi.
+          Integrare completa cu Oblio pentru facturare electronica. Suport PF/PJ,
+          e-Factura SPV, multiple serii, PDF automat si stornare.
         </p>
       </div>
 
-      <SectionTitle icon={<FileText className="h-6 w-6" />}>Fluxul Complet de Facturare</SectionTitle>
+      <SectionTitle icon={<FileText className="h-6 w-6" />}>Flux Emitere Factura</SectionTitle>
 
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2 p-4 bg-muted rounded-lg">
-          {[
-            { step: "1. Comanda Validata", desc: "Status VALIDATED" },
-            { step: "2. Pregatire Date", desc: "Client + Produse" },
-            { step: "3. Facturis API", desc: "POST /invoice" },
-            { step: "4. PDF Download", desc: "GET /invoice/pdf" },
-            { step: "5. Salvare Local", desc: "Storage + DB" },
-            { step: "6. Update Status", desc: "INVOICED" }
-          ].map((item, i, arr) => (
-            <span key={i} className="flex items-center gap-2">
-              <div className="text-center">
-                <Badge variant="outline" className="px-3 py-1">{item.step}</Badge>
-                <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
-              </div>
-              {i < arr.length - 1 && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
-            </span>
-          ))}
-        </div>
-      </div>
+      <FlowStep steps={[
+        { step: "1. Comanda VALIDATED", desc: "Date verificate" },
+        { step: "2. Pregatire Payload", desc: "Client + Produse" },
+        { step: "3. Oblio API", desc: "POST /invoice" },
+        { step: "4. Download PDF", desc: "GET /invoice/pdf" },
+        { step: "5. Salvare Local", desc: "DB + Storage" },
+        { step: "6. Update Status", desc: "INVOICED" },
+      ]} />
 
-      <SectionTitle icon={<Layers className="h-6 w-6" />}>Serii de Facturi</SectionTitle>
+      <SectionTitle icon={<CreditCard className="h-6 w-6" />}>Tipuri Plata si Status Factura</SectionTitle>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Configurare Serii</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="text-sm space-y-2 text-muted-foreground">
-              <li><strong className="text-foreground">Prefix:</strong> FCT, PRF, AVZ etc.</li>
-              <li><strong className="text-foreground">Numar curent:</strong> Auto-increment</li>
-              <li><strong className="text-foreground">Format:</strong> PREFIX-NNNNN (ex: FCT-00123)</li>
-              <li><strong className="text-foreground">Setare:</strong> /settings/invoices</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Tipuri de Documente</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="text-sm space-y-2 text-muted-foreground">
-              <li><strong className="text-foreground">Factura:</strong> Document fiscal standard</li>
-              <li><strong className="text-foreground">Proforma:</strong> Oferta/anticipat</li>
-              <li><strong className="text-foreground">Storno:</strong> Anulare factura emisa</li>
-              <li><strong className="text-foreground">Aviz:</strong> Document transport</li>
-            </ul>
-          </CardContent>
-        </Card>
-      </div>
+      <InfoBox variant="success" title="Logica Automata (din v4.0)">
+        <ul className="text-sm space-y-1">
+          <li><strong>Comanda platita online (financialStatus = paid):</strong></li>
+          <li className="ml-4">→ Factura emisa cu <code>paymentStatus: paid</code></li>
+          <li className="ml-4">→ <code>paidAmount: totalPrice</code>, <code>paidAt: now()</code></li>
+          <li className="mt-2"><strong>Comanda ramburs (financialStatus = pending):</strong></li>
+          <li className="ml-4">→ Factura emisa cu <code>paymentStatus: unpaid</code></li>
+          <li className="ml-4">→ Se marcheaza platita la livrare (manual sau CRON)</li>
+        </ul>
+      </InfoBox>
 
       <SectionTitle icon={<Users className="h-6 w-6" />}>Tipuri de Clienti</SectionTitle>
 
@@ -818,10 +898,11 @@ function InvoicesContent() {
           </CardHeader>
           <CardContent>
             <ul className="text-sm space-y-1 text-muted-foreground">
-              <li><strong>Nume complet:</strong> Din comanda</li>
-              <li><strong>CNP:</strong> Optional</li>
-              <li><strong>Adresa:</strong> Validata anterior</li>
+              <li><strong>Nume complet:</strong> Din comanda Shopify</li>
+              <li><strong>CNP:</strong> Optional (poate fi lasat gol)</li>
+              <li><strong>Adresa:</strong> Validata la pasul anterior</li>
               <li><strong>Telefon:</strong> Format RO validat</li>
+              <li><strong>Email:</strong> Pentru trimitere factura</li>
             </ul>
           </CardContent>
         </Card>
@@ -833,60 +914,63 @@ function InvoicesContent() {
           <CardContent>
             <ul className="text-sm space-y-1 text-muted-foreground">
               <li><strong>Denumire firma:</strong> Obligatoriu</li>
-              <li><strong>CUI/CIF:</strong> Validat ANAF</li>
+              <li><strong>CUI/CIF:</strong> Validat (cu/fara RO prefix)</li>
               <li><strong>Nr. Reg. Com:</strong> J00/000/0000</li>
               <li><strong>Adresa sediu:</strong> Din ANAF sau manual</li>
+              <li><strong>IBAN:</strong> Optional pentru plati bancare</li>
             </ul>
           </CardContent>
         </Card>
       </div>
 
-      <SectionTitle icon={<Code className="h-6 w-6" />}>Facturis API Integration</SectionTitle>
+      <SectionTitle icon={<Layers className="h-6 w-6" />}>Serii de Facturi</SectionTitle>
 
-      <CodeBlock
-        title="Configurare Facturis (lib/facturis.ts)"
-        code={`// Autentificare
-const FACTURIS_API_URL = "https://api.facturis-online.ro/api/"
-const headers = {
-  "Authorization": "Basic " + base64(email:token),
-  "Content-Type": "application/json"
-}
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-sm text-muted-foreground mb-4">
+            Fiecare companie poate avea multiple serii de facturi. Seria activa se selecteaza
+            din Settings sau se poate specifica per comanda.
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { prefix: "FCT", desc: "Facturi standard", example: "FCT-00001" },
+              { prefix: "PRF", desc: "Proforma", example: "PRF-00001" },
+              { prefix: "AVZ", desc: "Avize", example: "AVZ-00001" },
+              { prefix: "STR", desc: "Storno", example: "STR-00001" },
+            ].map((serie, i) => (
+              <div key={i} className="p-3 bg-muted rounded-lg text-center">
+                <p className="font-mono font-bold text-primary">{serie.prefix}</p>
+                <p className="text-xs text-muted-foreground">{serie.desc}</p>
+                <p className="text-xs font-mono mt-1">{serie.example}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
-// Emitere factura
-POST /invoice
-Body: { companyVatCode, client, products, seriesName, ... }
+      <SectionTitle icon={<FileCheck className="h-6 w-6" />}>e-Factura SPV</SectionTitle>
 
-// Download PDF
-GET /invoice/pdf?cif=XXX&seriesname=FCT&number=123`}
-      />
+      <InfoBox variant="info" title="Integrare e-Factura">
+        Oblio suporta trimiterea automata a facturilor catre SPV (Sistemul Patria Virtuala).
+        Configurare din Oblio dashboard, nu din ERP. Statusul e-Factura se sincronizeaza automat.
+      </InfoBox>
 
-      <SectionTitle icon={<Terminal className="h-6 w-6" />}>API Endpoints Invoices</SectionTitle>
+      <SectionTitle icon={<Terminal className="h-6 w-6" />}>API Endpoints</SectionTitle>
 
       <div className="space-y-2">
         {[
           { method: "GET", path: "/api/invoices", desc: "Lista facturi cu filtrare" },
           { method: "POST", path: "/api/invoices/issue", desc: "Emite factura pentru comanda" },
-          { method: "POST", path: "/api/invoices/batch", desc: "Emite facturi batch (multiple)" },
+          { method: "POST", path: "/api/invoices/batch", desc: "Emite facturi batch (multiple comenzi)" },
+          { method: "GET", path: "/api/invoices/[id]", desc: "Detalii factura" },
           { method: "GET", path: "/api/invoices/[id]/pdf", desc: "Download PDF factura" },
           { method: "POST", path: "/api/invoices/[id]/cancel", desc: "Storno factura emisa" },
+          { method: "POST", path: "/api/invoices/[id]/mark-paid", desc: "Marcheaza factura platita" },
           { method: "GET", path: "/api/invoices/series", desc: "Lista serii configurate" },
-          { method: "PUT", path: "/api/invoices/series/[id]", desc: "Update serie facturi" },
         ].map((ep, i) => (
-          <div key={i} className="flex items-center gap-4 p-3 bg-muted rounded-lg">
-            <Badge variant={ep.method === "GET" ? "secondary" : "default"} className="w-16 justify-center">
-              {ep.method}
-            </Badge>
-            <code className="text-sm font-mono text-foreground flex-1">{ep.path}</code>
-            <span className="text-xs text-muted-foreground">{ep.desc}</span>
-          </div>
+          <ApiEndpoint key={i} {...ep} />
         ))}
       </div>
-
-      <InfoBox variant="warning" title="Stornare Facturi">
-        Facturile emise nu pot fi sterse, doar stornate. Stornarea creeaza o factura
-        negativa care anuleaza originalul. Statusul comenzii revine la VALIDATED
-        pentru re-facturare.
-      </InfoBox>
     </div>
   );
 }
@@ -896,109 +980,96 @@ function ShippingContent() {
     <div className="space-y-8">
       <div className="prose max-w-none">
         <p className="text-lg text-muted-foreground">
-          Integrare completa FanCourier pentru generare AWB, tracking automat si gestionare ramburs.
-          Mapare automata a 8 statusuri curier la statusurile ERP cu actualizare CRON.
+          Integrare completa FanCourier: generare AWB, tracking automat CRON,
+          ramburs inteligent (0 pentru comenzi platite), etichete PDF.
         </p>
       </div>
 
-      <SectionTitle icon={<Truck className="h-6 w-6" />}>Fluxul Generare AWB</SectionTitle>
+      <SectionTitle icon={<Truck className="h-6 w-6" />}>Flux Generare AWB</SectionTitle>
 
-      <div className="flex flex-wrap items-center gap-2 p-4 bg-muted rounded-lg">
-        {[
-          { step: "1. Comanda INVOICED", desc: "Factura emisa" },
-          { step: "2. Pregatire Date", desc: "Expeditor + Destinatar" },
-          { step: "3. FanCourier API", desc: "POST /order" },
-          { step: "4. Primire AWB", desc: "Numar + PDF" },
-          { step: "5. Salvare DB", desc: "Tabel AWB" },
-          { step: "6. Update Status", desc: "AWB_CREATED" }
-        ].map((item, i, arr) => (
-          <span key={i} className="flex items-center gap-2">
-            <div className="text-center">
-              <Badge variant="outline" className="px-3 py-1">{item.step}</Badge>
-              <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
-            </div>
-            {i < arr.length - 1 && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
-          </span>
-        ))}
-      </div>
+      <FlowStep steps={[
+        { step: "1. Comanda INVOICED", desc: "Factura emisa" },
+        { step: "2. Check financialStatus", desc: "paid vs pending" },
+        { step: "3. Set Ramburs", desc: "0 sau totalPrice" },
+        { step: "4. FanCourier API", desc: "POST /order" },
+        { step: "5. Salvare AWB", desc: "Numar + PDF label" },
+        { step: "6. Status AWB_CREATED", desc: "Ready for picking" },
+      ]} />
 
-      <SectionTitle icon={<Layers className="h-6 w-6" />}>Date AWB</SectionTitle>
+      <SectionTitle icon={<Banknote className="h-6 w-6" />}>Logica Ramburs Automat</SectionTitle>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Expeditor (din Settings)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="text-xs space-y-1 text-muted-foreground">
-              <li><strong>Nume firma:</strong> Configurat global</li>
-              <li><strong>Adresa ridicare:</strong> Sediu/depozit</li>
-              <li><strong>Telefon contact:</strong> Pentru curier</li>
-              <li><strong>Cont client FC:</strong> ID FanCourier</li>
-            </ul>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Destinatar (din Comanda)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="text-xs space-y-1 text-muted-foreground">
-              <li><strong>Nume:</strong> firstName + lastName</li>
-              <li><strong>Telefon:</strong> Validat libphonenumber</li>
-              <li><strong>Adresa:</strong> Strada, nr, bloc...</li>
-              <li><strong>Judet/Oras:</strong> Mapate FC</li>
-            </ul>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Optiuni Livrare</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="text-xs space-y-1 text-muted-foreground">
-              <li><strong>Ramburs:</strong> COD = total comanda</li>
-              <li><strong>Greutate:</strong> Calculata/default</li>
-              <li><strong>Colete:</strong> Default 1</li>
-              <li><strong>Deschidere colet:</strong> Optional</li>
-            </ul>
-          </CardContent>
-        </Card>
-      </div>
+      <InfoBox variant="success" title="Comportament v4.0+">
+        <div className="font-mono text-xs bg-muted p-3 rounded mt-2">
+{`// awb-service.ts - Logica automata ramburs
+const isPaidOrder = order.financialStatus === "paid";
 
-      <SectionTitle icon={<RefreshCw className="h-6 w-6" />}>Mapare Statusuri FanCourier - ERP</SectionTitle>
-
-      <div className="space-y-2">
-        {[
-          { fc: "Comanda preluata", erp: "AWB_CREATED", color: "bg-primary/10 border-primary/30", desc: "AWB generat, asteapta ridicare" },
-          { fc: "In curs de ridicare", erp: "PICKING", color: "bg-warning/10 border-warning/30", desc: "Curierul vine sa ridice" },
-          { fc: "Ridicat de curier", erp: "SHIPPED", color: "bg-warning/10 border-warning/30", desc: "Colet predat curier" },
-          { fc: "In tranzit", erp: "SHIPPED", color: "bg-warning/10 border-warning/30", desc: "In drumul catre destinatar" },
-          { fc: "In livrare", erp: "SHIPPED", color: "bg-warning/10 border-warning/30", desc: "Ultima etapa, azi ajunge" },
-          { fc: "Livrat", erp: "DELIVERED", color: "bg-success/10 border-success/30", desc: "Confirmat livrat" },
-          { fc: "Returnat expeditor", erp: "RETURNED", color: "bg-destructive/10 border-destructive/30", desc: "Refuzat sau nereusit" },
-          { fc: "Anulat", erp: "CANCELLED", color: "bg-muted border-border", desc: "AWB anulat" },
-        ].map((item, i) => (
-          <div key={i} className={cn("flex items-center justify-between p-3 rounded-lg border", item.color)}>
-            <div className="flex items-center gap-4">
-              <Badge variant="outline" className="min-w-[140px]">{item.fc}</Badge>
-              <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              <Badge variant="secondary">{item.erp}</Badge>
-            </div>
-            <span className="text-xs text-muted-foreground">{item.desc}</span>
-          </div>
-        ))}
-      </div>
-
-      <SectionTitle icon={<Timer className="h-6 w-6" />}>Tracking Automat CRON</SectionTitle>
-
-      <InfoBox variant="info" title="Sincronizare Automata">
-        Un CRON job ruleaza la fiecare 30 minute si verifica statusul tuturor AWB-urilor active
-        (status != DELIVERED, RETURNED, CANCELLED). Statusul din FanCourier este mapat automat
-        la statusul ERP si se salveaza in <code>AWBStatusHistory</code> pentru audit.
+if (isPaidOrder) {
+  cod = 0;                    // Fara ramburs
+  paymentType = "expeditor";  // Expeditorul plateste transportul
+} else {
+  cod = order.totalPrice;     // Ramburs = valoare comanda
+  paymentType = "destinatar"; // Destinatarul plateste
+}`}
+        </div>
       </InfoBox>
 
-      <SectionTitle icon={<Terminal className="h-6 w-6" />}>API Endpoints AWB</SectionTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="border-success/30">
+          <CardHeader>
+            <CardTitle className="text-success">Comanda Platita Online</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="text-sm space-y-1 text-muted-foreground">
+              <li><strong>financialStatus:</strong> paid</li>
+              <li><strong>Ramburs (COD):</strong> 0 RON</li>
+              <li><strong>Payment Type:</strong> expeditor</li>
+              <li><strong>Serviciu:</strong> Standard/Express</li>
+            </ul>
+          </CardContent>
+        </Card>
+        <Card className="border-warning/30">
+          <CardHeader>
+            <CardTitle className="text-warning">Comanda Ramburs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="text-sm space-y-1 text-muted-foreground">
+              <li><strong>financialStatus:</strong> pending</li>
+              <li><strong>Ramburs (COD):</strong> totalPrice RON</li>
+              <li><strong>Payment Type:</strong> destinatar</li>
+              <li><strong>Serviciu:</strong> Cont Colector</li>
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+
+      <SectionTitle icon={<RefreshCw className="h-6 w-6" />}>Tracking Automat</SectionTitle>
+
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-sm text-muted-foreground mb-4">
+            Un CRON job ruleaza la fiecare 30 minute si actualizeaza statusul tuturor AWB-urilor active.
+          </p>
+          <div className="space-y-2">
+            {[
+              { fc: "Comanda preluata", erp: "AWB_CREATED", color: "bg-primary/10" },
+              { fc: "In curs de ridicare", erp: "PICKING", color: "bg-warning/10" },
+              { fc: "Ridicat de curier", erp: "SHIPPED", color: "bg-warning/10" },
+              { fc: "In tranzit", erp: "SHIPPED", color: "bg-warning/10" },
+              { fc: "In livrare", erp: "SHIPPED", color: "bg-warning/10" },
+              { fc: "Livrat", erp: "DELIVERED", color: "bg-success/10" },
+              { fc: "Returnat expeditor", erp: "RETURNED", color: "bg-destructive/10" },
+            ].map((item, i) => (
+              <div key={i} className={cn("flex items-center justify-between p-2 rounded", item.color)}>
+                <Badge variant="outline" className="min-w-[140px]">{item.fc}</Badge>
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                <Badge variant="secondary">{item.erp}</Badge>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <SectionTitle icon={<Terminal className="h-6 w-6" />}>API Endpoints</SectionTitle>
 
       <div className="space-y-2">
         {[
@@ -1006,18 +1077,11 @@ function ShippingContent() {
           { method: "POST", path: "/api/awb/create", desc: "Generare AWB pentru comanda" },
           { method: "POST", path: "/api/awb/batch", desc: "Generare AWB-uri multiple" },
           { method: "GET", path: "/api/awb/[id]", desc: "Detalii AWB cu istoric status" },
-          { method: "GET", path: "/api/awb/[id]/pdf", desc: "Download PDF AWB" },
+          { method: "GET", path: "/api/awb/[id]/label", desc: "Download PDF eticheta" },
           { method: "POST", path: "/api/awb/[id]/cancel", desc: "Anulare AWB" },
-          { method: "GET", path: "/api/awb/[id]/track", desc: "Tracking manual (force refresh)" },
-          { method: "POST", path: "/api/cron/awb-tracking", desc: "CRON: Update statusuri" },
+          { method: "POST", path: "/api/awb/refresh", desc: "Force refresh tracking" },
         ].map((ep, i) => (
-          <div key={i} className="flex items-center gap-4 p-3 bg-muted rounded-lg">
-            <Badge variant={ep.method === "GET" ? "secondary" : "default"} className="w-16 justify-center">
-              {ep.method}
-            </Badge>
-            <code className="text-sm font-mono text-foreground flex-1">{ep.path}</code>
-            <span className="text-xs text-muted-foreground">{ep.desc}</span>
-          </div>
+          <ApiEndpoint key={i} {...ep} />
         ))}
       </div>
     </div>
@@ -1029,101 +1093,88 @@ function PickingContent() {
     <div className="space-y-8">
       <div className="prose max-w-none">
         <p className="text-lg text-muted-foreground">
-          Sistemul de picking permite crearea listelor agregate per produs, scanare barcode
-          pentru validare si urmarirea progresului pana la finalizare. Optimizat pentru
-          eficienta in warehouse.
+          Sistemul de picking permite crearea listelor agregate per produs,
+          scanare barcode pentru validare si urmarirea progresului.
         </p>
       </div>
 
-      <SectionTitle icon={<ClipboardList className="h-6 w-6" />}>Fluxul de Picking</SectionTitle>
+      <SectionTitle icon={<ClipboardList className="h-6 w-6" />}>Flux Picking</SectionTitle>
 
-      <div className="flex flex-wrap items-center gap-2 p-4 bg-muted rounded-lg">
-        {[
-          { step: "1. Selectie Comenzi", desc: "Status AWB_CREATED" },
-          { step: "2. Creare Lista", desc: "Agregare produse" },
-          { step: "3. Print Lista", desc: "PDF pentru warehouse" },
-          { step: "4. Scanare", desc: "Barcode validare" },
-          { step: "5. Finalizare", desc: "Status PACKED" }
-        ].map((item, i, arr) => (
-          <span key={i} className="flex items-center gap-2">
-            <div className="text-center">
-              <Badge variant="outline" className="px-3 py-1">{item.step}</Badge>
-              <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
-            </div>
-            {i < arr.length - 1 && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
-          </span>
-        ))}
-      </div>
+      <FlowStep steps={[
+        { step: "1. Selectie Comenzi", desc: "Status AWB_CREATED" },
+        { step: "2. Creare Lista", desc: "Agregare produse" },
+        { step: "3. Print Lista", desc: "PDF pentru warehouse" },
+        { step: "4. Scanare", desc: "Barcode validare" },
+        { step: "5. Finalizare", desc: "Status PACKED" },
+      ]} />
 
-      <SectionTitle icon={<Layers className="h-6 w-6" />}>Structura Picking List</SectionTitle>
+      <SectionTitle icon={<Boxes className="h-6 w-6" />}>Lista Agregata</SectionTitle>
+
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-sm text-muted-foreground mb-4">
+            Produsele din toate comenzile selectate sunt agregate intr-o singura lista
+            pentru eficienta maxima in warehouse.
+          </p>
+          <div className="bg-muted p-4 rounded-lg font-mono text-xs">
+{`┌────────────────────────────────────────────────────┐
+│           PICKING LIST #PL-2026-0042               │
+│           Data: 02.02.2026 10:30                   │
+├────────────────────────────────────────────────────┤
+│ SKU          │ Produs              │ Qty │ Comenzi │
+├──────────────┼─────────────────────┼─────┼─────────┤
+│ SAPUN-001    │ Sapun Natural 100g  │ 15  │ 8       │
+│ CREMA-002    │ Crema Hidratanta    │ 8   │ 6       │
+│ KIT-003      │ Kit Cadou Premium   │ 3   │ 3       │
+│ LUMANARE-004 │ Lumanare Parfumata  │ 12  │ 7       │
+└────────────────────────────────────────────────────┘`}
+          </div>
+        </CardContent>
+      </Card>
+
+      <SectionTitle icon={<Scan className="h-6 w-6" />}>Scanare Barcode</SectionTitle>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
+        <Card className="border-success/30">
           <CardHeader>
-            <CardTitle>Lista Agregata per Produs</CardTitle>
+            <CardTitle className="text-success text-sm">Scanare Valida</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-3">
-              Produsele din toate comenzile selectate sunt agregate intr-o singura lista
-              pentru eficienta in warehouse.
-            </p>
-            <div className="bg-muted p-3 rounded text-xs font-mono">
-              <p>SKU: PROD-001 - Sapun Natural</p>
-              <p>Cantitate totala: 15 buc</p>
-              <p>Comenzi: #1001, #1002, #1005, #1008</p>
-            </div>
+            <ul className="text-xs text-muted-foreground space-y-1">
+              <li>✓ Barcode exista in lista</li>
+              <li>✓ Cantitate nu depaseste cerinta</li>
+              <li>✓ Produs nu e deja complet</li>
+              <li>→ Incrementeaza pickedQuantity</li>
+            </ul>
           </CardContent>
         </Card>
-
-        <Card>
+        <Card className="border-destructive/30">
           <CardHeader>
-            <CardTitle>Statusuri Picking List</CardTitle>
+            <CardTitle className="text-destructive text-sm">Scanare Invalida</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2">
-              {[
-                { status: "DRAFT", desc: "Lista creata, neinceputa" },
-                { status: "IN_PROGRESS", desc: "Scanare in curs" },
-                { status: "COMPLETED", desc: "Toate produsele scanate" },
-                { status: "CANCELLED", desc: "Lista anulata" },
-              ].map((item, i) => (
-                <li key={i} className="flex items-center justify-between text-sm">
-                  <Badge variant="outline">{item.status}</Badge>
-                  <span className="text-muted-foreground text-xs">{item.desc}</span>
-                </li>
-              ))}
+            <ul className="text-xs text-muted-foreground space-y-1">
+              <li>✗ Barcode necunoscut</li>
+              <li>✗ Produs nu e in lista</li>
+              <li>✗ Cantitate deja completa</li>
+              <li>→ Eroare + sunet alerta</li>
             </ul>
           </CardContent>
         </Card>
       </div>
 
-      <SectionTitle icon={<Scan className="h-6 w-6" />}>Scanare Barcode</SectionTitle>
-
-      <InfoBox variant="info" title="Validare Produse">
-        La scanarea fiecarui produs, sistemul verifica: (1) produsul exista in lista,
-        (2) cantitatea nu depaseste cerinta, (3) barcode-ul corespunde SKU-ului.
-        Scanarile invalide sunt respinse cu mesaj de eroare.
-      </InfoBox>
-
-      <SectionTitle icon={<Terminal className="h-6 w-6" />}>API Endpoints Picking</SectionTitle>
+      <SectionTitle icon={<Terminal className="h-6 w-6" />}>API Endpoints</SectionTitle>
 
       <div className="space-y-2">
         {[
-          { method: "GET", path: "/api/picking", desc: "Lista picking lists cu filtrare" },
-          { method: "POST", path: "/api/picking", desc: "Creare picking list din comenzi" },
+          { method: "GET", path: "/api/picking", desc: "Lista picking lists" },
+          { method: "POST", path: "/api/picking/create", desc: "Creare picking list din comenzi" },
           { method: "GET", path: "/api/picking/[id]", desc: "Detalii lista cu progres" },
           { method: "POST", path: "/api/picking/[id]/scan", desc: "Scanare produs (barcode)" },
           { method: "POST", path: "/api/picking/[id]/complete", desc: "Finalizare picking" },
           { method: "GET", path: "/api/picking/[id]/pdf", desc: "Download PDF lista" },
-          { method: "DELETE", path: "/api/picking/[id]", desc: "Anulare picking list" },
         ].map((ep, i) => (
-          <div key={i} className="flex items-center gap-4 p-3 bg-muted rounded-lg">
-            <Badge variant={ep.method === "GET" ? "secondary" : ep.method === "DELETE" ? "destructive" : "default"} className="w-16 justify-center">
-              {ep.method}
-            </Badge>
-            <code className="text-sm font-mono text-foreground flex-1">{ep.path}</code>
-            <span className="text-xs text-muted-foreground">{ep.desc}</span>
-          </div>
+          <ApiEndpoint key={i} {...ep} />
         ))}
       </div>
     </div>
@@ -1135,56 +1186,45 @@ function HandoverContent() {
     <div className="space-y-8">
       <div className="prose max-w-none">
         <p className="text-lg text-muted-foreground">
-          Modulul Handover gestioneaza predarea coletelor catre curier. Include sesiuni
-          de predare, raport C0 pentru FanCourier si alerte pentru colete nepredate.
+          Modulul Handover gestioneaza predarea coletelor catre curier cu sesiuni,
+          scanare AWB, raport C0 si alerte pentru colete nepredate.
         </p>
       </div>
 
-      <SectionTitle icon={<Hand className="h-6 w-6" />}>Fluxul de Predare</SectionTitle>
+      <SectionTitle icon={<Hand className="h-6 w-6" />}>Flux Predare</SectionTitle>
 
-      <div className="flex flex-wrap items-center gap-2 p-4 bg-muted rounded-lg">
-        {[
-          { step: "1. Start Sesiune", desc: "Operator deschide" },
-          { step: "2. Scanare AWB", desc: "Fiecare colet" },
-          { step: "3. Validare", desc: "Status PACKED" },
-          { step: "4. Finalizare", desc: "Generare C0" },
-          { step: "5. Update Status", desc: "SHIPPED" }
-        ].map((item, i, arr) => (
-          <span key={i} className="flex items-center gap-2">
-            <div className="text-center">
-              <Badge variant="outline" className="px-3 py-1">{item.step}</Badge>
-              <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
-            </div>
-            {i < arr.length - 1 && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
-          </span>
-        ))}
-      </div>
+      <FlowStep steps={[
+        { step: "1. Start Sesiune", desc: "Operator deschide" },
+        { step: "2. Scanare AWB", desc: "Fiecare colet" },
+        { step: "3. Validare", desc: "Status PACKED" },
+        { step: "4. Finalizare", desc: "Generare C0" },
+        { step: "5. Update", desc: "Status SHIPPED" },
+      ]} />
 
-      <SectionTitle icon={<FileText className="h-6 w-6" />}>Raport C0 FanCourier</SectionTitle>
+      <SectionTitle icon={<FileText className="h-6 w-6" />}>Raport C0</SectionTitle>
 
       <Card>
         <CardContent className="pt-6">
           <p className="text-sm text-muted-foreground mb-4">
-            Raportul C0 este documentul de predare catre FanCourier. Contine lista
-            tuturor AWB-urilor predate intr-o sesiune, semnat de operator si curier.
+            Raportul C0 este documentul oficial de predare catre FanCourier.
           </p>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <h4 className="font-semibold text-sm mb-2 text-foreground">Continut Raport:</h4>
+              <h4 className="font-semibold text-sm mb-2">Continut Raport:</h4>
               <ul className="text-xs text-muted-foreground space-y-1">
-                <li>- Lista AWB-uri predate</li>
-                <li>- Data si ora predare</li>
-                <li>- Numar total colete</li>
-                <li>- Valoare totala ramburs</li>
+                <li>• Lista AWB-uri predate</li>
+                <li>• Data si ora predare</li>
+                <li>• Numar total colete</li>
+                <li>• Valoare totala ramburs</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-sm mb-2 text-foreground">Semnaturi:</h4>
+              <h4 className="font-semibold text-sm mb-2">Semnaturi:</h4>
               <ul className="text-xs text-muted-foreground space-y-1">
-                <li>- Operator depozit</li>
-                <li>- Curier FanCourier</li>
-                <li>- Timestamp generare</li>
-                <li>- ID sesiune handover</li>
+                <li>• Operator depozit</li>
+                <li>• Curier FanCourier</li>
+                <li>• Timestamp generare</li>
+                <li>• ID sesiune handover</li>
               </ul>
             </div>
           </div>
@@ -1193,59 +1233,110 @@ function HandoverContent() {
 
       <SectionTitle icon={<AlertTriangle className="h-6 w-6" />}>Alerte Colete Nepredate</SectionTitle>
 
-      <InfoBox variant="warning" title="Sistem de Alerte">
-        Sistemul genereaza alerte automate pentru comenzile cu status PACKED care nu au fost
-        predate in termen de 24h. Alertele apar in dashboard si pot fi trimise pe email
-        catre responsabilii de warehouse.
+      <InfoBox variant="warning" title="Sistem Alerte">
+        Sistemul genereaza alerte automate pentru comenzile cu status PACKED
+        care nu au fost predate in termen de 24h. Alertele apar in dashboard.
       </InfoBox>
 
+      <SectionTitle icon={<Terminal className="h-6 w-6" />}>API Endpoints</SectionTitle>
+
+      <div className="space-y-2">
+        {[
+          { method: "GET", path: "/api/handover/today", desc: "Sesiunea de azi" },
+          { method: "POST", path: "/api/handover/scan", desc: "Scanare AWB in sesiune" },
+          { method: "POST", path: "/api/handover/finalize", desc: "Finalizare + generare C0" },
+          { method: "GET", path: "/api/handover/report", desc: "Raport handover" },
+          { method: "GET", path: "/api/handover/not-handed", desc: "AWB-uri nepredate (alerte)" },
+        ].map((ep, i) => (
+          <ApiEndpoint key={i} {...ep} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProductsContent() {
+  return (
+    <div className="space-y-8">
+      <div className="prose max-w-none">
+        <p className="text-lg text-muted-foreground">
+          Sistem dual de inventar: MasterProduct (catalog cu SKU/barcode) +
+          InventoryItem (stoc avansat cu retete si loturi).
+        </p>
+      </div>
+
+      <SectionTitle icon={<Layers3 className="h-6 w-6" />}>Arhitectura Dual Stock</SectionTitle>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="border-warning/30">
+        <Card className="border-primary/30">
           <CardHeader>
-            <CardTitle className="text-warning text-sm">Conditii Alerta</CardTitle>
+            <CardTitle className="text-primary">MasterProduct (Catalog)</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="text-xs text-muted-foreground space-y-1">
-              <li>- Status = PACKED mai mult de 24h</li>
-              <li>- AWB generat dar nepredat</li>
-              <li>- Sesiune handover nefinalizata</li>
+            <ul className="text-sm space-y-2 text-muted-foreground">
+              <li><strong>SKU:</strong> Cod unic intern (ex: PROD-001)</li>
+              <li><strong>Barcode:</strong> EAN13/UPC pentru scanare</li>
+              <li><strong>Titlu/Descriere:</strong> Date produs</li>
+              <li><strong>Pret vanzare:</strong> RON cu TVA</li>
+              <li><strong>Stoc simplu:</strong> Cantitate curenta</li>
+              <li><strong>shopifyProductId:</strong> Link Shopify</li>
             </ul>
           </CardContent>
         </Card>
 
         <Card className="border-success/30">
           <CardHeader>
-            <CardTitle className="text-success text-sm">Actiuni Disponibile</CardTitle>
+            <CardTitle className="text-success">InventoryItem (Stoc Avansat)</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="text-xs text-muted-foreground space-y-1">
-              <li>- Adaugare la sesiune handover</li>
-              <li>- Reprogramare ridicare</li>
-              <li>- Anulare AWB si regenerare</li>
+            <ul className="text-sm space-y-2 text-muted-foreground">
+              <li><strong>oblioCode:</strong> Cod sync Oblio</li>
+              <li><strong>isComposite:</strong> Flag produs compus</li>
+              <li><strong>recipeItems:</strong> Lista componente reteta</li>
+              <li><strong>costPrice:</strong> Pret achizitie furnizor</li>
+              <li><strong>minStock:</strong> Prag alerta stoc scazut</li>
+              <li><strong>StockMovement:</strong> Istoric complet</li>
             </ul>
           </CardContent>
         </Card>
       </div>
 
-      <SectionTitle icon={<Terminal className="h-6 w-6" />}>API Endpoints Handover</SectionTitle>
+      <SectionTitle icon={<Workflow className="h-6 w-6" />}>Produse Compuse (Retete)</SectionTitle>
+
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-sm text-muted-foreground mb-4">
+            Un produs compus are o lista de componente. La vanzare, stocul se scade
+            automat din fiecare componenta.
+          </p>
+          <div className="bg-muted p-4 rounded-lg font-mono text-xs">
+{`Exemplu: Kit Cadou (SKU: KIT-001)
+├── 1x Cutie Cadou (CUTIE-001)    → scade 1 din stoc
+├── 2x Sapun Natural (SAPUN-001)  → scade 2 din stoc
+└── 1x Lumanare (LUMANARE-001)    → scade 1 din stoc
+
+La vanzare 1x KIT-001:
+- Stoc KIT-001 ramas constant (produs virtual)
+- Stoc CUTIE-001: -1
+- Stoc SAPUN-001: -2
+- Stoc LUMANARE-001: -1`}
+          </div>
+        </CardContent>
+      </Card>
+
+      <SectionTitle icon={<Terminal className="h-6 w-6" />}>API Endpoints</SectionTitle>
 
       <div className="space-y-2">
         {[
-          { method: "GET", path: "/api/handover", desc: "Lista sesiuni handover" },
-          { method: "POST", path: "/api/handover", desc: "Start sesiune noua" },
-          { method: "GET", path: "/api/handover/[id]", desc: "Detalii sesiune cu AWB-uri" },
-          { method: "POST", path: "/api/handover/[id]/scan", desc: "Scanare AWB in sesiune" },
-          { method: "POST", path: "/api/handover/[id]/finalize", desc: "Finalizare + generare C0" },
-          { method: "GET", path: "/api/handover/[id]/c0", desc: "Download PDF raport C0" },
-          { method: "GET", path: "/api/handover/alerts", desc: "Colete nepredate (alerte)" },
+          { method: "GET", path: "/api/products", desc: "Lista MasterProducts" },
+          { method: "GET", path: "/api/inventory-items", desc: "Lista InventoryItems cu stoc" },
+          { method: "POST", path: "/api/inventory-items", desc: "Creare articol inventar" },
+          { method: "PUT", path: "/api/inventory-items/[id]", desc: "Update stoc, pret, reteta" },
+          { method: "POST", path: "/api/inventory/adjust", desc: "Ajustare manuala stoc" },
+          { method: "GET", path: "/api/inventory/movements", desc: "Istoric miscari stoc" },
+          { method: "GET", path: "/api/inventory/alerts", desc: "Produse sub stoc minim" },
         ].map((ep, i) => (
-          <div key={i} className="flex items-center gap-4 p-3 bg-muted rounded-lg">
-            <Badge variant={ep.method === "GET" ? "secondary" : "default"} className="w-16 justify-center">
-              {ep.method}
-            </Badge>
-            <code className="text-sm font-mono text-foreground flex-1">{ep.path}</code>
-            <span className="text-xs text-muted-foreground">{ep.desc}</span>
-          </div>
+          <ApiEndpoint key={i} {...ep} />
         ))}
       </div>
     </div>
@@ -1257,9 +1348,8 @@ function AdvertisingContent() {
     <div className="space-y-8">
       <div className="prose max-w-none">
         <p className="text-lg text-muted-foreground">
-          Integrare completa cu Meta Ads (Facebook/Instagram) si TikTok Ads prin OAuth.
-          Sincronizare automata campanii, calcul ROAS per produs, alerte performanta
-          si actiuni automate (pause/resume campanii).
+          Integrare completa Meta Ads si TikTok Ads prin OAuth. Sincronizare campanii,
+          calcul ROAS per produs, alerte performanta, actiuni automate.
         </p>
       </div>
 
@@ -1268,345 +1358,272 @@ function AdvertisingContent() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="border-primary/30">
           <CardHeader>
-            <CardTitle className="text-primary">Meta Ads OAuth</CardTitle>
+            <CardTitle className="text-primary">Meta Ads</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="text-sm space-y-2 text-muted-foreground">
-              <li><strong className="text-foreground">Endpoint:</strong> /api/ads/meta/auth</li>
-              <li><strong className="text-foreground">Scopes:</strong> ads_read, ads_management</li>
-              <li><strong className="text-foreground">Token:</strong> Long-lived (60 zile)</li>
-              <li><strong className="text-foreground">Refresh:</strong> Automat inainte de expirare</li>
-              <li><strong className="text-foreground">Stocare:</strong> AdsAccount.accessToken</li>
+              <li><strong>Scopes:</strong> ads_read, ads_management</li>
+              <li><strong>Token:</strong> Long-lived (60 zile)</li>
+              <li><strong>Refresh:</strong> Automat inainte expirare</li>
+              <li><strong>Platforme:</strong> Facebook + Instagram</li>
             </ul>
           </CardContent>
         </Card>
 
         <Card className="border-destructive/30">
           <CardHeader>
-            <CardTitle className="text-destructive">TikTok Ads OAuth</CardTitle>
+            <CardTitle className="text-destructive">TikTok Ads</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="text-sm space-y-2 text-muted-foreground">
-              <li><strong className="text-foreground">Endpoint:</strong> /api/ads/tiktok/auth</li>
-              <li><strong className="text-foreground">Scopes:</strong> ad.read, ad.write</li>
-              <li><strong className="text-foreground">Token:</strong> Short-lived + refresh</li>
-              <li><strong className="text-foreground">Refresh:</strong> La fiecare request</li>
-              <li><strong className="text-foreground">Stocare:</strong> AdsAccount encrypted</li>
+              <li><strong>Scopes:</strong> ad.read, ad.write</li>
+              <li><strong>Token:</strong> Short-lived + refresh</li>
+              <li><strong>Refresh:</strong> La fiecare request</li>
+              <li><strong>API:</strong> TikTok Business API</li>
             </ul>
           </CardContent>
         </Card>
       </div>
 
-      <SectionTitle icon={<RefreshCw className="h-6 w-6" />}>Sincronizare Campanii</SectionTitle>
-
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-sm text-muted-foreground mb-4">
-            Campaniile sunt sincronizate automat prin CRON zilnic. Se importa:
-          </p>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="p-3 bg-muted rounded-lg">
-              <p className="font-semibold text-foreground">Campaigns</p>
-              <p className="text-xs text-muted-foreground">Nume, status, budget</p>
-            </div>
-            <div className="p-3 bg-muted rounded-lg">
-              <p className="font-semibold text-foreground">Ad Sets</p>
-              <p className="text-xs text-muted-foreground">Targeting, schedule</p>
-            </div>
-            <div className="p-3 bg-muted rounded-lg">
-              <p className="font-semibold text-foreground">Ads</p>
-              <p className="text-xs text-muted-foreground">Creative, metrici</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <SectionTitle icon={<TrendingUp className="h-6 w-6" />}>Metrici si ROAS</SectionTitle>
+      <SectionTitle icon={<TrendingUp className="h-6 w-6" />}>Metrici Tracked</SectionTitle>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { metric: "Spend", desc: "Cost total campanie" },
-          { metric: "Impressions", desc: "Afisari reclama" },
-          { metric: "Clicks", desc: "Click-uri pe ad" },
-          { metric: "CTR", desc: "Click-through rate" },
-          { metric: "Conversions", desc: "Achizitii atribuite" },
-          { metric: "CPA", desc: "Cost per achizitie" },
-          { metric: "Revenue", desc: "Venituri generate" },
-          { metric: "ROAS", desc: "Return on ad spend" },
+          { metric: "Spend", desc: "Cost total" },
+          { metric: "Impressions", desc: "Afisari" },
+          { metric: "Clicks", desc: "Click-uri" },
+          { metric: "CTR", desc: "Click rate" },
+          { metric: "Conversions", desc: "Achizitii" },
+          { metric: "CPA", desc: "Cost/achizitie" },
+          { metric: "Revenue", desc: "Venituri" },
+          { metric: "ROAS", desc: "Return on spend" },
         ].map((item, i) => (
-          <Card key={i}>
-            <CardContent className="pt-4 pb-3 text-center">
-              <p className="font-semibold text-foreground">{item.metric}</p>
+          <Card key={i} className="text-center">
+            <CardContent className="pt-4 pb-3">
+              <p className="font-semibold">{item.metric}</p>
               <p className="text-xs text-muted-foreground">{item.desc}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <SectionTitle icon={<AlertTriangle className="h-6 w-6" />}>Sistem de Alerte</SectionTitle>
+      <SectionTitle icon={<Bell className="h-6 w-6" />}>Sistem Alerte</SectionTitle>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="border-warning/30">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-warning text-sm">Tipuri de Alerte</CardTitle>
+            <CardTitle className="text-sm">Tipuri Alerte</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="text-xs text-muted-foreground space-y-2">
-              <li><strong className="text-foreground">ROAS_LOW:</strong> ROAS sub prag (default 2.0)</li>
-              <li><strong className="text-foreground">SPEND_HIGH:</strong> Spend depaseste budget zilnic</li>
-              <li><strong className="text-foreground">CTR_LOW:</strong> CTR sub 1% (ad fatigue)</li>
-              <li><strong className="text-foreground">NO_CONVERSIONS:</strong> 0 conversii in 24h</li>
+              <li><strong>ROAS_LOW:</strong> ROAS sub 2.0</li>
+              <li><strong>SPEND_HIGH:</strong> Peste budget zilnic</li>
+              <li><strong>CTR_LOW:</strong> CTR sub 1%</li>
+              <li><strong>NO_CONVERSIONS:</strong> 0 in 24h</li>
             </ul>
           </CardContent>
         </Card>
-
-        <Card className="border-success/30">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-success text-sm">Actiuni Automate</CardTitle>
+            <CardTitle className="text-sm">Actiuni Automate</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="text-xs text-muted-foreground space-y-2">
-              <li><strong className="text-foreground">PAUSE_CAMPAIGN:</strong> Oprire automata campanie</li>
-              <li><strong className="text-foreground">REDUCE_BUDGET:</strong> Scadere budget 20%</li>
-              <li><strong className="text-foreground">NOTIFY_EMAIL:</strong> Email catre responsabil</li>
-              <li><strong className="text-foreground">NOTIFY_SLACK:</strong> Mesaj canal Slack</li>
+              <li><strong>PAUSE_CAMPAIGN:</strong> Oprire automata</li>
+              <li><strong>REDUCE_BUDGET:</strong> Scadere 20%</li>
+              <li><strong>NOTIFY_EMAIL:</strong> Email alert</li>
+              <li><strong>NOTIFY_SLACK:</strong> Slack message</li>
             </ul>
           </CardContent>
         </Card>
       </div>
 
-      <InfoBox variant="tip" title="Configurare Praguri">
-        Pragurile pentru alerte si actiunile automate sunt configurabile per cont
-        din Settings - Ads. Fiecare campanie poate avea reguli personalizate.
-      </InfoBox>
-
-      <SectionTitle icon={<Terminal className="h-6 w-6" />}>API Endpoints Ads</SectionTitle>
+      <SectionTitle icon={<Terminal className="h-6 w-6" />}>API Endpoints</SectionTitle>
 
       <div className="space-y-2">
         {[
           { method: "GET", path: "/api/ads/accounts", desc: "Lista conturi conectate" },
-          { method: "POST", path: "/api/ads/meta/auth", desc: "Initiere OAuth Meta" },
-          { method: "POST", path: "/api/ads/tiktok/auth", desc: "Initiere OAuth TikTok" },
-          { method: "GET", path: "/api/ads/campaigns", desc: "Lista campanii toate platformele" },
-          { method: "GET", path: "/api/ads/campaigns/[id]", desc: "Detalii campanie cu metrici" },
+          { method: "GET", path: "/api/ads/campaigns", desc: "Lista campanii" },
+          { method: "GET", path: "/api/ads/campaigns/[id]/insights", desc: "Metrici campanie" },
           { method: "POST", path: "/api/ads/campaigns/[id]/pause", desc: "Pause campanie" },
-          { method: "POST", path: "/api/ads/campaigns/[id]/resume", desc: "Resume campanie" },
           { method: "GET", path: "/api/ads/alerts", desc: "Lista alerte active" },
-          { method: "POST", path: "/api/ads/alerts/[id]/dismiss", desc: "Dismiss alerta" },
-          { method: "POST", path: "/api/cron/ads-sync", desc: "CRON: Sync campanii" },
         ].map((ep, i) => (
-          <div key={i} className="flex items-center gap-4 p-3 bg-muted rounded-lg">
-            <Badge variant={ep.method === "GET" ? "secondary" : "default"} className="w-16 justify-center">
-              {ep.method}
-            </Badge>
-            <code className="text-sm font-mono text-foreground flex-1">{ep.path}</code>
-            <span className="text-xs text-muted-foreground">{ep.desc}</span>
-          </div>
+          <ApiEndpoint key={i} {...ep} />
         ))}
       </div>
     </div>
   );
 }
 
-function RBACContent() {
-  const permissionCategories = [
-    {
-      category: "Orders",
-      permissions: ["orders.view", "orders.create", "orders.edit", "orders.delete", "orders.process", "orders.validate", "orders.cancel", "orders.export"]
-    },
-    {
-      category: "Products",
-      permissions: ["products.view", "products.create", "products.edit", "products.delete", "products.import", "products.export", "products.sync"]
-    },
-    {
-      category: "Inventory",
-      permissions: ["inventory.view", "inventory.adjust", "inventory.transfer", "inventory.alerts", "inventory.sync", "inventory.recipes"]
-    },
-    {
-      category: "Invoices",
-      permissions: ["invoices.view", "invoices.issue", "invoices.cancel", "invoices.download", "invoices.series.manage"]
-    },
-    {
-      category: "AWB",
-      permissions: ["awb.view", "awb.create", "awb.cancel", "awb.download", "awb.track", "awb.batch"]
-    },
-    {
-      category: "Picking",
-      permissions: ["picking.view", "picking.create", "picking.scan", "picking.complete", "picking.cancel", "picking.print"]
-    },
-    {
-      category: "Handover",
-      permissions: ["handover.view", "handover.create", "handover.scan", "handover.finalize", "handover.c0.download"]
-    },
-    {
-      category: "Ads",
-      permissions: ["ads.view", "ads.accounts.manage", "ads.campaigns.view", "ads.campaigns.control", "ads.alerts.view", "ads.alerts.dismiss", "ads.settings"]
-    },
-    {
-      category: "Users",
-      permissions: ["users.view", "users.create", "users.edit", "users.delete", "users.roles.assign"]
-    },
-    {
-      category: "Roles",
-      permissions: ["roles.view", "roles.create", "roles.edit", "roles.delete", "roles.permissions.assign"]
-    },
-    {
-      category: "Settings",
-      permissions: ["settings.view", "settings.edit", "settings.integrations", "settings.company", "settings.notifications"]
-    },
-    {
-      category: "Reports",
-      permissions: ["reports.view", "reports.sales", "reports.inventory", "reports.ads", "reports.export"]
-    },
-    {
-      category: "Audit",
-      permissions: ["audit.view", "audit.export"]
-    },
-    {
-      category: "System",
-      permissions: ["system.admin", "system.debug", "system.cron.trigger"]
-    }
-  ];
-
-  const defaultRoles = [
-    { name: "Super Admin", desc: "Acces complet la toate functionalitatile", perms: "124/124" },
-    { name: "Admin", desc: "Gestionare utilizatori, setari, rapoarte", perms: "98/124" },
-    { name: "Manager", desc: "Operatiuni complete fara setari sistem", perms: "72/124" },
-    { name: "Operator", desc: "Procesare comenzi, picking, handover", perms: "45/124" },
-    { name: "Warehouse", desc: "Doar picking si handover", perms: "18/124" },
-    { name: "Viewer", desc: "Doar vizualizare, fara actiuni", perms: "15/124" },
-  ];
-
+function TrendyolContent() {
   return (
     <div className="space-y-8">
       <div className="prose max-w-none">
         <p className="text-lg text-muted-foreground">
-          Sistem RBAC complet cu 124 permisiuni granulare, 6 roluri predefinite si suport
-          pentru grupuri de utilizatori. Audit logging pentru toate actiunile.
+          Integrare completa Trendyol marketplace: sincronizare comenzi si produse,
+          publicare catalog, actualizare stoc, mapare SKU-uri.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Permisiuni" value="124" description="Granulare per actiune" icon={<Key className="h-5 w-5" />} />
-        <StatCard label="Roluri Default" value="6" description="Predefinite + custom" icon={<Shield className="h-5 w-5" />} />
-        <StatCard label="Categorii" value="14" description="Module sistem" icon={<Layers className="h-5 w-5" />} />
-        <StatCard label="Audit Log" value="100%" description="Toate actiunile" icon={<History className="h-5 w-5" />} />
-      </div>
+      <SectionTitle icon={<Globe className="h-6 w-6" />}>Capabilitati</SectionTitle>
 
-      <SectionTitle icon={<Users className="h-6 w-6" />}>Structura RBAC</SectionTitle>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">User</CardTitle>
+            <CardTitle>Sincronizare Comenzi</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">
-              Cont individual cu email, parola, status activ/inactiv.
-              Poate avea multiple roluri.
-            </p>
+            <ul className="text-sm space-y-2 text-muted-foreground">
+              <li><strong>Frecventa:</strong> CRON la 15 minute</li>
+              <li><strong>Status filter:</strong> Created, Picking</li>
+              <li><strong>Deduplicare:</strong> trendyolOrderId</li>
+              <li><strong>Mapare:</strong> Adresa, produse, preturi</li>
+            </ul>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Role</CardTitle>
+            <CardTitle>Publicare Produse</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">
-              Colectie de permisiuni. Roluri predefinite + custom.
-              Prioritate ierarhica.
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Permission</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              Actiune specifica: modul.actiune
-              (ex: orders.process)
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Group</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              Organizare utilizatori (echipe, departamente).
-              Roluri la nivel de grup.
-            </p>
+            <ul className="text-sm space-y-2 text-muted-foreground">
+              <li><strong>Categorii:</strong> Mapare la taxonomie Trendyol</li>
+              <li><strong>Atribute:</strong> Brand, culoare, marime</li>
+              <li><strong>Imagini:</strong> Upload automat</li>
+              <li><strong>Stoc:</strong> Sync bidirectional</li>
+            </ul>
           </CardContent>
         </Card>
       </div>
 
-      <SectionTitle icon={<Shield className="h-6 w-6" />}>Roluri Predefinite</SectionTitle>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {defaultRoles.map((role, i) => (
-          <Card key={i}>
-            <CardContent className="pt-4">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-semibold text-foreground">{role.name}</h4>
-                <Badge variant="outline" className="text-xs">{role.perms}</Badge>
-              </div>
-              <p className="text-xs text-muted-foreground">{role.desc}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <SectionTitle icon={<Key className="h-6 w-6" />}>Toate Permisiunile (124)</SectionTitle>
-
-      <div className="space-y-4">
-        {permissionCategories.map((cat, i) => (
-          <Card key={i}>
-            <CardHeader className="py-3">
-              <CardTitle className="text-sm">{cat.category} ({cat.permissions.length})</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex flex-wrap gap-1">
-                {cat.permissions.map((perm, j) => (
-                  <Badge key={j} variant="secondary" className="text-xs">{perm}</Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <SectionTitle icon={<History className="h-6 w-6" />}>Audit Logging</SectionTitle>
-
-      <InfoBox variant="info" title="Audit Trail Complet">
-        Toate actiunile sunt inregistrate in tabelul AuditLog cu: userId, action, targetType,
-        targetId, oldValue, newValue, ipAddress, userAgent, timestamp. Retentie 90 zile default.
-      </InfoBox>
-
-      <SectionTitle icon={<Terminal className="h-6 w-6" />}>API Endpoints RBAC</SectionTitle>
+      <SectionTitle icon={<Terminal className="h-6 w-6" />}>API Endpoints</SectionTitle>
 
       <div className="space-y-2">
         {[
-          { method: "GET", path: "/api/users", desc: "Lista utilizatori cu roluri" },
-          { method: "POST", path: "/api/users", desc: "Creare utilizator nou" },
-          { method: "PUT", path: "/api/users/[id]", desc: "Update utilizator" },
-          { method: "PUT", path: "/api/users/[id]/roles", desc: "Assign roluri" },
-          { method: "GET", path: "/api/roles", desc: "Lista roluri cu permisiuni" },
-          { method: "POST", path: "/api/roles", desc: "Creare rol custom" },
-          { method: "PUT", path: "/api/roles/[id]/permissions", desc: "Update permisiuni rol" },
-          { method: "GET", path: "/api/permissions", desc: "Lista toate permisiunile" },
-          { method: "GET", path: "/api/audit", desc: "Audit log cu filtrare" },
+          { method: "GET", path: "/api/trendyol/orders", desc: "Lista comenzi Trendyol" },
+          { method: "POST", path: "/api/trendyol/orders/sync", desc: "Sincronizare comenzi" },
+          { method: "GET", path: "/api/trendyol/products", desc: "Produse listate" },
+          { method: "POST", path: "/api/trendyol/products/publish", desc: "Publicare produs" },
+          { method: "GET", path: "/api/trendyol/mapping", desc: "Mapare SKU-uri" },
         ].map((ep, i) => (
-          <div key={i} className="flex items-center gap-4 p-3 bg-muted rounded-lg">
-            <Badge variant={ep.method === "GET" ? "secondary" : "default"} className="w-16 justify-center">
-              {ep.method}
-            </Badge>
-            <code className="text-sm font-mono text-foreground flex-1">{ep.path}</code>
-            <span className="text-xs text-muted-foreground">{ep.desc}</span>
-          </div>
+          <ApiEndpoint key={i} {...ep} />
         ))}
       </div>
+    </div>
+  );
+}
+
+function ArchitectureContent() {
+  return (
+    <div className="space-y-8">
+      <div className="prose max-w-none">
+        <p className="text-lg text-muted-foreground">
+          Arhitectura tehnica a platformei ERP CashFlowSync: stack tehnologic,
+          structura proiect, pattern-uri folosite.
+        </p>
+      </div>
+
+      <SectionTitle icon={<Server className="h-6 w-6" />}>Stack Tehnologic</SectionTitle>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { name: "Next.js 14", type: "Framework", desc: "App Router + RSC" },
+          { name: "React 18", type: "UI Library", desc: "Server Components" },
+          { name: "TypeScript", type: "Language", desc: "Type safety" },
+          { name: "Tailwind CSS", type: "Styling", desc: "Utility-first" },
+          { name: "Prisma", type: "ORM", desc: "Type-safe queries" },
+          { name: "PostgreSQL", type: "Database", desc: "Primary store" },
+          { name: "NextAuth.js", type: "Auth", desc: "OAuth + Credentials" },
+          { name: "shadcn/ui", type: "Components", desc: "Radix primitives" },
+        ].map((item, i) => (
+          <Card key={i} className="text-center">
+            <CardContent className="pt-4 pb-3">
+              <p className="font-semibold">{item.name}</p>
+              <p className="text-xs text-primary">{item.type}</p>
+              <p className="text-xs text-muted-foreground">{item.desc}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <SectionTitle icon={<FolderTree className="h-6 w-6" />}>Structura Proiect</SectionTitle>
+
+      <CodeBlock
+        title="Directoare Principale"
+        code={`erp-cashflowsync/
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── (dashboard)/        # Pagini protejate (layout cu sidebar)
+│   │   │   ├── dashboard/      # Pagina principala
+│   │   │   ├── orders/         # Modul comenzi
+│   │   │   ├── products/       # Modul produse
+│   │   │   ├── inventory/      # Modul inventar
+│   │   │   ├── invoices/       # Modul facturi
+│   │   │   ├── picking/        # Modul picking
+│   │   │   ├── handover/       # Modul predare
+│   │   │   ├── ads/            # Modul advertising
+│   │   │   ├── trendyol/       # Modul Trendyol
+│   │   │   ├── settings/       # Configurari
+│   │   │   └── docs/           # Documentatie (aceasta pagina)
+│   │   ├── api/                # API Routes (50+ endpoints)
+│   │   │   ├── orders/         # CRUD comenzi
+│   │   │   ├── invoices/       # Facturare Oblio
+│   │   │   ├── awb/            # AWB FanCourier
+│   │   │   ├── webhooks/       # Shopify webhooks
+│   │   │   └── cron/           # Scheduled jobs
+│   │   └── auth/               # NextAuth pages
+│   ├── components/             # Componente React reutilizabile
+│   │   ├── ui/                 # shadcn/ui components
+│   │   └── layout/             # Layout components
+│   ├── lib/                    # Business logic & utilities
+│   │   ├── auth.ts             # NextAuth config
+│   │   ├── db.ts               # Prisma client singleton
+│   │   ├── shopify.ts          # Shopify Admin API client
+│   │   ├── oblio.ts            # Oblio facturare client
+│   │   ├── fancourier.ts       # FanCourier AWB client
+│   │   ├── invoice-service.ts  # Invoice business logic
+│   │   ├── awb-service.ts      # AWB business logic
+│   │   └── permissions.ts      # RBAC utilities
+│   └── hooks/                  # Custom React hooks
+├── prisma/
+│   └── schema.prisma           # Database schema (80+ models)
+└── public/                     # Static assets`}
+      />
+
+      <SectionTitle icon={<Layers className="h-6 w-6" />}>Arhitectura pe Straturi</SectionTitle>
+
+      <DiagramBox title="Diagrama Arhitectura" className="print:break-inside-avoid">
+        <div className="font-mono text-xs whitespace-pre overflow-x-auto">
+{`┌─────────────────────────────────────────────────────────────────┐
+│                     PRESENTATION LAYER                          │
+│   Next.js App Router + React Server Components + shadcn/ui      │
+│   Dashboard | Orders | Invoices | AWB | Picking | Products      │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │ HTTP/REST
+┌───────────────────────────▼─────────────────────────────────────┐
+│                        API LAYER                                │
+│   Next.js API Routes with validation (Zod) + auth middleware    │
+│   /api/orders | /api/invoices | /api/awb | /api/products        │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │ Function calls
+┌───────────────────────────▼─────────────────────────────────────┐
+│                     SERVICE LAYER                               │
+│   Business logic services with dependency injection             │
+│   invoice-service | awb-service | sync-service | permissions    │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │ Prisma queries
+┌───────────────────────────▼─────────────────────────────────────┐
+│                      DATA LAYER                                 │
+│   Prisma ORM with PostgreSQL                                    │
+│   80+ models | Relations | Transactions | Migrations            │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │ HTTP/REST
+┌───────────────────────────▼─────────────────────────────────────┐
+│                  EXTERNAL INTEGRATIONS                          │
+│   Shopify | Oblio | FanCourier | Meta Ads | TikTok | Trendyol   │
+└─────────────────────────────────────────────────────────────────┘`}
+        </div>
+      </DiagramBox>
     </div>
   );
 }
@@ -1616,32 +1633,85 @@ function DatabaseContent() {
     <div className="space-y-8">
       <div className="prose max-w-none">
         <p className="text-lg text-muted-foreground">
-          Baza de date PostgreSQL contine peste 80 de tabele organizate
-          pe categorii functionale.
+          Schema bazei de date PostgreSQL cu 80+ modele Prisma,
+          relatii complexe si constrangeri de integritate.
         </p>
       </div>
 
-      <SectionTitle icon={<Table2 className="h-6 w-6" />}>Categorii Principale</SectionTitle>
+      <SectionTitle icon={<Database className="h-6 w-6" />}>Statistici</SectionTitle>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {[
-          { title: "Autentificare", tables: "User, Account, Session, Role, Permission" },
-          { title: "Comenzi", tables: "Order, LineItem, DailySales" },
-          { title: "Facturare", tables: "Invoice, InvoiceSeries" },
-          { title: "Logistica", tables: "AWB, AWBStatusHistory, HandoverSession" },
-          { title: "Inventar", tables: "Product, InventoryItem, StockMovement" },
-          { title: "Advertising", tables: "AdsCampaign, AdsAccount, AdsAlert" },
-        ].map((cat, i) => (
-          <Card key={i}>
-            <CardHeader>
-              <CardTitle className="text-base">{cat.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">{cat.tables}</p>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard label="Modele Prisma" value="80+" description="Tabele principale" icon={<Table2 className="h-5 w-5" />} />
+        <StatCard label="Relatii" value="150+" description="Foreign keys" icon={<Network className="h-5 w-5" />} />
+        <StatCard label="Enum-uri" value="25+" description="Status types" icon={<Layers className="h-5 w-5" />} />
+        <StatCard label="Indexuri" value="40+" description="Query optimization" icon={<Zap className="h-5 w-5" />} />
       </div>
+
+      <SectionTitle icon={<Table2 className="h-6 w-6" />}>Modele Principale</SectionTitle>
+
+      <DiagramBox title="Diagrama Relatii" className="print:break-inside-avoid">
+        <div className="font-mono text-xs whitespace-pre overflow-x-auto">
+{`Company (1) ─────────────────── (N) Store
+        ├── (1) ─────────── (N) Invoice
+        ├── (1) ─────────── (N) AWB
+        ├── (1) ─────────── (N) Warehouse
+        └── (1) ─────────── (N) InvoiceSeries
+
+Store (1) ───────────────────── (N) Order
+      └── (1) ─────────── (1) Channel
+
+Order (1) ───────────────────── (N) LineItem
+      ├── (1) ─────────── (1) Invoice
+      ├── (1) ─────────── (1) AWB
+      └── (N) ─────────── (N) ProcessingError
+
+AWB (1) ─────────────────────── (N) AWBStatusHistory
+    └── (1) ─────────── (1) HandoverSession
+
+User (1) ────────────────────── (N) UserRoleAssignment
+     ├── (N) ─────────── (N) UserGroupMembership
+     └── (N) ─────────── (N) UserStoreAccess
+
+MasterProduct (1) ───────────── (N) Product (variants)
+              └── (N) ─────── (N) MasterProductChannel
+
+InventoryItem (1) ───────────── (N) WarehouseStock
+              ├── (N) ─────── (N) InventoryStockMovement
+              └── (N) ─────── (N) InventoryRecipeComponent`}
+        </div>
+      </DiagramBox>
+
+      <SectionTitle icon={<Code className="h-6 w-6" />}>Exemple Modele Prisma</SectionTitle>
+
+      <CodeBlock
+        title="Order Model (simplificat)"
+        code={`model Order {
+  id                String        @id @default(cuid())
+  shopifyOrderId    String?       @unique
+  orderNumber       String
+  email             String?
+  phone             String?
+  customerName      String
+  shippingAddress   Json
+  billingAddress    Json?
+  totalPrice        Decimal       @db.Decimal(10, 2)
+  currency          String        @default("RON")
+  financialStatus   String        @default("pending")
+  status            OrderStatus   @default(PENDING)
+  validationStatus  ValidationStatus @default(PENDING)
+  source            OrderSource   @default(SHOPIFY)
+
+  // Relations
+  lineItems         LineItem[]
+  invoice           Invoice?
+  awb               AWB?
+  store             Store         @relation(...)
+  company           Company       @relation(...)
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}`}
+      />
     </div>
   );
 }
@@ -1651,28 +1721,158 @@ function IntegrationsContent() {
     <div className="space-y-8">
       <div className="prose max-w-none">
         <p className="text-lg text-muted-foreground">
-          ERP-ul se integreaza cu multiple servicii externe pentru a automatiza
-          procesele de business.
+          Detalii tehnice despre toate integrarile externe: autentificare,
+          endpoints, rate limits, error handling.
         </p>
       </div>
 
-      <SectionTitle icon={<Globe className="h-6 w-6" />}>Servicii Integrate</SectionTitle>
+      {[
+        {
+          name: "Shopify",
+          type: "E-commerce Platform",
+          auth: "Admin API Access Token",
+          file: "src/lib/shopify.ts",
+          features: ["Orders webhook", "Products sync", "Inventory levels", "Fulfillment"],
+          endpoints: ["orders.json", "products.json", "inventory_levels.json"],
+        },
+        {
+          name: "Oblio",
+          type: "Facturare Electronica",
+          auth: "OAuth 2.0 (email + secret)",
+          file: "src/lib/oblio.ts",
+          features: ["Emitere facturi", "e-Factura SPV", "PDF download", "Serii facturi"],
+          endpoints: ["/api/docs/invoice", "/api/docs/invoice/pdf"],
+        },
+        {
+          name: "FanCourier",
+          type: "Curierat",
+          auth: "Token (user + pass)",
+          file: "src/lib/fancourier.ts",
+          features: ["Generare AWB", "Tracking status", "PDF eticheta", "Servicii (Standard/Collector)"],
+          endpoints: ["/order", "/tracking", "/label"],
+        },
+        {
+          name: "Meta Ads",
+          type: "Advertising",
+          auth: "OAuth 2.0",
+          file: "src/lib/meta-ads.ts",
+          features: ["Campaigns", "Ad Sets", "Insights", "Budget control"],
+          endpoints: ["Graph API v18.0"],
+        },
+        {
+          name: "TikTok Ads",
+          type: "Advertising",
+          auth: "OAuth 2.0",
+          file: "src/lib/tiktok-ads.ts",
+          features: ["Campaigns sync", "Performance metrics", "Budget management"],
+          endpoints: ["Business API"],
+        },
+        {
+          name: "Trendyol",
+          type: "Marketplace",
+          auth: "Basic Auth (API Key + Secret)",
+          file: "src/lib/trendyol.ts",
+          features: ["Orders sync", "Products publish", "Stock update", "Category mapping"],
+          endpoints: ["/suppliers/{id}/orders", "/suppliers/{id}/products"],
+        },
+      ].map((integration, i) => (
+        <Card key={i} className="print:break-inside-avoid">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>{integration.name}</span>
+              <Badge variant="secondary">{integration.type}</Badge>
+            </CardTitle>
+            <CardDescription>
+              Auth: {integration.auth} | File: <code>{integration.file}</code>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="font-semibold text-sm mb-2">Features:</h4>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  {integration.features.map((f, j) => (
+                    <li key={j}>• {f}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm mb-2">Endpoints:</h4>
+                <ul className="text-xs text-muted-foreground font-mono space-y-1">
+                  {integration.endpoints.map((e, j) => (
+                    <li key={j}>{e}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+function RBACContent() {
+  const permissionCategories = [
+    { category: "Orders", count: 9, permissions: ["view", "create", "edit", "delete", "process", "validate", "cancel", "export", "import"] },
+    { category: "Products", count: 7, permissions: ["view", "create", "edit", "delete", "import", "export", "sync"] },
+    { category: "Inventory", count: 6, permissions: ["view", "adjust", "transfer", "alerts", "sync", "recipes"] },
+    { category: "Invoices", count: 5, permissions: ["view", "issue", "cancel", "download", "series.manage"] },
+    { category: "AWB", count: 6, permissions: ["view", "create", "cancel", "download", "track", "batch"] },
+    { category: "Picking", count: 6, permissions: ["view", "create", "scan", "complete", "cancel", "print"] },
+    { category: "Handover", count: 5, permissions: ["view", "create", "scan", "finalize", "c0.download"] },
+    { category: "Ads", count: 7, permissions: ["view", "accounts.manage", "campaigns.view", "campaigns.control", "alerts.view", "alerts.dismiss", "settings"] },
+    { category: "Users", count: 5, permissions: ["view", "create", "edit", "delete", "roles.assign"] },
+    { category: "Settings", count: 5, permissions: ["view", "edit", "integrations", "company", "notifications"] },
+  ];
+
+  return (
+    <div className="space-y-8">
+      <div className="prose max-w-none">
+        <p className="text-lg text-muted-foreground">
+          Sistem RBAC complet cu 124 permisiuni granulare, 6 roluri predefinite,
+          grupuri de utilizatori si audit logging.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard label="Permisiuni" value="124" description="Granulare per actiune" icon={<Key className="h-5 w-5" />} />
+        <StatCard label="Roluri Default" value="6" description="Predefinite" icon={<Shield className="h-5 w-5" />} />
+        <StatCard label="Categorii" value="14" description="Module sistem" icon={<Layers className="h-5 w-5" />} />
+        <StatCard label="Audit Log" value="100%" description="Toate actiunile" icon={<History className="h-5 w-5" />} />
+      </div>
+
+      <SectionTitle icon={<Shield className="h-6 w-6" />}>Roluri Predefinite</SectionTitle>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {[
-          { name: "Shopify", desc: "E-commerce platform - comenzi, produse, stoc", color: "border-success/30" },
-          { name: "Trendyol", desc: "Marketplace turcesc - comenzi, produse", color: "border-warning/30" },
-          { name: "Facturis", desc: "Facturare electronica - emitere, storno", color: "border-primary/30" },
-          { name: "FanCourier", desc: "Curierat - AWB, tracking, ramburs", color: "border-accent-foreground/30" },
-          { name: "Meta Ads", desc: "Advertising - campanii, metrici, ROAS", color: "border-primary/30" },
-          { name: "TikTok Ads", desc: "Advertising - campanii, metrici", color: "border-destructive/30" },
-          { name: "Google Drive", desc: "Storage - backup documente", color: "border-warning/30" },
-          { name: "NextAuth", desc: "Autentificare - OAuth, sessions", color: "border-border" },
-        ].map((svc, i) => (
-          <Card key={i} className={cn("border-2", svc.color)}>
-            <CardContent className="pt-6">
-              <h3 className="font-semibold mb-1 text-foreground">{svc.name}</h3>
-              <p className="text-sm text-muted-foreground">{svc.desc}</p>
+          { name: "Super Admin", perms: "124/124", desc: "Acces complet" },
+          { name: "Admin", perms: "98/124", desc: "Fara system settings" },
+          { name: "Manager", perms: "72/124", desc: "Operatiuni complete" },
+          { name: "Operator", perms: "45/124", desc: "Procesare comenzi" },
+          { name: "Warehouse", perms: "18/124", desc: "Picking + Handover" },
+          { name: "Viewer", perms: "15/124", desc: "Doar vizualizare" },
+        ].map((role, i) => (
+          <Card key={i}>
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold">{role.name}</span>
+                <Badge variant="outline">{role.perms}</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">{role.desc}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <SectionTitle icon={<Key className="h-6 w-6" />}>Categorii Permisiuni</SectionTitle>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+        {permissionCategories.map((cat, i) => (
+          <Card key={i} className="text-center">
+            <CardContent className="pt-3 pb-2">
+              <p className="font-semibold text-sm">{cat.category}</p>
+              <p className="text-xs text-muted-foreground">{cat.count} permisiuni</p>
             </CardContent>
           </Card>
         ))}
@@ -1681,103 +1881,265 @@ function IntegrationsContent() {
   );
 }
 
-function APIReferenceContent() {
+function CronContent() {
   return (
     <div className="space-y-8">
       <div className="prose max-w-none">
         <p className="text-lg text-muted-foreground">
-          API-ul REST expune peste 50 de endpoints pentru toate operatiunile CRUD
-          si actiunile de business.
+          Taskuri automate programate: sincronizare date, tracking AWB,
+          alerte, cleanup. Toate necesita header <code>Authorization: Bearer CRON_SECRET</code>.
         </p>
       </div>
 
-      <SectionTitle icon={<Terminal className="h-6 w-6" />}>Endpoints Principale</SectionTitle>
+      <SectionTitle icon={<Timer className="h-6 w-6" />}>Lista CRON Jobs</SectionTitle>
 
-      <div className="space-y-4">
+      <div className="space-y-2">
         {[
-          { method: "GET", path: "/api/orders", desc: "Lista comenzi cu filtrare si paginare" },
-          { method: "POST", path: "/api/orders/process", desc: "Proceseaza o comanda (factura + AWB)" },
-          { method: "GET", path: "/api/products", desc: "Lista produse" },
-          { method: "POST", path: "/api/invoices/issue", desc: "Emite factura pentru comanda" },
-          { method: "POST", path: "/api/awb/create", desc: "Genereaza AWB pentru comanda" },
-          { method: "GET", path: "/api/inventory-items", desc: "Lista articole inventar" },
-        ].map((ep, i) => (
+          { endpoint: "/api/cron/sync-orders", freq: "15 min", desc: "Sincronizeaza comenzi noi din Shopify" },
+          { endpoint: "/api/cron/trendyol-orders", freq: "15 min", desc: "Sincronizeaza comenzi Trendyol" },
+          { endpoint: "/api/cron/sync-awb", freq: "30 min", desc: "Actualizeaza status AWB din FanCourier" },
+          { endpoint: "/api/cron/ads-sync", freq: "1 ora", desc: "Fetch metrici campanii Meta/TikTok" },
+          { endpoint: "/api/cron/ads-alerts", freq: "1 ora", desc: "Verifica reguli de alertare ads" },
+          { endpoint: "/api/cron/ai-analysis", freq: "Zilnic", desc: "Genereaza insights AI pentru ads" },
+          { endpoint: "/api/cron/handover-alerts", freq: "Zilnic", desc: "Alerte colete nepredate" },
+          { endpoint: "/api/cron/stock-alerts", freq: "Zilnic", desc: "Alerte stoc scazut" },
+        ].map((job, i) => (
           <div key={i} className="flex items-center gap-4 p-3 bg-muted rounded-lg">
-            <Badge variant={ep.method === "GET" ? "secondary" : "default"} className="w-16 justify-center">
-              {ep.method}
-            </Badge>
-            <code className="text-sm font-mono text-foreground">{ep.path}</code>
-            <span className="text-sm text-muted-foreground ml-auto">{ep.desc}</span>
+            <Badge variant="secondary" className="min-w-[80px] justify-center">{job.freq}</Badge>
+            <code className="text-sm font-mono flex-1">{job.endpoint}</code>
+            <span className="text-xs text-muted-foreground hidden md:block">{job.desc}</span>
           </div>
         ))}
       </div>
 
-      <SectionTitle icon={<Shield className="h-6 w-6" />}>Autentificare</SectionTitle>
-
-      <InfoBox variant="info" title="NextAuth Sessions">
-        Toate endpoint-urile sunt protejate cu NextAuth. Sesiunea este verificata
-        automat si permisiunile sunt validate pentru fiecare actiune.
+      <InfoBox variant="info" title="Configurare Vercel Cron">
+        CRON jobs sunt configurate in <code>vercel.json</code> si ruleaza pe Vercel serverless.
+        Fiecare job are un lock pentru a preveni executii paralele.
       </InfoBox>
     </div>
   );
 }
 
-function ChangelogContent() {
+function ApiReferenceContent() {
+  const apiGroups = [
+    {
+      name: "Orders",
+      endpoints: [
+        { method: "GET", path: "/api/orders", desc: "Lista comenzi" },
+        { method: "GET", path: "/api/orders/[id]", desc: "Detalii comanda" },
+        { method: "POST", path: "/api/orders", desc: "Creare comanda" },
+        { method: "PUT", path: "/api/orders/[id]", desc: "Update comanda" },
+        { method: "POST", path: "/api/orders/process", desc: "Procesare completa" },
+        { method: "POST", path: "/api/orders/validate", desc: "Validare batch" },
+      ]
+    },
+    {
+      name: "Invoices",
+      endpoints: [
+        { method: "GET", path: "/api/invoices", desc: "Lista facturi" },
+        { method: "POST", path: "/api/invoices/issue", desc: "Emitere factura" },
+        { method: "GET", path: "/api/invoices/[id]/pdf", desc: "Download PDF" },
+        { method: "POST", path: "/api/invoices/[id]/cancel", desc: "Storno" },
+      ]
+    },
+    {
+      name: "AWB",
+      endpoints: [
+        { method: "GET", path: "/api/awb", desc: "Lista AWB-uri" },
+        { method: "POST", path: "/api/awb/create", desc: "Generare AWB" },
+        { method: "GET", path: "/api/awb/[id]/label", desc: "Download eticheta" },
+        { method: "POST", path: "/api/awb/refresh", desc: "Refresh tracking" },
+      ]
+    },
+    {
+      name: "Picking",
+      endpoints: [
+        { method: "GET", path: "/api/picking", desc: "Lista picking" },
+        { method: "POST", path: "/api/picking/create", desc: "Creare lista" },
+        { method: "POST", path: "/api/picking/[id]/scan", desc: "Scanare produs" },
+      ]
+    },
+    {
+      name: "Handover",
+      endpoints: [
+        { method: "GET", path: "/api/handover/today", desc: "Sesiune azi" },
+        { method: "POST", path: "/api/handover/scan", desc: "Scanare AWB" },
+        { method: "POST", path: "/api/handover/finalize", desc: "Finalizare" },
+      ]
+    },
+  ];
+
   return (
     <div className="space-y-8">
       <div className="prose max-w-none">
         <p className="text-lg text-muted-foreground">
-          Istoricul modificarilor si imbunatatirilor aduse platformei.
+          Referinta completa API-uri disponibile. Toate endpoint-urile necesita
+          autentificare (NextAuth session sau API key).
         </p>
       </div>
 
-      <div className="space-y-6">
-        {[
-          {
-            version: "3.0.0",
-            date: "2026-01-13",
-            title: "Module Advertising si RBAC",
-            changes: [
-              "Integrare Meta Ads si TikTok Ads",
-              "Sistem RBAC complet cu roluri si permisiuni",
-              "Pagina de documentatie interactiva",
-            ]
-          },
-          {
-            version: "2.5.0",
-            date: "2025-12-01",
-            title: "Inventar Avansat",
-            changes: [
-              "Suport pentru produse compuse (retete)",
-              "Alerte stoc scazut",
-              "Import/export inventar",
-            ]
-          },
-          {
-            version: "2.0.0",
-            date: "2025-10-15",
-            title: "Integrare Trendyol",
-            changes: [
-              "Sincronizare comenzi Trendyol",
-              "Mapare produse intre platforme",
-              "Dashboard unificat",
-            ]
-          },
-        ].map((release, i) => (
-          <Card key={i}>
-            <CardHeader>
+      {apiGroups.map((group, i) => (
+        <div key={i}>
+          <SectionTitle icon={<Code className="h-6 w-6" />}>{group.name} API</SectionTitle>
+          <div className="space-y-2">
+            {group.endpoints.map((ep, j) => (
+              <ApiEndpoint key={j} {...ep} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EnvContent() {
+  return (
+    <div className="space-y-8">
+      <div className="prose max-w-none">
+        <p className="text-lg text-muted-foreground">
+          Lista completa a variabilelor de mediu necesare pentru rularea platformei.
+        </p>
+      </div>
+
+      <CodeBlock
+        title=".env.example"
+        code={`# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/erp_cashflowsync"
+
+# NextAuth
+NEXTAUTH_SECRET="your-secret-key-min-32-chars"
+NEXTAUTH_URL="https://your-domain.com"
+
+# Shopify
+SHOPIFY_STORE_DOMAIN="your-store.myshopify.com"
+SHOPIFY_ACCESS_TOKEN="shpat_xxxxx"
+SHOPIFY_WEBHOOK_SECRET="whsec_xxxxx"
+
+# Oblio
+OBLIO_EMAIL="your-email@example.com"
+OBLIO_API_SECRET="your-oblio-secret"
+
+# FanCourier
+FANCOURIER_CLIENT_ID="your-client-id"
+FANCOURIER_USERNAME="your-username"
+FANCOURIER_PASSWORD="your-password"
+
+# Meta Ads
+META_APP_ID="your-app-id"
+META_APP_SECRET="your-app-secret"
+
+# TikTok Ads
+TIKTOK_APP_ID="your-tiktok-app-id"
+TIKTOK_APP_SECRET="your-tiktok-secret"
+
+# Trendyol
+TRENDYOL_SUPPLIER_ID="your-supplier-id"
+TRENDYOL_API_KEY="your-api-key"
+TRENDYOL_API_SECRET="your-api-secret"
+
+# Claude AI (optional)
+ANTHROPIC_API_KEY="sk-ant-xxxxx"
+
+# CRON
+CRON_SECRET="your-cron-secret"
+
+# Google OAuth (optional)
+GOOGLE_CLIENT_ID="xxxxx.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="GOCSPX-xxxxx"`}
+      />
+    </div>
+  );
+}
+
+function ChangelogContent() {
+  const versions = [
+    {
+      version: "4.0.0",
+      date: "2026-02-02",
+      changes: [
+        "FIX: Ramburs automat 0 pentru comenzi platite online",
+        "ADD: Documentatie completa cu download PDF",
+        "ADD: Diagrame flux business end-to-end",
+      ]
+    },
+    {
+      version: "3.5.0",
+      date: "2026-01-28",
+      changes: [
+        "ADD: Suport multi-store Trendyol",
+        "ADD: Campuri produs noi pentru Trendyol",
+        "FIX: Dashboard stats per store",
+      ]
+    },
+    {
+      version: "3.4.0",
+      date: "2026-01-20",
+      changes: [
+        "ADD: AI category suggestion pentru Trendyol",
+        "ADD: Bulk product publishing",
+        "FIX: Trendyol attribute mapping",
+      ]
+    },
+    {
+      version: "3.3.0",
+      date: "2026-01-15",
+      changes: [
+        "ADD: Sistem alerte stoc scazut",
+        "ADD: Rapoarte avansate inventory",
+        "FIX: Stock sync cu Shopify",
+      ]
+    },
+    {
+      version: "3.2.0",
+      date: "2026-01-10",
+      changes: [
+        "ADD: TikTok Ads integration",
+        "ADD: ROAS per product tracking",
+        "ADD: Ads performance alerts",
+      ]
+    },
+    {
+      version: "3.1.0",
+      date: "2026-01-05",
+      changes: [
+        "ADD: Picking lists agregate",
+        "ADD: Barcode scanning",
+        "ADD: Handover sessions cu raport C0",
+      ]
+    },
+    {
+      version: "3.0.0",
+      date: "2025-12-20",
+      changes: [
+        "MAJOR: Refactorizare completa RBAC",
+        "ADD: 124 permisiuni granulare",
+        "ADD: Grupuri utilizatori",
+        "ADD: Audit logging complet",
+      ]
+    },
+  ];
+
+  return (
+    <div className="space-y-8">
+      <div className="prose max-w-none">
+        <p className="text-lg text-muted-foreground">
+          Istoricul versiunilor platformei ERP CashFlowSync.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        {versions.map((v, i) => (
+          <Card key={i} className="print:break-inside-avoid">
+            <CardHeader className="pb-2">
               <CardTitle className="flex items-center justify-between">
-                <span>v{release.version} - {release.title}</span>
-                <Badge variant="outline">{release.date}</Badge>
+                <span>v{v.version}</span>
+                <Badge variant="outline">{v.date}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-1">
-                {release.changes.map((change, j) => (
-                  <li key={j} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <CheckCircle2 className="h-4 w-4 text-success" />
-                    {change}
-                  </li>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                {v.changes.map((change, j) => (
+                  <li key={j}>• {change}</li>
                 ))}
               </ul>
             </CardContent>
@@ -1788,99 +2150,170 @@ function ChangelogContent() {
   );
 }
 
-function renderContent(moduleId: string) {
-  switch (moduleId) {
-    case "overview": return <OverviewContent />;
-    case "architecture": return <ArchitectureContent />;
-    case "orders": return <OrdersContent />;
-    case "products": return <ProductsContent />;
-    case "invoices": return <InvoicesContent />;
-    case "shipping": return <ShippingContent />;
-    case "picking": return <PickingContent />;
-    case "handover": return <HandoverContent />;
-    case "advertising": return <AdvertisingContent />;
-    case "rbac": return <RBACContent />;
-    case "database": return <DatabaseContent />;
-    case "integrations": return <IntegrationsContent />;
-    case "api": return <APIReferenceContent />;
-    case "changelog": return <ChangelogContent />;
-    default: return <OverviewContent />;
-  }
-}
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 
-export default function DocumentationPage() {
+export default function DocsPage() {
   const [activeModule, setActiveModule] = useState("overview");
-  const [search, setSearch] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const filteredModules = modules.filter(m =>
-    m.name.toLowerCase().includes(search.toLowerCase())
+    m.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const currentModule = modules.find(m => m.id === activeModule);
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const renderContent = () => {
+    switch (activeModule) {
+      case "overview": return <OverviewContent />;
+      case "quickstart": return <QuickstartContent />;
+      case "business-flow": return <BusinessFlowContent />;
+      case "orders": return <OrdersContent />;
+      case "invoices": return <InvoicesContent />;
+      case "shipping": return <ShippingContent />;
+      case "picking": return <PickingContent />;
+      case "handover": return <HandoverContent />;
+      case "products": return <ProductsContent />;
+      case "advertising": return <AdvertisingContent />;
+      case "trendyol": return <TrendyolContent />;
+      case "architecture": return <ArchitectureContent />;
+      case "database": return <DatabaseContent />;
+      case "integrations": return <IntegrationsContent />;
+      case "rbac": return <RBACContent />;
+      case "cron": return <CronContent />;
+      case "api": return <ApiReferenceContent />;
+      case "env": return <EnvContent />;
+      case "changelog": return <ChangelogContent />;
+      default: return <OverviewContent />;
+    }
+  };
+
+  const groupedModules = {
+    overview: filteredModules.filter(m => m.category === "overview"),
+    business: filteredModules.filter(m => m.category === "business"),
+    technical: filteredModules.filter(m => m.category === "technical"),
+    reference: filteredModules.filter(m => m.category === "reference"),
+  };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
-      <div className="w-64 border-r border-border bg-card flex flex-col">
-        <div className="p-4 border-b border-border">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Cauta..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
+    <>
+      {/* Print styles */}
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .print-content, .print-content * {
+            visibility: visible;
+          }
+          .print-content {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 20px;
+          }
+          .no-print {
+            display: none !important;
+          }
+          @page {
+            margin: 1cm;
+            size: A4;
+          }
+        }
+      `}</style>
+
+      <div className="flex h-[calc(100vh-4rem)]">
+        {/* Sidebar */}
+        <div className="w-72 border-r bg-muted/30 flex flex-col no-print">
+          <div className="p-4 border-b">
+            <div className="flex items-center gap-2 mb-4">
+              <BookOpen className="h-6 w-6 text-primary" />
+              <div>
+                <h1 className="font-bold text-lg">Documentatie ERP</h1>
+                <p className="text-xs text-muted-foreground">v{DOC_VERSION} • {LAST_UPDATED}</p>
+              </div>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cauta..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+          </div>
+
+          <ScrollArea className="flex-1 p-4">
+            <div className="space-y-6">
+              {Object.entries(groupedModules).map(([category, mods]) => (
+                mods.length > 0 && (
+                  <div key={category}>
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                      {category === "overview" && "Introducere"}
+                      {category === "business" && "Fluxuri Business"}
+                      {category === "technical" && "Tehnic"}
+                      {category === "reference" && "Referinta"}
+                    </h3>
+                    <div className="space-y-1">
+                      {mods.map((module) => {
+                        const Icon = module.icon;
+                        return (
+                          <button
+                            key={module.id}
+                            onClick={() => setActiveModule(module.id)}
+                            className={cn(
+                              "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left",
+                              activeModule === module.id
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <Icon className="h-4 w-4" />
+                            {module.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )
+              ))}
+            </div>
+          </ScrollArea>
+
+          <div className="p-4 border-t">
+            <Button onClick={handlePrint} className="w-full" variant="outline">
+              <Download className="h-4 w-4 mr-2" />
+              Download PDF
+            </Button>
           </div>
         </div>
-        <ScrollArea className="flex-1">
-          <div className="p-2">
-            {filteredModules.map((module) => {
-              const Icon = module.icon;
-              return (
-                <button
-                  key={module.id}
-                  onClick={() => setActiveModule(module.id)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors",
-                    activeModule === module.id
-                      ? "bg-primary/20 text-primary"
-                      : "hover:bg-muted text-foreground"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="text-sm font-medium">{module.name}</span>
-                </button>
-              );
-            })}
+
+        {/* Content */}
+        <div className="flex-1 overflow-auto">
+          <div ref={contentRef} className="print-content max-w-4xl mx-auto p-8">
+            {/* Print header - only visible when printing */}
+            <div className="hidden print:block mb-8 pb-4 border-b">
+              <h1 className="text-2xl font-bold">ERP CashFlowSync - Documentatie</h1>
+              <p className="text-sm text-gray-600">
+                Versiune {DOC_VERSION} • Generat {new Date().toLocaleDateString("ro-RO")}
+              </p>
+            </div>
+
+            {renderContent()}
+
+            {/* Print footer */}
+            <div className="hidden print:block mt-8 pt-4 border-t text-center text-xs text-gray-500">
+              ERP CashFlowSync • Documentatie Tehnica si Business • Pagina generata automat
+            </div>
           </div>
-        </ScrollArea>
-        <div className="p-4 border-t border-border text-xs text-muted-foreground">
-          <div>v{DOC_VERSION}</div>
-          <div>Actualizat: {LAST_UPDATED}</div>
         </div>
       </div>
-
-      <div className="flex-1 overflow-auto bg-background">
-        <div className="sticky top-0 z-10 bg-background border-b border-border px-8 py-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Book className="h-4 w-4" />
-            <span>Documentatie</span>
-            <ChevronRight className="h-4 w-4" />
-            <span className="text-foreground font-medium">{currentModule?.name}</span>
-          </div>
-        </div>
-
-        <div className="max-w-4xl mx-auto px-8 py-8">
-          {renderContent(activeModule)}
-        </div>
-
-        <div className="border-t border-border bg-muted px-8 py-6 mt-8">
-          <div className="max-w-4xl mx-auto text-center text-sm text-muted-foreground">
-            <p>ERP CashFlowSync - Documentatie Tehnica v{DOC_VERSION}</p>
-            <p className="mt-1">Ultima actualizare: {LAST_UPDATED}</p>
-          </div>
-        </div>
-      </div>
-    </div>
+    </>
   );
 }
