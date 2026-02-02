@@ -206,13 +206,13 @@ export default async function DashboardPage({
           href={buildFilteredHref("/orders", { status: "PENDING,VALIDATED" })}
         />
         <StatCard
-          title="Expediate"
-          value={stats.shipped}
+          title="In Tranzit"
+          value={stats.inTransit}
           icon={Truck}
-          description="Comenzi in curs de livrare"
-          tooltip="Comenzi cu AWB generat - colete preluate de curier sau in curs de livrare"
+          description="Colete in drum spre clienti"
+          tooltip="AWB-uri in tranzit - colete preluate de curier si in curs de livrare. Egaleaza 'In tranzit' din pagina Tracking."
           variant="default"
-          href={buildFilteredHref("/tracking")}
+          href={buildFilteredHref("/tracking", { status: "in_transit" })}
         />
         <StatCard
           title="Facturi emise"
