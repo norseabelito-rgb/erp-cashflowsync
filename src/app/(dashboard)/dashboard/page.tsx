@@ -12,8 +12,6 @@ import {
   BarChart3,
   ShoppingBag,
   FileText,
-  DollarSign,
-  Megaphone,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +21,6 @@ import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import Link from "next/link";
 import { DashboardCharts } from "./dashboard-charts";
 import { DashboardFilters } from "./dashboard-filters";
-import { DashboardAIInsights } from "./dashboard-ai-insights";
 import { getFilteredDashboardStats } from "@/lib/dashboard-stats";
 
 function StatCard({
@@ -161,14 +158,13 @@ export default async function DashboardPage({
         />
       </Suspense>
 
-      {/* Vânzări de azi - Row Principal */}
+      {/* Vanzari - Row Principal (toate valorile folosesc filtrele selectate) */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
         <StatCard
-          title="Vânzări Azi"
-          value={formatCurrency(stats.todaySalesTotal)}
+          title="Vanzari"
+          value={formatCurrency(stats.totalSales)}
           icon={TrendingUp}
-          description={`${stats.todayOrderCount} comenzi procesate`}
-          trend={stats.salesTrend}
+          description={`${stats.orderCount} comenzi in perioada selectata`}
           variant="success"
           href="/invoices"
         />
@@ -176,7 +172,7 @@ export default async function DashboardPage({
           title="De procesat"
           value={stats.pendingOrders + stats.validatedOrders}
           icon={Clock}
-          description="Comenzi care așteaptă acțiune"
+          description="Comenzi care asteapta actiune (nefacturate)"
           variant={stats.pendingOrders + stats.validatedOrders > 10 ? "warning" : "default"}
           href="/orders?status=PENDING,VALIDATED"
         />
@@ -184,52 +180,52 @@ export default async function DashboardPage({
           title="Expediate"
           value={stats.shipped}
           icon={Truck}
-          description="Comenzi în curs de livrare"
+          description="Comenzi in curs de livrare"
           variant="default"
           href="/tracking"
         />
         <StatCard
-          title="ROAS Ads"
-          value={stats.adsROAS.toFixed(2) + "x"}
-          icon={Megaphone}
-          description={`${stats.activeCampaigns} campanii active`}
-          variant={stats.adsROAS >= 3 ? "success" : stats.adsROAS >= 2 ? "warning" : "error"}
-          href="/ads"
+          title="Facturi emise"
+          value={stats.todayInvoices}
+          icon={FileText}
+          description="In perioada selectata"
+          variant="success"
+          href="/invoices"
         />
       </div>
 
-      {/* Channel Stats - Shopify vs Trendyol */}
+      {/* Channel Stats - Shopify vs Trendyol (toate folosesc filtrele selectate) */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
         <StatCard
           title="Comenzi Shopify"
-          value={stats.shopifyOrdersToday}
+          value={stats.shopifyOrders}
           icon={ShoppingCart}
-          description={formatCurrency(stats.shopifyRevenueToday)}
+          description={formatCurrency(stats.shopifyRevenue)}
           variant="default"
           href="/orders?source=shopify"
         />
         <StatCard
           title="Comenzi Trendyol"
-          value={stats.trendyolOrdersToday}
+          value={stats.trendyolOrders}
           icon={ShoppingBag}
-          description={formatCurrency(stats.trendyolRevenueToday)}
+          description={formatCurrency(stats.trendyolRevenue)}
           variant="default"
           href="/orders?source=trendyol"
         />
         <StatCard
-          title="Total Comenzi Azi"
-          value={stats.shopifyOrdersToday + stats.trendyolOrdersToday}
+          title="Total Comenzi"
+          value={stats.totalOrders}
           icon={Package}
-          description={formatCurrency(stats.shopifyRevenueToday + stats.trendyolRevenueToday)}
+          description={formatCurrency(stats.totalSales)}
           variant="success"
           href="/orders"
         />
         <StatCard
           title="Trendyol de procesat"
-          value={stats.trendyolPendingOrders}
+          value={stats.trendyolPending}
           icon={ShoppingBag}
           description="Comenzi Trendyol in asteptare"
-          variant={stats.trendyolPendingOrders > 5 ? "warning" : "default"}
+          variant={stats.trendyolPending > 5 ? "warning" : "default"}
           href="/orders?source=trendyol&status=PENDING,VALIDATED"
         />
       </div>
@@ -239,11 +235,11 @@ export default async function DashboardPage({
         <div className="lg:col-span-2">
           <Suspense fallback={<Card className="h-[300px] animate-pulse" />}>
             <DashboardCharts
-              salesData={stats.salesLast7Days}
+              salesData={stats.salesData.map(d => ({ date: d.date, sales: d.total, orders: d.orders }))}
             />
           </Suspense>
         </div>
-        
+
         {/* Quick Stats */}
         <Card>
           <CardHeader>
@@ -255,20 +251,6 @@ export default async function DashboardPage({
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
               <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-status-success" />
-                <span className="text-sm">Cheltuieli Ads</span>
-              </div>
-              <span className="font-semibold">{formatCurrency(stats.adsSpend)}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-status-info" />
-                <span className="text-sm">Venituri Ads</span>
-              </div>
-              <span className="font-semibold">{formatCurrency(stats.adsRevenue)}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2">
                 <Package className="h-4 w-4 text-primary" />
                 <span className="text-sm">Total Produse</span>
               </div>
@@ -277,7 +259,7 @@ export default async function DashboardPage({
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-status-warning" />
-                <span className="text-sm">Stoc Scăzut</span>
+                <span className="text-sm">Stoc Scazut</span>
               </div>
               <Badge variant={stats.lowStockCount > 0 ? "warning" : "success"}>
                 {stats.lowStockCount}
@@ -292,15 +274,22 @@ export default async function DashboardPage({
                 {stats.validationFailed}
               </Badge>
             </div>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-status-success" />
+                <span className="text-sm">Facturi emise</span>
+              </div>
+              <span className="font-semibold">{stats.todayInvoices}</span>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <div className="flex items-center gap-2">
+                <Truck className="h-4 w-4 text-status-info" />
+                <span className="text-sm">Livrate</span>
+              </div>
+              <span className="font-semibold">{stats.delivered}</span>
+            </div>
           </CardContent>
         </Card>
-      </div>
-
-      {/* AI Insights Section */}
-      <div id="ai-insights" className="mb-6">
-        <Suspense fallback={<Card className="h-[200px] animate-pulse" />}>
-          <DashboardAIInsights />
-        </Suspense>
       </div>
 
       {/* Content Grid */}
@@ -419,22 +408,22 @@ export default async function DashboardPage({
               href="/stores"
               className="text-sm font-normal text-primary hover:underline"
             >
-              Gestionare →
+              Gestionare
             </Link>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {stats.storeStats.length === 0 ? (
+          {stats.stores.length === 0 ? (
             <EmptyState
               icon={Package}
               title="Nu ai magazine configurate"
-              description="Conectează primul tău magazin Shopify pentru a începe."
-              action={{ label: "Adaugă Magazin", href: "/stores" }}
+              description="Conecteaza primul tau magazin Shopify pentru a incepe."
+              action={{ label: "Adauga Magazin", href: "/stores" }}
               size="sm"
             />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {stats.storeStats.map((store: typeof stats.storeStats[number]) => (
+              {stats.stores.map((store) => (
                 <div
                   key={store.id}
                   className="flex items-center justify-between p-4 rounded-lg bg-muted/50"
@@ -445,14 +434,11 @@ export default async function DashboardPage({
                     </div>
                     <div>
                       <p className="font-medium">{store.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {store.shopifyDomain}
-                      </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-semibold">
-                      {store._count.orders}
+                      {store.ordersCount}
                     </p>
                     <p className="text-xs text-muted-foreground">comenzi</p>
                   </div>
