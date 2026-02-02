@@ -59,17 +59,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Deduplică awbIds pentru a evita duplicate la print și picking list
+    const uniqueAwbIds = [...new Set(results.awbIds)];
+
     // Creează picking list automat pentru AWB-urile create (dacă nu sunt deja într-un picking list)
     let pickingList = null;
-    if (results.awbIds.length > 0) {
+    if (uniqueAwbIds.length > 0) {
       try {
         // Verifică dacă AWB-urile au deja picking list
         const existingPLAs = await prisma.pickingListAWB.findMany({
-          where: { awbId: { in: results.awbIds } },
+          where: { awbId: { in: uniqueAwbIds } },
           select: { awbId: true },
         });
         const existingAwbIds = new Set(existingPLAs.map((p) => p.awbId));
-        const newAwbIds = results.awbIds.filter((id) => !existingAwbIds.has(id));
+        const newAwbIds = uniqueAwbIds.filter((id) => !existingAwbIds.has(id));
 
         if (newAwbIds.length > 0) {
           pickingList = await createPickingListFromAWBs({
@@ -87,9 +90,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Trimite AWB-urile la printare automată (dacă există imprimante cu autoPrint)
-    if (results.awbIds.length > 0) {
+    if (uniqueAwbIds.length > 0) {
       try {
-        await sendAWBsToPrint(results.awbIds);
+        await sendAWBsToPrint(uniqueAwbIds);
       } catch (printError: any) {
         console.error("Error sending AWBs to print:", printError);
         // Nu returnăm eroare - AWB-urile au fost create cu succes

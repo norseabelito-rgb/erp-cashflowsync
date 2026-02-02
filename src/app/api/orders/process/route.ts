@@ -159,11 +159,13 @@ export async function POST(request: NextRequest) {
     }
 
     // PASUL 3: Creăm picking list pentru AWB-urile procesate cu succes
+    // Deduplică AWB IDs pentru a evita duplicate la picking list și print
+    const uniqueAwbIds = [...new Set(successfulAwbIds)];
     let pickingList = null;
-    if (successfulAwbIds.length > 0) {
+    if (uniqueAwbIds.length > 0) {
       try {
         pickingList = await createPickingListFromAWBs({
-          awbIds: successfulAwbIds,
+          awbIds: uniqueAwbIds,
           createdById: session.user.id,
           createdByName: session.user.name || session.user.email || "Unknown",
         });
@@ -179,9 +181,9 @@ export async function POST(request: NextRequest) {
     }
 
     // PASUL 5: Trimitem AWB-urile la printare
-    if (successfulAwbIds.length > 0) {
+    if (uniqueAwbIds.length > 0) {
       try {
-        await sendAWBsToPrint(successfulAwbIds);
+        await sendAWBsToPrint(uniqueAwbIds);
       } catch (error: any) {
         console.error("Eroare la trimiterea AWB-urilor la printare:", error);
       }

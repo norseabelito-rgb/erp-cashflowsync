@@ -348,6 +348,7 @@ export default function OrdersPage() {
   const [awbStatusFilter, setAwbStatusFilter] = useState<string>("all"); // "all" | "tranzit" | "livrat" | "retur" | "pending" | "anulat"
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+  const [productFilter, setProductFilter] = useState<string>(""); // Filtru SKU sau nume produs
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(50);
   const [awbModalOpen, setAwbModalOpen] = useState(false);
@@ -409,7 +410,7 @@ export default function OrdersPage() {
   const [selectedDbErrors, setSelectedDbErrors] = useState<string[]>([]);
 
   const { data: ordersData, isLoading: ordersLoading, isError: ordersError, refetch: refetchOrders } = useQuery({
-    queryKey: ["orders", statusFilter, storeFilter, sourceFilter, awbFilter, awbStatusFilter, searchQuery, startDate, endDate, page, limit],
+    queryKey: ["orders", statusFilter, storeFilter, sourceFilter, awbFilter, awbStatusFilter, searchQuery, startDate, endDate, productFilter, page, limit],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.set("status", statusFilter);
@@ -421,6 +422,7 @@ export default function OrdersPage() {
       if (searchQuery) params.set("search", searchQuery);
       if (startDate) params.set("startDate", startDate);
       if (endDate) params.set("endDate", endDate);
+      if (productFilter) params.set("containsProduct", productFilter);
       params.set("page", String(page));
       params.set("limit", String(limit));
       const res = await fetch(`/api/orders?${params}`);
@@ -1165,7 +1167,7 @@ export default function OrdersPage() {
             )}
           </div>
           
-          {/* Filtre pe date */}
+          {/* Filtre pe date și produs */}
           <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -1196,6 +1198,26 @@ export default function OrdersPage() {
                 Resetează
               </Button>
             )}
+
+            {/* Filtru produs (SKU sau nume) */}
+            <div className="flex items-center gap-2 ml-4 border-l pl-4">
+              <Package className="h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Filtru SKU sau nume produs..."
+                value={productFilter}
+                onChange={(e) => { setProductFilter(e.target.value); setPage(1); }}
+                className="w-[220px]"
+              />
+              {productFilter && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setProductFilter(""); setPage(1); }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
             
             {/* Info paginare */}
             {ordersData?.pagination && (

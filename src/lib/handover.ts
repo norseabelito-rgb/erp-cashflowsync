@@ -398,7 +398,7 @@ export async function scanAWB(
     };
   }
 
-  // AWB deja scanat azi
+  // AWB deja scanat azi - verificăm înainte de update atomic
   if (awb.handedOverAt && awb.handedOverAt >= todayStart && awb.handedOverAt < todayEnd) {
     return {
       success: false,
@@ -408,98 +408,35 @@ export async function scanAWB(
     };
   }
 
-  // AWB scanat în altă zi (rescanare)
-  if (awb.handedOverAt && awb.handedOverAt < todayStart) {
-    // Obținem sesiunea curentă
-    const currentSession = await getOrCreateTodaySession();
-    
-    // Actualizăm data scanării
-    await prisma.aWB.update({
-      where: { id: awb.id },
-      data: {
-        handedOverAt: new Date(),
-        handedOverBy: userId,
-        handedOverByName: userName,
-        handedOverNote: `Rescanat. Scanat anterior pe ${awb.handedOverAt.toLocaleDateString("ro-RO")}`,
-        notHandedOver: false,
-        notHandedOverAt: null,
-        hasC0WithoutScan: false,
-        handoverSessionId: currentSession.id,
-      },
-    });
-
-    const updatedAwb = await prisma.aWB.findUnique({
-      where: { id: awb.id },
-      include: {
-        order: {
-          include: {
-            store: true,
-            lineItems: { select: { quantity: true, title: true, variantTitle: true } },
-          },
-        },
-      },
-    });
-
-    return {
-      success: true,
-      message: `AWB-ul a fost scanat pe ${awb.handedOverAt.toLocaleDateString("ro-RO")}. Va fi marcat ca predat pentru azi.`,
-      type: "warning",
-      awb: updatedAwb ? mapAWBToHandover(updatedAwb) : undefined,
-      details: { awbNumber: cleanAwbNumber, orderNumber, previousScanDate: awb.handedOverAt },
-    };
-  }
-
-  // AWB din Lista Nepredate
-  if (awb.notHandedOver) {
-    // Obținem sesiunea curentă
-    const currentSession = await getOrCreateTodaySession();
-    
-    await prisma.aWB.update({
-      where: { id: awb.id },
-      data: {
-        handedOverAt: new Date(),
-        handedOverBy: userId,
-        handedOverByName: userName,
-        handedOverNote: `Fost NEPREDAT din ${awb.createdAt.toLocaleDateString("ro-RO")}`,
-        notHandedOver: false,
-        notHandedOverAt: null,
-        hasC0WithoutScan: false,
-        handoverSessionId: currentSession.id,
-      },
-    });
-
-    const updatedAwb = await prisma.aWB.findUnique({
-      where: { id: awb.id },
-      include: {
-        order: {
-          include: {
-            store: true,
-            lineItems: { select: { quantity: true, title: true, variantTitle: true } },
-          },
-        },
-      },
-    });
-
-    return {
-      success: true,
-      message: `AWB-ul este din ${awb.createdAt.toLocaleDateString("ro-RO")} și era marcat NEPREDAT. A fost mutat în predările de azi.`,
-      type: "warning",
-      awb: updatedAwb ? mapAWBToHandover(updatedAwb) : undefined,
-      details: { awbNumber: cleanAwbNumber, orderNumber, wasNotHandedOver: true },
-    };
-  }
-
-  // Obținem sesiunea curentă pentru a lega AWB-ul
+  // Obținem sesiunea curentă
   const currentSession = await getOrCreateTodaySession();
+  const now = new Date();
 
-  // Scanare normală (AWB de azi, prima scanare)
-  await prisma.aWB.update({
-    where: { id: awb.id },
+  // Salvăm datele vechi pentru a determina tipul de mesaj
+  const previousHandedOverAt = awb.handedOverAt;
+  const wasNotHandedOver = awb.notHandedOver;
+  const awbCreatedAt = awb.createdAt;
+
+  // UPDATE ATOMIC - folosim updateMany cu condiție pentru a evita race conditions
+  // Actualizăm DOAR dacă AWB-ul nu a fost scanat azi între timp
+  const updateResult = await prisma.aWB.updateMany({
+    where: {
+      id: awb.id,
+      // Condiție: nu a fost scanat azi (previne double scan)
+      OR: [
+        { handedOverAt: null },
+        { handedOverAt: { lt: todayStart } },
+      ],
+    },
     data: {
-      handedOverAt: new Date(),
+      handedOverAt: now,
       handedOverBy: userId,
       handedOverByName: userName,
-      handedOverNote: null,
+      handedOverNote: previousHandedOverAt && previousHandedOverAt < todayStart
+        ? `Rescanat. Scanat anterior pe ${previousHandedOverAt.toLocaleDateString("ro-RO")}`
+        : wasNotHandedOver
+          ? `Fost NEPREDAT din ${awbCreatedAt.toLocaleDateString("ro-RO")}`
+          : null,
       notHandedOver: false,
       notHandedOverAt: null,
       hasC0WithoutScan: false,
@@ -507,6 +444,33 @@ export async function scanAWB(
     },
   });
 
+  // Dacă updateResult.count === 0, înseamnă că alt proces a scanat deja AWB-ul
+  if (updateResult.count === 0) {
+    // Reîncărcăm AWB-ul pentru a vedea timestamp-ul corect
+    const freshAwb = await prisma.aWB.findUnique({
+      where: { id: awb.id },
+      select: { handedOverAt: true },
+    });
+
+    if (freshAwb?.handedOverAt) {
+      return {
+        success: false,
+        message: `AWB-ul a fost deja scanat azi la ${freshAwb.handedOverAt.toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}`,
+        type: "error",
+        details: { awbNumber: cleanAwbNumber, orderNumber, previousScanDate: freshAwb.handedOverAt },
+      };
+    }
+
+    // Fallback - nu ar trebui să ajungem aici
+    return {
+      success: false,
+      message: `AWB-ul nu a putut fi scanat. Încercați din nou.`,
+      type: "error",
+      details: { awbNumber: cleanAwbNumber, orderNumber },
+    };
+  }
+
+  // Obținem AWB-ul actualizat pentru răspuns
   const updatedAwb = await prisma.aWB.findUnique({
     where: { id: awb.id },
     include: {
@@ -518,6 +482,27 @@ export async function scanAWB(
       },
     },
   });
+
+  // Determinăm tipul de mesaj bazat pe starea anterioară
+  if (previousHandedOverAt && previousHandedOverAt < todayStart) {
+    return {
+      success: true,
+      message: `AWB-ul a fost scanat pe ${previousHandedOverAt.toLocaleDateString("ro-RO")}. Va fi marcat ca predat pentru azi.`,
+      type: "warning",
+      awb: updatedAwb ? mapAWBToHandover(updatedAwb) : undefined,
+      details: { awbNumber: cleanAwbNumber, orderNumber, previousScanDate: previousHandedOverAt },
+    };
+  }
+
+  if (wasNotHandedOver) {
+    return {
+      success: true,
+      message: `AWB-ul este din ${awbCreatedAt.toLocaleDateString("ro-RO")} și era marcat NEPREDAT. A fost mutat în predările de azi.`,
+      type: "warning",
+      awb: updatedAwb ? mapAWBToHandover(updatedAwb) : undefined,
+      details: { awbNumber: cleanAwbNumber, orderNumber, wasNotHandedOver: true },
+    };
+  }
 
   return {
     success: true,
@@ -549,8 +534,11 @@ export async function getOrCreateTodaySession(): Promise<{
   });
 
   if (!session) {
-    session = await prisma.handoverSession.create({
-      data: { date: today },
+    // Folosim upsert pentru a evita race condition la creare
+    session = await prisma.handoverSession.upsert({
+      where: { date: today },
+      update: {}, // Nu actualizăm nimic dacă există
+      create: { date: today },
     });
   }
 
