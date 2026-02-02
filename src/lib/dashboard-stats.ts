@@ -1,5 +1,6 @@
 import prisma from "@/lib/db";
 import { startOfDay, endOfDay, parseISO } from "date-fns";
+import { getCategoryFilterConditions } from "@/lib/awb-status";
 
 /**
  * Dashboard Filters Interface
@@ -22,7 +23,7 @@ export interface DashboardStats {
   validatedOrders: number;
   validationFailed: number;
   invoiced: number;
-  shipped: number;
+  inTransit: number; // AWBs currently in transit (matches tracking page count)
   delivered: number;
 
   // Sales metrics
@@ -201,7 +202,7 @@ export async function getFilteredDashboardStats(
     validatedOrders,     // VALIDATED + not invoiced
     validationFailed,
     invoiced,
-    shipped,
+    inTransit,
     delivered,
 
     // Sales aggregate
@@ -273,11 +274,15 @@ export async function getFilteredDashboardStats(
       },
     }),
 
-    // Shipped orders
-    prisma.order.count({
+    // In transit AWBs (matches tracking page "In tranzit" count)
+    // Uses AWB.currentStatus instead of Order.status for accuracy
+    prisma.aWB.count({
       where: {
-        ...baseWhere,
-        status: "SHIPPED",
+        createdAt: dateWhere,
+        ...(filters.storeId && filters.storeId !== "all" && {
+          order: { storeId: filters.storeId },
+        }),
+        OR: getCategoryFilterConditions("in_transit") || [],
       },
     }),
 
@@ -449,7 +454,7 @@ export async function getFilteredDashboardStats(
     validatedOrders,
     validationFailed,
     invoiced,
-    shipped,
+    inTransit, // AWBs in transit (matches tracking page)
     delivered,
 
     // Sales metrics
