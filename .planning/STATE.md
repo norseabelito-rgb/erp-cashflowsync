@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.3 of 10 (Dashboard Rework)
-Plan: 4 of 5
-Status: In progress
-Last activity: 2026-02-03 - Completed 07.3-04-PLAN.md (Clickable stat cards with filter context)
+Plan: 5 of 5
+Status: Phase complete
+Last activity: 2026-02-03 - Completed 07.3-05-PLAN.md (Retururi card and dashboard cleanup)
 
-Progress: [██████████████████░░] ~92% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 4/5 of 7.3)
+Progress: [██████████████████░░] ~93% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 5/5 of 7.3)
 
 ## Phase 7 Progress
 
@@ -55,6 +55,9 @@ Progress: [██████████████████░░] ~92% (7
 
 Recent decisions affecting current work:
 
+- **07.3-05:** Returns counted via AWB status patterns (retur, refuz, return) - matches tracking page logic
+- **07.3-05:** Replaced Trendyol pending card with Retururi card (redundant with De procesat)
+- **07.3-05:** Warning variant on Retururi card when returns > 0
 - **07.3-04:** buildFilteredHref function defined inside DashboardPage (needs access to searchParams)
 - **07.3-04:** All stat card navigation preserves date range and store filter context
 - **07.3-04:** Extra params (status, source) combined with preserved filters via URLSearchParams
@@ -247,18 +250,18 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 07.3-04-PLAN.md (Clickable stat cards with filter context)
+Stopped at: Completed 07.3-05-PLAN.md (Retururi card and dashboard cleanup)
 Resume context:
-- **STAGING BRANCH** - Phase 7.3 in progress
-- Plan 04 complete - buildFilteredHref helper, all stat card navigation preserves filters
-- Ready for Plan 05 (final 7.3 plan)
+- **STAGING BRANCH** - Phase 7.3 COMPLETE
+- Dashboard rework finished - all filters, tooltips, navigation, and returns card done
+- Ready for Phase 7.4: Orders Channel Split
 
 **NEXT STEPS:**
-1. Execute 07.3-05-PLAN.md (if exists)
-2. Complete Phase 7.3
-3. Then 7.4, 7.5 phases
+1. Start Phase 7.4: Orders Channel Split (Shopify/Trendyol/Temu tabs)
+2. Then Phase 7.5: AWB Tracking Fix
+3. Cleanup old Trendyol integration from Settings
 
-Resume file: .planning/phases/07.3-dashboard-rework/07.3-05-PLAN.md
+Resume file: None (Phase 7.3 complete)
 
 ## Phase 7 Features
 
@@ -296,7 +299,7 @@ Task Management Core components:
 | 07.3-02 | 1 | Complete | Apply filters to dashboard queries |
 | 07.3-03 | 2 | Complete | Stat card tooltips with Romanian explanations |
 | 07.3-04 | 2 | Complete | Clickable stat cards preserve filter context |
-| 07.3-05 | 3 | Pending | Gap closure / remaining dashboard fixes |
+| 07.3-05 | 3 | Complete | Retururi card and dashboard cleanup |
 
 ## Phase 7.3 Features (Dashboard Rework)
 
@@ -304,9 +307,12 @@ Task Management Core components:
 - [x] 07.3-02: getFilteredDashboardStats service with consistent filter application
 - [x] 07.3-03: InfoTooltip integration with Romanian explanations for all 8 stat cards
 - [x] 07.3-04: buildFilteredHref helper - clickable stat cards preserve filter context
+- [x] 07.3-05: Returns count in dashboard-stats.ts, Retururi card on dashboard
 
 ## Recent Commits
 
+- `22d2ac6` feat(07.3-05): add Retururi card to dashboard
+- `f70276a` feat(07.3-05): add returns count to dashboard stats
 - `e5c43d8` feat(07.3-04): add buildFilteredHref helper function
 - `449ba27` feat(07.3-03): add Romanian tooltip explanations to all stat cards
 - `ce92d32` feat(07.3-03): extend StatCard with tooltip support
@@ -315,8 +321,7 @@ Task Management Core components:
 - `a90c6e3` fix(07.3-01): restore missing imports in dashboard page
 - `ba3ceff` feat(07.3-01): integrate DashboardFilters into dashboard page
 - `23c7167` feat(07.3-01): create DashboardFilters component
-- `49f6db7` feat(07.2-06): add AI category suggestion UI to mapping page
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-03 (Phase 7.3 Plan 04 complete - Clickable stat cards with filter context)*
+*Last updated: 2026-02-03 (Phase 7.3 COMPLETE - Dashboard rework with filters, tooltips, navigation, returns card)*
