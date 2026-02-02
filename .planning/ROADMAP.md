@@ -261,7 +261,7 @@ Plans:
 **Goal**: Orders page split by sales channel (Shopify/Trendyol/Temu) with channel-specific actions
 **Depends on**: Phase 7.3 (dashboard filters established)
 **Requirements**: ORD-01 through ORD-05
-**Plans**: TBD (estimate 4-5 plans in 2 waves)
+**Plans**: 5 plans in 2 waves
 **Success Criteria** (what must be TRUE):
   1. Three tabs at top: Shopify (default), Trendyol, Temu
   2. Each tab shows only orders from that source
@@ -382,7 +382,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7
 | 7.1. Trendyol Complete Integration | 6/6 | ✓ Complete | 2026-01-30 |
 | 7.2. Trendyol Complete Fix | 6/6 | ✓ Complete | 2026-02-03 |
 | 7.3. Dashboard Rework | 6/6 | ✓ Complete | 2026-02-03 |
-| 7.4. Orders Channel Split | 0/5 | Not started | - |
+| 7.4. Orders Channel Split | 0/5 | Planned | - |
 | 7.5. AWB Tracking Fix | 0/4 | Not started | - |
 | 8. Task Management Advanced | 0/5 | Not started | - |
 | 9. Documentation | 0/4 | Not started | - |
@@ -403,4 +403,5 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7
 *Phase 7.5 inserted: 2026-02-03 (URGENT: AWB tracking fix - correct status counts)*
 *Phase 7.2 completed: 2026-02-03*
 *Phase 7.3 completed: 2026-02-03*
+*Phase 7.4 planned: 2026-02-03 (5 plans in 2 waves)*
 *Depth: comprehensive (15 phases including insertions)*
