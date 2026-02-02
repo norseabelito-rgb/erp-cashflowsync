@@ -18,8 +18,8 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
 - [x] **Phase 6: UX Foundation** - Consistent design, tooltips, and feedback across all pages
 - [x] **Phase 7: Task Management Core** - Data model and basic UI for task tracking
 - [x] **Phase 7.1: Trendyol Complete Integration** - Full Trendyol channel with real-time sync, order processing, and product push (INSERTED)
-- [ ] **Phase 7.2: Trendyol Complete Fix** - Fix product push, multi-company invoice series, category mapping (INSERTED)
-- [ ] **Phase 7.3: Dashboard Rework** - Global filters, correct metrics, tooltips, clickable cards, remove Ads/AI (INSERTED)
+- [x] **Phase 7.2: Trendyol Complete Fix** - Fix product push, multi-company invoice series, category mapping (INSERTED)
+- [x] **Phase 7.3: Dashboard Rework** - Global filters, correct metrics, tooltips, clickable cards, remove Ads/AI (INSERTED)
 - [ ] **Phase 7.4: Orders Channel Split** - Tabs Shopify/Trendyol/Temu, manual order creation (INSERTED)
 - [ ] **Phase 7.5: AWB Tracking Fix** - Correct status logic, accurate card counts (INSERTED)
 - [ ] **Phase 8: Task Management Advanced** - Automation, notifications, and reporting
@@ -217,12 +217,12 @@ Plans:
 - No UI to check batch status and see Trendyol rejection reasons
 
 Plans:
-- [ ] 07.2-01-PLAN.md — Batch status verification & error display UI (Wave 1)
-- [ ] 07.2-02-PLAN.md — Category attribute mapping UI with required field handling (Wave 1)
-- [ ] 07.2-03-PLAN.md — TrendyolStore invoice series integration (Wave 1)
-- [ ] 07.2-04-PLAN.md — Order sync multi-company fix (Wave 1)
-- [ ] 07.2-05-PLAN.md — Bulk process Trendyol orders verification (Wave 2)
-- [ ] 07.2-06-PLAN.md — AI category suggestion (Wave 2)
+- [x] 07.2-01-PLAN.md — Batch status verification & error display UI (Wave 1)
+- [x] 07.2-02-PLAN.md — Category attribute mapping UI with required field handling (Wave 1)
+- [x] 07.2-03-PLAN.md — TrendyolStore invoice series integration (Wave 1)
+- [x] 07.2-04-PLAN.md — Order sync multi-company fix (Wave 1)
+- [x] 07.2-05-PLAN.md — Bulk process Trendyol orders verification (Wave 2)
+- [x] 07.2-06-PLAN.md — AI category suggestion (Wave 2)
 
 ### Phase 7.3: Dashboard Rework (INSERTED)
 **Goal**: Complete dashboard overhaul with global filters, accurate metrics, clear explanations, and actionable cards
@@ -250,12 +250,12 @@ Plans:
 - Cards not clickable - no navigation to detail pages
 
 Plans:
-- [ ] 07.3-01-PLAN.md — Global filter state (date range + store) with URL persistence (Wave 1)
-- [ ] 07.3-02-PLAN.md — Metric calculation fix (all cards respect filters) (Wave 1)
-- [ ] 07.3-03-PLAN.md — Card tooltips with metric explanations (Wave 2)
-- [ ] 07.3-04-PLAN.md — Clickable cards with filter navigation (Wave 2)
-- [ ] 07.3-05-PLAN.md — Remove Ads/AI sections, add Returns card (Wave 3)
-- [ ] 07.3-06-PLAN.md — Verify Expediate vs In Tranzit consistency (Wave 3)
+- [x] 07.3-01-PLAN.md — Global filter state (date range + store) with URL persistence (Wave 1)
+- [x] 07.3-02-PLAN.md — Metric calculation fix (all cards respect filters) (Wave 1)
+- [x] 07.3-03-PLAN.md — Card tooltips with metric explanations (Wave 2)
+- [x] 07.3-04-PLAN.md — Clickable cards with filter navigation (Wave 2)
+- [x] 07.3-05-PLAN.md — Remove Ads/AI sections, add Returns card (Wave 3)
+- [x] 07.3-06-PLAN.md — Verify Expediate vs In Tranzit consistency (Wave 4)
 
 ### Phase 7.4: Orders Channel Split (INSERTED)
 **Goal**: Orders page split by sales channel (Shopify/Trendyol/Temu) with channel-specific actions
@@ -380,8 +380,8 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7
 | 6. UX Foundation | 6/6 | ✓ Complete | 2026-01-25 |
 | 7. Task Management Core | 5/5 | ✓ Complete | 2026-01-26 |
 | 7.1. Trendyol Complete Integration | 6/6 | ✓ Complete | 2026-01-30 |
-| 7.2. Trendyol Complete Fix | 5/6 | In Progress | - |
-| 7.3. Dashboard Rework | 0/6 | Not started | - |
+| 7.2. Trendyol Complete Fix | 6/6 | ✓ Complete | 2026-02-03 |
+| 7.3. Dashboard Rework | 6/6 | ✓ Complete | 2026-02-03 |
 | 7.4. Orders Channel Split | 0/5 | Not started | - |
 | 7.5. AWB Tracking Fix | 0/4 | Not started | - |
 | 8. Task Management Advanced | 0/5 | Not started | - |
@@ -401,4 +401,6 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7
 *Phase 7.3 inserted: 2026-02-03 (URGENT: Dashboard rework - global filters, correct metrics, tooltips)*
 *Phase 7.4 inserted: 2026-02-03 (URGENT: Orders channel split - Shopify/Trendyol/Temu tabs)*
 *Phase 7.5 inserted: 2026-02-03 (URGENT: AWB tracking fix - correct status counts)*
+*Phase 7.2 completed: 2026-02-03*
+*Phase 7.3 completed: 2026-02-03*
 *Depth: comprehensive (15 phases including insertions)*
