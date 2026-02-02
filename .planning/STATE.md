@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.3 of 10 (Dashboard Rework)
-Plan: 2 of 5
+Plan: 3 of 5
 Status: In progress
-Last activity: 2026-02-03 - Completed 07.3-02-PLAN.md (Metric calculations with filtered queries)
+Last activity: 2026-02-03 - Completed 07.3-03-PLAN.md (Stat card tooltips with Romanian explanations)
 
-Progress: [██████████████████░░] ~90% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 2/5 of 7.3)
+Progress: [██████████████████░░] ~91% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 3/5 of 7.3)
 
 ## Phase 7 Progress
 
@@ -55,6 +55,8 @@ Progress: [██████████████████░░] ~90% (7
 
 Recent decisions affecting current work:
 
+- **07.3-03:** StatCard tooltip prop optional - not all cards need explanation
+- **07.3-03:** InfoTooltip positioned side='right' for visibility
 - **07.3-02:** Use buildDateWhere helper for consistent date filtering across all queries
 - **07.3-02:** pendingOrders/validatedOrders include invoice:null check (De Procesat = nefacturate)
 - **07.3-02:** Removed Ads card and AI Insights section from dashboard
@@ -242,18 +244,18 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 07.3-02-PLAN.md (Metric calculations with filtered queries)
+Stopped at: Completed 07.3-03-PLAN.md (Stat card tooltips with Romanian explanations)
 Resume context:
 - **STAGING BRANCH** - Phase 7.3 in progress
-- Plan 02 complete - getFilteredDashboardStats service, all metrics use filters
-- Ready for Plan 03 - Fix card counts and meanings
+- Plan 03 complete - InfoTooltip integration, all 8 stat cards have Romanian tooltips
+- Ready for Plan 04 or 05 (remaining 7.3 plans)
 
 **NEXT STEPS:**
-1. Execute 07.3-03-PLAN.md (Fix card counts and meanings)
-2. Continue through remaining 7.3 plans (04, 05)
+1. Execute 07.3-04-PLAN.md or 07.3-05-PLAN.md
+2. Complete Phase 7.3
 3. Then 7.4, 7.5 phases
 
-Resume file: .planning/phases/07.3-dashboard-rework/07.3-03-PLAN.md
+Resume file: .planning/phases/07.3-dashboard-rework/07.3-04-PLAN.md
 
 ## Phase 7 Features
 
@@ -289,7 +291,7 @@ Task Management Core components:
 |------|------|--------|---------|
 | 07.3-01 | 1 | Complete | Dashboard global filters with URL persistence |
 | 07.3-02 | 1 | Complete | Apply filters to dashboard queries |
-| 07.3-03 | 2 | Pending | Fix card counts and meanings |
+| 07.3-03 | 2 | Complete | Stat card tooltips with Romanian explanations |
 | 07.3-04 | 3 | Pending | Add tooltips to dashboard elements |
 | 07.3-05 | 4 | Pending | Remove Ads and AI sections |
 
@@ -297,9 +299,12 @@ Task Management Core components:
 
 - [x] 07.3-01: DashboardFilters component with date range and store selector
 - [x] 07.3-02: getFilteredDashboardStats service with consistent filter application
+- [x] 07.3-03: InfoTooltip integration with Romanian explanations for all 8 stat cards
 
 ## Recent Commits
 
+- `449ba27` feat(07.3-03): add Romanian tooltip explanations to all stat cards
+- `ce92d32` feat(07.3-03): extend StatCard with tooltip support
 - `be22094` feat(07.3-02): update dashboard page to use filtered stats
 - `9e0853c` feat(07.3-02): create dashboard-stats.ts with filtered queries
 - `a90c6e3` fix(07.3-01): restore missing imports in dashboard page
@@ -307,8 +312,7 @@ Task Management Core components:
 - `23c7167` feat(07.3-01): create DashboardFilters component
 - `49f6db7` feat(07.2-06): add AI category suggestion UI to mapping page
 - `b949da8` feat(07.2-06): add category suggestion API endpoint
-- `91d28ea` feat(07.2-06): create AI category suggestion library
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-03 (Phase 7.3 Plan 02 complete - Metric calculations with filtered queries)*
+*Last updated: 2026-02-03 (Phase 7.3 Plan 03 complete - Stat card tooltips with Romanian explanations)*
