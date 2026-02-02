@@ -11,11 +11,15 @@ export async function GET(
   { params }: { params: { fileId: string } }
 ) {
   try {
-    const { fileId } = params;
+    let { fileId } = params;
 
     if (!fileId) {
       return NextResponse.json({ error: "File ID is required" }, { status: 400 });
     }
+
+    // Strip image extension if present (e.g., "abc123.jpg" -> "abc123")
+    // This allows URLs like /api/drive-image/abc123.jpg for Trendyol compatibility
+    fileId = fileId.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
 
     // Verifică cache
     const cached = imageCache.get(fileId);

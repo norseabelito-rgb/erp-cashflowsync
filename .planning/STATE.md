@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 7 - Task Management Core - COMPLETE (with gap closure)
+**Current focus:** Cleanup old Trendyol integration, then Phase 8
 
 ## Current Position
 
-Phase: 7 of 10 (Task Management Core)
-Plan: 5 of 5 complete (including gap closure)
-Status: Phase complete
-Last activity: 2026-01-26 - Completed 07-05-PLAN.md (gap closure)
+Phase: 7.2 of 10 (Trendyol Complete Fix)
+Plan: 5 of 6 (PAUSED - checkpoint deferred)
+Status: Code complete, Plan 05 verification deferred (needs Trendyol products first)
+Last activity: 2026-02-02 - Paused at 07.2-05 checkpoint (user will verify after product push)
 
-Progress: [██████████████████░░] 90%
+Progress: [██████████████████░░] ~88% (7/10 integer phases + 6/6 of 7.1 + 5/6 of 7.2)
 
 ## Phase 7 Progress
 
@@ -31,9 +31,9 @@ Progress: [██████████████████░░] 90%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 32
-- Average duration: ~5.4 minutes
-- Total execution time: ~174 minutes
+- Total plans completed: 39
+- Average duration: ~5.3 minutes
+- Total execution time: ~218 minutes
 
 **By Phase:**
 
@@ -46,6 +46,8 @@ Progress: [██████████████████░░] 90%
 | 05-known-bug-fixes | 4/4 | ~18 min | ~4.5 min |
 | 06-ux-foundation | 6/6 | ~22 min | ~3.7 min |
 | 07-task-management-core | 5/5 | ~28 min | ~5.6 min |
+| 07.1-trendyol-integration | 6/6 | ~46 min | ~7.7 min |
+| 07.2-trendyol-fix | 6/6 | ~30 min | ~5 min |
 
 ## Accumulated Context
 
@@ -53,6 +55,37 @@ Progress: [██████████████████░░] 90%
 
 Recent decisions affecting current work:
 
+- **07.2-06:** Use claude-sonnet-4-20250514 for fast category suggestions
+- **07.2-06:** Limit categories to 500 in prompt to prevent context overflow
+- **07.2-06:** Show confidence score and reasoning with each suggestion
+- **07.2-04:** TrendyolStoreForSync type exported for cross-module use
+- **07.2-04:** trendyolStoreId set on TrendyolOrder during sync
+- **07.2-04:** Virtual store company updated if TrendyolStore company changes
+- **07.2-03:** TrendyolStore.invoiceSeriesName used as Priority 0 for invoice series resolution
+- **07.2-03:** trendyolStoreId consistently set on TrendyolOrder during sync (create and update)
+- **07.2-03:** New syncTrendyolOrdersForStore export for multi-store API sync
+- **07.2-01:** 3-second polling interval for batch status (balance between responsiveness and API load)
+- **07.2-01:** Auto-stop polling when status is COMPLETED or FAILED
+- **07.2-01:** Romanian error translations for common Trendyol rejection codes
+- **07.1-06:** Reusable functions in trendyol-returns.ts for webhook handlers
+- **07.1-06:** Activity logging for all Trendyol status changes
+- **07.1-06:** Sync button fetches last 7 days of orders
+- **07.1-06:** Dashboard uses server-side data fetching for Trendyol stats
+- **07.1-06:** Trendyol navigation separated into its own sidebar section
+- **07.1-05:** Non-blocking sync triggers - product updates fire-and-forget to Trendyol
+- **07.1-05:** Stock source: InventoryItem.currentStock first, fallback to MasterProduct.stock
+- **07.1-05:** Batch size 100 for Trendyol API price/inventory updates
+- **07.1-05:** Only sync approved products (trendyolStatus === 'approved')
+- **07.1-04:** Non-blocking tracking sends - AWB creation succeeds even if Trendyol fails
+- **07.1-04:** FanCourier as default carrier for retry logic
+- **07.1-04:** TrendyolOrder.status set to 'Shipped' after successful tracking send
+- **07.1-02:** Keep shopifyOrderId/shopifyOrderNumber names for backward compat (Trendyol uses same fields)
+- **07.1-02:** Virtual store per Trendyol supplier ID (Store required for Order)
+- **07.1-02:** Trendyol orders default to PASSED validation status (Trendyol validates)
+- **07.1-02:** Source field default "shopify" - no data migration needed
+- **07.1-01:** trendyolCompanyId uses @unique for one-to-one relation (one company per Trendyol account)
+- **07.1-01:** Webhook validation uses timing-safe comparison to prevent timing attacks
+- **07.1-01:** Process webhook events synchronously for simplicity
 - **07-05:** AlertDialog confirmation before delete (prevent accidental deletion)
 - **07-05:** Show task title in confirmation for user clarity
 - **07-05:** Use status-error color for delete action button
@@ -117,14 +150,61 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
-**NEXT:**
-- Start Phase 8: Notifications and Automation
+**CLEANUP NEEDED (Phase 7.1 follow-up):**
+- Vechea integrare Trendyol din Settings (tragea produse din Trendyol) trebuie eliminata/inlocuita
+- Functionalitatea veche e redundanta acum ca avem push bidirectional si sync automat
 
-**DATABASE MIGRATION NEEDED:**
+**NEXT:**
+- Cleanup: Elimina integrarea veche Trendyol din Settings (product pull)
+- Apoi: Start Phase 8: Notifications and Automation
+- Sau: Address critical technical debt items below
+
+### Roadmap Evolution
+
+- Phase 7.1 inserted after Phase 7: Trendyol Complete Integration (URGENT) - 2026-01-30
+  - Reason: Complete Trendyol channel implementation needed now
+  - Existing: ~60-70% foundation (API client, models, product pages)
+  - Missing: webhooks, Order integration, AWB feedback, auto stock sync
+  - Plans created: 6 plans in 5 waves
+  - Status: COMPLETE (2026-01-30)
+
+## Phase 7.1 Progress
+
+| Plan | Wave | Status | Summary |
+|------|------|--------|---------|
+| 07.1-01 | 1 | Complete | Webhook receiver with HMAC validation, company association |
+| 07.1-02 | 2 | Complete | Order table integration with source field + sync service |
+| 07.1-03 | 3 | Complete | Invoice auto-send to Trendyol |
+| 07.1-04 | 3 | Complete | AWB tracking auto-send to Trendyol |
+| 07.1-05 | 4 | Complete | Automatic stock & price sync |
+| 07.1-06 | 5 | Complete | Unified dashboard & gap closure |
+
+## Phase 7.2 Progress
+
+| Plan | Wave | Status | Summary |
+|------|------|--------|---------|
+| 07.2-01 | 1 | Complete | Batch status verification UI with error display |
+| 07.2-02 | 1 | Complete | Attribute mapping UI |
+| 07.2-03 | 1 | Complete | Invoice series integration for TrendyolStore |
+| 07.2-04 | 1 | Complete | Order sync uses TrendyolStore.companyId for billing |
+| 07.2-05 | 2 | **PENDING VERIFICATION** | Bulk process Trendyol - code done, needs manual test |
+| 07.2-06 | 2 | Complete | AI category suggestion with Claude |
+
+**DATABASE MIGRATION STATUS:**
+
+*STAGING (APPLIED 2026-01-30):*
+- [x] add_order_source_field.sql - coloana `source` pe orders
+- [x] add_trendyol_stores.sql - tabelul trendyol_stores + FK pe trendyol_orders
+- [x] add_trendyol_order_tracking_fields.sql - coloane invoice/AWB tracking
+
+*PRODUCTION (PENDING - aplica dupa validare staging):*
+- [ ] add_order_source_field.sql
+- [ ] add_trendyol_stores.sql
+- [ ] add_trendyol_order_tracking_fields.sql
+
+*OLDER (status necunoscut):*
 - Apply `prisma/migrations/manual/add_task_management.sql` to create tasks and task_attachments tables
 - Apply `prisma/migrations/manual/add_bulk_push_job.sql` to create bulk_push_jobs table
-- Run `npx prisma db push` to create return_awbs table (q002)
-- Regenerate Prisma client with `npx prisma generate` (permission issue on node_modules/.prisma)
 
 **CRITICAL (Blocheaza munca):**
 - TD-01: Order processing no transaction - partial failures cause inconsistent data
@@ -140,8 +220,36 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-01-28
-Stopped at: Completed quick/002-PLAN.md (return AWB mapping)
+Last session: 2026-02-02
+Stopped at: Phase 7.2 execution - Plan 05 checkpoint pending verification
+Resume context:
+- **STAGING BRANCH** - Phase 7.2 code COMPLETE, verification pending
+- Plan 05 (Bulk process Trendyol) - 2/3 tasks done, checkpoint deferred
+- Verification blocked: Need Trendyol products first, then Trendyol orders will exist
+
+**CHECKPOINT 07.2-05 DEFERRED:**
+- Code changes complete (commit 7061889)
+- Changed process-all/route.ts to use awb-service instead of fancourier
+- awb-service.ts calls sendTrackingToTrendyol automatically for Trendyol orders
+- invoice-service.ts calls sendInvoiceToTrendyol automatically
+- **TO VERIFY LATER:**
+  1. Go to /orders, select Trendyol order
+  2. Click "Proceseaza" (bulk process)
+  3. Check console for "Folosesc seria TrendyolStore" and Trendyol sync logs
+  4. Type "approved" when verified
+
+**IMMEDIATE PRIORITY:**
+- User needs to push master product list to Trendyol FIRST
+- Use /trendyol/mapping to map categories + attributes
+- Use /trendyol/publish to push products
+- Then orders will come in and bulk process can be verified
+
+**AFTER VERIFICATION:**
+1. Complete 07.2-05 checkpoint
+2. Run phase verifier
+3. Update ROADMAP.md
+4. Move to Phase 8
+
 Resume file: None
 
 ## Phase 7 Features
@@ -154,19 +262,35 @@ Task Management Core components:
 - [x] 07-04: Task create/edit modal + sidebar navigation
 - [x] 07-05: Delete button wired to API with confirmation dialog
 
+## Phase 7.1 Features (Trendyol Complete Integration)
+
+- [x] 07.1-01: Webhook receiver with HMAC-SHA256 validation
+- [x] 07.1-02: Order table integration with source field
+- [x] 07.1-03: Invoice auto-send to Trendyol
+- [x] 07.1-04: AWB tracking auto-send to Trendyol
+- [x] 07.1-05: Automatic stock & price sync with cron
+- [x] 07.1-06: Unified dashboard, sidebar nav, complete webhook handling
+
+## Phase 7.2 Features (Trendyol Complete Fix)
+
+- [x] 07.2-01: Batch status verification UI with error display
+- [x] 07.2-02: Attribute mapping UI
+- [x] 07.2-03: Invoice series integration for TrendyolStore
+- [x] 07.2-04: Order sync uses TrendyolStore.companyId for billing
+- [ ] 07.2-05: Bulk process Trendyol (code done, VERIFICATION PENDING)
+- [x] 07.2-06: AI category suggestion with Claude
+
 ## Recent Commits
 
-- `f034c87` feat(q002): add returns scan page with sidebar navigation
-- `398f7a0` feat(q002): add return AWB scan API and business logic
-- `2170e8b` feat(q002): add ReturnAWB model for return shipment tracking
-- `0dee1cb` feat(q001): add Bulk Push navigation link to products page
-- `e25b8cb` feat(q001): create bulk push UI page with real-time polling
-- `faf2420` feat(q001): create GET /api/products/bulk-push/[jobId] endpoint
-- `9a96009` feat(q001): create POST /api/products/bulk-push endpoint
-- `b57b26b` chore(q001): add BulkPushJob model to Prisma schema
-- `097d5b6` feat(07-05): wire delete button to API with confirmation dialog
-- `b659081` feat(07-04): add tasks navigation entry to sidebar
+- `49f6db7` feat(07.2-06): add AI category suggestion UI to mapping page
+- `b949da8` feat(07.2-06): add category suggestion API endpoint
+- `91d28ea` feat(07.2-06): create AI category suggestion library
+- `7061889` feat(07.2-05): use awb-service for Trendyol tracking sync
+- `702bf97` feat(07.2-04): update webhook to pass TrendyolStore to sync
+- `dfbeef7` feat(07.2-04): refactor order sync to use TrendyolStore for company
+- `7c908ca` feat(07.2-03): ensure TrendyolStore is linked during order sync
+- `e42f7ff` feat(07.2-03): add TrendyolStore invoice series resolution
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-01-28 (quick/002 complete - return AWB mapping)*
+*Last updated: 2026-02-01 (Phase 7.2 Wave 2 complete - AI category suggestion)*

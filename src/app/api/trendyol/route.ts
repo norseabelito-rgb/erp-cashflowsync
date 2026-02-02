@@ -27,6 +27,19 @@ export async function GET(request: NextRequest) {
       where: { id: "default" },
     });
 
+    // Check for TrendyolStore (new multi-store) - prioritate peste Settings
+    const storeId = searchParams.get("storeId");
+    const trendyolStores = await prisma.trendyolStore.findMany({
+      where: { isActive: true },
+      include: { company: { select: { id: true, name: true } } },
+      orderBy: { createdAt: "asc" },
+    });
+
+    // Select store: by storeId param, or first active, or null
+    const selectedStore = storeId
+      ? trendyolStores.find(s => s.id === storeId)
+      : trendyolStores[0];
+
     // Test conexiune
     if (action === "test") {
       // Headere complete pentru a trece de Cloudflare
@@ -64,26 +77,36 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      if (!settings?.trendyolSupplierId || !settings?.trendyolApiKey || !settings?.trendyolApiSecret) {
+      // Use TrendyolStore first, fallback to Settings
+      const credentials = selectedStore ? {
+        supplierId: selectedStore.supplierId,
+        apiKey: selectedStore.apiKey,
+        apiSecret: selectedStore.apiSecret,
+        isTestMode: selectedStore.isTestMode,
+      } : settings?.trendyolSupplierId ? {
+        supplierId: settings.trendyolSupplierId,
+        apiKey: settings.trendyolApiKey!,
+        apiSecret: settings.trendyolApiSecret!,
+        isTestMode: settings.trendyolIsTestMode || false,
+      } : null;
+
+      if (!credentials) {
         return NextResponse.json({
           success: false,
-          error: "Credențialele Trendyol nu sunt configurate",
+          error: "Credențialele Trendyol nu sunt configurate. Adaugă un TrendyolStore în setări.",
           configured: false,
+          stores: [],
         });
       }
 
       console.log("[Trendyol Test] Step 2: Using credentials:");
-      console.log("  - SupplierId:", settings.trendyolSupplierId);
-      console.log("  - ApiKey:", settings.trendyolApiKey.substring(0, 5) + "...");
-      console.log("  - ApiSecret:", settings.trendyolApiSecret ? "***set***" : "***empty***");
-      console.log("  - TestMode:", settings.trendyolIsTestMode);
+      console.log("  - Source:", selectedStore ? `TrendyolStore: ${selectedStore.name}` : "Settings (legacy)");
+      console.log("  - SupplierId:", credentials.supplierId);
+      console.log("  - ApiKey:", credentials.apiKey.substring(0, 5) + "...");
+      console.log("  - ApiSecret:", credentials.apiSecret ? "***set***" : "***empty***");
+      console.log("  - TestMode:", credentials.isTestMode);
 
-      const client = new TrendyolClient({
-        supplierId: settings.trendyolSupplierId,
-        apiKey: settings.trendyolApiKey,
-        apiSecret: settings.trendyolApiSecret,
-        isTestMode: settings.trendyolIsTestMode,
-      });
+      const client = new TrendyolClient(credentials);
 
       const result = await client.testConnection();
 
@@ -98,7 +121,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Salvează automat storeFrontCode în baza de date dacă a fost detectat
-      if (result.data?.storeFrontCode && result.data.storeFrontCode !== settings.trendyolStoreFrontCode) {
+      if (result.data?.storeFrontCode && settings && result.data.storeFrontCode !== settings.trendyolStoreFrontCode) {
         console.log("[Trendyol Test] Auto-saving storeFrontCode:", result.data.storeFrontCode);
         await prisma.settings.update({
           where: { id: "default" },
@@ -110,6 +133,15 @@ export async function GET(request: NextRequest) {
         success: true,
         configured: true,
         data: result.data,
+        // Multi-store info
+        stores: trendyolStores.map(s => ({
+          id: s.id,
+          name: s.name,
+          supplierId: s.supplierId,
+          companyId: s.companyId,
+          companyName: s.company.name,
+        })),
+        selectedStoreId: selectedStore?.id || null,
       });
     }
 
@@ -211,22 +243,40 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Helper: get credentials from TrendyolStore or Settings
+    const getCredentials = () => {
+      if (selectedStore) {
+        return {
+          supplierId: selectedStore.supplierId,
+          apiKey: selectedStore.apiKey,
+          apiSecret: selectedStore.apiSecret,
+          isTestMode: selectedStore.isTestMode,
+          storeFrontCode: selectedStore.storeFrontCode,
+        };
+      }
+      if (settings?.trendyolSupplierId && settings?.trendyolApiKey && settings?.trendyolApiSecret) {
+        return {
+          supplierId: settings.trendyolSupplierId,
+          apiKey: settings.trendyolApiKey,
+          apiSecret: settings.trendyolApiSecret,
+          isTestMode: settings.trendyolIsTestMode || false,
+          storeFrontCode: settings.trendyolStoreFrontCode || undefined,
+        };
+      }
+      return null;
+    };
+
     // Adrese expeditor (necesită autentificare)
     if (action === "addresses") {
-      if (!settings?.trendyolSupplierId || !settings?.trendyolApiKey || !settings?.trendyolApiSecret) {
+      const creds = getCredentials();
+      if (!creds) {
         return NextResponse.json({
           success: false,
           error: "Credențialele Trendyol nu sunt configurate",
         });
       }
 
-      const client = new TrendyolClient({
-        supplierId: settings.trendyolSupplierId,
-        apiKey: settings.trendyolApiKey,
-        apiSecret: settings.trendyolApiSecret,
-        isTestMode: settings.trendyolIsTestMode,
-      });
-
+      const client = new TrendyolClient(creds);
       const result = await client.getSupplierAddresses();
 
       return NextResponse.json({
@@ -238,20 +288,15 @@ export async function GET(request: NextRequest) {
 
     // Cargo companies (firme de curierat)
     if (action === "cargo") {
-      if (!settings?.trendyolSupplierId || !settings?.trendyolApiKey || !settings?.trendyolApiSecret) {
+      const creds = getCredentials();
+      if (!creds) {
         return NextResponse.json({
           success: false,
           error: "Credențialele Trendyol nu sunt configurate",
         });
       }
 
-      const client = new TrendyolClient({
-        supplierId: settings.trendyolSupplierId,
-        apiKey: settings.trendyolApiKey,
-        apiSecret: settings.trendyolApiSecret,
-        isTestMode: settings.trendyolIsTestMode,
-      });
-
+      const client = new TrendyolClient(creds);
       const result = await client.getCargoCompanies();
 
       return NextResponse.json({
@@ -263,29 +308,25 @@ export async function GET(request: NextRequest) {
 
     // Produsele din Trendyol
     if (action === "products") {
-      if (!settings?.trendyolSupplierId || !settings?.trendyolApiKey || !settings?.trendyolApiSecret) {
+      const creds = getCredentials();
+      if (!creds) {
         return NextResponse.json({
           success: false,
           error: "Credențialele Trendyol nu sunt configurate",
         });
       }
 
-      const client = new TrendyolClient({
-        supplierId: settings.trendyolSupplierId,
-        apiKey: settings.trendyolApiKey,
-        apiSecret: settings.trendyolApiSecret,
-        isTestMode: settings.trendyolIsTestMode,
-      });
+      const client = new TrendyolClient(creds);
 
       const page = parseInt(searchParams.get("page") || "0");
       const size = parseInt(searchParams.get("size") || "50");
       const approved = searchParams.get("approved");
       const barcode = searchParams.get("barcode");
-      
-      // Folosește storeFrontCode din query param sau din setări
-      let storeFrontCode = searchParams.get("storeFrontCode") || settings.trendyolStoreFrontCode || undefined;
-      
-      console.log("[Trendyol Products] storeFrontCode from settings:", settings.trendyolStoreFrontCode);
+
+      // Folosește storeFrontCode din query param, TrendyolStore, sau Settings
+      let storeFrontCode = searchParams.get("storeFrontCode") || creds.storeFrontCode || undefined;
+
+      console.log("[Trendyol Products] storeFrontCode from creds:", creds.storeFrontCode);
       console.log("[Trendyol Products] storeFrontCode used:", storeFrontCode);
 
       // Prima încercare cu storeFrontCode-ul specificat (sau fără)
@@ -328,11 +369,56 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Get sync info (last synced time and count)
+    if (action === "syncInfo") {
+      const syncedProducts = await prisma.masterProduct.findMany({
+        where: {
+          trendyolBarcode: { not: null },
+          trendyolLastSyncedAt: { not: null },
+        },
+        select: {
+          trendyolLastSyncedAt: true,
+        },
+        orderBy: {
+          trendyolLastSyncedAt: "desc",
+        },
+        take: 1,
+      });
+
+      const syncedCount = await prisma.masterProduct.count({
+        where: {
+          trendyolBarcode: { not: null },
+          trendyolLastSyncedAt: { not: null },
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        lastSyncedAt: syncedProducts[0]?.trendyolLastSyncedAt || null,
+        syncedCount,
+      });
+    }
+
     // Default - returnează statusul configurării
+    // Considerat "configurat" dacă există TrendyolStore SAU Settings legacy
+    const isConfigured = trendyolStores.length > 0 || !!(settings?.trendyolSupplierId && settings?.trendyolApiKey && settings?.trendyolApiSecret);
+
     return NextResponse.json({
       success: true,
-      configured: !!(settings?.trendyolSupplierId && settings?.trendyolApiKey && settings?.trendyolApiSecret),
-      isTestMode: settings?.trendyolIsTestMode || false,
+      configured: isConfigured,
+      isTestMode: selectedStore?.isTestMode || settings?.trendyolIsTestMode || false,
+      // Multi-store support
+      stores: trendyolStores.map(s => ({
+        id: s.id,
+        name: s.name,
+        supplierId: s.supplierId,
+        companyId: s.companyId,
+        companyName: s.company.name,
+        storeFrontCode: s.storeFrontCode,
+      })),
+      selectedStoreId: selectedStore?.id || null,
+      // Legacy fallback info
+      hasLegacyConfig: !!(settings?.trendyolSupplierId),
     });
 
   } catch (error: any) {
@@ -364,19 +450,32 @@ export async function POST(request: NextRequest) {
       where: { id: "default" },
     });
 
-    if (!settings?.trendyolSupplierId || !settings?.trendyolApiKey || !settings?.trendyolApiSecret) {
+    // Try TrendyolStore first (new multi-store), fallback to Settings (legacy)
+    const trendyolStore = await prisma.trendyolStore.findFirst({
+      where: { isActive: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    const credentials = trendyolStore ? {
+      supplierId: trendyolStore.supplierId,
+      apiKey: trendyolStore.apiKey,
+      apiSecret: trendyolStore.apiSecret,
+      isTestMode: trendyolStore.isTestMode,
+    } : settings?.trendyolSupplierId ? {
+      supplierId: settings.trendyolSupplierId,
+      apiKey: settings.trendyolApiKey!,
+      apiSecret: settings.trendyolApiSecret!,
+      isTestMode: settings.trendyolIsTestMode,
+    } : null;
+
+    if (!credentials) {
       return NextResponse.json({
         success: false,
         error: "Credențialele Trendyol nu sunt configurate",
       });
     }
 
-    const client = new TrendyolClient({
-      supplierId: settings.trendyolSupplierId,
-      apiKey: settings.trendyolApiKey,
-      apiSecret: settings.trendyolApiSecret,
-      isTestMode: settings.trendyolIsTestMode,
-    });
+    const client = new TrendyolClient(credentials);
 
     // Creare produs
     if (action === "createProduct") {
@@ -504,26 +603,64 @@ export async function POST(request: NextRequest) {
       const currencyRate = settings.trendyolCurrencyRate ? 
         parseFloat(settings.trendyolCurrencyRate.toString()) : 5.0;
 
+      // Validate attributes before publishing
+      const productsWithMissingAttrs: string[] = [];
+
+      for (const product of products) {
+        if (!product.category?.trendyolCategoryId) continue;
+
+        const categoryAttrs = product.category?.trendyolAttributes as any[] || [];
+        const requiredAttrs = categoryAttrs.filter((a: any) => a.required);
+        const savedAttrs = (product as any).trendyolAttributeValues as Record<string, { attributeValueId?: number; customValue?: string }> || {};
+
+        const missingAttrs = requiredAttrs.filter((attr: any) => {
+          const attrId = (attr.attribute?.id || attr.id).toString();
+          const saved = savedAttrs[attrId];
+          return !saved || (!saved.attributeValueId && !saved.customValue);
+        });
+
+        if (missingAttrs.length > 0) {
+          const missingNames = missingAttrs.map((a: any) => a.attribute?.name || a.name).join(", ");
+          productsWithMissingAttrs.push(`${product.sku}: ${missingNames}`);
+        }
+      }
+
+      if (productsWithMissingAttrs.length > 0) {
+        return NextResponse.json({
+          success: false,
+          error: `Urmatoarele produse nu au atributele obligatorii configurate:\n${productsWithMissingAttrs.join("\n")}`,
+          missingAttributes: productsWithMissingAttrs,
+        });
+      }
+
       // Construim produsele pentru Trendyol
       const trendyolProducts = products
-        .filter(product => product.category?.trendyolCategoryId) // Filtrăm produsele fără categorie Trendyol
+        .filter(product => product.category?.trendyolCategoryId) // Filtram produsele fara categorie Trendyol
         .map(product => {
-        // Generăm barcode din SKU dacă nu există
+        // Generam barcode din SKU daca nu exista
         const barcode = product.trendyolBarcode || generateBarcode(product.sku);
-        
-        // Convertim prețul din RON în EUR
+
+        // Convertim pretul din RON in EUR
         const priceEUR = Math.round((parseFloat(product.price.toString()) / currencyRate) * 100) / 100;
-        
+
         // Atributele categoriei (obligatorii)
         const categoryAttrs = product.category?.trendyolAttributes as any[] || [];
-        const requiredAttrs = categoryAttrs.filter(a => a.required);
-        
-        // Construim atributele de bază (pot fi extinse ulterior în UI)
-        const attributes = requiredAttrs.map(attr => ({
-          attributeId: attr.attribute?.id || attr.id,
-          // Folosim prima valoare disponibilă ca placeholder
-          attributeValueId: attr.attributeValues?.[0]?.id || null,
-        })).filter(a => a.attributeValueId);
+        const requiredAttrs = categoryAttrs.filter((a: any) => a.required);
+
+        // Use saved attribute values from product.trendyolAttributeValues
+        const savedAttrs = (product as any).trendyolAttributeValues as Record<string, { attributeValueId?: number; customValue?: string }> || {};
+
+        const attributes = requiredAttrs.map((attr: any) => {
+          const attrId = attr.attribute?.id || attr.id;
+          const saved = savedAttrs[attrId.toString()];
+          if (!saved) return null;
+
+          return {
+            attributeId: attrId,
+            ...(saved.attributeValueId ? { attributeValueId: saved.attributeValueId } : {}),
+            ...(saved.customValue ? { customAttributeValue: saved.customValue } : {}),
+          };
+        }).filter(Boolean);
 
         return {
           barcode,
@@ -538,9 +675,22 @@ export async function POST(request: NextRequest) {
           currencyType: "EUR" as const,
           listPrice: priceEUR,
           salePrice: priceEUR,
-          vatRate: 19,
+          vatRate: 20, // Trendyol accepts only 0, 1, 10, 20
           cargoCompanyId: 17, // Default cargo
-          images: product.images.slice(0, 8).map(img => ({ url: img.url })),
+          images: product.images.slice(0, 8).map(img => {
+            let url = img.url;
+            const baseUrl = process.env.NEXTAUTH_URL || 'https://erp-cashflowsync-staging.up.railway.app';
+            // Convert relative URLs to absolute with .jpg extension for Trendyol
+            if (url.startsWith('/api/drive-image/')) {
+              const fileId = url.replace('/api/drive-image/', '');
+              // Use our proxy with .jpg extension (Trendyol requires image extension)
+              url = `${baseUrl}/api/drive-image/${fileId}.jpg`;
+            } else if (url.startsWith('/')) {
+              // Other relative URLs - make absolute
+              url = `${baseUrl}${url}`;
+            }
+            return { url };
+          }),
           attributes: attributes.length > 0 ? attributes : undefined,
         };
       });
@@ -574,6 +724,201 @@ export async function POST(request: NextRequest) {
         batchRequestId: result.batchRequestId,
         error: result.error,
       });
+    }
+
+    // Generate webhook secret (cryptographically random)
+    if (action === "generateWebhookSecret") {
+      const crypto = await import("crypto");
+      const secret = crypto.randomBytes(32).toString("hex");
+
+      // Save to settings
+      await prisma.settings.upsert({
+        where: { id: "default" },
+        update: { trendyolWebhookSecret: secret },
+        create: { id: "default", trendyolWebhookSecret: secret },
+      });
+
+      return NextResponse.json({
+        success: true,
+        secret,
+        message: "Webhook secret generated and saved",
+      });
+    }
+
+    // Register webhook with Trendyol
+    if (action === "registerWebhook") {
+      const { callbackUrl, events } = body;
+
+      if (!callbackUrl) {
+        return NextResponse.json({
+          success: false,
+          error: "callbackUrl is required",
+        });
+      }
+
+      const defaultEvents = [
+        "OrderCreated",
+        "OrderStatusChanged",
+        "OrderCancelled",
+        "OrderReturned",
+        "ShipmentDelivered",
+      ];
+
+      const result = await client.registerWebhook(callbackUrl, events || defaultEvents);
+
+      return NextResponse.json({
+        success: result.success,
+        webhookId: result.data?.webhookId,
+        error: result.error,
+      });
+    }
+
+    // List registered webhooks
+    if (action === "listWebhooks") {
+      const result = await client.listWebhooks();
+
+      return NextResponse.json({
+        success: result.success,
+        webhooks: result.data?.webhooks || [],
+        error: result.error,
+      });
+    }
+
+    // Unregister webhook
+    if (action === "unregisterWebhook") {
+      const { webhookId } = body;
+
+      if (!webhookId) {
+        return NextResponse.json({
+          success: false,
+          error: "webhookId is required",
+        });
+      }
+
+      const result = await client.deleteWebhook(webhookId);
+
+      return NextResponse.json({
+        success: result.success,
+        error: result.error,
+      });
+    }
+
+    // Retry sending invoice for a specific order
+    if (action === "retrySendInvoice") {
+      const { orderId } = body;
+
+      if (!orderId) {
+        return NextResponse.json({
+          success: false,
+          error: "orderId is required",
+        });
+      }
+
+      // Get the TrendyolOrder and check if there's an invoice link to retry
+      const trendyolOrder = await prisma.trendyolOrder.findFirst({
+        where: { orderId },
+        include: {
+          order: {
+            include: { invoice: true }
+          }
+        }
+      });
+
+      if (!trendyolOrder) {
+        return NextResponse.json({
+          success: false,
+          error: "Not a Trendyol order or order not found",
+        }, { status: 404 });
+      }
+
+      if (!trendyolOrder.oblioInvoiceLink) {
+        return NextResponse.json({
+          success: false,
+          error: "No invoice link available - invoice may not have been issued yet",
+        }, { status: 400 });
+      }
+
+      // Import and call the send function
+      const { sendInvoiceToTrendyol } = await import("@/lib/trendyol-invoice");
+      const retryResult = await sendInvoiceToTrendyol(orderId, trendyolOrder.oblioInvoiceLink);
+
+      return NextResponse.json({
+        success: retryResult.success,
+        error: retryResult.error,
+        orderNumber: trendyolOrder.trendyolOrderNumber,
+      });
+    }
+
+    // Retry all failed invoice sends
+    if (action === "retryAllFailedInvoices") {
+      const { retryFailedInvoiceSends } = await import("@/lib/trendyol-invoice");
+      const result = await retryFailedInvoiceSends();
+
+      return NextResponse.json({
+        success: result.failed === 0 && result.total > 0,
+        total: result.total,
+        successCount: result.success,
+        failedCount: result.failed,
+        errors: result.errors,
+      });
+    }
+
+    // Get pending/failed invoice sends
+    if (action === "getPendingInvoiceSends") {
+      const { getPendingInvoiceSends } = await import("@/lib/trendyol-invoice");
+      const result = await getPendingInvoiceSends();
+
+      return NextResponse.json({
+        success: true,
+        pending: result.pending,
+        failed: result.failed,
+        orders: result.orders,
+      });
+    }
+
+    // Retry sending AWB tracking for a specific order
+    if (action === "retrySendTracking") {
+      const { orderId } = body;
+
+      if (!orderId) {
+        return NextResponse.json({
+          success: false,
+          error: "orderId is required",
+        });
+      }
+
+      const { retrySendTrackingToTrendyol } = await import("@/lib/trendyol-awb");
+      const result = await retrySendTrackingToTrendyol(orderId);
+
+      return NextResponse.json({
+        success: result.success,
+        error: result.error,
+      });
+    }
+
+    // Sync all products stock and prices to Trendyol
+    if (action === "syncInventory") {
+      const { syncAllProductsToTrendyol } = await import("@/lib/trendyol-stock-sync");
+      const syncResult = await syncAllProductsToTrendyol();
+
+      return NextResponse.json(syncResult);
+    }
+
+    // Sync a single product stock and price to Trendyol
+    if (action === "syncProduct") {
+      const { productId } = body;
+
+      if (!productId) {
+        return NextResponse.json({
+          success: false,
+          error: "productId is required",
+        });
+      }
+
+      const { syncSingleProductToTrendyol } = await import("@/lib/trendyol-stock-sync");
+      const productSyncResult = await syncSingleProductToTrendyol(productId);
+
+      return NextResponse.json(productSyncResult);
     }
 
     return NextResponse.json({

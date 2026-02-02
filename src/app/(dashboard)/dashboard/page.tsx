@@ -15,6 +15,7 @@ import {
   ArrowRight,
   Sparkles,
   BarChart3,
+  ShoppingBag,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +59,13 @@ async function getStats(storeId?: string | null) {
     adsStats,
     // AI Insights pending
     pendingInsights,
+    // Trendyol stats
+    trendyolOrdersToday,
+    trendyolPendingOrders,
+    trendyolRevenue,
+    // Shopify stats (for comparison)
+    shopifyOrdersToday,
+    shopifyRevenue,
   ] = await Promise.all([
     // Aceste statistici sunt GLOBALE (nu se filtrează după magazin)
     prisma.order.count(),
@@ -111,6 +119,43 @@ async function getStats(storeId?: string | null) {
     prisma.aIInsight.count({
       where: { status: "PENDING" },
     }).catch(() => 0),
+    // Trendyol orders today
+    prisma.order.count({
+      where: {
+        source: "trendyol",
+        createdAt: { gte: today },
+      },
+    }),
+    // Trendyol pending orders
+    prisma.order.count({
+      where: {
+        source: "trendyol",
+        status: { in: ["PENDING", "VALIDATED"] },
+      },
+    }),
+    // Trendyol revenue today
+    prisma.order.aggregate({
+      where: {
+        source: "trendyol",
+        createdAt: { gte: today },
+      },
+      _sum: { totalPrice: true },
+    }),
+    // Shopify orders today (for comparison)
+    prisma.order.count({
+      where: {
+        source: "shopify",
+        createdAt: { gte: today },
+      },
+    }),
+    // Shopify revenue today
+    prisma.order.aggregate({
+      where: {
+        source: "shopify",
+        createdAt: { gte: today },
+      },
+      _sum: { totalPrice: true },
+    }),
   ]);
 
   // Calculăm vânzări din comenzi - ultimele 7 zile (grupat per zi)
@@ -259,6 +304,13 @@ async function getStats(storeId?: string | null) {
     activeCampaigns: adsStats._count || 0,
     // AI
     pendingInsights,
+    // Trendyol
+    trendyolOrdersToday,
+    trendyolPendingOrders,
+    trendyolRevenueToday: Number(trendyolRevenue._sum?.totalPrice) || 0,
+    // Shopify
+    shopifyOrdersToday,
+    shopifyRevenueToday: Number(shopifyRevenue._sum?.totalPrice) || 0,
     // Pentru filtru
     stores: storeStats.map((s: typeof storeStats[number]) => ({
       id: s.id,
@@ -432,6 +484,42 @@ export default async function DashboardPage({
           description={`${stats.activeCampaigns} campanii active`}
           variant={stats.adsROAS >= 3 ? "success" : stats.adsROAS >= 2 ? "warning" : "error"}
           href="/ads"
+        />
+      </div>
+
+      {/* Channel Stats - Shopify vs Trendyol */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+        <StatCard
+          title="Comenzi Shopify"
+          value={stats.shopifyOrdersToday}
+          icon={ShoppingCart}
+          description={formatCurrency(stats.shopifyRevenueToday)}
+          variant="default"
+          href="/orders?source=shopify"
+        />
+        <StatCard
+          title="Comenzi Trendyol"
+          value={stats.trendyolOrdersToday}
+          icon={ShoppingBag}
+          description={formatCurrency(stats.trendyolRevenueToday)}
+          variant="default"
+          href="/orders?source=trendyol"
+        />
+        <StatCard
+          title="Total Comenzi Azi"
+          value={stats.shopifyOrdersToday + stats.trendyolOrdersToday}
+          icon={Package}
+          description={formatCurrency(stats.shopifyRevenueToday + stats.trendyolRevenueToday)}
+          variant="success"
+          href="/orders"
+        />
+        <StatCard
+          title="Trendyol de procesat"
+          value={stats.trendyolPendingOrders}
+          icon={ShoppingBag}
+          description="Comenzi Trendyol in asteptare"
+          variant={stats.trendyolPendingOrders > 5 ? "warning" : "default"}
+          href="/orders?source=trendyol&status=PENDING,VALIDATED"
         />
       </div>
 

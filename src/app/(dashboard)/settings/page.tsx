@@ -49,6 +49,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { TrendyolStoresTab } from "@/components/settings/TrendyolStoresTab";
 
 interface Settings {
   // FanCourier
@@ -79,6 +80,9 @@ interface Settings {
   trendyolIsTestMode: boolean;
   trendyolCurrencyRate: string;
   trendyolStoreFrontCode: string;
+  // Trendyol Webhook & Company
+  trendyolWebhookSecret: string;
+  trendyolCompanyId: string;
   // AI Insights
   aiApiKey: string;
   aiModel: string;
@@ -168,6 +172,9 @@ export default function SettingsPage() {
     trendyolIsTestMode: false,
     trendyolCurrencyRate: "5.0",
     trendyolStoreFrontCode: "",
+    // Trendyol Webhook & Company
+    trendyolWebhookSecret: "",
+    trendyolCompanyId: "",
     // AI Insights
     aiApiKey: "",
     aiModel: "claude-sonnet-4-20250514",
@@ -246,6 +253,9 @@ export default function SettingsPage() {
         trendyolIsTestMode: settingsData.settings.trendyolIsTestMode || false,
         trendyolCurrencyRate: settingsData.settings.trendyolCurrencyRate || "5.0",
         trendyolStoreFrontCode: settingsData.settings.trendyolStoreFrontCode || "",
+        // Trendyol Webhook & Company
+        trendyolWebhookSecret: settingsData.settings.trendyolWebhookSecret || "",
+        trendyolCompanyId: settingsData.settings.trendyolCompanyId || "",
         // AI Insights
         aiApiKey: settingsData.settings.aiApiKey || "",
         aiModel: settingsData.settings.aiModel || "claude-sonnet-4-20250514",
@@ -413,7 +423,7 @@ export default function SettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="trendyol" className="gap-2">
             <ShoppingBag className="h-4 w-4" />
-            <span className="hidden sm:inline">Trendyol</span>
+            <span className="hidden sm:inline">Mag. Trendyol</span>
           </TabsTrigger>
           <TabsTrigger value="products" className="gap-2">
             <Package className="h-4 w-4" />
@@ -520,305 +530,9 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* TAB: Trendyol Marketplace */}
+        {/* TAB: Magazine Trendyol */}
         <TabsContent value="trendyol" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ShoppingBag className="h-5 w-5" />
-                Trendyol - Credențiale API
-              </CardTitle>
-              <CardDescription>
-                Configurează conexiunea la Trendyol Marketplace pentru sincronizarea produselor și comenzilor
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-status-info/10 dark:bg-status-info/5 border border-status-info/30 dark:border-status-info/20 rounded-lg p-4">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  <strong>Unde găsești credențialele?</strong><br />
-                  Mergi la <a href="https://partner.trendyol.com" target="_blank" rel="noopener noreferrer" className="underline">partner.trendyol.com</a> → 
-                  Contul meu → Informații integrare API
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="grid gap-2">
-                  <Label>ID Comerciant (ID entitate)</Label>
-                  <Input
-                    placeholder="123456"
-                    value={settings.trendyolSupplierId}
-                    onChange={(e) => setSettings({ ...settings, trendyolSupplierId: e.target.value })}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    "ID comerciant" din panoul Trendyol
-                  </p>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Cheie API</Label>
-                  <Input
-                    placeholder="xxxxxxxxx"
-                    value={settings.trendyolApiKey}
-                    onChange={(e) => setSettings({ ...settings, trendyolApiKey: e.target.value })}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    "Cheie API" din panoul Trendyol
-                  </p>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Secret API</Label>
-                  <div className="relative">
-                    <Input
-                      type={showTrendyolSecret ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={settings.trendyolApiSecret}
-                      onChange={(e) => setSettings({ ...settings, trendyolApiSecret: e.target.value })}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowTrendyolSecret(!showTrendyolSecret)}
-                    >
-                      {showTrendyolSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    "Secret API" din panoul Trendyol
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex items-center gap-4 p-3 border rounded-lg">
-                  <div className="flex-1">
-                    <p className="font-medium">Mod Test</p>
-                    <p className="text-sm text-muted-foreground">
-                      Folosește API-ul de test în loc de producție
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.trendyolIsTestMode}
-                    onCheckedChange={(checked) => setSettings({ ...settings, trendyolIsTestMode: checked })}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Cod Țară (StoreFront)</Label>
-                  <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={settings.trendyolStoreFrontCode}
-                    onChange={(e) => setSettings({ ...settings, trendyolStoreFrontCode: e.target.value })}
-                  >
-                    <option value="">Auto-detectare</option>
-                    <option value="RO">🇷🇴 România (RO)</option>
-                    <option value="BG">🇧🇬 Bulgaria (BG)</option>
-                    <option value="HU">🇭🇺 Ungaria (HU)</option>
-                    <option value="CZ">🇨🇿 Cehia (CZ)</option>
-                    <option value="PL">🇵🇱 Polonia (PL)</option>
-                    <option value="DE">🇩🇪 Germania (DE)</option>
-                    <option value="GR">🇬🇷 Grecia (GR)</option>
-                    <option value="AE">🇦🇪 UAE (AE)</option>
-                  </select>
-                  <p className="text-xs text-muted-foreground">
-                    Se detectează automat la test
-                  </p>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Curs RON → EUR</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder="5.0"
-                    value={settings.trendyolCurrencyRate}
-                    onChange={(e) => setSettings({ ...settings, trendyolCurrencyRate: e.target.value })}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Conversie preț (ex: 5.0)
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      onClick={async () => {
-                        try {
-                          // Mai întâi salvăm setările curente pentru a folosi noile credențiale
-                          const saveRes = await fetch("/api/settings", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(settings),
-                          });
-
-                          if (!saveRes.ok) {
-                            toast({
-                              title: "Eroare",
-                              description: "Nu s-au putut salva setările",
-                              variant: "destructive",
-                            });
-                            return;
-                          }
-
-                          // Apoi testăm conexiunea
-                          const res = await fetch("/api/trendyol?action=test");
-                          const data = await res.json();
-                          if (data.success) {
-                            const sfCode = data.data?.storeFrontCode;
-                            // Actualizează storeFrontCode-ul în state
-                            if (sfCode && sfCode !== settings.trendyolStoreFrontCode) {
-                              setSettings(prev => ({ ...prev, trendyolStoreFrontCode: sfCode }));
-                            }
-                            toast({
-                              title: "✅ Conexiune reușită & Setări salvate",
-                              description: `Conectat la Trendyol. ${data.data?.productCount || 0} produse în cont${sfCode ? ` (${sfCode})` : ''}.`,
-                            });
-                          } else {
-                            toast({
-                              title: "❌ Eroare conexiune",
-                              description: data.error || "Nu s-a putut conecta la Trendyol",
-                              variant: "destructive",
-                            });
-                          }
-                        } catch (error: any) {
-                          toast({
-                            title: "Eroare",
-                            description: error.message,
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                      disabled={!settings.trendyolSupplierId || !settings.trendyolApiKey || !settings.trendyolApiSecret}
-                    >
-                      <Wifi className="h-4 w-4 mr-2" />
-                      Testează conexiunea
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p>Verifică dacă credențialele Trendyol sunt valide și poți accesa API-ul pentru produse și comenzi.</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Button
-                  variant="outline"
-                  onClick={() => window.open("https://partner.trendyol.com", "_blank")}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Deschide Trendyol Partner
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Informații Trendyol</CardTitle>
-              <CardDescription>
-                Vizualizează categorii, branduri și alte date din Trendyol
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button
-                  variant="outline"
-                  className="h-auto py-4 flex-col"
-                  onClick={async () => {
-                    try {
-                      const res = await fetch("/api/trendyol?action=categories");
-                      const data = await res.json();
-                      if (data.success) {
-                        toast({
-                          title: "Categorii încărcate",
-                          description: `${data.total} categorii disponibile în Trendyol`,
-                        });
-                        console.log("Trendyol Categories:", data.flatCategories);
-                      } else {
-                        toast({
-                          title: "Eroare",
-                          description: data.error,
-                          variant: "destructive",
-                        });
-                      }
-                    } catch (error: any) {
-                      toast({ title: "Eroare", description: error.message, variant: "destructive" });
-                    }
-                  }}
-                >
-                  <Package className="h-6 w-6 mb-2" />
-                  <span>Vezi Categorii</span>
-                  <span className="text-xs text-muted-foreground">Afișează în consolă</span>
-                </Button>
-
-                <Button
-                  variant="outline"
-                  className="h-auto py-4 flex-col"
-                  onClick={async () => {
-                    const search = prompt("Caută brand (ex: Nike, Adidas):");
-                    if (!search) return;
-                    try {
-                      const res = await fetch(`/api/trendyol?action=brands&search=${encodeURIComponent(search)}`);
-                      const data = await res.json();
-                      if (data.success) {
-                        const brands = data.brands || [];
-                        if (brands.length > 0) {
-                          const brandList = brands.slice(0, 10).map((b: any) => `${b.name} (ID: ${b.id})`).join("\n");
-                          alert(`Branduri găsite:\n\n${brandList}`);
-                        } else {
-                          alert("Niciun brand găsit");
-                        }
-                      } else {
-                        toast({ title: "Eroare", description: data.error, variant: "destructive" });
-                      }
-                    } catch (error: any) {
-                      toast({ title: "Eroare", description: error.message, variant: "destructive" });
-                    }
-                  }}
-                >
-                  <Search className="h-6 w-6 mb-2" />
-                  <span>Caută Brand</span>
-                  <span className="text-xs text-muted-foreground">Găsește ID-ul brandului</span>
-                </Button>
-
-                <Button
-                  variant="outline"
-                  className="h-auto py-4 flex-col"
-                  onClick={async () => {
-                    if (!settings.trendyolSupplierId) {
-                      toast({ title: "Eroare", description: "Configurează credențialele mai întâi", variant: "destructive" });
-                      return;
-                    }
-                    try {
-                      const res = await fetch("/api/trendyol?action=products&size=10");
-                      const data = await res.json();
-                      if (data.success) {
-                        toast({
-                          title: "Produse Trendyol",
-                          description: `${data.total} produse în contul tău Trendyol`,
-                        });
-                        console.log("Trendyol Products:", data.products);
-                      } else {
-                        toast({ title: "Eroare", description: data.error, variant: "destructive" });
-                      }
-                    } catch (error: any) {
-                      toast({ title: "Eroare", description: error.message, variant: "destructive" });
-                    }
-                  }}
-                  disabled={!settings.trendyolSupplierId}
-                >
-                  <ShoppingBag className="h-6 w-6 mb-2" />
-                  <span>Vezi Produse</span>
-                  <span className="text-xs text-muted-foreground">Produsele din cont</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="flex justify-end">
-            <Button onClick={() => saveMutation.mutate(settings)} disabled={saveMutation.isPending}>
-              <Save className="h-4 w-4 mr-2" />
-              {saveMutation.isPending ? "Se salvează..." : "Salvează Setări Trendyol"}
-            </Button>
-          </div>
+          <TrendyolStoresTab />
         </TabsContent>
 
         {/* TAB: Produse (Google Drive) */}

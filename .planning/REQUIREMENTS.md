@@ -52,6 +52,18 @@ Requirements pentru stabilizarea si imbunatatirea sistemului curent.
 - [ ] **TASK-08**: Auto-asignare task-uri la persoanele responsabile
 - [ ] **TASK-09**: Auto-confirmare task-uri cand sistemul detecteaza completare
 
+### Trendyol Complete Fix
+
+- [ ] **TRND-01**: Product push functional: validare pre-submit, afisare erori batch
+- [ ] **TRND-02**: Atribute obligatorii per categorie cu UI de mapare
+- [ ] **TRND-03**: Invoice series per TrendyolStore (multi-company support)
+- [ ] **TRND-04**: Order sync foloseste TrendyolStore.companyId (nu Settings global)
+- [ ] **TRND-05**: Verificare automata batch status si afisare erori detaliate
+- [ ] **TRND-06**: Auto-category suggestion pe baza titlului produsului (AI/ML)
+- [ ] **TRND-07**: Comenzi Trendyol functioneaza complet in bulk process (facturi + AWB)
+- [ ] **TRND-08**: Webhook reliability: retry, logging, error recovery
+- [ ] **TRND-09**: Stock sync bidirectional (verificare stoc in Trendyol vs local)
+
 ### Documentatie
 
 - [ ] **DOC-01**: Pagina documentatie actualizata in aplicatie
@@ -73,7 +85,7 @@ Deferred pentru dupa stabilizare.
 ### Integrari Noi
 
 - **INT-01**: Integrare Temu (import comenzi, push produse)
-- **INT-02**: Consolidare si imbunatatire integrare Trendyol
+- ~~**INT-02**: Consolidare si imbunatatire integrare Trendyol~~ (mutat in v1 ca TRND-*)
 - **INT-03**: Alte marketplace-uri (EMAG imbunatatit, eMAG Marketplace)
 
 ### Imbunatatiri Avansate
@@ -122,6 +134,15 @@ Deferred pentru dupa stabilizare.
 | TASK-02 | Phase 7: Task Management Core | Complete |
 | TASK-03 | Phase 7: Task Management Core | Complete |
 | TASK-04 | Phase 7: Task Management Core | Complete |
+| TRND-01 | Phase 7.2: Trendyol Complete Fix | Pending |
+| TRND-02 | Phase 7.2: Trendyol Complete Fix | Pending |
+| TRND-03 | Phase 7.2: Trendyol Complete Fix | Pending |
+| TRND-04 | Phase 7.2: Trendyol Complete Fix | Pending |
+| TRND-05 | Phase 7.2: Trendyol Complete Fix | Pending |
+| TRND-06 | Phase 7.2: Trendyol Complete Fix | Pending |
+| TRND-07 | Phase 7.2: Trendyol Complete Fix | Pending |
+| TRND-08 | Phase 7.2: Trendyol Complete Fix | Pending |
+| TRND-09 | Phase 7.2: Trendyol Complete Fix | Pending |
 | TASK-05 | Phase 8: Task Management Advanced | Pending |
 | TASK-06 | Phase 8: Task Management Advanced | Pending |
 | TASK-07 | Phase 8: Task Management Advanced | Pending |
@@ -136,10 +157,10 @@ Deferred pentru dupa stabilizare.
 | QA-04 | Phase 10: Quality Assurance | Pending |
 
 **Coverage:**
-- v1 requirements: 35 total
-- Mapped to phases: 35
+- v1 requirements: 44 total
+- Mapped to phases: 44
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-23*
-*Last updated: 2026-01-26 (Phase 7 complete)*
+*Last updated: 2026-02-01 (Added Trendyol Complete Fix requirements)*

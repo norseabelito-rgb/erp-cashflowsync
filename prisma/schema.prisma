@@ -396,8 +396,9 @@ enum ValidationStatus {
 // Comenzile sincronizate din Shopify
 model Order {
   id                 String @id @default(cuid())
-  shopifyOrderId     String // ID-ul comenzii în Shopify
+  shopifyOrderId     String // ID-ul comenzii în Shopify sau Trendyol
   shopifyOrderNumber String // Numărul vizibil al comenzii (#1001, etc.)
+  source             String @default("shopify") // "shopify" | "trendyol" | "manual"
   storeId            String
   store              Store  @relation(fields: [storeId], references: [id])
 
@@ -475,6 +476,7 @@ model Order {
   @@index([storeId, status, createdAt])
   @@index([billingCompanyId])
   @@index([intercompanyStatus])
+  @@index([source])
   @@map("orders")
 }
 
@@ -773,16 +775,6 @@ model Settings {
   googleDriveCredentials String?   @db.Text // JSON cu Service Account credentials
   googleDriveLastSync    DateTime? // Ultima sincronizare imagini
 
-  // Trendyol Marketplace
-  trendyolSupplierId     String? // Supplier ID (Satıcı ID)
-  trendyolApiKey         String? // API Key
-  trendyolApiSecret      String? // API Secret
-  trendyolIsTestMode     Boolean  @default(false) // Test mode (stage API)
-  trendyolDefaultBrandId Int? // Brand ID default pentru produse
-  trendyolCurrencyRate   Decimal? @db.Decimal(10, 4) // Curs RON -> EUR (ex: 5.0)
-  trendyolStoreFrontCode String? // Codul țării: RO, DE, BG, etc.
-  trendyolInvoiceSeries  String? // Seria de facturare pentru comenzi Trendyol
-
   // Handover (Predare Curier)
   handoverAutoCloseTime String @default("20:00") // Ora finalizării automate (HH:mm)
   handoverTimezone      String @default("Europe/Bucharest") // Timezone
@@ -799,6 +791,9 @@ model Settings {
   backupAutoEnabled Boolean   @default(false) // Activează backup automat
   backupAutoTime    String    @default("03:00") // Ora backup-ului automat (HH:mm)
   backupLastAt      DateTime? // Ultimul backup
+
+  // Trendyol (legacy - pentru backward compatibility)
+  trendyolInvoiceSeries String? @map("trendyol_invoice_series") // Serie facturare Trendyol
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1268,6 +1263,8 @@ model MasterProduct {
   trendyolError        String? // Mesajul de eroare (dacă rejected)
   trendyolAttributes   Json?     @default("[]") // Atributele produsului pentru Trendyol
   trendyolLastSyncedAt DateTime?
+  trendyolCategoryId   Int?      // ID-ul categoriei Trendyol pentru acest produs
+  trendyolAttributeValues Json?  @map("trendyol_attribute_values") // Format: { [attributeId: number]: { attributeValueId?: number, customValue?: string } }
 
   // Mapare la articol inventar local
   inventoryItemId String?
@@ -2387,6 +2384,35 @@ model AIAnalysisRun {
 // TRENDYOL INTEGRATION
 // ==========================================
 
+// Magazine Trendyol (multiple per firma)
+model TrendyolStore {
+  id                String   @id @default(cuid())
+  name              String   // "Trendyol RO", "Trendyol DE"
+  supplierId        String   @unique @map("supplier_id") // Supplier ID din Trendyol
+  apiKey            String   @map("api_key")
+  apiSecret         String   @map("api_secret")
+  webhookSecret     String   @map("webhook_secret") // HMAC secret unic per magazin
+  storeFrontCode    String   @map("store_front_code") // "RO", "DE", "BG", "TR"
+  isTestMode        Boolean  @default(false) @map("is_test_mode")
+  defaultBrandId    Int?     @map("default_brand_id")
+  currencyRate      Decimal? @db.Decimal(10, 4) @map("currency_rate") // Curs RON -> valuta locala
+  invoiceSeriesName String?  @map("invoice_series_name") // Seria de facturare
+
+  // Firma asociata
+  companyId String  @map("company_id")
+  company   Company @relation(fields: [companyId], references: [id])
+
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relatii
+  orders TrendyolOrder[]
+
+  @@index([companyId])
+  @@map("trendyol_stores")
+}
+
 // Comenzi Trendyol
 model TrendyolOrder {
   id                  String   @id @default(cuid())
@@ -2420,8 +2446,25 @@ model TrendyolOrder {
   orderId String? @unique
   order   Order?  @relation(fields: [orderId], references: [id])
 
+  // Magazin Trendyol (pentru multi-store support)
+  trendyolStoreId String?        @map("trendyol_store_id")
+  trendyolStore   TrendyolStore? @relation(fields: [trendyolStoreId], references: [id])
+
   // Line items
   lineItems TrendyolOrderItem[]
+
+  // Invoice tracking - for sending invoice link back to Trendyol
+  invoiceSentToTrendyol Boolean   @default(false) @map("invoice_sent_to_trendyol")
+  invoiceSentAt         DateTime? @map("invoice_sent_at")
+  invoiceSendError      String?   @map("invoice_send_error")
+  oblioInvoiceLink      String?   @map("oblio_invoice_link") // The public link sent to Trendyol
+
+  // AWB tracking - for sending tracking number back to Trendyol
+  trackingSentToTrendyol Boolean   @default(false) @map("tracking_sent_to_trendyol")
+  trackingSentAt         DateTime? @map("tracking_sent_at")
+  trackingSendError      String?   @map("tracking_send_error")
+  localAwbNumber         String?   @map("local_awb_number") // AWB from FanCourier/Sameday
+  localCarrier           String?   @map("local_carrier") // "fancourier" | "sameday" | etc.
 
   // Timestamps
   createdAt    DateTime  @default(now())
@@ -2431,6 +2474,7 @@ model TrendyolOrder {
   @@index([status])
   @@index([orderDate])
   @@index([trendyolOrderNumber])
+  @@index([trendyolStoreId])
   @@map("trendyol_orders")
 }
 
@@ -3164,6 +3208,7 @@ model Company {
   invoiceSeries                InvoiceSeries[]
   intercompanyInvoicesIssued   IntercompanyInvoice[] @relation("IssuedBy")
   intercompanyInvoicesReceived IntercompanyInvoice[] @relation("ReceivedBy")
+  trendyolStores               TrendyolStore[]
 
   @@index([cif])
   @@index([isPrimary])
@@ -3384,12 +3429,12 @@ model BulkPushJob {
 
 // Status pentru job-uri de publicare bulk
 enum BulkPublishStatus {
-  PENDING              // În așteptare
-  RUNNING              // În curs
-  COMPLETED            // Finalizat cu succes
+  PENDING // În așteptare
+  RUNNING // În curs
+  COMPLETED // Finalizat cu succes
   COMPLETED_WITH_ERRORS // Finalizat dar cu erori
-  FAILED               // Eșuat complet
-  CANCELLED            // Anulat de user
+  FAILED // Eșuat complet
+  CANCELLED // Anulat de user
 }
 
 // Job pentru publicare bulk produse pe canale multiple
@@ -3401,14 +3446,14 @@ model BulkPublishJob {
   status BulkPublishStatus @default(PENDING)
 
   // Input
-  productIds    Json @default("[]") @map("product_ids")   // Array de product IDs
-  channelIds    Json @default("[]") @map("channel_ids")   // Array de channel IDs selectate
+  productIds    Json @default("[]") @map("product_ids") // Array de product IDs
+  channelIds    Json @default("[]") @map("channel_ids") // Array de channel IDs selectate
   totalProducts Int  @default(0) @map("total_products")
   totalChannels Int  @default(0) @map("total_channels")
 
   // Progress global
   processedItems Int @default(0) @map("processed_items") // produse × canale procesate
-  totalItems     Int @default(0) @map("total_items")     // produse × canale total
+  totalItems     Int @default(0) @map("total_items") // produse × canale total
   createdCount   Int @default(0) @map("created_count")
   updatedCount   Int @default(0) @map("updated_count")
   failedCount    Int @default(0) @map("failed_count")

@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { issueInvoiceForOrder } from "@/lib/invoice-service";
-import { createAWBForOrder } from "@/lib/fancourier";
+import { createAWBForOrder } from "@/lib/awb-service";
 import { logActivity } from "@/lib/activity-log";
 import { v4 as uuidv4 } from "uuid";
 import { hasPermission } from "@/lib/permissions";
@@ -53,6 +53,18 @@ export async function POST(request: NextRequest) {
 
     console.log(`\n📦 Procesare completă pentru ${orderIds.length} comenzi...`);
 
+    // Count orders by source for logging
+    const ordersBySource = await prisma.order.groupBy({
+      by: ['source'],
+      where: { id: { in: orderIds } },
+      _count: true,
+    });
+    const sourceCounts = ordersBySource.reduce((acc, item) => {
+      acc[item.source || 'shopify'] = item._count;
+      return acc;
+    }, {} as Record<string, number>);
+    console.log(`   Surse: Shopify: ${sourceCounts['shopify'] || 0}, Trendyol: ${sourceCounts['trendyol'] || 0}`);
+
     // Generăm un batch ID pentru a grupa erorile
     const batchId = uuidv4();
 
@@ -64,6 +76,7 @@ export async function POST(request: NextRequest) {
     let awbsCreated = 0;
 
     // Batch load - încărcăm toate comenzile într-un singur query
+    // Include trendyolOrder for Trendyol orders to enable invoice/AWB sync
     const orders = await prisma.order.findMany({
       where: { id: { in: orderIds } },
       include: {
@@ -71,6 +84,7 @@ export async function POST(request: NextRequest) {
         invoice: true,
         awb: true,
         lineItems: true,
+        trendyolOrder: true,
       },
     });
 

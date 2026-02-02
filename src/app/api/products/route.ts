@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
+import { syncSingleProductToTrendyol } from "@/lib/trendyol-stock-sync";
 
 // GET - Lista produselor cu canale
 export async function GET(request: NextRequest) {
@@ -356,6 +357,14 @@ export async function PUT(request: NextRequest) {
           overrides: {},
           lastSyncedAt: null, // Marchează pentru re-sync
         }
+      });
+    }
+
+    // Trigger Trendyol sync if product has trendyolBarcode and is approved
+    if (product.trendyolBarcode && product.trendyolStatus === "approved") {
+      // Non-blocking: fire and forget
+      syncSingleProductToTrendyol(id).catch(err => {
+        console.error("[Trendyol] Failed to sync product after update:", err);
       });
     }
 

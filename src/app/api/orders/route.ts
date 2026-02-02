@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get("status");
     const storeId = searchParams.get("storeId");
+    const source = searchParams.get("source"); // "shopify" | "trendyol" | "manual"
     const search = searchParams.get("search");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
@@ -47,6 +48,11 @@ export async function GET(request: NextRequest) {
 
     if (storeId && storeId !== "all") {
       where.storeId = storeId;
+    }
+
+    // Filtru după sursa comenzii (Shopify, Trendyol, manual)
+    if (source && source !== "all") {
+      where.source = source;
     }
 
     // Filtrare pe interval de date
@@ -149,6 +155,22 @@ export async function GET(request: NextRequest) {
             currentStatus: true,
             currentStatusDate: true,
             errorMessage: true,
+          },
+        },
+        trendyolOrder: {
+          select: {
+            id: true,
+            trendyolOrderNumber: true,
+            shipmentPackageId: true,
+            invoiceSentToTrendyol: true,
+            invoiceSentAt: true,
+            invoiceSendError: true,
+            oblioInvoiceLink: true,
+            trackingSentToTrendyol: true,
+            trackingSentAt: true,
+            trackingSendError: true,
+            localAwbNumber: true,
+            localCarrier: true,
           },
         },
         lineItems: true,

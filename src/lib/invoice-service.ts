@@ -57,7 +57,7 @@ export interface IssueInvoiceResult {
   invoiceKey?: string; // Cheia Oblio pentru referință (serie + număr)
   companyId?: string;
   companyName?: string;
-  seriesSource?: "store" | "company_default"; // Indicates whether store-specific or company default series was used
+  seriesSource?: "oblio_direct" | "store" | "company_default" | "trendyol_store"; // Indicates which series source was used
   error?: string;
   errorCode?: string;
 }
@@ -403,11 +403,29 @@ export async function issueInvoiceForOrder(
 
     let oblioSeriesName: string;
     let invoiceSeries: any = null;
-    let seriesSource: "oblio_direct" | "store" | "company_default" = "company_default";
+    let seriesSource: "oblio_direct" | "store" | "company_default" | "trendyol_store" = "company_default";
     let useOblioNumbering = false; // Dacă e true, Oblio generează numărul
 
+    // Variable to store TrendyolOrder for logging
+    let trendyolOrder: { trendyolStore: { invoiceSeriesName: string | null; name: string } | null } | null = null;
+
+    // Priority 0: TrendyolStore invoice series (for Trendyol orders)
+    if (order.source === "trendyol") {
+      trendyolOrder = await prisma.trendyolOrder.findFirst({
+        where: { orderId: order.id },
+        include: { trendyolStore: true },
+      });
+
+      if (trendyolOrder?.trendyolStore?.invoiceSeriesName) {
+        oblioSeriesName = trendyolOrder.trendyolStore.invoiceSeriesName;
+        seriesSource = "trendyol_store";
+        useOblioNumbering = true;
+        console.log(`[Invoice] Folosesc seria TrendyolStore: ${oblioSeriesName} (${trendyolOrder.trendyolStore.name})`);
+      }
+    }
+
     // Priority 1: Serie Oblio configurată direct pe store (NOU - recomandat)
-    if (storeWithOblio?.oblioSeriesName) {
+    if (!oblioSeriesName && storeWithOblio?.oblioSeriesName) {
       oblioSeriesName = storeWithOblio.oblioSeriesName;
       seriesSource = "oblio_direct";
       useOblioNumbering = true; // Oblio va genera numărul automat
@@ -486,7 +504,7 @@ export async function issueInvoiceForOrder(
       console.log(`Serie Oblio: ${oblioSeriesName}`);
       console.log(`Factura: ${formattedInvoice}`);
     }
-    console.log(`Sursa serie: ${seriesSource}`);
+    console.log(`Sursa serie: ${seriesSource}${seriesSource === "trendyol_store" && trendyolOrder?.trendyolStore?.name ? ` (${trendyolOrder.trendyolStore.name})` : ""}`);
     console.log("=".repeat(60));
 
     // 8. Creăm clientul Oblio
@@ -672,6 +690,20 @@ export async function issueInvoiceForOrder(
 
     const finalFormattedInvoice = `${finalInvoiceSeries}${String(finalInvoiceNumber).padStart(6, "0")}`;
     console.log(`[Invoice] Factura emisa cu succes: ${finalFormattedInvoice}`);
+
+    // 14. Send invoice link to Trendyol (non-blocking, for Trendyol orders only)
+    if (order.source === "trendyol") {
+      const invoiceLink = result.link || `https://oblio.eu/facturi/${finalInvoiceSeries}${finalInvoiceNumber}`;
+      // Dynamic import to avoid circular dependencies
+      import("./trendyol-invoice").then(({ sendInvoiceToTrendyol }) => {
+        sendInvoiceToTrendyol(order.id, invoiceLink).catch(err => {
+          console.error("[Trendyol] Failed to send invoice link:", err);
+          // Non-blocking - invoice was created successfully regardless
+        });
+      }).catch(err => {
+        console.error("[Trendyol] Failed to load trendyol-invoice module:", err);
+      });
+    }
 
     return {
       success: true,

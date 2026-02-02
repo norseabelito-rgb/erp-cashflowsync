@@ -160,11 +160,21 @@ const navigation: NavItem[] = [
   // 🌐 MARKETPLACE & ADS - Canale externe și publicitate
   // ─────────────────────────────────────────────────────
   {
+    name: "Trendyol",
+    icon: ShoppingBag,
+    permissions: ["marketplace.view"],
+    children: [
+      { name: "Produse", href: "/trendyol", icon: Package, permissions: ["marketplace.view"] },
+      { name: "Mapare Categorii", href: "/trendyol/mapping", icon: FolderTree, permissions: ["marketplace.view"] },
+      { name: "Publicare", href: "/trendyol/publish", icon: Globe, permissions: ["marketplace.edit"] },
+      { name: "Comenzi Detalii", href: "/trendyol/orders", icon: ShoppingCart, permissions: ["marketplace.view"] },
+    ],
+  },
+  {
     name: "Marketing",
     icon: Megaphone,
-    permissions: ["marketplace.view", "ads.view"],
+    permissions: ["ads.view"],
     children: [
-      { name: "Trendyol", href: "/trendyol", icon: ShoppingBag, permissions: ["marketplace.view"] },
       { name: "Ads Dashboard", href: "/ads", icon: BarChart3, permissions: ["ads.view"] },
       { name: "Campanii", href: "/ads/campaigns", icon: Megaphone, permissions: ["ads.view"] },
       { name: "Per SKU", href: "/ads/products", icon: Package, permissions: ["ads.view"] },

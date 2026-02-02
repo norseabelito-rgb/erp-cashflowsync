@@ -29,6 +29,7 @@ import {
   Pencil,
   ExternalLink,
   BoxIcon,
+  ShoppingBag,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -89,6 +90,7 @@ interface Order {
   id: string;
   shopifyOrderId: string;
   shopifyOrderNumber: string;
+  source: string;
   storeId: string;
   store: { id: string; name: string };
   customerEmail: string | null;
@@ -110,6 +112,20 @@ interface Order {
   createdAt: string;
   invoice: { id: string; invoiceNumber: string | null; invoiceSeriesName: string | null; oblioId: string | null; status: string; errorMessage: string | null } | null;
   awb: { id: string; awbNumber: string; currentStatus: string; currentStatusDate: string | null; errorMessage: string | null } | null;
+  trendyolOrder?: {
+    id: string;
+    trendyolOrderNumber: string;
+    shipmentPackageId: string | null;
+    invoiceSentToTrendyol: boolean;
+    invoiceSentAt: string | null;
+    invoiceSendError: string | null;
+    oblioInvoiceLink: string | null;
+    trackingSentToTrendyol: boolean;
+    trackingSentAt: string | null;
+    trackingSendError: string | null;
+    localAwbNumber: string | null;
+    localCarrier: string | null;
+  } | null;
   lineItems?: Array<{
     id: string;
     title: string;
@@ -327,6 +343,7 @@ export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [storeFilter, setStoreFilter] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all"); // "all" | "shopify" | "trendyol"
   const [awbFilter, setAwbFilter] = useState<string>("all"); // "all" | "with" | "without"
   const [awbStatusFilter, setAwbStatusFilter] = useState<string>("all"); // "all" | "tranzit" | "livrat" | "retur" | "pending" | "anulat"
   const [startDate, setStartDate] = useState<string>("");
@@ -392,11 +409,12 @@ export default function OrdersPage() {
   const [selectedDbErrors, setSelectedDbErrors] = useState<string[]>([]);
 
   const { data: ordersData, isLoading: ordersLoading, isError: ordersError, refetch: refetchOrders } = useQuery({
-    queryKey: ["orders", statusFilter, storeFilter, awbFilter, awbStatusFilter, searchQuery, startDate, endDate, page, limit],
+    queryKey: ["orders", statusFilter, storeFilter, sourceFilter, awbFilter, awbStatusFilter, searchQuery, startDate, endDate, page, limit],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (storeFilter !== "all") params.set("storeId", storeFilter);
+      if (sourceFilter !== "all") params.set("source", sourceFilter);
       if (awbFilter === "with") params.set("hasAwb", "true");
       if (awbFilter === "without") params.set("hasAwb", "false");
       if (awbFilter === "with" && awbStatusFilter !== "all") params.set("awbStatus", awbStatusFilter);
@@ -406,7 +424,12 @@ export default function OrdersPage() {
       params.set("page", String(page));
       params.set("limit", String(limit));
       const res = await fetch(`/api/orders?${params}`);
-      return res.json();
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        console.error('[Orders] API Error:', data);
+        throw new Error(data.error || data.details || 'Eroare la incarcarea comenzilor');
+      }
+      return data;
     },
   });
 
@@ -624,11 +647,11 @@ export default function OrdersPage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      
+
       // Construim mesajul de rezultat
       const messages: string[] = [];
       messages.push(`${data.synced || 0} comenzi sincronizate din Shopify`);
-      
+
       // Verificăm rezultatele sincronizării bilaterale
       if (data.bilateral) {
         if (data.bilateral.invoices) {
@@ -643,7 +666,7 @@ export default function OrdersPage() {
             messages.push(`🚚 ${awb.statusChanges} AWB-uri cu status schimbat`);
           }
         }
-        
+
         // Afișăm detalii dacă au fost modificări
         if (data.bilateral.changes && data.bilateral.changes.length > 0) {
           data.bilateral.changes.forEach((change: any) => {
@@ -652,22 +675,54 @@ export default function OrdersPage() {
           });
         }
       }
-      
+
       if (data.errors && data.errors.length > 0) {
-        toast({ 
-          title: "Sincronizare parțială", 
-          description: messages.join('\n') + `\n⚠️ ${data.errors.length} erori.`, 
-          variant: "default" 
+        toast({
+          title: "Sincronizare parțială",
+          description: messages.join('\n') + `\n⚠️ ${data.errors.length} erori.`,
+          variant: "default"
         });
       } else {
-        toast({ 
-          title: "Sincronizare completă", 
+        toast({
+          title: "Sincronizare completă",
           description: messages.join(' • '),
         });
       }
     },
     onError: (error: any) => {
       toast({ title: "Eroare sincronizare", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Trendyol sync mutation
+  const syncTrendyolMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/trendyol/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        }),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      if (data.success) {
+        toast({
+          title: "Sincronizare Trendyol",
+          description: `${data.synced} comenzi sincronizate (${data.created} noi, ${data.updated} actualizate)`,
+        });
+      } else {
+        toast({
+          title: "Eroare Trendyol",
+          description: data.error || "Eroare la sincronizare",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({ title: "Eroare sincronizare Trendyol", description: error.message, variant: "destructive" });
     },
   });
 
@@ -1022,14 +1077,25 @@ export default function OrdersPage() {
               </TooltipContent>
             </Tooltip>
             <ActionTooltip
-              action="Sincronizeaza comenzi"
+              action="Sincronizeaza comenzi Shopify"
               consequence="Se importa comenzile noi din Shopify"
               disabled={syncMutation.isPending}
               disabledReason="Sincronizare in curs..."
             >
               <Button onClick={() => syncMutation.mutate()} loading={syncMutation.isPending} size="sm" className="md:size-default">
                 <RefreshCw className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">Sincronizare</span>
+                <span className="hidden md:inline">Sync Shopify</span>
+              </Button>
+            </ActionTooltip>
+            <ActionTooltip
+              action="Sincronizeaza comenzi Trendyol"
+              consequence="Se importa comenzile din ultimele 7 zile din Trendyol"
+              disabled={syncTrendyolMutation.isPending}
+              disabledReason="Sincronizare Trendyol in curs..."
+            >
+              <Button onClick={() => syncTrendyolMutation.mutate()} loading={syncTrendyolMutation.isPending} variant="outline" size="sm" className="md:size-default">
+                <ShoppingBag className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Sync Trendyol</span>
               </Button>
             </ActionTooltip>
           </>
@@ -1066,6 +1132,14 @@ export default function OrdersPage() {
                 {stores.map((store) => (
                   <SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+            <Select value={sourceFilter} onValueChange={(v) => { setSourceFilter(v); setPage(1); }}>
+              <SelectTrigger className="w-full sm:w-[140px]"><SelectValue placeholder="Sursa" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate sursele</SelectItem>
+                <SelectItem value="shopify">Shopify</SelectItem>
+                <SelectItem value="trendyol">Trendyol</SelectItem>
               </SelectContent>
             </Select>
             <Select value={awbFilter} onValueChange={(v) => { setAwbFilter(v); if (v !== "with") setAwbStatusFilter("all"); setPage(1); }}>
@@ -1267,6 +1341,7 @@ export default function OrdersPage() {
                   <th className="p-4 text-left text-sm font-medium">Status</th>
                   <th className="p-4 text-left text-sm font-medium">Factură</th>
                   <th className="p-4 text-left text-sm font-medium">AWB</th>
+                  <th className="p-4 text-left text-sm font-medium">Sync Status</th>
                   <th className="p-4 text-left text-sm font-medium">Acțiuni</th>
                 </tr>
               </thead>
@@ -1275,7 +1350,7 @@ export default function OrdersPage() {
                   <>
                     {Array.from({ length: 10 }).map((_, i) => (
                       <tr key={i} className="border-b">
-                        <td colSpan={9} className="p-0">
+                        <td colSpan={10} className="p-0">
                           <SkeletonTableRow cols={9} />
                         </td>
                       </tr>
@@ -1283,13 +1358,14 @@ export default function OrdersPage() {
                   </>
                 ) : orders.length === 0 ? (
                   (() => {
-                    const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || storeFilter !== "all" || awbFilter !== "all" || awbStatusFilter !== "all" || startDate !== "" || endDate !== "";
+                    const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || storeFilter !== "all" || sourceFilter !== "all" || awbFilter !== "all" || awbStatusFilter !== "all" || startDate !== "" || endDate !== "";
                     const emptyStateType = determineEmptyStateType(hasActiveFilters, ordersError);
                     const emptyConfig = getEmptyState("orders", emptyStateType);
                     const clearFilters = () => {
                       setSearchQuery("");
                       setStatusFilter("all");
                       setStoreFilter("all");
+                      setSourceFilter("all");
                       setAwbFilter("all");
                       setAwbStatusFilter("all");
                       setStartDate("");
@@ -1297,7 +1373,7 @@ export default function OrdersPage() {
                     };
                     return (
                       <tr>
-                        <td colSpan={9}>
+                        <td colSpan={10}>
                           <EmptyState
                             icon={emptyConfig.icon}
                             title={emptyConfig.title}
@@ -1327,7 +1403,15 @@ export default function OrdersPage() {
                       <td className="p-4" onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedOrders.includes(order.id)} onCheckedChange={() => handleSelectOrder(order.id)} /></td>
                       <td className="p-4">
                         <span className="font-medium">{order.shopifyOrderNumber}</span>
-                        <div className="flex items-center gap-1 mt-1"><Badge variant="outline" className="text-xs">{order.store.name}</Badge></div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <Badge variant="outline" className="text-xs">{order.store.name}</Badge>
+                          <Badge
+                            variant={order.source === "trendyol" ? "secondary" : "default"}
+                            className={cn("text-xs", order.source === "trendyol" ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" : "")}
+                          >
+                            {order.source === "trendyol" ? "Trendyol" : "Shopify"}
+                          </Badge>
+                        </div>
                         <p className="text-xs text-muted-foreground mt-1">{formatDate(order.createdAt)}</p>
                       </td>
                       <td className="p-4">
@@ -1413,6 +1497,32 @@ export default function OrdersPage() {
                           >
                             <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpenAwbModal(order.id); }} disabled={awbMutation.isPending}><Truck className="h-4 w-4" /></Button>
                           </ActionTooltip>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        {order.source === "trendyol" && order.trendyolOrder ? (
+                          <div className="flex items-center gap-2">
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <FileText className={cn("h-4 w-4", order.trendyolOrder.invoiceSentToTrendyol ? "text-status-success" : order.trendyolOrder.invoiceSendError ? "text-status-error" : "text-muted-foreground")} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {order.trendyolOrder.invoiceSentToTrendyol ? "Factura trimisa la Trendyol" : order.trendyolOrder.invoiceSendError ? `Eroare: ${order.trendyolOrder.invoiceSendError}` : "Factura netrimisa"}
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Truck className={cn("h-4 w-4", order.trendyolOrder.trackingSentToTrendyol ? "text-status-success" : order.trendyolOrder.trackingSendError ? "text-status-error" : "text-muted-foreground")} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {order.trendyolOrder.trackingSentToTrendyol ? `AWB trimis: ${order.trendyolOrder.localAwbNumber || "Da"}` : order.trendyolOrder.trackingSendError ? `Eroare: ${order.trendyolOrder.trackingSendError}` : "AWB netrimis"}
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        ) : order.source === "shopify" ? (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
                         )}
                       </td>
                       <td className="p-4" onClick={(e) => e.stopPropagation()}>
@@ -2079,6 +2189,138 @@ export default function OrdersPage() {
                   )}
                 </div>
               </div>
+
+              {/* Trendyol Status - only show for Trendyol orders when invoice is issued or AWB exists */}
+              {viewOrder.source === "trendyol" && (viewOrder.invoice?.status === "issued" || viewOrder.awb?.awbNumber) && (
+                <div className="p-4 rounded-lg border bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2 text-orange-700 dark:text-orange-300">
+                    <ExternalLink className="h-4 w-4" />
+                    Status Trendyol
+                  </h4>
+                  <div className="space-y-3">
+                    {/* Invoice status */}
+                    {viewOrder.invoice?.status === "issued" && (
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-orange-900 dark:text-orange-200">Factura trimisa:</span>
+                          {viewOrder.trendyolOrder?.invoiceSentToTrendyol ? (
+                            <Badge variant="success" className="gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Da
+                            </Badge>
+                          ) : viewOrder.trendyolOrder?.invoiceSendError ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="destructive" className="gap-1 cursor-help">
+                                    <XCircle className="h-3 w-3" />
+                                    Eroare
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-sm">{viewOrder.trendyolOrder.invoiceSendError}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <Badge variant="secondary" className="gap-1">
+                              <Clock className="h-3 w-3" />
+                              In asteptare
+                            </Badge>
+                          )}
+                        </div>
+                        {viewOrder.trendyolOrder?.invoiceSentAt && (
+                          <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                            Trimisa la: {new Date(viewOrder.trendyolOrder.invoiceSentAt).toLocaleString('ro-RO')}
+                          </p>
+                        )}
+                        {viewOrder.trendyolOrder?.oblioInvoiceLink && (
+                          <a
+                            href={viewOrder.trendyolOrder.oblioInvoiceLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-orange-600 dark:text-orange-400 mt-1 hover:underline flex items-center gap-1"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Vezi factura
+                          </a>
+                        )}
+                      </div>
+                    )}
+
+                    {/* AWB tracking status */}
+                    {viewOrder.awb?.awbNumber && (
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-orange-900 dark:text-orange-200">AWB trimis:</span>
+                          {viewOrder.trendyolOrder?.trackingSentToTrendyol ? (
+                            <Badge variant="success" className="gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Da ({viewOrder.trendyolOrder.localAwbNumber})
+                            </Badge>
+                          ) : viewOrder.trendyolOrder?.trackingSendError ? (
+                            <div className="flex items-center gap-2">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="destructive" className="gap-1 cursor-help">
+                                      <XCircle className="h-3 w-3" />
+                                      Eroare
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <p className="text-sm">{viewOrder.trendyolOrder.trackingSendError}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2 text-xs"
+                                onClick={() => {
+                                  fetch("/api/trendyol", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ action: "retrySendTracking", orderId: viewOrder.id }),
+                                  })
+                                    .then(res => res.json())
+                                    .then(data => {
+                                      if (data.success) {
+                                        toast({ title: "Succes", description: "AWB trimis catre Trendyol" });
+                                        // Refresh order data
+                                        fetch(`/api/orders/${viewOrder.id}`).then(res => res.json()).then(orderData => {
+                                          if (orderData.order) setViewOrder(orderData.order);
+                                        });
+                                      } else {
+                                        toast({ title: "Eroare", description: data.error || "Nu s-a putut trimite AWB", variant: "destructive" });
+                                      }
+                                    })
+                                    .catch(() => {
+                                      toast({ title: "Eroare", description: "Eroare de retea", variant: "destructive" });
+                                    });
+                                }}
+                              >
+                                <RotateCcw className="h-3 w-3 mr-1" />
+                                Reincearca
+                              </Button>
+                            </div>
+                          ) : (
+                            <Badge variant="secondary" className="gap-1">
+                              <Clock className="h-3 w-3" />
+                              In asteptare
+                            </Badge>
+                          )}
+                        </div>
+                        {viewOrder.trendyolOrder?.trackingSentAt && (
+                          <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                            Trimis la: {new Date(viewOrder.trendyolOrder.trackingSentAt).toLocaleString('ro-RO')}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Produse comandă */}
               <div>

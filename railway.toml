@@ -5,9 +5,7 @@ installCommand = "npm install --legacy-peer-deps"
 buildCommand = "npx prisma generate && npm run build"
 
 [deploy]
-# Safe migration script that uses IF NOT EXISTS - won't delete data
-# After migration, backfill postal codes for orders missing them (limit 200 per deploy)
-# DEBUG: Backfill cu 5 comenzi pentru a vedea răspunsurile raw FanCourier
-startCommand = "node scripts/force-migration.js && (LIMIT=5 npm run backfill:postal-codes || echo 'Backfill failed') && npm run start"
+# Deploy script handles: Prisma migrations, custom migrations, backfill, and app start
+startCommand = "bash scripts/deploy-start.sh"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
