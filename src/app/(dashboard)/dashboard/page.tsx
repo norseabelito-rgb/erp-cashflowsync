@@ -12,6 +12,7 @@ import {
   BarChart3,
   ShoppingBag,
   FileText,
+  RotateCcw,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -254,13 +255,13 @@ export default async function DashboardPage({
           href={buildFilteredHref("/orders")}
         />
         <StatCard
-          title="Trendyol de procesat"
-          value={stats.trendyolPending}
-          icon={ShoppingBag}
-          description="Comenzi Trendyol in asteptare"
-          tooltip="Comenzi Trendyol care asteapta facturare si AWB"
-          variant={stats.trendyolPending > 5 ? "warning" : "default"}
-          href={buildFilteredHref("/orders", { source: "trendyol", status: "PENDING,VALIDATED" })}
+          title="Retururi"
+          value={stats.returns}
+          icon={RotateCcw}
+          description="Colete returnate sau in curs de returnare"
+          tooltip="AWB-uri cu status de retur - colete refuzate sau returnate"
+          variant={stats.returns > 0 ? "warning" : "default"}
+          href={buildFilteredHref("/tracking", { status: "returned" })}
         />
       </div>
 
