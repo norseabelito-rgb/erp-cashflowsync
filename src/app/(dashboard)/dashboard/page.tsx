@@ -171,6 +171,7 @@ export default async function DashboardPage({
           value={formatCurrency(stats.totalSales)}
           icon={TrendingUp}
           description={`${stats.orderCount} comenzi in perioada selectata`}
+          tooltip="Valoarea totala a comenzilor din perioada selectata"
           variant="success"
           href="/invoices"
         />
@@ -179,6 +180,7 @@ export default async function DashboardPage({
           value={stats.pendingOrders + stats.validatedOrders}
           icon={Clock}
           description="Comenzi care asteapta actiune (nefacturate)"
+          tooltip="Comenzi care asteapta actiune: PENDING (noi) si VALIDATED (validate dar nefacturate)"
           variant={stats.pendingOrders + stats.validatedOrders > 10 ? "warning" : "default"}
           href="/orders?status=PENDING,VALIDATED"
         />
@@ -187,6 +189,7 @@ export default async function DashboardPage({
           value={stats.shipped}
           icon={Truck}
           description="Comenzi in curs de livrare"
+          tooltip="Comenzi cu AWB generat - colete preluate de curier sau in curs de livrare"
           variant="default"
           href="/tracking"
         />
@@ -195,6 +198,7 @@ export default async function DashboardPage({
           value={stats.todayInvoices}
           icon={FileText}
           description="In perioada selectata"
+          tooltip="Numarul de facturi emise in perioada selectata"
           variant="success"
           href="/invoices"
         />
@@ -207,6 +211,7 @@ export default async function DashboardPage({
           value={stats.shopifyOrders}
           icon={ShoppingCart}
           description={formatCurrency(stats.shopifyRevenue)}
+          tooltip="Comenzi din magazinele Shopify in perioada selectata"
           variant="default"
           href="/orders?source=shopify"
         />
@@ -215,6 +220,7 @@ export default async function DashboardPage({
           value={stats.trendyolOrders}
           icon={ShoppingBag}
           description={formatCurrency(stats.trendyolRevenue)}
+          tooltip="Comenzi din magazinele Trendyol in perioada selectata"
           variant="default"
           href="/orders?source=trendyol"
         />
@@ -223,6 +229,7 @@ export default async function DashboardPage({
           value={stats.totalOrders}
           icon={Package}
           description={formatCurrency(stats.totalSales)}
+          tooltip="Suma comenzilor din toate canalele in perioada selectata"
           variant="success"
           href="/orders"
         />
@@ -231,6 +238,7 @@ export default async function DashboardPage({
           value={stats.trendyolPending}
           icon={ShoppingBag}
           description="Comenzi Trendyol in asteptare"
+          tooltip="Comenzi Trendyol care asteapta facturare si AWB"
           variant={stats.trendyolPending > 5 ? "warning" : "default"}
           href="/orders?source=trendyol&status=PENDING,VALIDATED"
         />
