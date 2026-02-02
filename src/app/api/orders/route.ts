@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get("endDate");
     const containsSku = searchParams.get("containsSku"); // Filtru după SKU produs
     const containsBarcode = searchParams.get("containsBarcode"); // Filtru după barcode
+    const containsProduct = searchParams.get("containsProduct"); // Filtru după SKU sau nume produs
     const hasAwb = searchParams.get("hasAwb"); // "true" sau "false"
     const awbStatus = searchParams.get("awbStatus"); // "tranzit" | "livrat" | "retur" | "pending" | "anulat"
     const page = parseInt(searchParams.get("page") || "1");
@@ -89,6 +90,18 @@ export async function GET(request: NextRequest) {
             contains: containsBarcode,
             mode: "insensitive",
           },
+        },
+      };
+    }
+
+    // Filtru după produs (caută în SKU și title simultan)
+    if (containsProduct) {
+      where.lineItems = {
+        some: {
+          OR: [
+            { sku: { contains: containsProduct, mode: "insensitive" } },
+            { title: { contains: containsProduct, mode: "insensitive" } },
+          ],
         },
       };
     }
