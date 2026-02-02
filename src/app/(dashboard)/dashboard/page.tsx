@@ -139,6 +139,26 @@ export default async function DashboardPage({
   const startDate = searchParams.startDate || undefined;
   const endDate = searchParams.endDate || undefined;
 
+  // Helper to build hrefs that preserve current filter context
+  function buildFilteredHref(basePath: string, extraParams?: Record<string, string>): string {
+    const params = new URLSearchParams();
+
+    // Preserve date filters if set
+    if (startDate) params.set("startDate", startDate);
+    if (endDate) params.set("endDate", endDate);
+    if (storeId) params.set("store", storeId);
+
+    // Add any extra params (like status filter)
+    if (extraParams) {
+      Object.entries(extraParams).forEach(([key, value]) => {
+        params.set(key, value);
+      });
+    }
+
+    const queryString = params.toString();
+    return queryString ? `${basePath}?${queryString}` : basePath;
+  }
+
   // Fetch filtered stats using the new dashboard-stats service
   const stats = await getFilteredDashboardStats({
     storeId,
@@ -173,7 +193,7 @@ export default async function DashboardPage({
           description={`${stats.orderCount} comenzi in perioada selectata`}
           tooltip="Valoarea totala a comenzilor din perioada selectata"
           variant="success"
-          href="/invoices"
+          href={buildFilteredHref("/invoices")}
         />
         <StatCard
           title="De procesat"
@@ -182,7 +202,7 @@ export default async function DashboardPage({
           description="Comenzi care asteapta actiune (nefacturate)"
           tooltip="Comenzi care asteapta actiune: PENDING (noi) si VALIDATED (validate dar nefacturate)"
           variant={stats.pendingOrders + stats.validatedOrders > 10 ? "warning" : "default"}
-          href="/orders?status=PENDING,VALIDATED"
+          href={buildFilteredHref("/orders", { status: "PENDING,VALIDATED" })}
         />
         <StatCard
           title="Expediate"
@@ -191,7 +211,7 @@ export default async function DashboardPage({
           description="Comenzi in curs de livrare"
           tooltip="Comenzi cu AWB generat - colete preluate de curier sau in curs de livrare"
           variant="default"
-          href="/tracking"
+          href={buildFilteredHref("/tracking")}
         />
         <StatCard
           title="Facturi emise"
@@ -200,7 +220,7 @@ export default async function DashboardPage({
           description="In perioada selectata"
           tooltip="Numarul de facturi emise in perioada selectata"
           variant="success"
-          href="/invoices"
+          href={buildFilteredHref("/invoices")}
         />
       </div>
 
@@ -213,7 +233,7 @@ export default async function DashboardPage({
           description={formatCurrency(stats.shopifyRevenue)}
           tooltip="Comenzi din magazinele Shopify in perioada selectata"
           variant="default"
-          href="/orders?source=shopify"
+          href={buildFilteredHref("/orders", { source: "shopify" })}
         />
         <StatCard
           title="Comenzi Trendyol"
@@ -222,7 +242,7 @@ export default async function DashboardPage({
           description={formatCurrency(stats.trendyolRevenue)}
           tooltip="Comenzi din magazinele Trendyol in perioada selectata"
           variant="default"
-          href="/orders?source=trendyol"
+          href={buildFilteredHref("/orders", { source: "trendyol" })}
         />
         <StatCard
           title="Total Comenzi"
@@ -231,7 +251,7 @@ export default async function DashboardPage({
           description={formatCurrency(stats.totalSales)}
           tooltip="Suma comenzilor din toate canalele in perioada selectata"
           variant="success"
-          href="/orders"
+          href={buildFilteredHref("/orders")}
         />
         <StatCard
           title="Trendyol de procesat"
@@ -240,7 +260,7 @@ export default async function DashboardPage({
           description="Comenzi Trendyol in asteptare"
           tooltip="Comenzi Trendyol care asteapta facturare si AWB"
           variant={stats.trendyolPending > 5 ? "warning" : "default"}
-          href="/orders?source=trendyol&status=PENDING,VALIDATED"
+          href={buildFilteredHref("/orders", { source: "trendyol", status: "PENDING,VALIDATED" })}
         />
       </div>
 
