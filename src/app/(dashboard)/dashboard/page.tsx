@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { InfoTooltip } from "@/components/ui/feature-tooltip";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import Link from "next/link";
 import { DashboardCharts } from "./dashboard-charts";
@@ -30,6 +31,7 @@ function StatCard({
   description,
   trend,
   trendLabel,
+  tooltip,
   variant = "default",
   href,
 }: {
@@ -39,6 +41,7 @@ function StatCard({
   description?: string;
   trend?: number;
   trendLabel?: string;
+  tooltip?: string;
   variant?: "default" | "success" | "warning" | "error";
   href?: string;
 }) {
@@ -64,9 +67,12 @@ function StatCard({
       )}
     >
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            {title}
+          </CardTitle>
+          {tooltip && <InfoTooltip content={tooltip} side="right" />}
+        </div>
         <Icon className={`h-5 w-5 ${iconStyles[variant]}`} />
       </CardHeader>
       <CardContent>
