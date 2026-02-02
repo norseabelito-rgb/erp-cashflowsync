@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.3 of 10 (Dashboard Rework)
-Plan: 5 of 5
+Plan: 6 of 6
 Status: Phase complete
-Last activity: 2026-02-03 - Completed 07.3-05-PLAN.md (Retururi card and dashboard cleanup)
+Last activity: 2026-02-03 - Completed 07.3-06-PLAN.md (AWB status alignment)
 
-Progress: [██████████████████░░] ~93% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 5/5 of 7.3)
+Progress: [██████████████████░░] ~94% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3)
 
 ## Phase 7 Progress
 
@@ -55,6 +55,9 @@ Progress: [██████████████████░░] ~93% (7
 
 Recent decisions affecting current work:
 
+- **07.3-06:** Dashboard "In Tranzit" counts AWBs by currentStatus patterns, not Order.status
+- **07.3-06:** Status categorization logic extracted to awb-status.ts for DRY
+- **07.3-06:** getCategoryFilterConditions provides Prisma OR clauses for efficient queries
 - **07.3-05:** Returns counted via AWB status patterns (retur, refuz, return) - matches tracking page logic
 - **07.3-05:** Replaced Trendyol pending card with Retururi card (redundant with De procesat)
 - **07.3-05:** Warning variant on Retururi card when returns > 0
@@ -250,10 +253,11 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 07.3-05-PLAN.md (Retururi card and dashboard cleanup)
+Stopped at: Completed 07.3-06-PLAN.md (AWB status alignment)
 Resume context:
-- **STAGING BRANCH** - Phase 7.3 COMPLETE
-- Dashboard rework finished - all filters, tooltips, navigation, and returns card done
+- **STAGING BRANCH** - Phase 7.3 COMPLETE (6/6 plans)
+- Dashboard "In Tranzit" now matches tracking page count exactly
+- Shared awb-status.ts module for consistent categorization
 - Ready for Phase 7.4: Orders Channel Split
 
 **NEXT STEPS:**
@@ -300,6 +304,7 @@ Task Management Core components:
 | 07.3-03 | 2 | Complete | Stat card tooltips with Romanian explanations |
 | 07.3-04 | 2 | Complete | Clickable stat cards preserve filter context |
 | 07.3-05 | 3 | Complete | Retururi card and dashboard cleanup |
+| 07.3-06 | 4 | Complete | AWB status alignment - shared module |
 
 ## Phase 7.3 Features (Dashboard Rework)
 
@@ -308,9 +313,14 @@ Task Management Core components:
 - [x] 07.3-03: InfoTooltip integration with Romanian explanations for all 8 stat cards
 - [x] 07.3-04: buildFilteredHref helper - clickable stat cards preserve filter context
 - [x] 07.3-05: Returns count in dashboard-stats.ts, Retururi card on dashboard
+- [x] 07.3-06: Shared awb-status.ts module, dashboard "In Tranzit" matches tracking page
 
 ## Recent Commits
 
+- `10bb0ba` refactor(07.3-06): use shared awb-status.ts in tracking page
+- `938beac` feat(07.3-06): update dashboard to use inTransit stat
+- `04635bf` feat(07.3-06): update dashboard stats to count AWBs in transit
+- `5081057` feat(07.3-06): create shared awb-status.ts module
 - `22d2ac6` feat(07.3-05): add Retururi card to dashboard
 - `f70276a` feat(07.3-05): add returns count to dashboard stats
 - `e5c43d8` feat(07.3-04): add buildFilteredHref helper function
@@ -324,4 +334,4 @@ Task Management Core components:
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-03 (Phase 7.3 COMPLETE - Dashboard rework with filters, tooltips, navigation, returns card)*
+*Last updated: 2026-02-03 (Phase 7.3 COMPLETE - Dashboard rework with filters, tooltips, navigation, returns card, AWB status alignment)*
