@@ -20,7 +20,7 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
 - [x] **Phase 7.1: Trendyol Complete Integration** - Full Trendyol channel with real-time sync, order processing, and product push (INSERTED)
 - [x] **Phase 7.2: Trendyol Complete Fix** - Fix product push, multi-company invoice series, category mapping (INSERTED)
 - [x] **Phase 7.3: Dashboard Rework** - Global filters, correct metrics, tooltips, clickable cards, remove Ads/AI (INSERTED)
-- [ ] **Phase 7.4: Orders Channel Split** - Tabs Shopify/Trendyol/Temu, manual order creation (INSERTED)
+- [x] **Phase 7.4: Orders Channel Split** - Tabs Shopify/Trendyol/Temu, manual order creation (INSERTED)
 - [ ] **Phase 7.5: AWB Tracking Fix** - Correct status logic, accurate card counts (INSERTED)
 - [ ] **Phase 8: Task Management Advanced** - Automation, notifications, and reporting
 - [ ] **Phase 9: Documentation** - In-app documentation for all modules
@@ -278,11 +278,11 @@ Plans:
 - No manual order creation capability
 
 Plans:
-- [ ] 07.4-01-PLAN.md — Tab navigation component with source filtering (Wave 1)
-- [ ] 07.4-02-PLAN.md — Channel-specific error display (Wave 1)
-- [ ] 07.4-03-PLAN.md — Manual order creation dialog (Wave 2)
-- [ ] 07.4-04-PLAN.md — Shopify order push API integration (Wave 2)
-- [ ] 07.4-05-PLAN.md — Temu placeholder tab (Wave 1)
+- [x] 07.4-01-PLAN.md — Tab navigation component with source filtering (Wave 1)
+- [x] 07.4-02-PLAN.md — Channel-specific error display (Wave 1)
+- [x] 07.4-03-PLAN.md — Manual order creation dialog (Wave 2)
+- [x] 07.4-04-PLAN.md — Shopify order push API integration (Wave 2)
+- [x] 07.4-05-PLAN.md — Temu placeholder tab (Wave 1)
 
 ### Phase 7.5: AWB Tracking Fix (INSERTED)
 **Goal**: AWB tracking page shows accurate counts with correct status categorization
@@ -382,7 +382,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7
 | 7.1. Trendyol Complete Integration | 6/6 | ✓ Complete | 2026-01-30 |
 | 7.2. Trendyol Complete Fix | 6/6 | ✓ Complete | 2026-02-03 |
 | 7.3. Dashboard Rework | 6/6 | ✓ Complete | 2026-02-03 |
-| 7.4. Orders Channel Split | 0/5 | Planned | - |
+| 7.4. Orders Channel Split | 5/5 | ✓ Complete | 2026-02-03 |
 | 7.5. AWB Tracking Fix | 0/4 | Not started | - |
 | 8. Task Management Advanced | 0/5 | Not started | - |
 | 9. Documentation | 0/4 | Not started | - |
@@ -404,4 +404,5 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7
 *Phase 7.2 completed: 2026-02-03*
 *Phase 7.3 completed: 2026-02-03*
 *Phase 7.4 planned: 2026-02-03 (5 plans in 2 waves)*
+*Phase 7.4 completed: 2026-02-03*
 *Depth: comprehensive (15 phases including insertions)*
