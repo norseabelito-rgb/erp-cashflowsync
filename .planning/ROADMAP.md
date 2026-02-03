@@ -285,29 +285,32 @@ Plans:
 - [x] 07.4-05-PLAN.md — Temu placeholder tab (Wave 1)
 
 ### Phase 7.5: AWB Tracking Fix (INSERTED)
-**Goal**: AWB tracking page shows accurate counts with correct status categorization
+**Goal**: AWB tracking page shows accurate counts with correct status categorization, individual FanCourier status cards with Romanian explanations
 **Depends on**: Phase 7.3 (dashboard must match tracking page)
 **Requirements**: AWB-01 through AWB-04
-**Plans**: TBD (estimate 3-4 plans in 2 waves)
+**Plans**: 4 plans in 2 waves
 **Success Criteria** (what must be TRUE):
   1. Sum of all status cards equals Total card exactly
-  2. Status categorization uses robust logic (not fragile string matching)
-  3. Deleted/Cancelled AWBs correctly categorized and counted
-  4. All possible AWB statuses are mapped to a category (no "unknown" status)
-  5. Status categories match dashboard "Expediate" calculation exactly
+  2. Status categorization uses code-based lookup from FANCOURIER_STATUSES (not fragile string matching)
+  3. All FanCourier statuses displayed as individual cards with Romanian explanations
+  4. Unknown status codes logged to database for admin review and mapping
+  5. Status explanation modal shows what each status means and what action to take
+  6. Dashboard "Expediate" count matches tracking page "In Tranzit" exactly
+  7. Admin settings page for managing unknown AWB status mappings
 
 **Context (issues identified):**
-- Card counts don't sum to total
+- Card counts don't sum to total (categorization gaps)
 - String-based status matching is fragile (typos, variations)
 - Deleted/Cancelled calculation incorrect
-- Some statuses may fall through without category
+- Some statuses fall through without category
 - Discrepancy between dashboard "Expediate" and tracking "In tranzit"
+- fancourier-statuses.ts already has comprehensive 52+ status mapping
 
 Plans:
-- [ ] 07.5-01-PLAN.md — Audit all AWB statuses and create comprehensive mapping (Wave 1)
-- [ ] 07.5-02-PLAN.md — Refactor status categorization to enum-based logic (Wave 1)
-- [ ] 07.5-03-PLAN.md — Fix card count calculation (sum must equal total) (Wave 2)
-- [ ] 07.5-04-PLAN.md — Sync dashboard Expediate with tracking In Tranzit (Wave 2)
+- [ ] 07.5-01-PLAN.md — Refactor awb-status.ts to code-based lookup + UnknownAWBStatus table (Wave 1)
+- [ ] 07.5-02-PLAN.md — Tracking page individual status cards with stats API (Wave 1)
+- [ ] 07.5-03-PLAN.md — Status explanation modal with Romanian content (Wave 2)
+- [ ] 07.5-04-PLAN.md — Dashboard-tracking alignment verification + unknown status admin page (Wave 2)
 
 ### Phase 8: Task Management Advanced
 **Goal**: Automated task creation, notifications, and activity reporting
