@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Cleanup old Trendyol integration, then Phase 8
+**Current focus:** Phase 7.5 - AWB Tracking Fix
 
 ## Current Position
 
-Phase: 7.4 of 10 (Orders Channel Split)
-Plan: 5 of 5
-Status: Phase complete
-Last activity: 2026-02-03 - Phase 7.4 COMPLETE (Orders Channel Split)
+Phase: 7.5 of 10 (AWB Tracking Fix)
+Plan: 2 of 4
+Status: In progress
+Last activity: 2026-02-03 - Completed 07.5-02-PLAN.md (Individual Status Cards)
 
-Progress: [██████████████████░░] ~96% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4)
+Progress: [██████████████████░░] ~97% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 2/4 of 7.5)
 
 ## Phase 7 Progress
 
@@ -55,6 +55,10 @@ Progress: [██████████████████░░] ~96% (7
 
 Recent decisions affecting current work:
 
+- **07.5-02:** Status cards use flexbox wrap instead of fixed grid (adapts to status count)
+- **07.5-02:** Filter uses client-side useMemo instead of API parameter (all AWBs already loaded)
+- **07.5-02:** Colors applied via inline styles with hexToRgba helper (dynamic from API)
+- **07.5-02:** UNKNOWN card groups null codes and unmapped codes together
 - **07.4-03:** 300ms debounce on product search (balance responsiveness and API load)
 - **07.4-03:** Romanian phone validation: 10 digits starting with 0
 - **07.4-03:** MasterProduct.price is readonly in dialog (no manual price override)
@@ -275,20 +279,20 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Phase 7.4 COMPLETE (Orders Channel Split)
+Stopped at: Phase 7.5 Plan 02 COMPLETE (Individual Status Cards)
 Resume context:
-- **STAGING BRANCH** - Phase 7.4 COMPLETE (5/5 plans)
-- Orders page now split by channel (Shopify/Trendyol/Temu tabs)
-- Manual order creation works (dialog + Shopify API)
-- Processing errors panel shows all channels' errors
-- Ready for Phase 7.5: AWB Tracking Fix
+- **STAGING BRANCH** - Phase 7.5 in progress (2/4 plans)
+- AWB tracking page now shows individual FanCourier status cards
+- /api/awb/stats endpoint provides status counts grouped by fanCourierStatusCode
+- Cards sorted by count (highest first), clickable to filter AWB list
+- Sum verification ensures card counts match total
 
 **NEXT STEPS:**
-1. Start Phase 7.5: AWB Tracking Fix
+1. Continue Phase 7.5: Plans 03-04
 2. Then cleanup old Trendyol integration from Settings
-3. Then Phase 8: Task Management Advanced
+3. Then Phase 8: Notifications and Automation
 
-Resume file: None (Phase 7.4 complete)
+Resume file: .planning/phases/07.5-awb-tracking-fix/07.5-03-PLAN.md
 
 ## Phase 7 Features
 
@@ -358,8 +362,25 @@ Task Management Core components:
 
 **Verification:** 7/7 must-haves verified (2026-02-03)
 
+## Phase 7.5 Progress
+
+| Plan | Wave | Status | Summary |
+|------|------|--------|---------|
+| 07.5-01 | 1 | Complete | AWB status categorization refactor using fanCourierStatusCode |
+| 07.5-02 | 1 | Complete | Individual status cards with /api/awb/stats API |
+| 07.5-03 | 2 | Pending | AWB list filter integration |
+| 07.5-04 | 3 | Pending | Final verification and polish |
+
+## Phase 7.5 Features (AWB Tracking Fix)
+
+- [x] 07.5-01: awb-status.ts refactored to use fanCourierStatusCode for categorization
+- [x] 07.5-02: /api/awb/stats endpoint, dynamic status cards, client-side filtering
+
 ## Recent Commits
 
+- `192c587` feat(07.5-02): refactor tracking page with individual status cards
+- `1a6c8cf` feat(07.5-02): create AWB stats API endpoint
+- `64f88bc` feat(07.5-01): refactor awb-status.ts to use code-based categorization
 - `26e34cb` feat(07.4-03): integrate ManualOrderDialog into orders page
 - `7011e68` feat(07.4-03): create ManualOrderDialog component
 - `8055645` docs(07.4-04): complete Manual Order Shopify Push API plan
@@ -383,4 +404,4 @@ Task Management Core components:
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-03 (Phase 7.4 Plan 03 COMPLETE - Manual Order Creation Dialog)*
+*Last updated: 2026-02-03 (Phase 7.5 Plan 02 COMPLETE - Individual Status Cards)*
