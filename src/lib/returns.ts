@@ -8,6 +8,7 @@
  */
 
 import prisma from "@/lib/db";
+import { processStockReturnForOrder } from "@/lib/stock";
 
 export interface ScanReturnResult {
   success: boolean;
@@ -115,9 +116,22 @@ export async function scanReturnAWB(
         },
       });
 
+      // Readăugăm stocul în inventar
+      if (directMatch.orderId) {
+        try {
+          const stockResult = await processStockReturnForOrder(directMatch.orderId, returnRecord.id);
+          if (stockResult.success && stockResult.processed > 0) {
+            console.log(`[Returns] Stoc readăugat: ${stockResult.processed} mișcări pentru comanda ${directMatch.orderId}`);
+          }
+        } catch (stockError) {
+          console.error("[Returns] Eroare la readăugarea stocului:", stockError);
+          // Non-blocking - returul a fost înregistrat, stocul poate fi corectat manual
+        }
+      }
+
       return {
         success: true,
-        message: `Retur scanat! Comanda ${directMatch.order?.shopifyOrderNumber || directMatch.orderId}`,
+        message: `Retur scanat! Comanda ${directMatch.order?.shopifyOrderNumber || directMatch.orderId}. Stocul a fost actualizat.`,
         type: "success",
         returnAwb: {
           id: returnRecord.id,
@@ -346,6 +360,21 @@ export async function linkReturnToOrder(
       processedAt: new Date(),
     },
   });
+
+  // Readăugăm stocul în inventar
+  try {
+    const stockResult = await processStockReturnForOrder(orderId, returnAwbId);
+    if (stockResult.success && stockResult.processed > 0) {
+      console.log(`[Returns] Stoc readăugat: ${stockResult.processed} mișcări pentru comanda ${orderId}`);
+      return {
+        success: true,
+        message: `Return AWB mapat la comanda ${order.shopifyOrderNumber}. Stocul a fost actualizat (${stockResult.processed} produse).`,
+      };
+    }
+  } catch (stockError) {
+    console.error("[Returns] Eroare la readăugarea stocului:", stockError);
+    // Non-blocking - maparea a fost făcută, stocul poate fi corectat manual
+  }
 
   return {
     success: true,
