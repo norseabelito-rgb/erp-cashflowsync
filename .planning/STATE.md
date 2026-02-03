@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.4 of 10 (Orders Channel Split)
-Plan: 1 of 6
+Plan: 2 of 6
 Status: In progress
-Last activity: 2026-02-03 - Completed 07.4-01-PLAN.md (Channel Tabs UI)
+Last activity: 2026-02-03 - Completed 07.4-02-PLAN.md (Processing Errors Panel)
 
-Progress: [██████████████████░░] ~95% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 1/6 of 7.4)
+Progress: [██████████████████░░] ~95% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 2/6 of 7.4)
 
 ## Phase 7 Progress
 
@@ -55,6 +55,10 @@ Progress: [██████████████████░░] ~95% (7
 
 Recent decisions affecting current work:
 
+- **07.4-02:** Error panel shows ALL errors regardless of active channel tab (users need full visibility)
+- **07.4-02:** errorsBySource calculated in parent, passed to ProcessingErrorsPanel as prop
+- **07.4-02:** Inline error indicator as red dot on Status column (complements existing state)
+- **07.4-02:** Panel auto-hides when no errors, auto-shows when errors appear
 - **07.4-01:** Tab state persists in URL via ?tab= parameter for shareability and refresh survival
 - **07.4-01:** sourceCounts NOT filtered by source param (all channels' counts needed for tabs)
 - **07.4-01:** TrendyolStores query only enabled when tab=trendyol (performance)
@@ -257,20 +261,20 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 07.4-01-PLAN.md (Channel Tabs UI)
+Stopped at: Completed 07.4-02-PLAN.md (Processing Errors Panel)
 Resume context:
-- **STAGING BRANCH** - Phase 7.4 IN PROGRESS (1/6 plans)
-- ChannelTabs component integrated with URL persistence
-- Orders API returns sourceCounts for tab badges
-- Channel-specific store filtering working
+- **STAGING BRANCH** - Phase 7.4 IN PROGRESS (2/6 plans)
+- ProcessingErrorsPanel component with collapsible UI
+- Channel breakdown in error panel (Shopify: X | Trendyol: Y)
+- Inline error badges on order Status column
 
 **NEXT STEPS:**
-1. Continue Phase 7.4: Plan 02 (Processing Errors Panel)
-2. Then remaining 7.4 plans (Bulk actions, Manual order, Temu placeholder, Gap closure)
+1. Continue Phase 7.4: Plan 03 (Bulk actions or column additions)
+2. Then remaining 7.4 plans (Manual order, Temu placeholder, Gap closure)
 3. Phase 7.5: AWB Tracking Fix
 4. Cleanup old Trendyol integration from Settings
 
-Resume file: None (Plan 07.4-01 complete)
+Resume file: None (Plan 07.4-02 complete)
 
 ## Phase 7 Features
 
@@ -325,7 +329,7 @@ Task Management Core components:
 | Plan | Wave | Status | Summary |
 |------|------|--------|---------|
 | 07.4-01 | 1 | Complete | ChannelTabs component with URL persistence and source counts |
-| 07.4-02 | 1 | Pending | Processing errors panel |
+| 07.4-02 | 1 | Complete | Collapsible ProcessingErrorsPanel with channel badges |
 | 07.4-03 | 2 | Pending | Bulk actions per channel |
 | 07.4-04 | 3 | Pending | Manual order creation |
 | 07.4-05 | 3 | Pending | Temu placeholder |
@@ -334,12 +338,15 @@ Task Management Core components:
 ## Phase 7.4 Features (Orders Channel Split)
 
 - [x] 07.4-01: ChannelTabs with Shopify/Trendyol/Temu tabs, URL state, source counts API
+- [x] 07.4-02: ProcessingErrorsPanel with collapsible UI, channel breakdown, inline error badges
 
 ## Recent Commits
 
+- `21c3509` feat(07.4-02): integrate ProcessingErrorsPanel and add inline error badges
+- `5acc6d2` feat(07.4-02): create ProcessingErrorsPanel component
+- `ebc26d3` docs(07.4-01): complete Channel Tabs UI plan
 - `3368e95` feat(07.4-01): integrate ChannelTabs in orders page
 - `cb607ea` feat(07.4-01): add sourceCounts to orders API response
-- `5acc6d2` feat(07.4-02): create ProcessingErrorsPanel component
 - `f054356` feat(07.4-05): create TemuPlaceholder component
 - `10bb0ba` refactor(07.3-06): use shared awb-status.ts in tracking page
 - `938beac` feat(07.3-06): update dashboard to use inTransit stat
