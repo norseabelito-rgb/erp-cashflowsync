@@ -1254,17 +1254,17 @@ model MasterProduct {
   imagesLastSyncedAt DateTime?
 
   // Trendyol Integration
-  trendyolBarcode      String? // Barcode unic pentru Trendyol (EAN-13)
-  trendyolBrandId      Int? // ID-ul brandului în Trendyol
-  trendyolBrandName    String? // Numele brandului
-  trendyolProductId    String? // ID-ul produsului în Trendyol (după aprobare)
-  trendyolStatus       String? // pending, approved, rejected
-  trendyolBatchId      String? // ID-ul ultimului batch request
-  trendyolError        String? // Mesajul de eroare (dacă rejected)
-  trendyolAttributes   Json?     @default("[]") // Atributele produsului pentru Trendyol
-  trendyolLastSyncedAt DateTime?
-  trendyolCategoryId   Int?      // ID-ul categoriei Trendyol pentru acest produs
-  trendyolAttributeValues Json?  @map("trendyol_attribute_values") // Format: { [attributeId: number]: { attributeValueId?: number, customValue?: string } }
+  trendyolBarcode         String? // Barcode unic pentru Trendyol (EAN-13)
+  trendyolBrandId         Int? // ID-ul brandului în Trendyol
+  trendyolBrandName       String? // Numele brandului
+  trendyolProductId       String? // ID-ul produsului în Trendyol (după aprobare)
+  trendyolStatus          String? // pending, approved, rejected
+  trendyolBatchId         String? // ID-ul ultimului batch request
+  trendyolError           String? // Mesajul de eroare (dacă rejected)
+  trendyolAttributes      Json?     @default("[]") // Atributele produsului pentru Trendyol
+  trendyolLastSyncedAt    DateTime?
+  trendyolCategoryId      Int? // ID-ul categoriei Trendyol pentru acest produs
+  trendyolAttributeValues Json?     @map("trendyol_attribute_values") // Format: { [attributeId: number]: { attributeValueId?: number, customValue?: string } }
 
   // Mapare la articol inventar local
   inventoryItemId String?
@@ -2387,7 +2387,7 @@ model AIAnalysisRun {
 // Magazine Trendyol (multiple per firma)
 model TrendyolStore {
   id                String   @id @default(cuid())
-  name              String   // "Trendyol RO", "Trendyol DE"
+  name              String // "Trendyol RO", "Trendyol DE"
   supplierId        String   @unique @map("supplier_id") // Supplier ID din Trendyol
   apiKey            String   @map("api_key")
   apiSecret         String   @map("api_secret")
@@ -2395,7 +2395,7 @@ model TrendyolStore {
   storeFrontCode    String   @map("store_front_code") // "RO", "DE", "BG", "TR"
   isTestMode        Boolean  @default(false) @map("is_test_mode")
   defaultBrandId    Int?     @map("default_brand_id")
-  currencyRate      Decimal? @db.Decimal(10, 4) @map("currency_rate") // Curs RON -> valuta locala
+  currencyRate      Decimal? @map("currency_rate") @db.Decimal(10, 4) // Curs RON -> valuta locala
   invoiceSeriesName String?  @map("invoice_series_name") // Seria de facturare
 
   // Firma asociata
@@ -3525,4 +3525,25 @@ model ReturnAWB {
   @@index([status])
   @@index([scannedAt])
   @@map("return_awbs")
+}
+
+// ==========================================
+// AWB STATUS TRACKING
+// ==========================================
+
+// Unknown AWB statuses for admin review and mapping
+model UnknownAWBStatus {
+  id              String   @id @default(cuid())
+  statusCode      String   @unique // The FanCourier status code (e.g., "S99")
+  statusName      String? // The name FanCourier returned with this code
+  firstSeenAt     DateTime @default(now())
+  lastSeenAt      DateTime @updatedAt
+  seenCount       Int      @default(1)
+  sampleAwbNumber String? // For debugging - which AWB had this status
+  mappedCategory  String? // Admin can manually assign category
+  mappedName      String? // Admin can provide Romanian name
+  notes           String? // Admin notes
+
+  @@index([statusCode])
+  @@map("unknown_awb_statuses")
 }
