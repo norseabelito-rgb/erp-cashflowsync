@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Truck,
@@ -20,6 +20,7 @@ import {
   History,
 } from "lucide-react";
 import { getStatusCategory, type StatusCategory } from "@/lib/awb-status";
+import { FANCOURIER_STATUSES } from "@/lib/fancourier-statuses";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,7 @@ interface AWBWithOrder {
   cashOnDelivery: string | null;
   errorMessage: string | null;
   createdAt: string;
+  fanCourierStatusCode: string | null;
   order: {
     id: string;
     shopifyOrderNumber: string;
@@ -67,7 +69,22 @@ interface AWBWithOrder {
   }>;
 }
 
-// Configurație vizuală pentru categorii (extended from awb-status.ts categoryConfig)
+interface StatusStat {
+  code: string;
+  name: string;
+  description: string;
+  color: string;
+  count: number;
+  isFinal: boolean;
+}
+
+interface StatsResponse {
+  total: number;
+  statusStats: StatusStat[];
+  sumVerified: boolean;
+}
+
+// Configuratie vizuala pentru categorii (used for AWB card styling)
 const categoryConfig: Record<StatusCategory, {
   label: string;
   bgColor: string;
@@ -77,7 +94,7 @@ const categoryConfig: Record<StatusCategory, {
   icon: React.ElementType;
 }> = {
   pending: {
-    label: "În așteptare",
+    label: "In asteptare",
     bgColor: "bg-status-warning/10",
     borderColor: "border-status-warning/20",
     textColor: "text-status-warning",
@@ -85,7 +102,7 @@ const categoryConfig: Record<StatusCategory, {
     icon: Clock,
   },
   in_transit: {
-    label: "În tranzit",
+    label: "In tranzit",
     bgColor: "bg-status-info/10",
     borderColor: "border-status-info/20",
     textColor: "text-status-info",
@@ -117,7 +134,7 @@ const categoryConfig: Record<StatusCategory, {
     icon: Ban,
   },
   deleted: {
-    label: "Șters",
+    label: "Sters",
     bgColor: "bg-muted",
     borderColor: "border-border",
     textColor: "text-muted-foreground",
@@ -142,43 +159,60 @@ const categoryConfig: Record<StatusCategory, {
   },
 };
 
+// Helper to convert hex to Tailwind-safe style
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export default function TrackingPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expandedAWBs, setExpandedAWBs] = useState<Set<string>>(new Set());
 
+  // Fetch status stats from new API
+  const { data: statsData, isLoading: statsLoading } = useQuery<StatsResponse>({
+    queryKey: ["awb-stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/awb/stats");
+      return res.json();
+    },
+  });
+
   // Fetch AWBs
-  const { data: awbsData, isLoading } = useQuery({
-    queryKey: ["awbs", categoryFilter, searchQuery],
+  const { data: awbsData, isLoading: awbsLoading } = useQuery({
+    queryKey: ["awbs", searchQuery],
     queryFn: async () => {
       const params = new URLSearchParams();
-      params.set("showAll", "true"); // Arată toate AWB-urile
-      params.set("noPagination", "true"); // Dezactivează paginarea pentru tracking
+      params.set("showAll", "true"); // Arata toate AWB-urile
+      params.set("noPagination", "true"); // Dezactiveaza paginarea pentru tracking
       if (searchQuery) params.set("search", searchQuery);
-      
+
       const res = await fetch(`/api/awb?${params}`);
       return res.json();
     },
   });
 
   const allAWBs: AWBWithOrder[] = awbsData?.awbs || [];
-  
-  // Filtrare după categorie
-  const awbs = categoryFilter === "all" 
-    ? allAWBs 
-    : allAWBs.filter(awb => getStatusCategory(awb.currentStatus) === categoryFilter);
 
-  // Statistici
-  const stats = {
-    total: allAWBs.length,
-    inTransit: allAWBs.filter(a => getStatusCategory(a.currentStatus) === 'in_transit').length,
-    delivered: allAWBs.filter(a => getStatusCategory(a.currentStatus) === 'delivered').length,
-    pending: allAWBs.filter(a => getStatusCategory(a.currentStatus) === 'pending').length,
-    returned: allAWBs.filter(a => getStatusCategory(a.currentStatus) === 'returned').length,
-    cancelled: allAWBs.filter(a => getStatusCategory(a.currentStatus) === 'cancelled').length,
-    deleted: allAWBs.filter(a => getStatusCategory(a.currentStatus) === 'deleted').length,
-    error: allAWBs.filter(a => getStatusCategory(a.currentStatus) === 'error' || a.errorMessage).length,
-  };
+  // Filter AWBs by status code
+  const filteredAwbs = useMemo(() => {
+    if (!allAWBs.length) return [];
+    if (statusFilter === "all") return allAWBs;
+
+    if (statusFilter === "UNKNOWN") {
+      // Match AWBs where code is null or not in FANCOURIER_STATUSES
+      return allAWBs.filter(awb =>
+        !awb.fanCourierStatusCode || !FANCOURIER_STATUSES[awb.fanCourierStatusCode]
+      );
+    }
+
+    return allAWBs.filter(awb => awb.fanCourierStatusCode === statusFilter);
+  }, [allAWBs, statusFilter]);
+
+  const isLoading = statsLoading || awbsLoading;
 
   const toggleExpanded = (awbId: string) => {
     setExpandedAWBs(prev => {
@@ -195,19 +229,27 @@ export default function TrackingPage() {
   const getAWBCardStyles = (awb: AWBWithOrder) => {
     const category = getStatusCategory(awb.currentStatus);
     const config = categoryConfig[category];
-    
-    // Dacă are eroare, override cu stil de eroare
+
+    // Daca are eroare, override cu stil de eroare
     if (awb.errorMessage && category !== 'error') {
       return {
         cardClass: cn(config.bgColor, config.borderColor, "border-2"),
         hasError: true,
       };
     }
-    
+
     return {
       cardClass: cn(config.bgColor, config.borderColor, "border-2"),
       hasError: false,
     };
+  };
+
+  // Get status name for display in filter info
+  const getSelectedStatusName = (): string => {
+    if (statusFilter === "all") return "";
+    if (statusFilter === "UNKNOWN") return "Necunoscut";
+    const stat = statsData?.statusStats.find(s => s.code === statusFilter);
+    return stat?.name || statusFilter;
   };
 
   return (
@@ -217,120 +259,75 @@ export default function TrackingPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Tracking AWB</h1>
           <p className="text-muted-foreground mt-1 text-sm md:text-base">
-            Urmărește toate expedierile și istoricul lor complet
+            Urmareste toate expedierile si istoricul lor complet
           </p>
         </div>
         <p className="text-xs md:text-sm text-muted-foreground">
-          💡 Folosește butonul <strong>Sincronizare</strong> din sidebar pentru a actualiza statusurile
+          Foloseste butonul <strong>Sincronizare</strong> din sidebar pentru a actualiza statusurile
         </p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
-        <Card 
+      {/* Stats Grid - Dynamic from API */}
+      <div className="flex flex-wrap gap-3 mb-6">
+        {/* Total card - always first */}
+        <Card
           className={cn(
-            "cursor-pointer transition-all hover:shadow-md",
-            categoryFilter === "all" && "ring-2 ring-primary"
+            "cursor-pointer transition-all hover:shadow-md min-w-[100px]",
+            statusFilter === "all" && "ring-2 ring-primary"
           )}
-          onClick={() => setCategoryFilter("all")}
+          onClick={() => setStatusFilter("all")}
         >
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold">{stats.total}</p>
+            <p className="text-2xl font-bold">{statsData?.total ?? "-"}</p>
             <p className="text-xs text-muted-foreground">Total</p>
           </CardContent>
         </Card>
-        
-        <Card
-          className={cn(
-            "cursor-pointer transition-all hover:shadow-md bg-status-info/10 border-status-info/20",
-            categoryFilter === "in_transit" && "ring-2 ring-status-info"
-          )}
-          onClick={() => setCategoryFilter("in_transit")}
-        >
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-status-info">{stats.inTransit}</p>
-            <p className="text-xs text-status-info">În tranzit</p>
-          </CardContent>
-        </Card>
-        
-        <Card
-          className={cn(
-            "cursor-pointer transition-all hover:shadow-md bg-status-success/10 border-status-success/20",
-            categoryFilter === "delivered" && "ring-2 ring-status-success"
-          )}
-          onClick={() => setCategoryFilter("delivered")}
-        >
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-status-success">{stats.delivered}</p>
-            <p className="text-xs text-status-success">Livrate</p>
-          </CardContent>
-        </Card>
-        
-        <Card
-          className={cn(
-            "cursor-pointer transition-all hover:shadow-md bg-status-warning/10 border-status-warning/20",
-            categoryFilter === "pending" && "ring-2 ring-status-warning"
-          )}
-          onClick={() => setCategoryFilter("pending")}
-        >
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-status-warning">{stats.pending}</p>
-            <p className="text-xs text-status-warning">În așteptare</p>
-          </CardContent>
-        </Card>
-        
-        <Card
-          className={cn(
-            "cursor-pointer transition-all hover:shadow-md bg-status-warning/10 border-status-warning/20",
-            categoryFilter === "returned" && "ring-2 ring-status-warning"
-          )}
-          onClick={() => setCategoryFilter("returned")}
-        >
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-status-warning">{stats.returned}</p>
-            <p className="text-xs text-status-warning">Returnate</p>
-          </CardContent>
-        </Card>
-        
-        <Card
-          className={cn(
-            "cursor-pointer transition-all hover:shadow-md bg-status-error/10 border-status-error/20",
-            categoryFilter === "cancelled" && "ring-2 ring-status-error"
-          )}
-          onClick={() => setCategoryFilter("cancelled")}
-        >
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-status-error">{stats.cancelled}</p>
-            <p className="text-xs text-status-error">Anulate</p>
-          </CardContent>
-        </Card>
-        
-        <Card
-          className={cn(
-            "cursor-pointer transition-all hover:shadow-md bg-muted border-border",
-            categoryFilter === "deleted" && "ring-2 ring-muted-foreground"
-          )}
-          onClick={() => setCategoryFilter("deleted")}
-        >
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-muted-foreground">{stats.deleted}</p>
-            <p className="text-xs text-muted-foreground">Șterse</p>
-          </CardContent>
-        </Card>
-        
-        <Card
-          className={cn(
-            "cursor-pointer transition-all hover:shadow-md bg-status-error/10 border-status-error/30",
-            categoryFilter === "error" && "ring-2 ring-status-error"
-          )}
-          onClick={() => setCategoryFilter("error")}
-        >
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-status-error">{stats.error}</p>
-            <p className="text-xs text-status-error">Cu erori</p>
-          </CardContent>
-        </Card>
+
+        {/* Dynamic status cards from API */}
+        {statsData?.statusStats.map((stat) => (
+          <Card
+            key={stat.code}
+            className={cn(
+              "cursor-pointer transition-all hover:shadow-md min-w-[100px]",
+              statusFilter === stat.code && "ring-2"
+            )}
+            style={{
+              backgroundColor: hexToRgba(stat.color, 0.1),
+              borderColor: hexToRgba(stat.color, 0.2),
+              ...(statusFilter === stat.code ? {
+                boxShadow: `0 0 0 2px ${stat.color}`
+              } : {}),
+            }}
+            onClick={() => setStatusFilter(stat.code)}
+          >
+            <CardContent className="p-4 text-center">
+              <p
+                className="text-2xl font-bold"
+                style={{ color: stat.color }}
+              >
+                {stat.count}
+              </p>
+              <p
+                className="text-xs truncate max-w-[80px]"
+                style={{ color: stat.color }}
+                title={stat.description}
+              >
+                {stat.name}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
+
+      {/* Sum verification notice */}
+      {statsData && !statsData.sumVerified && (
+        <div className="mb-4 p-3 bg-status-warning/10 border border-status-warning/20 rounded-lg">
+          <p className="text-sm text-status-warning flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            Atentie: Suma cardurilor nu corespunde cu totalul. Unele AWB-uri pot avea statusuri necunoscute.
+          </p>
+        </div>
+      )}
 
       {/* Search */}
       <Card className="mb-6">
@@ -338,7 +335,7 @@ export default function TrackingPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Caută după AWB, comandă, nume client, adresă..."
+              placeholder="Cauta dupa AWB, comanda, nume client, adresa..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -359,15 +356,15 @@ export default function TrackingPage() {
               </CardContent>
             </Card>
           ))
-        ) : awbs.length === 0 ? (
+        ) : filteredAwbs.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center text-muted-foreground">
               <Truck className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Nu există AWB-uri de afișat.</p>
-              {categoryFilter !== "all" && (
-                <Button 
-                  variant="link" 
-                  onClick={() => setCategoryFilter("all")}
+              <p>Nu exista AWB-uri de afisat.</p>
+              {statusFilter !== "all" && (
+                <Button
+                  variant="link"
+                  onClick={() => setStatusFilter("all")}
                   className="mt-2"
                 >
                   Vezi toate AWB-urile
@@ -376,13 +373,13 @@ export default function TrackingPage() {
             </CardContent>
           </Card>
         ) : (
-          awbs.map((awb) => {
+          filteredAwbs.map((awb) => {
             const category = getStatusCategory(awb.currentStatus);
             const config = categoryConfig[category];
             const { cardClass, hasError } = getAWBCardStyles(awb);
             const isExpanded = expandedAWBs.has(awb.id);
             const Icon = config.icon;
-            
+
             return (
               <Collapsible
                 key={awb.id}
@@ -401,14 +398,20 @@ export default function TrackingPage() {
                               category === 'cancelled' || category === 'deleted' ? "line-through opacity-60" : "",
                               config.textColor
                             )}>
-                              {awb.awbNumber || "FĂRĂ NUMĂR"}
+                              {awb.awbNumber || "FARA NUMAR"}
                             </span>
-                            
+
                             <Badge variant={config.badgeVariant} className="gap-1">
                               <Icon className="h-3 w-3" />
                               {awb.currentStatus || config.label}
                             </Badge>
-                            
+
+                            {awb.fanCourierStatusCode && (
+                              <Badge variant="outline" className="text-xs font-mono">
+                                {awb.fanCourierStatusCode}
+                              </Badge>
+                            )}
+
                             {hasError && (
                               <Badge variant="destructive" className="gap-1">
                                 <AlertCircle className="h-3 w-3" />
@@ -416,7 +419,7 @@ export default function TrackingPage() {
                               </Badge>
                             )}
                           </div>
-                          
+
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                             <a
                               href={`/orders/${awb.order.id}`}
@@ -440,15 +443,15 @@ export default function TrackingPage() {
                               {awb.order.store.name}
                             </Badge>
                           </div>
-                          
+
                           {awb.cashOnDelivery && parseFloat(awb.cashOnDelivery) > 0 && (
                             <Badge variant="warning" className="mt-2 text-xs">
                               Ramburs: {formatCurrency(parseFloat(awb.cashOnDelivery), "RON")}
                             </Badge>
                           )}
                         </div>
-                        
-                        {/* Data și expand */}
+
+                        {/* Data si expand */}
                         <div className="flex items-center gap-4">
                           <div className="text-right text-sm">
                             {awb.currentStatusDate && (
@@ -471,7 +474,7 @@ export default function TrackingPage() {
                           )}
                         </div>
                       </div>
-                      
+
                       {/* Mesaj eroare vizibil direct */}
                       {awb.errorMessage && (
                         <div className="mt-3 p-3 bg-status-error/10 border border-status-error/20 rounded-lg">
@@ -483,7 +486,7 @@ export default function TrackingPage() {
                       )}
                     </CardContent>
                   </CollapsibleTrigger>
-                  
+
                   <CollapsibleContent>
                     <div className="px-6 pb-6 border-t border-dashed">
                       <div className="grid md:grid-cols-2 gap-6 pt-4">
@@ -504,7 +507,7 @@ export default function TrackingPage() {
                               </p>
                             )}
                             <p>
-                              <strong className="text-foreground">Adresă:</strong> {awb.order.shippingAddress1}
+                              <strong className="text-foreground">Adresa:</strong> {awb.order.shippingAddress1}
                             </p>
                             <p>
                               <strong className="text-foreground">Localitate:</strong> {awb.order.shippingCity}, {awb.order.shippingProvince}
@@ -513,7 +516,7 @@ export default function TrackingPage() {
                               <strong className="text-foreground">Serviciu:</strong> {awb.serviceType}
                             </p>
                             <p>
-                              <strong className="text-foreground">Plată:</strong> {awb.paymentType}
+                              <strong className="text-foreground">Plata:</strong> {awb.paymentType}
                             </p>
                             {awb.cashOnDelivery && parseFloat(awb.cashOnDelivery) > 0 && (
                               <p>
@@ -521,7 +524,7 @@ export default function TrackingPage() {
                               </p>
                             )}
                             <p>
-                              <strong className="text-foreground">Valoare comandă:</strong> {formatCurrency(parseFloat(awb.order.totalPrice), awb.order.currency)}
+                              <strong className="text-foreground">Valoare comanda:</strong> {formatCurrency(parseFloat(awb.order.totalPrice), awb.order.currency)}
                             </p>
                           </div>
 
@@ -534,7 +537,7 @@ export default function TrackingPage() {
                             </Button>
                           </div>
                         </div>
-                        
+
                         {/* Istoric status */}
                         <div className="bg-card/70 p-4 rounded-lg">
                           <h4 className="font-semibold mb-3 flex items-center gap-2 text-foreground">
@@ -544,7 +547,7 @@ export default function TrackingPage() {
 
                           {awb.statusHistory.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
-                              Nu există evenimente înregistrate.
+                              Nu exista evenimente inregistrate.
                             </p>
                           ) : (
                             <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
@@ -575,7 +578,7 @@ export default function TrackingPage() {
                                         {event.status}
                                       </p>
                                       <p className="text-xs text-muted-foreground">
-                                        {event.location && `${event.location} • `}
+                                        {event.location && `${event.location} - `}
                                         {formatDate(event.statusDate)}
                                       </p>
                                       {event.description && (
@@ -599,12 +602,12 @@ export default function TrackingPage() {
           })
         )}
       </div>
-      
-      {/* Info despre numărul de rezultate */}
-      {!isLoading && awbs.length > 0 && (
+
+      {/* Info despre numarul de rezultate */}
+      {!isLoading && filteredAwbs.length > 0 && (
         <p className="text-sm text-muted-foreground text-center mt-6">
-          Se afișează {awbs.length} din {allAWBs.length} AWB-uri
-          {categoryFilter !== "all" && ` (filtru: ${categoryConfig[categoryFilter as StatusCategory]?.label})`}
+          Se afiseaza {filteredAwbs.length} din {allAWBs.length} AWB-uri
+          {statusFilter !== "all" && ` (filtru: ${getSelectedStatusName()})`}
         </p>
       )}
     </div>

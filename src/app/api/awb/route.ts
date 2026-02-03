@@ -116,6 +116,7 @@ export async function GET(request: NextRequest) {
         cashOnDelivery: true,
         errorMessage: true,
         createdAt: true,
+        fanCourierStatusCode: true,
         order: {
           select: {
             id: true,
