@@ -9,6 +9,7 @@ import {
   Mail,
   Calendar,
 } from "lucide-react";
+import { CustomerDetailModal } from "@/components/customers/customer-detail-modal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -102,7 +103,7 @@ export default function CustomersPage() {
     [searchParams, router]
   );
 
-  // Selected customer for detail modal (placeholder - implemented in Plan 03)
+  // Selected customer for detail modal
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null
   );
@@ -298,12 +299,13 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {/* Detail Modal placeholder - implemented in Plan 03 */}
-      {/* <CustomerDetailModal
+      {/* Customer Detail Modal */}
+      <CustomerDetailModal
         customer={selectedCustomer}
         open={detailOpen}
         onOpenChange={setDetailOpen}
-      /> */}
+        storeId={storeFilter}
+      />
     </div>
   );
 }
