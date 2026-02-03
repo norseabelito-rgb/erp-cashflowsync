@@ -18,9 +18,11 @@ import {
   ExternalLink,
   Phone,
   History,
+  Info,
 } from "lucide-react";
 import { getStatusCategory, type StatusCategory } from "@/lib/awb-status";
-import { FANCOURIER_STATUSES } from "@/lib/fancourier-statuses";
+import { FANCOURIER_STATUSES, formatStatusForDisplay } from "@/lib/fancourier-statuses";
+import { StatusExplanationModal } from "./status-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -171,6 +173,45 @@ export default function TrackingPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expandedAWBs, setExpandedAWBs] = useState<Set<string>>(new Set());
+  const [selectedStatus, setSelectedStatus] = useState<{
+    code: string;
+    name: string;
+    description: string;
+    action?: string;
+    color: string;
+    isFinal: boolean;
+    category?: string;
+  } | null>(null);
+
+  // Open modal with status info
+  const openStatusModal = (code: string) => {
+    // Get status info from FANCOURIER_STATUSES
+    const statusInfo = FANCOURIER_STATUSES[code];
+    if (statusInfo) {
+      const display = formatStatusForDisplay(code);
+      setSelectedStatus({
+        code,
+        name: statusInfo.name,
+        description: statusInfo.description,
+        // KEY WIRING: action comes directly from FANCOURIER_STATUSES[code].action
+        // This field was added in 07.5-01 Task 3 to fancourier-statuses.ts
+        action: statusInfo.action,
+        color: display.color,
+        isFinal: statusInfo.isFinal,
+        category: statusInfo.category,
+      });
+    } else {
+      // Unknown status - no action available
+      setSelectedStatus({
+        code,
+        name: "Status necunoscut",
+        description: `Codul "${code}" nu este recunoscut in sistemul nostru. Aceasta poate fi un status nou de la FanCourier.`,
+        action: undefined,
+        color: "#9ca3af",
+        isFinal: false,
+      });
+    }
+  };
 
   // Fetch status stats from new API
   const { data: statsData, isLoading: statsLoading } = useQuery<StatsResponse>({
@@ -300,7 +341,18 @@ export default function TrackingPage() {
             }}
             onClick={() => setStatusFilter(stat.code)}
           >
-            <CardContent className="p-4 text-center">
+            <CardContent className="p-4 text-center relative">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="absolute top-1 right-1 h-6 w-6"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openStatusModal(stat.code);
+                }}
+              >
+                <Info className="h-3.5 w-3.5" />
+              </Button>
               <p
                 className="text-2xl font-bold"
                 style={{ color: stat.color }}
@@ -407,7 +459,14 @@ export default function TrackingPage() {
                             </Badge>
 
                             {awb.fanCourierStatusCode && (
-                              <Badge variant="outline" className="text-xs font-mono">
+                              <Badge
+                                variant="outline"
+                                className="text-xs font-mono cursor-pointer hover:bg-muted"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openStatusModal(awb.fanCourierStatusCode!);
+                                }}
+                              >
                                 {awb.fanCourierStatusCode}
                               </Badge>
                             )}
@@ -610,6 +669,13 @@ export default function TrackingPage() {
           {statusFilter !== "all" && ` (filtru: ${getSelectedStatusName()})`}
         </p>
       )}
+
+      {/* Status explanation modal */}
+      <StatusExplanationModal
+        isOpen={selectedStatus !== null}
+        onClose={() => setSelectedStatus(null)}
+        status={selectedStatus}
+      />
     </div>
   );
 }
