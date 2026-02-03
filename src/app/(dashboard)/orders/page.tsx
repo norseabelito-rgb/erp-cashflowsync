@@ -31,6 +31,7 @@ import {
   ExternalLink,
   BoxIcon,
   ShoppingBag,
+  Plus,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -86,6 +87,7 @@ import { TransferWarningModal } from "@/components/orders/transfer-warning-modal
 import { TemuPlaceholder } from "@/components/orders/temu-placeholder";
 import { ChannelTabs, type ChannelTab, type ChannelCounts } from "@/components/orders/channel-tabs";
 import { ProcessingErrorsPanel, type ProcessError, type DBProcessingError } from "@/components/orders/processing-errors-panel";
+import { ManualOrderDialog, type ManualOrderData } from "@/components/orders/manual-order-dialog";
 import { SkeletonTableRow } from "@/components/ui/skeleton";
 import { useErrorModal } from "@/hooks/use-error-modal";
 import { ActionTooltip } from "@/components/ui/action-tooltip";
@@ -369,6 +371,9 @@ export default function OrdersPage() {
   const [processErrors, setProcessErrors] = useState<ProcessError[]>([]);
   const [errorsDialogOpen, setErrorsDialogOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  // State pentru manual order dialog
+  const [manualOrderDialogOpen, setManualOrderDialogOpen] = useState(false);
 
   // State pentru transfer warning modal
   const [transferWarningOpen, setTransferWarningOpen] = useState(false);
@@ -719,10 +724,34 @@ export default function OrdersPage() {
     },
   });
 
+  // Create manual order mutation
+  const createManualOrderMutation = useMutation({
+    mutationFn: async (data: ManualOrderData) => {
+      const res = await fetch("/api/orders/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast({ title: "Comanda creata", description: `Comanda #${data.orderNumber} a fost creata` });
+        setManualOrderDialogOpen(false);
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
+      } else {
+        toast({ title: "Eroare", description: data.error, variant: "destructive" });
+      }
+    },
+    onError: (error: any) => {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+    },
+  });
+
   // Sincronizare comandă individuală (status AWB + factură)
   const syncSingleOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
-      const res = await fetch("/api/sync/full", { 
+      const res = await fetch("/api/sync/full", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId }),
@@ -1148,12 +1177,25 @@ export default function OrdersPage() {
 
 
       {/* Channel Tabs - Shopify / Trendyol / Temu */}
-      <div className="mb-4">
+      <div className="mb-4 flex items-center justify-between gap-4">
         <ChannelTabs
           activeTab={channelTab}
           counts={sourceCounts}
           onTabChange={handleChannelTabChange}
         />
+        {channelTab === 'shopify' && (
+          <RequirePermission permission="orders.create">
+            <ActionTooltip
+              action="Creeaza comanda manuala"
+              consequence="Pentru comenzi telefonice sau offline"
+            >
+              <Button onClick={() => setManualOrderDialogOpen(true)} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Creare comanda
+              </Button>
+            </ActionTooltip>
+          </RequirePermission>
+        )}
       </div>
 
       {/* Show TemuPlaceholder when Temu tab is active, full orders UI for other channels */}
@@ -2872,6 +2914,15 @@ export default function OrdersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Manual Order Dialog */}
+      <ManualOrderDialog
+        open={manualOrderDialogOpen}
+        onOpenChange={setManualOrderDialogOpen}
+        stores={shopifyStores}
+        onCreateOrder={(data) => createManualOrderMutation.mutate(data)}
+        isCreating={createManualOrderMutation.isPending}
+      />
     </div>
     </TooltipProvider>
   );
