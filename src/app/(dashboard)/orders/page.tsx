@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ShoppingCart,
@@ -82,6 +83,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getEmptyState, determineEmptyStateType } from "@/lib/empty-states";
 import { FILTER_BAR } from "@/lib/design-system";
 import { TransferWarningModal } from "@/components/orders/transfer-warning-modal";
+import { TemuPlaceholder } from "@/components/orders/temu-placeholder";
+import { ChannelTabs, type ChannelTab, type ChannelCounts } from "@/components/orders/channel-tabs";
+import { ProcessingErrorsPanel, type ProcessError, type DBProcessingError } from "@/components/orders/processing-errors-panel";
 import { SkeletonTableRow } from "@/components/ui/skeleton";
 import { useErrorModal } from "@/hooks/use-error-modal";
 import { ActionTooltip } from "@/components/ui/action-tooltip";
@@ -339,11 +343,17 @@ function getAWBStatusInfo(awb: Order['awb']): {
 export default function OrdersPage() {
   const queryClient = useQueryClient();
   const { showError, ErrorModalComponent } = useErrorModal();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Channel tab from URL (persisted via URL parameter)
+  const channelTab = (searchParams.get('tab') || 'shopify') as ChannelTab;
+
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [storeFilter, setStoreFilter] = useState<string>("all");
-  const [sourceFilter, setSourceFilter] = useState<string>("all"); // "all" | "shopify" | "trendyol"
+  // sourceFilter removed - using channelTab from URL instead
   const [awbFilter, setAwbFilter] = useState<string>("all"); // "all" | "with" | "without"
   const [awbStatusFilter, setAwbStatusFilter] = useState<string>("all"); // "all" | "tranzit" | "livrat" | "retur" | "pending" | "anulat"
   const [startDate, setStartDate] = useState<string>("");
@@ -410,12 +420,13 @@ export default function OrdersPage() {
   const [selectedDbErrors, setSelectedDbErrors] = useState<string[]>([]);
 
   const { data: ordersData, isLoading: ordersLoading, isError: ordersError, refetch: refetchOrders } = useQuery({
-    queryKey: ["orders", statusFilter, storeFilter, sourceFilter, awbFilter, awbStatusFilter, searchQuery, startDate, endDate, productFilter, page, limit],
+    queryKey: ["orders", statusFilter, storeFilter, channelTab, awbFilter, awbStatusFilter, searchQuery, startDate, endDate, productFilter, page, limit],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (storeFilter !== "all") params.set("storeId", storeFilter);
-      if (sourceFilter !== "all") params.set("source", sourceFilter);
+      // Use channelTab as source filter (temu returns nothing since no orders exist)
+      if (channelTab !== "temu") params.set("source", channelTab);
       if (awbFilter === "with") params.set("hasAwb", "true");
       if (awbFilter === "without") params.set("hasAwb", "false");
       if (awbFilter === "with" && awbStatusFilter !== "all") params.set("awbStatus", awbStatusFilter);
@@ -433,14 +444,26 @@ export default function OrdersPage() {
       }
       return data;
     },
+    enabled: channelTab !== "temu", // Disable query for Temu tab (placeholder)
   });
 
+  // Shopify stores query (for Shopify tab)
   const { data: storesData } = useQuery({
     queryKey: ["stores"],
     queryFn: async () => {
       const res = await fetch("/api/stores");
       return res.json();
     },
+  });
+
+  // Trendyol stores query (for Trendyol tab)
+  const { data: trendyolStoresData } = useQuery({
+    queryKey: ["trendyol-stores"],
+    queryFn: async () => {
+      const res = await fetch("/api/trendyol/stores");
+      return res.json();
+    },
+    enabled: channelTab === "trendyol",
   });
 
   // Query pentru erori persistente din DB
@@ -900,11 +923,38 @@ export default function OrdersPage() {
   };
 
   const orders: Order[] = ordersData?.orders || [];
-  const stores: Store[] = storesData?.stores || [];
+
+  // Source counts from API for channel tab badges
+  const sourceCounts: ChannelCounts = ordersData?.sourceCounts || { shopify: 0, trendyol: 0, temu: 0 };
+
+  // Channel-specific stores: Shopify stores for Shopify tab, TrendyolStores for Trendyol tab
+  const shopifyStores: Store[] = storesData?.stores || [];
+  const trendyolStores: Store[] = (trendyolStoresData?.stores || []).map((s: { id: string; name: string }) => ({
+    id: s.id,
+    name: s.name,
+  }));
+  const stores: Store[] = channelTab === "trendyol" ? trendyolStores : shopifyStores;
+
   const dbErrors: DBProcessingError[] = dbErrorsData?.errors || [];
   const dbErrorStats = dbErrorsData?.stats || { pending: 0, retrying: 0, failed: 0, resolved: 0, skipped: 0, total: 0 };
   const allSelected = orders.length > 0 && selectedOrders.length === orders.length;
   const allDbErrorsSelected = dbErrors.length > 0 && selectedDbErrors.length === dbErrors.filter(e => e.status !== "RESOLVED" && e.status !== "SKIPPED").length;
+
+  // Handle channel tab change with URL persistence and store filter reset
+  const handleChannelTabChange = useCallback((newTab: ChannelTab) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', newTab);
+    params.delete('page'); // Reset to page 1 when switching tabs
+
+    // Check if current store filter is valid for new channel, reset if not
+    const newChannelStores = newTab === "trendyol" ? trendyolStores : shopifyStores;
+    const currentStoreValid = storeFilter === "all" || newChannelStores.some(s => s.id === storeFilter);
+    if (!currentStoreValid) {
+      setStoreFilter("all");
+    }
+
+    router.push(`/orders?${params.toString()}`);
+  }, [searchParams, router, storeFilter, trendyolStores, shopifyStores]);
 
   const handleSelectAll = () => {
     setSelectedOrders(allSelected ? [] : orders.map((o) => o.id));
@@ -1104,6 +1154,21 @@ export default function OrdersPage() {
         }
       />
 
+
+      {/* Channel Tabs - Shopify / Trendyol / Temu */}
+      <div className="mb-4">
+        <ChannelTabs
+          activeTab={channelTab}
+          counts={sourceCounts}
+          onTabChange={handleChannelTabChange}
+        />
+      </div>
+
+      {/* Show TemuPlaceholder when Temu tab is active, full orders UI for other channels */}
+      {channelTab === "temu" ? (
+        <TemuPlaceholder />
+      ) : (
+      <>
       <Card className="mb-4 md:mb-6">
         <CardContent className="pt-4 md:pt-6">
           <div className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4">
@@ -1136,14 +1201,7 @@ export default function OrdersPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={sourceFilter} onValueChange={(v) => { setSourceFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-[140px]"><SelectValue placeholder="Sursa" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toate sursele</SelectItem>
-                <SelectItem value="shopify">Shopify</SelectItem>
-                <SelectItem value="trendyol">Trendyol</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Source filter removed - using ChannelTabs above instead */}
             <Select value={awbFilter} onValueChange={(v) => { setAwbFilter(v); if (v !== "with") setAwbStatusFilter("all"); setPage(1); }}>
               <SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="AWB" /></SelectTrigger>
               <SelectContent>
@@ -1380,14 +1438,13 @@ export default function OrdersPage() {
                   </>
                 ) : orders.length === 0 ? (
                   (() => {
-                    const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || storeFilter !== "all" || sourceFilter !== "all" || awbFilter !== "all" || awbStatusFilter !== "all" || startDate !== "" || endDate !== "";
+                    const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || storeFilter !== "all" || awbFilter !== "all" || awbStatusFilter !== "all" || startDate !== "" || endDate !== "";
                     const emptyStateType = determineEmptyStateType(hasActiveFilters, ordersError);
                     const emptyConfig = getEmptyState("orders", emptyStateType);
                     const clearFilters = () => {
                       setSearchQuery("");
                       setStatusFilter("all");
                       setStoreFilter("all");
-                      setSourceFilter("all");
                       setAwbFilter("all");
                       setAwbStatusFilter("all");
                       setStartDate("");
@@ -1880,6 +1937,8 @@ export default function OrdersPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      </>
+      )}
 
       <Dialog open={awbModalOpen} onOpenChange={setAwbModalOpen}>
         <DialogContent className="max-w-md">
