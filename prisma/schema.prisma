@@ -3547,3 +3547,18 @@ model UnknownAWBStatus {
   @@index([statusCode])
   @@map("unknown_awb_statuses")
 }
+
+// ==========================================
+// CUSTOMER NOTES
+// ==========================================
+
+model CustomerNote {
+  id        String   @id @default(cuid())
+  email     String   @unique // Customer email (normalized lowercase)
+  note      String   @db.Text
+  updatedAt DateTime @updatedAt
+  updatedBy String? // User ID who last updated
+
+  @@index([email])
+  @@map("customer_notes")
+}
