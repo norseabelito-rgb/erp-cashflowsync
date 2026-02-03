@@ -146,40 +146,8 @@ interface Store {
   name: string;
 }
 
-interface ProcessError {
-  orderId: string;
-  orderNumber: string;
-  success: boolean;
-  invoiceSuccess?: boolean;
-  invoiceNumber?: string;
-  invoiceError?: string;
-  awbSuccess?: boolean;
-  awbNumber?: string;
-  awbError?: string;
-}
 
-// Interface pentru erori persistente din DB
-interface DBProcessingError {
-  id: string;
-  orderId: string;
-  type: "INVOICE" | "AWB";
-  status: "PENDING" | "RETRYING" | "RESOLVED" | "FAILED" | "SKIPPED";
-  errorMessage: string | null;
-  retryCount: number;
-  maxRetries: number;
-  createdAt: string;
-  lastRetryAt: string | null;
-  resolvedAt: string | null;
-  resolvedByName: string | null;
-  resolution: string | null;
-  order: {
-    id: string;
-    shopifyOrderNumber: string;
-    customerFirstName: string | null;
-    customerLastName: string | null;
-    store: { name: string };
-  };
-}
+// ProcessError and DBProcessingError types imported from processing-errors-panel.tsx
 
 const statusConfig: Record<string, { label: string; variant: "default" | "success" | "warning" | "destructive" | "info" | "neutral" }> = {
   PENDING: { label: "În așteptare", variant: "warning" },
@@ -477,7 +445,7 @@ export default function OrdersPage() {
       const res = await fetch(`/api/processing-errors?${params}`);
       return res.json();
     },
-    enabled: activeTab === "errors", // Doar când tab-ul erori e activ
+    // Always enabled - error panel shows regardless of active tab
   });
 
   const invoiceMutation = useMutation({
@@ -939,6 +907,31 @@ export default function OrdersPage() {
   const dbErrorStats = dbErrorsData?.stats || { pending: 0, retrying: 0, failed: 0, resolved: 0, skipped: 0, total: 0 };
   const allSelected = orders.length > 0 && selectedOrders.length === orders.length;
   const allDbErrorsSelected = dbErrors.length > 0 && selectedDbErrors.length === dbErrors.filter(e => e.status !== "RESOLVED" && e.status !== "SKIPPED").length;
+  const allDbErrorsSelected = dbErrors.length > 0 && selectedDbErrors.length === dbErrors.filter(e => e.status !== "RESOLVED" && e.status !== "SKIPPED").length;
+
+  // Calculate errors by source for the error panel
+  const errorsBySource = {
+    shopify: [...processErrors, ...dbErrors].filter(e => {
+      const orderId = 'orderId' in e ? e.orderId : null;
+      const order = orders.find(o => o.id === orderId);
+      // For db errors, check order.source from included relation
+      if ('order' in e && (e as DBProcessingError).order?.source) return (e as DBProcessingError).order.source === 'shopify';
+      return order?.source === 'shopify' || !order?.source; // Default to shopify
+    }).length,
+    trendyol: [...processErrors, ...dbErrors].filter(e => {
+      const orderId = 'orderId' in e ? e.orderId : null;
+      const order = orders.find(o => o.id === orderId);
+      if ('order' in e && (e as DBProcessingError).order?.source) return (e as DBProcessingError).order.source === 'trendyol';
+      return order?.source === 'trendyol';
+    }).length,
+    unknown: 0,
+  };
+
+  // Helper to check if an order has an error (for inline badge)
+  const hasOrderError = (orderId: string) => {
+    return processErrors.some(e => e.orderId === orderId) ||
+           dbErrors.some(e => e.orderId === orderId && e.status !== 'RESOLVED' && e.status !== 'SKIPPED');
+  };
 
   // Handle channel tab change with URL persistence and store filter reset
   const handleChannelTabChange = useCallback((newTab: ChannelTab) => {
