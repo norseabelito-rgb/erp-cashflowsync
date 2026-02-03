@@ -24,6 +24,51 @@ const nextConfig = {
       },
     ],
   },
+  async headers() {
+    // Get allowed domains from environment variable
+    const allowedDomains = process.env.EMBED_ALLOWED_DOMAINS?.split(",").map(d => d.trim()) || [];
+
+    // Build frame-ancestors CSP value
+    const frameAncestors = allowedDomains.length > 0
+      ? `frame-ancestors 'self' ${allowedDomains.join(" ")}`
+      : "frame-ancestors *"; // Allow all if no whitelist configured
+
+    return [
+      {
+        // Apply to embed routes and their API calls
+        source: "/customers/embed/:path*",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: frameAncestors,
+          },
+          {
+            // Remove X-Frame-Options to allow iframe
+            key: "X-Frame-Options",
+            value: "ALLOWALL",
+          },
+        ],
+      },
+      {
+        // API routes for customers (used by embed)
+        source: "/api/customers/:path*",
+        headers: [
+          {
+            key: "Access-Control-Allow-Origin",
+            value: allowedDomains.length > 0 ? allowedDomains[0] : "*",
+          },
+          {
+            key: "Access-Control-Allow-Methods",
+            value: "GET, POST, OPTIONS",
+          },
+          {
+            key: "Access-Control-Allow-Headers",
+            value: "Content-Type",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

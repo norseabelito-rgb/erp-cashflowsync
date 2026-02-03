@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +11,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Users,
   Mail,
@@ -20,6 +23,9 @@ import {
   Package,
   Calendar,
   TrendingUp,
+  StickyNote,
+  Save,
+  Loader2,
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -64,6 +70,10 @@ export function CustomerDetailModal({
   onOpenChange,
   storeId,
 }: CustomerDetailModalProps) {
+  const queryClient = useQueryClient();
+  const [noteText, setNoteText] = useState("");
+  const [hasChanges, setHasChanges] = useState(false);
+
   // Fetch full details only when modal is open
   const { data, isLoading, isError } = useQuery({
     queryKey: ["customer-detail", customer?.email, storeId],
@@ -78,6 +88,45 @@ export function CustomerDetailModal({
     },
     enabled: open && !!customer?.email,
   });
+
+  // Update note text when data loads
+  useEffect(() => {
+    if (data?.note !== undefined) {
+      setNoteText(data.note);
+      setHasChanges(false);
+    }
+  }, [data?.note]);
+
+  // Save note mutation
+  const saveNoteMutation = useMutation({
+    mutationFn: async (note: string) => {
+      const res = await fetch(
+        `/api/customers/${encodeURIComponent(customer!.email)}/note`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ note }),
+        }
+      );
+      if (!res.ok) throw new Error("Failed to save note");
+      return res.json();
+    },
+    onSuccess: () => {
+      setHasChanges(false);
+      queryClient.invalidateQueries({
+        queryKey: ["customer-detail", customer?.email],
+      });
+    },
+  });
+
+  const handleNoteChange = (value: string) => {
+    setNoteText(value);
+    setHasChanges(value !== (data?.note || ""));
+  };
+
+  const handleSaveNote = () => {
+    saveNoteMutation.mutate(noteText);
+  };
 
   const customerName = customer
     ? `${customer.firstName || ""} ${customer.lastName || ""}`.trim() ||
@@ -313,6 +362,51 @@ export function CustomerDetailModal({
                       )
                     )}
                   </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Notes */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <StickyNote className="h-4 w-4" />
+                    Notite
+                  </div>
+                  {hasChanges && (
+                    <Button
+                      size="sm"
+                      onClick={handleSaveNote}
+                      disabled={saveNoteMutation.isPending}
+                    >
+                      {saveNoteMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-1" />
+                      )}
+                      Salveaza
+                    </Button>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  placeholder="Adauga notite despre acest client..."
+                  value={noteText}
+                  onChange={(e) => handleNoteChange(e.target.value)}
+                  rows={4}
+                  className="resize-none"
+                />
+                {saveNoteMutation.isError && (
+                  <p className="text-sm text-destructive mt-2">
+                    Eroare la salvarea notitei. Incearca din nou.
+                  </p>
+                )}
+                {saveNoteMutation.isSuccess && !hasChanges && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Notita salvata.
+                  </p>
                 )}
               </CardContent>
             </Card>

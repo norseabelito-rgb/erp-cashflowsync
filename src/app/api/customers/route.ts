@@ -18,22 +18,29 @@ interface CustomerRow {
 
 export async function GET(request: NextRequest) {
   try {
-    // Verificam autentificarea
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Trebuie sa fii autentificat" },
-        { status: 401 }
-      );
-    }
+    // Check if this is an embed request (skip auth for whitelisted domains)
+    const origin = request.headers.get("origin") || "";
+    const allowedDomains = process.env.EMBED_ALLOWED_DOMAINS?.split(",").map(d => d.trim()) || [];
+    const isEmbedRequest = allowedDomains.some(domain => origin.startsWith(domain));
 
-    // Verificam permisiunea de vizualizare comenzi (customers derived from orders)
-    const canView = await hasPermission(session.user.id, "orders.view");
-    if (!canView) {
-      return NextResponse.json(
-        { error: "Nu ai permisiunea de a vizualiza clientii" },
-        { status: 403 }
-      );
+    if (!isEmbedRequest) {
+      // Verificam autentificarea
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.id) {
+        return NextResponse.json(
+          { error: "Trebuie sa fii autentificat" },
+          { status: 401 }
+        );
+      }
+
+      // Verificam permisiunea de vizualizare comenzi (customers derived from orders)
+      const canView = await hasPermission(session.user.id, "orders.view");
+      if (!canView) {
+        return NextResponse.json(
+          { error: "Nu ai permisiunea de a vizualiza clientii" },
+          { status: 403 }
+        );
+      }
     }
 
     const searchParams = request.nextUrl.searchParams;
