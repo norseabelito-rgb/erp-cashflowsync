@@ -311,7 +311,7 @@ export function ManualOrderDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Payment & Shipping Info Banner */}
+        {/* Payment Info Banner */}
         <Alert className="bg-blue-50 border-blue-200">
           <Info className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-800">
@@ -322,7 +322,7 @@ export function ManualOrderDialog({
               </div>
               <div className="flex items-center gap-2">
                 <Truck className="h-3.5 w-3.5" />
-                <span><strong>Transport:</strong> Se calculeaza automat conform regulilor din Shopify</span>
+                <span><strong>Transport:</strong> Se poate adauga din Shopify Admin dupa creare</span>
               </div>
             </div>
           </AlertDescription>
@@ -603,18 +603,13 @@ export function ManualOrderDialog({
           {/* Totals */}
           {lineItems.length > 0 && (
             <div className="border-t pt-4 space-y-2">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Subtotal produse:</span>
+              <div className="flex justify-between items-center text-lg font-semibold">
+                <span>Total produse:</span>
                 <span>{formatCurrency(subtotal, "RON")}</span>
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Transport:</span>
-                <span className="text-muted-foreground italic">Se calculeaza la creare</span>
-              </div>
-              <div className="flex justify-between items-center text-lg font-semibold pt-2 border-t">
-                <span>Total estimat:</span>
-                <span>{formatCurrency(subtotal, "RON")} + transport</span>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Transportul se poate adauga ulterior din Shopify Admin
+              </p>
             </div>
           )}
         </div>
