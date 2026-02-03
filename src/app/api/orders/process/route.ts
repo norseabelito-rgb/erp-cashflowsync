@@ -494,22 +494,47 @@ async function sendAWBsToPrint(awbIds: string[]) {
     include: { order: true },
   });
 
-  // Creăm joburi de printare pentru fiecare AWB
-  for (const awb of awbs) {
-    if (awb.awbNumber) {
+  // Filtrăm AWB-urile care au awbNumber valid
+  const awbsWithNumber = awbs.filter(awb => awb.awbNumber);
+  if (awbsWithNumber.length === 0) {
+    return;
+  }
+
+  // Verificăm dacă există deja print jobs PENDING pentru aceste AWB-uri
+  const awbNumbers = awbsWithNumber.map(awb => awb.awbNumber as string);
+  const existingPendingJobs = await prisma.printJob.findMany({
+    where: {
+      documentType: "awb",
+      documentId: { in: awbNumbers },
+      status: "PENDING",
+    },
+    select: { documentId: true },
+  });
+  const existingAwbNumbers = new Set(existingPendingJobs.map(job => job.documentId));
+
+  // Creăm joburi de printare doar pentru AWB-urile care NU au deja job PENDING
+  let created = 0;
+  for (const awb of awbsWithNumber) {
+    if (!existingAwbNumbers.has(awb.awbNumber)) {
       await prisma.printJob.create({
         data: {
           printerId: autoPrintPrinter.id,
           documentType: "awb",
-          documentId: awb.awbNumber,
-          documentNumber: awb.awbNumber,
+          documentId: awb.awbNumber!,
+          documentNumber: awb.awbNumber!,
           orderId: awb.order.id,
           orderNumber: awb.order.shopifyOrderNumber,
           status: "PENDING",
         },
       });
+      created++;
     }
   }
 
-  console.log(`🖨️ ${awbs.length} AWB-uri trimise la printare`);
+  if (created > 0) {
+    console.log(`🖨️ ${created} AWB-uri trimise la printare`);
+  }
+  if (existingAwbNumbers.size > 0) {
+    console.log(`ℹ️ ${existingAwbNumbers.size} AWB-uri aveau deja job PENDING - skip`);
+  }
 }

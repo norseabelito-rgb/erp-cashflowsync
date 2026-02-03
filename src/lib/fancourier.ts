@@ -1212,18 +1212,31 @@ export async function createAWBForOrder(
       });
 
       if (autoPrintPrinter) {
-        await prisma.printJob.create({
-          data: {
-            printerId: autoPrintPrinter.id,
+        // Verificăm dacă există deja un job PENDING pentru acest AWB
+        const existingJob = await prisma.printJob.findFirst({
+          where: {
             documentType: "awb",
             documentId: result.awb,
-            documentNumber: result.awb,
-            orderId: order.id,
-            orderNumber: order.shopifyOrderNumber,
             status: "PENDING",
           },
         });
-        console.log(`🖨️ Job de printare creat automat pentru AWB ${result.awb}`);
+
+        if (!existingJob) {
+          await prisma.printJob.create({
+            data: {
+              printerId: autoPrintPrinter.id,
+              documentType: "awb",
+              documentId: result.awb,
+              documentNumber: result.awb,
+              orderId: order.id,
+              orderNumber: order.shopifyOrderNumber,
+              status: "PENDING",
+            },
+          });
+          console.log(`🖨️ Job de printare creat automat pentru AWB ${result.awb}`);
+        } else {
+          console.log(`ℹ️ AWB ${result.awb} are deja job PENDING - skip`);
+        }
       }
     } catch (printError) {
       console.error("Eroare la crearea job-ului de printare:", printError);
