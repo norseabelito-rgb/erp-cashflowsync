@@ -1,6 +1,7 @@
 import prisma from "@/lib/db";
 import { startOfDay, endOfDay, parseISO } from "date-fns";
 import { getCategoryFilterConditions } from "@/lib/awb-status";
+import { FANCOURIER_STATUSES } from "@/lib/fancourier-statuses";
 
 /**
  * Dashboard Filters Interface
@@ -396,21 +397,44 @@ export async function getFilteredDashboardStats(
     ),
 
     // Returns count: AWBs with return status
-    // Matches tracking page getStatusCategory logic for 'returned'
+    // Uses getCategoryFilterConditions for consistency with awb-status.ts
     prisma.aWB.count({
       where: {
         createdAt: dateWhere,
         ...(filters.storeId && filters.storeId !== "all" && {
           order: { storeId: filters.storeId },
         }),
-        OR: [
-          { currentStatus: { contains: "retur", mode: "insensitive" } },
-          { currentStatus: { contains: "refuz", mode: "insensitive" } },
-          { currentStatus: { contains: "return", mode: "insensitive" } },
-        ],
+        OR: getCategoryFilterConditions("returned") || [],
       },
     }),
   ]);
+
+  // VERIFICATION: Compare string-based count with code-based count for in_transit
+  // This helps detect if string matching finds AWBs that code lookup misses (or vice versa)
+  const inTransitCodes = Object.entries(FANCOURIER_STATUSES)
+    .filter(([, s]) => ["pickup", "transit", "delivery"].includes(s.category))
+    .filter(([, s]) => !(s.isFinal && s.internalStatus === "DELIVERED")) // Exclude S2 (delivered)
+    .map(([code]) => code);
+
+  const inTransitByCode = await prisma.aWB.count({
+    where: {
+      createdAt: dateWhere,
+      ...(filters.storeId && filters.storeId !== "all" && {
+        order: { storeId: filters.storeId },
+      }),
+      fanCourierStatusCode: {
+        in: inTransitCodes,
+      },
+    },
+  });
+
+  // Log if counts differ (indicates potential categorization issues)
+  if (inTransit !== inTransitByCode) {
+    console.warn(
+      `[Dashboard Stats] In Transit count mismatch: string=${inTransit}, code=${inTransitByCode}. ` +
+      `Difference may indicate AWBs with legacy status strings or unknown codes.`
+    );
+  }
 
   // Process sales data for chart
   // Create a map of date -> sales data
