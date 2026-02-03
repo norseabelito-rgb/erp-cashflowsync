@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.6 of 10 (Customers Page)
-Plan: 1 of 3
+Plan: 2 of 3
 Status: In progress
-Last activity: 2026-02-04 - Completed 07.6-01-PLAN.md (Customer APIs)
+Last activity: 2026-02-04 - Completed 07.6-02-PLAN.md (Customer List Page)
 
-Progress: [██████████████████░░] ~98% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 1/3 of 7.6)
+Progress: [██████████████████░░] ~98% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6)
 
 ## Phase 7 Progress
 
@@ -55,6 +55,10 @@ Progress: [██████████████████░░] ~98% (7
 
 Recent decisions affecting current work:
 
+- **07.6-02:** Store filter uses Select dropdown (simpler than ChannelTabs for customers)
+- **07.6-02:** Clienti placed between Comenzi and Facturi in sidebar Vanzari section
+- **07.6-02:** PageHeader component doesn't support icon prop
+- **07.6-02:** Row click handler ready for detail modal integration (Plan 03)
 - **07.6-01:** Use $queryRawUnsafe for efficient GROUP BY aggregation instead of Prisma ORM
 - **07.6-01:** Email normalized with LOWER() for consistent customer grouping
 - **07.6-01:** Permission check uses orders.view since customers derived from orders
@@ -296,19 +300,19 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-04
-Stopped at: Completed 07.6-01-PLAN.md (Customer APIs)
+Stopped at: Completed 07.6-02-PLAN.md (Customer List Page)
 Resume context:
-- **STAGING BRANCH** - Phase 7.6 plan 01 complete (1/3 plans)
-- Customer list API at /api/customers with aggregation from orders
-- Customer detail API at /api/customers/[email] with order history
-- Both APIs use orders.view permission
+- **STAGING BRANCH** - Phase 7.6 plan 02 complete (2/3 plans)
+- Customer list page at /customers with search, store filter, pagination
+- Sidebar Clienti link under Vanzari section between Comenzi and Facturi
+- Row click handler ready for detail modal
 
 **NEXT STEPS:**
-1. Continue Phase 7.6: Plan 02 (Customer list page) and Plan 03 (Customer detail page)
+1. Continue Phase 7.6: Plan 03 (Customer detail modal)
 2. Cleanup old Trendyol integration from Settings (product pull)
 3. Then Phase 8: Notifications and Automation
 
-Resume file: .planning/phases/07.6-customers-page/07.6-02-PLAN.md
+Resume file: .planning/phases/07.6-customers-page/07.6-03-PLAN.md
 
 ## Phase 7 Features
 
@@ -401,17 +405,19 @@ Task Management Core components:
 | Plan | Wave | Status | Summary |
 |------|------|--------|---------|
 | 07.6-01 | 1 | Complete | Customer list and detail APIs with aggregation |
-| 07.6-02 | 2 | Pending | Customer list page UI |
+| 07.6-02 | 2 | Complete | Customer list page UI with search, store filter, sidebar nav |
 | 07.6-03 | 2 | Pending | Customer detail page UI |
 
 ## Phase 7.6 Features (Customers Page)
 
 - [x] 07.6-01: Customer list API with aggregation, Customer detail API with order history
-- [ ] 07.6-02: Customer list page with search and store filter
+- [x] 07.6-02: Customer list page with search and store filter, sidebar Clienti link
 - [ ] 07.6-03: Customer detail page with order history and analytics
 
 ## Recent Commits
 
+- `5f4a86c` feat(07.6-02): add Clienti navigation to sidebar
+- `288473e` feat(07.6-02): create Customer List Page with search and store filter
 - `caf5ce2` feat(07.6-01): create Customer Detail API with order history
 - `213576c` feat(07.6-01): create Customer List API with aggregation
 - `06303c6` feat(07.5-04): create admin page for unknown AWB statuses
@@ -445,4 +451,4 @@ Task Management Core components:
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-04 (Phase 7.6-01 COMPLETE - Customer APIs)*
+*Last updated: 2026-02-04 (Phase 7.6-02 COMPLETE - Customer List Page)*
