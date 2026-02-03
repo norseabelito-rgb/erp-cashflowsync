@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 ## Current Position
 
-Phase: 7.3 of 10 (Dashboard Rework)
-Plan: 6 of 6
-Status: Phase complete
-Last activity: 2026-02-03 - Completed 07.3-06-PLAN.md (AWB status alignment)
+Phase: 7.4 of 10 (Orders Channel Split)
+Plan: 1 of 6
+Status: In progress
+Last activity: 2026-02-03 - Completed 07.4-01-PLAN.md (Channel Tabs UI)
 
-Progress: [██████████████████░░] ~94% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3)
+Progress: [██████████████████░░] ~95% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 1/6 of 7.4)
 
 ## Phase 7 Progress
 
@@ -55,6 +55,10 @@ Progress: [██████████████████░░] ~94% (7
 
 Recent decisions affecting current work:
 
+- **07.4-01:** Tab state persists in URL via ?tab= parameter for shareability and refresh survival
+- **07.4-01:** sourceCounts NOT filtered by source param (all channels' counts needed for tabs)
+- **07.4-01:** TrendyolStores query only enabled when tab=trendyol (performance)
+- **07.4-01:** Store filter auto-resets when switching to channel where current store doesn't exist
 - **07.3-06:** Dashboard "In Tranzit" counts AWBs by currentStatus patterns, not Order.status
 - **07.3-06:** Status categorization logic extracted to awb-status.ts for DRY
 - **07.3-06:** getCategoryFilterConditions provides Prisma OR clauses for efficient queries
@@ -253,19 +257,20 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 07.3-06-PLAN.md (AWB status alignment)
+Stopped at: Completed 07.4-01-PLAN.md (Channel Tabs UI)
 Resume context:
-- **STAGING BRANCH** - Phase 7.3 COMPLETE (6/6 plans)
-- Dashboard "In Tranzit" now matches tracking page count exactly
-- Shared awb-status.ts module for consistent categorization
-- Ready for Phase 7.4: Orders Channel Split
+- **STAGING BRANCH** - Phase 7.4 IN PROGRESS (1/6 plans)
+- ChannelTabs component integrated with URL persistence
+- Orders API returns sourceCounts for tab badges
+- Channel-specific store filtering working
 
 **NEXT STEPS:**
-1. Start Phase 7.4: Orders Channel Split (Shopify/Trendyol/Temu tabs)
-2. Then Phase 7.5: AWB Tracking Fix
-3. Cleanup old Trendyol integration from Settings
+1. Continue Phase 7.4: Plan 02 (Processing Errors Panel)
+2. Then remaining 7.4 plans (Bulk actions, Manual order, Temu placeholder, Gap closure)
+3. Phase 7.5: AWB Tracking Fix
+4. Cleanup old Trendyol integration from Settings
 
-Resume file: None (Phase 7.3 complete)
+Resume file: None (Plan 07.4-01 complete)
 
 ## Phase 7 Features
 
@@ -315,8 +320,27 @@ Task Management Core components:
 - [x] 07.3-05: Returns count in dashboard-stats.ts, Retururi card on dashboard
 - [x] 07.3-06: Shared awb-status.ts module, dashboard "In Tranzit" matches tracking page
 
+## Phase 7.4 Progress
+
+| Plan | Wave | Status | Summary |
+|------|------|--------|---------|
+| 07.4-01 | 1 | Complete | ChannelTabs component with URL persistence and source counts |
+| 07.4-02 | 1 | Pending | Processing errors panel |
+| 07.4-03 | 2 | Pending | Bulk actions per channel |
+| 07.4-04 | 3 | Pending | Manual order creation |
+| 07.4-05 | 3 | Pending | Temu placeholder |
+| 07.4-06 | 4 | Pending | Gap closure |
+
+## Phase 7.4 Features (Orders Channel Split)
+
+- [x] 07.4-01: ChannelTabs with Shopify/Trendyol/Temu tabs, URL state, source counts API
+
 ## Recent Commits
 
+- `3368e95` feat(07.4-01): integrate ChannelTabs in orders page
+- `cb607ea` feat(07.4-01): add sourceCounts to orders API response
+- `5acc6d2` feat(07.4-02): create ProcessingErrorsPanel component
+- `f054356` feat(07.4-05): create TemuPlaceholder component
 - `10bb0ba` refactor(07.3-06): use shared awb-status.ts in tracking page
 - `938beac` feat(07.3-06): update dashboard to use inTransit stat
 - `04635bf` feat(07.3-06): update dashboard stats to count AWBs in transit
@@ -327,11 +351,7 @@ Task Management Core components:
 - `449ba27` feat(07.3-03): add Romanian tooltip explanations to all stat cards
 - `ce92d32` feat(07.3-03): extend StatCard with tooltip support
 - `be22094` feat(07.3-02): update dashboard page to use filtered stats
-- `9e0853c` feat(07.3-02): create dashboard-stats.ts with filtered queries
-- `a90c6e3` fix(07.3-01): restore missing imports in dashboard page
-- `ba3ceff` feat(07.3-01): integrate DashboardFilters into dashboard page
-- `23c7167` feat(07.3-01): create DashboardFilters component
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-03 (Phase 7.3 COMPLETE - Dashboard rework with filters, tooltips, navigation, returns card, AWB status alignment)*
+*Last updated: 2026-02-03 (Phase 7.4 Plan 01 COMPLETE - ChannelTabs with URL persistence, sourceCounts API, channel-specific stores)*
