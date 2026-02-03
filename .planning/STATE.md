@@ -55,6 +55,11 @@ Progress: [██████████████████░░] ~96% (7
 
 Recent decisions affecting current work:
 
+- **07.4-03:** 300ms debounce on product search (balance responsiveness and API load)
+- **07.4-03:** Romanian phone validation: 10 digits starting with 0
+- **07.4-03:** MasterProduct.price is readonly in dialog (no manual price override)
+- **07.4-03:** "Creare comanda" button visible only on Shopify tab (channelTab === 'shopify')
+- **07.4-03:** shopifyStores passed to dialog (Trendyol stores excluded)
 - **07.4-04:** Custom line items (title/price) instead of variant_id lookup - avoids SKU resolution complexity
 - **07.4-04:** Draft order created then completed - ensures Shopify success before local DB save
 - **07.4-04:** Manual entry assumed validated (phoneValidation/addressValidation = PASSED)
@@ -270,19 +275,21 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 07.4-04-PLAN.md (Manual Order Shopify Push API)
+Stopped at: Completed 07.4-03-PLAN.md (Manual Order Creation Dialog)
 Resume context:
-- **STAGING BRANCH** - Phase 7.4 IN PROGRESS (6/6 plans - Gap closure pending)
-- ManualOrderDialog (Plan 03) + API (Plan 04) complete
-- Shopify draft order workflow: create -> complete -> save locally
-- Remaining: Plan 06 (Gap closure)
+- **STAGING BRANCH** - Phase 7.4 IN PROGRESS (4/6 plans complete)
+- ManualOrderDialog component created with product search
+- Dialog integrated into orders page (Shopify tab only)
+- API endpoint /api/orders/manual needs to be created (Plan 04)
+- Remaining: Plan 04 (API), Plan 06 (Gap closure)
 
 **NEXT STEPS:**
-1. Continue Phase 7.4: Plan 06 (Gap closure)
-2. Then Phase 7.5: AWB Tracking Fix
-3. Cleanup old Trendyol integration from Settings
+1. Continue Phase 7.4: Plan 04 (Shopify order push API)
+2. Plan 06 (Gap closure)
+3. Then Phase 7.5: AWB Tracking Fix
+4. Cleanup old Trendyol integration from Settings
 
-Resume file: None (Plan 07.4-04 complete)
+Resume file: None (Plan 07.4-03 complete)
 
 ## Phase 7 Features
 
@@ -353,9 +360,9 @@ Task Management Core components:
 
 ## Recent Commits
 
-- `b9baeab` feat(07.4-04): create /api/orders/manual endpoint
-- `6d6b24f` feat(07.4-04): add createDraftOrder and completeDraftOrder methods to ShopifyClient
+- `26e34cb` feat(07.4-03): integrate ManualOrderDialog into orders page
 - `7011e68` feat(07.4-03): create ManualOrderDialog component
+- `8055645` docs(07.4-04): complete Manual Order Shopify Push API plan
 - `8ecd6b1` feat(07.4-05): integrate TemuPlaceholder into orders page
 - `f054356` feat(07.4-05): create TemuPlaceholder component
 - `8bc7d5b` feat(07.4-02): integrate ProcessingErrorsPanel and add inline error badges
@@ -376,4 +383,4 @@ Task Management Core components:
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-03 (Phase 7.4 Plan 04 COMPLETE - Manual Order Shopify Push API)*
+*Last updated: 2026-02-03 (Phase 7.4 Plan 03 COMPLETE - Manual Order Creation Dialog)*
