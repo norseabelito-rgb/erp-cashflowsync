@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Plus, Minus, X, Loader2 } from "lucide-react";
+import { Search, Plus, Minus, X, Loader2, Info, Truck, CreditCard } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatCurrency, cn } from "@/lib/utils";
 
 // Types
@@ -310,6 +311,23 @@ export function ManualOrderDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Payment & Shipping Info Banner */}
+        <Alert className="bg-blue-50 border-blue-200">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-800">
+            <div className="flex flex-col gap-1 text-sm">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-3.5 w-3.5" />
+                <span><strong>Metoda de plata:</strong> Ramburs la livrare (COD)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Truck className="h-3.5 w-3.5" />
+                <span><strong>Transport:</strong> Se calculeaza automat conform regulilor din Shopify</span>
+              </div>
+            </div>
+          </AlertDescription>
+        </Alert>
+
         <div className="space-y-6 py-4">
           {/* Store selector */}
           <div className="space-y-2">
@@ -584,10 +602,18 @@ export function ManualOrderDialog({
 
           {/* Totals */}
           {lineItems.length > 0 && (
-            <div className="border-t pt-4">
-              <div className="flex justify-between items-center text-lg font-semibold">
-                <span>Total:</span>
+            <div className="border-t pt-4 space-y-2">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Subtotal produse:</span>
                 <span>{formatCurrency(subtotal, "RON")}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Transport:</span>
+                <span className="text-muted-foreground italic">Se calculeaza la creare</span>
+              </div>
+              <div className="flex justify-between items-center text-lg font-semibold pt-2 border-t">
+                <span>Total estimat:</span>
+                <span>{formatCurrency(subtotal, "RON")} + transport</span>
               </div>
             </div>
           )}

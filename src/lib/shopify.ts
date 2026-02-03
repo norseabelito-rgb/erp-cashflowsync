@@ -619,7 +619,82 @@ export class ShopifyClient {
   }
 
   /**
+   * Obține tarifele de transport disponibile pentru un draft order folosind GraphQL
+   * Returnează lista de opțiuni de shipping configurate în Shopify
+   */
+  async getDraftOrderShippingRates(draftOrderId: number): Promise<Array<{
+    handle: string;
+    title: string;
+    price: string;
+  }>> {
+    const query = `
+      query getDraftOrderShippingRates($id: ID!) {
+        draftOrder(id: $id) {
+          availableShippingRates {
+            handle
+            title
+            price {
+              amount
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      const response = await this.client.post<{
+        data: {
+          draftOrder: {
+            availableShippingRates: Array<{
+              handle: string;
+              title: string;
+              price: { amount: string };
+            }> | null;
+          } | null;
+        };
+        errors?: Array<{ message: string }>;
+      }>("/graphql.json", {
+        query,
+        variables: {
+          id: `gid://shopify/DraftOrder/${draftOrderId}`,
+        },
+      });
+
+      if (response.data?.errors?.length) {
+        console.warn("[Shopify] GraphQL errors:", response.data.errors);
+      }
+
+      const rates = response.data?.data?.draftOrder?.availableShippingRates || [];
+      return rates.map((rate) => ({
+        handle: rate.handle,
+        title: rate.title,
+        price: rate.price.amount,
+      }));
+    } catch (error) {
+      console.error("[Shopify] Failed to get shipping rates:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Actualizează un draft order cu o linie de transport
+   */
+  async updateDraftOrderShipping(
+    draftOrderId: number,
+    shippingLine: { title: string; price: string; handle?: string }
+  ): Promise<void> {
+    await this.client.put(`/draft_orders/${draftOrderId}.json`, {
+      draft_order: {
+        shipping_line: shippingLine.handle
+          ? { handle: shippingLine.handle } // Use Shopify's configured rate
+          : { title: shippingLine.title, price: shippingLine.price, custom: true }, // Custom rate
+      },
+    });
+  }
+
+  /**
    * Completează un draft order (îl convertește în comandă reală)
+   * NOTĂ: payment_pending trebuie trimis ca query parameter, nu în body
    */
   async completeDraftOrder(draftOrderId: number, paymentPending: boolean = true): Promise<{
     id: number;
@@ -628,8 +703,8 @@ export class ShopifyClient {
     totalPrice: string;
   }> {
     const response = await this.client.put<{ draft_order: any }>(
-      `/draft_orders/${draftOrderId}/complete.json`,
-      { payment_pending: paymentPending }
+      `/draft_orders/${draftOrderId}/complete.json?payment_pending=${paymentPending}`,
+      {} // Body gol - parametrul e în query string
     );
 
     const order = response.data.draft_order.order;
