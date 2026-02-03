@@ -123,6 +123,11 @@ export async function POST(request: NextRequest) {
       0
     );
 
+    // Build note with COD payment info
+    const orderNote = body.note
+      ? `[Plata: Ramburs la livrare (COD)]\n\n${body.note}`
+      : "[Plata: Ramburs la livrare (COD)]";
+
     // Prepare draft order input
     const draftOrderInput: CreateDraftOrderInput = {
       lineItems: body.lineItems.map((item) => ({
@@ -148,8 +153,8 @@ export async function POST(request: NextRequest) {
         zip: body.shippingZip,
         phone: body.customerPhone,
       },
-      note: body.note,
-      tags: ["manual-erp", "creat-din-erp"],
+      note: orderNote,
+      tags: ["manual-erp", "creat-din-erp", "ramburs"],
     };
 
     // Create draft order in Shopify
@@ -174,16 +179,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get available shipping rates from Shopify and apply the first one
+    let shippingCost = 0;
+    let shippingTitle = "Transport";
+    try {
+      const shippingRates = await shopify.getDraftOrderShippingRates(draftOrder.id);
+      console.log("[Manual Order] Available shipping rates:", shippingRates);
+
+      if (shippingRates.length > 0) {
+        // Use the first available shipping rate (usually the default/cheapest)
+        const selectedRate = shippingRates[0];
+        shippingCost = parseFloat(selectedRate.price);
+        shippingTitle = selectedRate.title;
+
+        // Update draft order with shipping line
+        await shopify.updateDraftOrderShipping(draftOrder.id, {
+          handle: selectedRate.handle,
+          title: selectedRate.title,
+          price: selectedRate.price,
+        });
+        console.log(`[Manual Order] Applied shipping: ${selectedRate.title} - ${selectedRate.price} RON`);
+      } else {
+        console.log("[Manual Order] No shipping rates available, proceeding without shipping");
+      }
+    } catch (error: any) {
+      // Non-fatal: continue without shipping if we can't get rates
+      console.warn("[Manual Order] Could not get/apply shipping rates:", error.message);
+    }
+
     // Complete draft order (convert to real order)
     let shopifyOrder;
     try {
       shopifyOrder = await shopify.completeDraftOrder(draftOrder.id, true);
     } catch (error: any) {
       console.error("[Manual Order] Draft order completion failed:", error);
+      console.error("[Manual Order] Response data:", JSON.stringify(error.response?.data, null, 2));
+      console.error("[Manual Order] Response status:", error.response?.status);
 
-      // Handle Shopify API errors
-      if (error.response?.data?.errors) {
-        const shopifyError = JSON.stringify(error.response.data.errors);
+      // Handle Shopify API errors - check multiple error formats
+      const shopifyErrors = error.response?.data?.errors
+        || error.response?.data?.error
+        || error.response?.data;
+
+      if (shopifyErrors) {
+        const shopifyError = typeof shopifyErrors === 'string'
+          ? shopifyErrors
+          : JSON.stringify(shopifyErrors);
         return NextResponse.json(
           { success: false, error: `Eroare Shopify la finalizarea comenzii: ${shopifyError}` },
           { status: 400 }
@@ -195,6 +236,9 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Calculate final total with shipping
+    const finalTotalPrice = totalPrice + shippingCost;
 
     // Save to local database - only after Shopify success
     const localOrder = await prisma.order.create({
@@ -213,13 +257,13 @@ export async function POST(request: NextRequest) {
         shippingProvince: body.shippingProvince,
         shippingCountry: "Romania",
         shippingZip: body.shippingZip,
-        totalPrice: totalPrice,
-        subtotalPrice: totalPrice, // No separate subtotal for manual orders
-        totalShipping: 0, // No shipping cost for manual orders by default
+        totalPrice: finalTotalPrice,
+        subtotalPrice: totalPrice,
+        totalShipping: shippingCost,
         totalTax: 0, // Tax calculated separately if needed
         currency: "RON",
         status: "PENDING",
-        financialStatus: "pending", // Payment pending
+        financialStatus: "pending", // COD - payment pending until delivery
         fulfillmentStatus: null, // Not yet fulfilled
         phoneValidation: "PASSED", // Manual entry assumed validated
         addressValidation: "PASSED", // Manual entry assumed validated
@@ -245,7 +289,7 @@ export async function POST(request: NextRequest) {
 
     // Log the action
     console.log(
-      `[Manual Order] Created order ${shopifyOrder.name} (local: ${localOrder.id}) for store ${store.name} by user ${session.user.id}`
+      `[Manual Order] Created order ${shopifyOrder.name} (local: ${localOrder.id}) for store ${store.name} by user ${session.user.id} - Shipping: ${shippingTitle} (${shippingCost} RON)`
     );
 
     return NextResponse.json({
@@ -253,6 +297,11 @@ export async function POST(request: NextRequest) {
       order: localOrder,
       orderNumber: shopifyOrder.name,
       shopifyOrderId: shopifyOrder.id,
+      shipping: {
+        title: shippingTitle,
+        cost: shippingCost,
+      },
+      paymentMethod: "COD", // Cash on Delivery
     });
   } catch (error: any) {
     console.error("[Manual Order] Unexpected error:", error);
