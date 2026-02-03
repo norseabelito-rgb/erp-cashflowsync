@@ -480,3 +480,127 @@ export async function getStockStats() {
     outOfStockCount,
   };
 }
+
+/**
+ * Procesează readăugarea stocului pentru o comandă returnată
+ * Se apelează când se scanează un retur și se confirmă primirea
+ */
+export async function processStockReturnForOrder(
+  orderId: string,
+  returnAwbId: string
+): Promise<{
+  success: boolean;
+  processed: number;
+  errors: string[];
+  movements: Array<{ sku: string; quantity: number; newStock: number }>;
+}> {
+  const result = {
+    success: true,
+    processed: 0,
+    errors: [] as string[],
+    movements: [] as Array<{ sku: string; quantity: number; newStock: number }>,
+  };
+
+  console.log("\n" + "=".repeat(60));
+  console.log("📦 PROCESARE RETUR STOC PENTRU COMANDĂ");
+  console.log("=".repeat(60));
+  console.log(`🛒 Order ID: ${orderId}`);
+  console.log(`📦 Return AWB ID: ${returnAwbId}`);
+
+  try {
+    // Obține produsele din comandă
+    const lineItems = await prisma.lineItem.findMany({
+      where: { orderId },
+    });
+
+    console.log(`📋 Produse în comandă: ${lineItems.length}`);
+
+    // OPTIMIZATION: Batch load all products by SKU to avoid N+1 queries
+    const skus = lineItems.filter((li) => li.sku).map((li) => li.sku as string);
+    const products = skus.length > 0
+      ? await prisma.product.findMany({
+          where: { sku: { in: skus } },
+          include: {
+            components: {
+              include: {
+                componentProduct: true,
+              },
+            },
+          },
+        })
+      : [];
+
+    // Create a lookup map for fast access
+    const productBySku = new Map(products.map((p) => [p.sku, p]));
+
+    for (const item of lineItems) {
+      if (!item.sku) {
+        console.log(`  ⚠️ Produs "${item.title}" nu are SKU - skip`);
+        continue;
+      }
+
+      // Găsește produsul din lookup map (no additional query)
+      const product = productBySku.get(item.sku);
+
+      if (!product) {
+        console.log(`  ⚠️ SKU "${item.sku}" nu există în inventar - skip`);
+        continue;
+      }
+
+      console.log(`\n  📦 Procesez retur: ${product.name} (${product.sku})`);
+      console.log(`     Cantitate returnată: ${item.quantity}`);
+      console.log(`     Este compus: ${product.isComposite ? "DA" : "NU"}`);
+
+      // Obține componentele efective inline (data already loaded, no query needed)
+      const components = (!product.isComposite || product.components.length === 0)
+        ? [{ productId: product.id, sku: product.sku, name: product.name, quantity: 1 }]
+        : product.components.map((comp) => ({
+            productId: comp.componentProduct.id,
+            sku: comp.componentProduct.sku,
+            name: comp.componentProduct.name,
+            quantity: comp.quantity,
+          }));
+
+      for (const comp of components) {
+        const totalQuantity = comp.quantity * item.quantity;
+
+        console.log(`     → Adaug ${totalQuantity}x ${comp.name} (${comp.sku})`);
+
+        try {
+          const movement = await recordStockMovement({
+            productId: comp.productId,
+            type: StockMovementType.IN,
+            quantity: totalQuantity,
+            orderId,
+            reference: `RETUR-${returnAwbId}`,
+            notes: `Retur - Comandă ${orderId}, Produs: ${item.title}`,
+          });
+
+          result.movements.push({
+            sku: comp.sku,
+            quantity: totalQuantity,
+            newStock: movement.newStock,
+          });
+
+          console.log(`     ✅ Stoc nou: ${movement.newStock}`);
+          result.processed++;
+        } catch (error: any) {
+          const errorMsg = `Eroare la adăugarea stocului pentru ${comp.sku}: ${error.message}`;
+          console.error(`     ❌ ${errorMsg}`);
+          result.errors.push(errorMsg);
+        }
+      }
+    }
+
+    console.log("\n" + "-".repeat(60));
+    console.log(`📊 REZULTAT RETUR: ${result.processed} mișcări procesate, ${result.errors.length} erori`);
+    console.log("=".repeat(60) + "\n");
+
+  } catch (error: any) {
+    console.error("❌ Eroare la procesarea stocului retur:", error.message);
+    result.success = false;
+    result.errors.push(error.message);
+  }
+
+  return result;
+}

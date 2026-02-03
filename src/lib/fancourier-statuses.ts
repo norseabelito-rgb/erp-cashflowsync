@@ -10,6 +10,7 @@ export interface FanCourierStatus {
   category: "pickup" | "transit" | "delivery" | "notice" | "problem" | "return" | "cancel" | "other";
   internalStatus: "SHIPPED" | "DELIVERED" | "RETURNED" | "CANCELLED" | "AWB_ERROR";
   isFinal: boolean;  // True pentru statusuri finale (livrat, returnat, anulat)
+  action?: string;   // Recomandare pentru utilizator - ce actiune sa intreprinda
 }
 
 // Toate statusurile FanCourier cu descrieri detaliate
@@ -22,6 +23,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "pickup",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Coletul este in drum. Asteptati actualizari.",
   },
   "C1": {
     code: "C1",
@@ -30,6 +32,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "pickup",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Coletul este in drum spre destinatar. Asteptati livrarea.",
   },
 
   // ==================== TRANZIT & DEPOZIT (H*) ====================
@@ -130,6 +133,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "delivery",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Curierul este in drum. Destinatarul sa fie disponibil.",
   },
   "S2": {
     code: "S2",
@@ -138,6 +142,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "delivery",
     internalStatus: "DELIVERED",
     isFinal: true,
+    action: "Comanda livrata cu succes. Nu este necesara nicio actiune.",
   },
   "S8": {
     code: "S8",
@@ -146,6 +151,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "delivery",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Informati clientul sa ridice coletul de la sediul FAN Courier.",
   },
   "S35": {
     code: "S35",
@@ -154,6 +160,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "delivery",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "A doua incercare de livrare. Asigurati-va ca clientul este disponibil.",
   },
   "S46": {
     code: "S46",
@@ -162,6 +169,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "delivery",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Informati clientul sa ridice coletul de la punctul de livrare.",
   },
   "S47": {
     code: "S47",
@@ -170,6 +178,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "delivery",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Coletul va fi livrat de partenerul curier. Asteptati.",
   },
 
   // ==================== AVIZĂRI (S3, S11, S12, S21, S22, S24, S30) ====================
@@ -180,6 +189,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "notice",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Destinatarul va fi contactat din nou. Asteptati urmatoarea incercare.",
   },
   "S11": {
     code: "S11",
@@ -188,6 +198,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "notice",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Clientul a primit SMS. Asteptati urmatoarea incercare de livrare.",
   },
   "S12": {
     code: "S12",
@@ -196,6 +207,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "notice",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Livrare reprogramata la cererea clientului. Asteptati noua data.",
   },
   "S21": {
     code: "S21",
@@ -204,6 +216,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "notice",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Contactati clientul telefonic pentru a confirma disponibilitatea.",
   },
   "S22": {
     code: "S22",
@@ -212,6 +225,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "notice",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Contactati clientul sa pregateasca suma pentru ramburs.",
   },
   "S24": {
     code: "S24",
@@ -220,6 +234,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "notice",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Clientul trebuie sa aiba act de identitate la livrare.",
   },
   "S30": {
     code: "S30",
@@ -228,6 +243,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "notice",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Incercati sa contactati clientul telefonic pentru a confirma adresa.",
   },
 
   // ==================== PROBLEME ADRESĂ (S4, S5, S9, S10, S14, S19, S20, S25, S27, S28, S42) ====================
@@ -238,6 +254,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "problem",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Verificati adresa in comanda si contactati clientul pentru detalii.",
   },
   "S5": {
     code: "S5",
@@ -246,6 +263,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "problem",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Contactati clientul pentru noua adresa de livrare.",
   },
   "S9": {
     code: "S9",
@@ -254,6 +272,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "problem",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Coletul a fost redirectionat. Asteptati noua livrare.",
   },
   "S10": {
     code: "S10",
@@ -262,6 +281,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "problem",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "URGENT: Verificati adresa si obtineti un numar de telefon valid.",
   },
   "S14": {
     code: "S14",
@@ -270,6 +290,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "problem",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Contactati clientul pentru detalii de acces la adresa.",
   },
   "S19": {
     code: "S19",
@@ -278,6 +299,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "problem",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "S-a trimis SMS clientului. Asteptati raspunsul sau contactati direct.",
   },
   "S20": {
     code: "S20",
@@ -286,6 +308,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "problem",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "URGENT: Completati adresa si adaugati un numar de telefon valid.",
   },
   "S25": {
     code: "S25",
@@ -294,6 +317,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "problem",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "S-a trimis SMS clientului. Asteptati adresa corecta.",
   },
   "S27": {
     code: "S27",
@@ -302,6 +326,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "problem",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "URGENT: Verificati comanda - adresa si telefonul sunt gresite.",
   },
   "S28": {
     code: "S28",
@@ -310,6 +335,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "problem",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "URGENT: Completati adresa si corectati numarul de telefon.",
   },
   "S42": {
     code: "S42",
@@ -318,6 +344,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "problem",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Contactati clientul pentru a obtine adresa corecta de livrare.",
   },
 
   // ==================== REFUZURI & RETURURI (S6, S7, S15, S16, S33, S43, S50) ====================
@@ -328,6 +355,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "return",
     internalStatus: "RETURNED",
     isFinal: true,
+    action: "Contactati clientul pentru clarificari. Coletul se intoarce.",
   },
   "S7": {
     code: "S7",
@@ -336,6 +364,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "return",
     internalStatus: "RETURNED",
     isFinal: true,
+    action: "Clientul a refuzat plata transportului. Coletul revine la expeditor.",
   },
   "S15": {
     code: "S15",
@@ -344,6 +373,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "return",
     internalStatus: "RETURNED",
     isFinal: true,
+    action: "Clientul a refuzat sa plateasca rambursul. Coletul revine.",
   },
   "S16": {
     code: "S16",
@@ -352,6 +382,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "return",
     internalStatus: "RETURNED",
     isFinal: true,
+    action: "Termenul de pastrare a expirat. Coletul revine la expeditor.",
   },
   "S33": {
     code: "S33",
@@ -360,6 +391,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "return",
     internalStatus: "RETURNED",
     isFinal: true,
+    action: "Returul a fost solicitat. Asteptati receptia coletului.",
   },
   "S43": {
     code: "S43",
@@ -368,6 +400,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "return",
     internalStatus: "RETURNED",
     isFinal: true,
+    action: "Coletul este in curs de returnare la expeditor.",
   },
   "S50": {
     code: "S50",
@@ -376,6 +409,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "return",
     internalStatus: "RETURNED",
     isFinal: true,
+    action: "Clientul a refuzat semnatura. Coletul revine la expeditor.",
   },
 
   // ==================== ALTE STATUSURI ====================
@@ -386,6 +420,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "other",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Contactati FanCourier pentru detalii despre despagubire.",
   },
   "S38": {
     code: "S38",
@@ -394,6 +429,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "other",
     internalStatus: "AWB_ERROR",
     isFinal: false,
+    action: "Verificati daca coletul a fost predat curierului pentru ridicare.",
   },
   "S49": {
     code: "S49",
@@ -402,6 +438,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "other",
     internalStatus: "SHIPPED",
     isFinal: false,
+    action: "Livrarile sunt suspendate temporar. Asteptati reluarea activitatii.",
   },
 
   // ==================== ANULĂRI (A*) ====================
@@ -412,6 +449,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "cancel",
     internalStatus: "CANCELLED",
     isFinal: true,
+    action: "AWB anulat. Nu mai necesita nicio actiune.",
   },
   "A1": {
     code: "A1",
@@ -420,6 +458,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "cancel",
     internalStatus: "CANCELLED",
     isFinal: true,
+    action: "AWB anulat la cererea expeditorului. Nu necesita actiune.",
   },
   "A2": {
     code: "A2",
@@ -428,6 +467,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "cancel",
     internalStatus: "CANCELLED",
     isFinal: true,
+    action: "AWB anulat la cererea clientului. Contactati pentru clarificari.",
   },
   "A3": {
     code: "A3",
@@ -436,6 +476,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "cancel",
     internalStatus: "CANCELLED",
     isFinal: true,
+    action: "AWB anulat de FanCourier. Contactati curierul pentru detalii.",
   },
   "A4": {
     code: "A4",
@@ -444,6 +485,7 @@ export const FANCOURIER_STATUSES: Record<string, FanCourierStatus> = {
     category: "cancel",
     internalStatus: "CANCELLED",
     isFinal: true,
+    action: "AWB sters din borderou. Nu necesita actiune suplimentara.",
   },
 };
 

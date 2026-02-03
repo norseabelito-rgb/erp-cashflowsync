@@ -21,6 +21,7 @@ import {
 } from "./oblio";
 import { getNextInvoiceNumber, getInvoiceSeriesForCompany } from "./invoice-series";
 import { getInvoiceErrorMessage } from "./invoice-errors";
+import { processStockForOrder } from "./stock";
 
 // Tip pentru transaction client
 type PrismaTransactionClient = Prisma.TransactionClient;
@@ -691,7 +692,28 @@ export async function issueInvoiceForOrder(
     const finalFormattedInvoice = `${finalInvoiceSeries}${String(finalInvoiceNumber).padStart(6, "0")}`;
     console.log(`[Invoice] Factura emisa cu succes: ${finalFormattedInvoice}`);
 
-    // 14. Send invoice link to Trendyol (non-blocking, for Trendyol orders only)
+    // 14. Descărcăm stocul pentru comandă (outside transaction - non-blocking)
+    // Obținem invoice ID pentru a-l lega de mișcările de stoc
+    const savedInvoice = await prisma.invoice.findUnique({
+      where: { orderId: order.id },
+      select: { id: true },
+    });
+
+    if (savedInvoice) {
+      try {
+        const stockResult = await processStockForOrder(order.id, savedInvoice.id);
+        if (stockResult.success) {
+          console.log(`[Invoice] Stoc descărcat: ${stockResult.processed} mișcări`);
+        } else {
+          console.warn(`[Invoice] Erori la descărcarea stocului: ${stockResult.errors.join(", ")}`);
+        }
+      } catch (stockError) {
+        // Non-blocking - factura a fost emisă cu succes, stocul poate fi corectat manual
+        console.error("[Invoice] Eroare la descărcarea stocului:", stockError);
+      }
+    }
+
+    // 15. Send invoice link to Trendyol (non-blocking, for Trendyol orders only)
     if (order.source === "trendyol") {
       const invoiceLink = result.link || `https://oblio.eu/facturi/${finalInvoiceSeries}${finalInvoiceNumber}`;
       // Dynamic import to avoid circular dependencies

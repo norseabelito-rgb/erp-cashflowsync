@@ -1,17 +1,7 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  LineChart,
-  Line,
   AreaChart,
   Area,
   XAxis,
@@ -19,11 +9,9 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
-  Bar,
 } from "recharts";
 import { formatCurrency } from "@/lib/utils";
-import { TrendingUp, Store } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 
 interface SalesData {
   date: string;
@@ -31,34 +19,11 @@ interface SalesData {
   orders: number;
 }
 
-interface StoreOption {
-  id: string;
-  name: string;
-  ordersCount: number;
-}
-
 interface DashboardChartsProps {
   salesData: SalesData[];
-  stores: StoreOption[];
-  currentStoreId: string | null;
 }
 
-export function DashboardCharts({ salesData, stores, currentStoreId }: DashboardChartsProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const handleStoreChange = (value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    
-    if (value === "all") {
-      params.delete("store");
-    } else {
-      params.set("store", value);
-    }
-    
-    router.push(`/dashboard?${params.toString()}`);
-  };
-
+export function DashboardCharts({ salesData }: DashboardChartsProps) {
   // Formatare date pentru afișare
   const formattedData = salesData.map((item) => ({
     ...item,
@@ -77,34 +42,10 @@ export function DashboardCharts({ salesData, stores, currentStoreId }: Dashboard
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-emerald-500" />
-            Comenzi Ultimele 7 Zile
-          </CardTitle>
-          <div className="flex items-center gap-4">
-            {/* Store Filter */}
-            <div className="flex items-center gap-2">
-              <Store className="h-4 w-4 text-muted-foreground" />
-              <Select
-                value={currentStoreId || "all"}
-                onValueChange={handleStoreChange}
-              >
-                <SelectTrigger className="w-[180px] h-8 text-sm">
-                  <SelectValue placeholder="Toate magazinele" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toate magazinele</SelectItem>
-                  {stores.map((store) => (
-                    <SelectItem key={store.id} value={store.id}>
-                      {store.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <TrendingUp className="h-5 w-5 text-emerald-500" />
+          Comenzi Ultimele 7 Zile
+        </CardTitle>
         {/* Stats row */}
         <div className="flex items-center gap-6 text-sm mt-2">
           <div>

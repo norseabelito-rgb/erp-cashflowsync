@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ShoppingCart,
@@ -30,6 +31,7 @@ import {
   ExternalLink,
   BoxIcon,
   ShoppingBag,
+  Plus,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,6 +84,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getEmptyState, determineEmptyStateType } from "@/lib/empty-states";
 import { FILTER_BAR } from "@/lib/design-system";
 import { TransferWarningModal } from "@/components/orders/transfer-warning-modal";
+import { TemuPlaceholder } from "@/components/orders/temu-placeholder";
+import { ChannelTabs, type ChannelTab, type ChannelCounts } from "@/components/orders/channel-tabs";
+import { ProcessingErrorsPanel, type ProcessError, type DBProcessingError } from "@/components/orders/processing-errors-panel";
+import { ManualOrderDialog, type ManualOrderData } from "@/components/orders/manual-order-dialog";
 import { SkeletonTableRow } from "@/components/ui/skeleton";
 import { useErrorModal } from "@/hooks/use-error-modal";
 import { ActionTooltip } from "@/components/ui/action-tooltip";
@@ -142,40 +148,8 @@ interface Store {
   name: string;
 }
 
-interface ProcessError {
-  orderId: string;
-  orderNumber: string;
-  success: boolean;
-  invoiceSuccess?: boolean;
-  invoiceNumber?: string;
-  invoiceError?: string;
-  awbSuccess?: boolean;
-  awbNumber?: string;
-  awbError?: string;
-}
 
-// Interface pentru erori persistente din DB
-interface DBProcessingError {
-  id: string;
-  orderId: string;
-  type: "INVOICE" | "AWB";
-  status: "PENDING" | "RETRYING" | "RESOLVED" | "FAILED" | "SKIPPED";
-  errorMessage: string | null;
-  retryCount: number;
-  maxRetries: number;
-  createdAt: string;
-  lastRetryAt: string | null;
-  resolvedAt: string | null;
-  resolvedByName: string | null;
-  resolution: string | null;
-  order: {
-    id: string;
-    shopifyOrderNumber: string;
-    customerFirstName: string | null;
-    customerLastName: string | null;
-    store: { name: string };
-  };
-}
+// ProcessError and DBProcessingError types imported from processing-errors-panel.tsx
 
 const statusConfig: Record<string, { label: string; variant: "default" | "success" | "warning" | "destructive" | "info" | "neutral" }> = {
   PENDING: { label: "În așteptare", variant: "warning" },
@@ -339,11 +313,17 @@ function getAWBStatusInfo(awb: Order['awb']): {
 export default function OrdersPage() {
   const queryClient = useQueryClient();
   const { showError, ErrorModalComponent } = useErrorModal();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Channel tab from URL (persisted via URL parameter)
+  const channelTab = (searchParams.get('tab') || 'shopify') as ChannelTab;
+
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [storeFilter, setStoreFilter] = useState<string>("all");
-  const [sourceFilter, setSourceFilter] = useState<string>("all"); // "all" | "shopify" | "trendyol"
+  // sourceFilter removed - using channelTab from URL instead
   const [awbFilter, setAwbFilter] = useState<string>("all"); // "all" | "with" | "without"
   const [awbStatusFilter, setAwbStatusFilter] = useState<string>("all"); // "all" | "tranzit" | "livrat" | "retur" | "pending" | "anulat"
   const [startDate, setStartDate] = useState<string>("");
@@ -392,6 +372,9 @@ export default function OrdersPage() {
   const [errorsDialogOpen, setErrorsDialogOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
+  // State pentru manual order dialog
+  const [manualOrderDialogOpen, setManualOrderDialogOpen] = useState(false);
+
   // State pentru transfer warning modal
   const [transferWarningOpen, setTransferWarningOpen] = useState(false);
   const [pendingInvoiceOrderIds, setPendingInvoiceOrderIds] = useState<string[]>([]);
@@ -410,12 +393,13 @@ export default function OrdersPage() {
   const [selectedDbErrors, setSelectedDbErrors] = useState<string[]>([]);
 
   const { data: ordersData, isLoading: ordersLoading, isError: ordersError, refetch: refetchOrders } = useQuery({
-    queryKey: ["orders", statusFilter, storeFilter, sourceFilter, awbFilter, awbStatusFilter, searchQuery, startDate, endDate, productFilter, page, limit],
+    queryKey: ["orders", statusFilter, storeFilter, channelTab, awbFilter, awbStatusFilter, searchQuery, startDate, endDate, productFilter, page, limit],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (storeFilter !== "all") params.set("storeId", storeFilter);
-      if (sourceFilter !== "all") params.set("source", sourceFilter);
+      // Use channelTab as source filter (temu returns nothing since no orders exist)
+      if (channelTab !== "temu") params.set("source", channelTab);
       if (awbFilter === "with") params.set("hasAwb", "true");
       if (awbFilter === "without") params.set("hasAwb", "false");
       if (awbFilter === "with" && awbStatusFilter !== "all") params.set("awbStatus", awbStatusFilter);
@@ -433,14 +417,26 @@ export default function OrdersPage() {
       }
       return data;
     },
+    enabled: channelTab !== "temu", // Disable query for Temu tab (placeholder)
   });
 
+  // Shopify stores query (for Shopify tab)
   const { data: storesData } = useQuery({
     queryKey: ["stores"],
     queryFn: async () => {
       const res = await fetch("/api/stores");
       return res.json();
     },
+  });
+
+  // Trendyol stores query (for Trendyol tab)
+  const { data: trendyolStoresData } = useQuery({
+    queryKey: ["trendyol-stores"],
+    queryFn: async () => {
+      const res = await fetch("/api/trendyol/stores");
+      return res.json();
+    },
+    enabled: channelTab === "trendyol",
   });
 
   // Query pentru erori persistente din DB
@@ -454,7 +450,7 @@ export default function OrdersPage() {
       const res = await fetch(`/api/processing-errors?${params}`);
       return res.json();
     },
-    enabled: activeTab === "errors", // Doar când tab-ul erori e activ
+    // Always enabled - error panel shows regardless of active tab
   });
 
   const invoiceMutation = useMutation({
@@ -728,10 +724,34 @@ export default function OrdersPage() {
     },
   });
 
+  // Create manual order mutation
+  const createManualOrderMutation = useMutation({
+    mutationFn: async (data: ManualOrderData) => {
+      const res = await fetch("/api/orders/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast({ title: "Comanda creata", description: `Comanda #${data.orderNumber} a fost creata` });
+        setManualOrderDialogOpen(false);
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
+      } else {
+        toast({ title: "Eroare", description: data.error, variant: "destructive" });
+      }
+    },
+    onError: (error: any) => {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
+    },
+  });
+
   // Sincronizare comandă individuală (status AWB + factură)
   const syncSingleOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
-      const res = await fetch("/api/sync/full", { 
+      const res = await fetch("/api/sync/full", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId }),
@@ -900,11 +920,62 @@ export default function OrdersPage() {
   };
 
   const orders: Order[] = ordersData?.orders || [];
-  const stores: Store[] = storesData?.stores || [];
+
+  // Source counts from API for channel tab badges
+  const sourceCounts: ChannelCounts = ordersData?.sourceCounts || { shopify: 0, trendyol: 0, temu: 0 };
+
+  // Channel-specific stores: Shopify stores for Shopify tab, TrendyolStores for Trendyol tab
+  const shopifyStores: Store[] = storesData?.stores || [];
+  const trendyolStores: Store[] = (trendyolStoresData?.stores || []).map((s: { id: string; name: string }) => ({
+    id: s.id,
+    name: s.name,
+  }));
+  const stores: Store[] = channelTab === "trendyol" ? trendyolStores : shopifyStores;
+
   const dbErrors: DBProcessingError[] = dbErrorsData?.errors || [];
   const dbErrorStats = dbErrorsData?.stats || { pending: 0, retrying: 0, failed: 0, resolved: 0, skipped: 0, total: 0 };
   const allSelected = orders.length > 0 && selectedOrders.length === orders.length;
   const allDbErrorsSelected = dbErrors.length > 0 && selectedDbErrors.length === dbErrors.filter(e => e.status !== "RESOLVED" && e.status !== "SKIPPED").length;
+
+  // Calculate errors by source for the error panel
+  const errorsBySource = {
+    shopify: [...processErrors, ...dbErrors].filter(e => {
+      const orderId = 'orderId' in e ? e.orderId : null;
+      const order = orders.find(o => o.id === orderId);
+      // For db errors, check order.source from included relation
+      if ('order' in e && (e as DBProcessingError).order?.source) return (e as DBProcessingError).order.source === 'shopify';
+      return order?.source === 'shopify' || !order?.source; // Default to shopify
+    }).length,
+    trendyol: [...processErrors, ...dbErrors].filter(e => {
+      const orderId = 'orderId' in e ? e.orderId : null;
+      const order = orders.find(o => o.id === orderId);
+      if ('order' in e && (e as DBProcessingError).order?.source) return (e as DBProcessingError).order.source === 'trendyol';
+      return order?.source === 'trendyol';
+    }).length,
+    unknown: 0,
+  };
+
+  // Helper to check if an order has an error (for inline badge)
+  const hasOrderError = (orderId: string) => {
+    return processErrors.some(e => e.orderId === orderId) ||
+           dbErrors.some(e => e.orderId === orderId && e.status !== 'RESOLVED' && e.status !== 'SKIPPED');
+  };
+
+  // Handle channel tab change with URL persistence and store filter reset
+  const handleChannelTabChange = useCallback((newTab: ChannelTab) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', newTab);
+    params.delete('page'); // Reset to page 1 when switching tabs
+
+    // Check if current store filter is valid for new channel, reset if not
+    const newChannelStores = newTab === "trendyol" ? trendyolStores : shopifyStores;
+    const currentStoreValid = storeFilter === "all" || newChannelStores.some(s => s.id === storeFilter);
+    if (!currentStoreValid) {
+      setStoreFilter("all");
+    }
+
+    router.push(`/orders?${params.toString()}`);
+  }, [searchParams, router, storeFilter, trendyolStores, shopifyStores]);
 
   const handleSelectAll = () => {
     setSelectedOrders(allSelected ? [] : orders.map((o) => o.id));
@@ -1104,6 +1175,34 @@ export default function OrdersPage() {
         }
       />
 
+
+      {/* Channel Tabs - Shopify / Trendyol / Temu */}
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <ChannelTabs
+          activeTab={channelTab}
+          counts={sourceCounts}
+          onTabChange={handleChannelTabChange}
+        />
+        {channelTab === 'shopify' && (
+          <RequirePermission permission="orders.create">
+            <ActionTooltip
+              action="Creeaza comanda manuala"
+              consequence="Pentru comenzi telefonice sau offline"
+            >
+              <Button onClick={() => setManualOrderDialogOpen(true)} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Creare comanda
+              </Button>
+            </ActionTooltip>
+          </RequirePermission>
+        )}
+      </div>
+
+      {/* Show TemuPlaceholder when Temu tab is active, full orders UI for other channels */}
+      {channelTab === "temu" ? (
+        <TemuPlaceholder />
+      ) : (
+      <>
       <Card className="mb-4 md:mb-6">
         <CardContent className="pt-4 md:pt-6">
           <div className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4">
@@ -1136,14 +1235,7 @@ export default function OrdersPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={sourceFilter} onValueChange={(v) => { setSourceFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-[140px]"><SelectValue placeholder="Sursa" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toate sursele</SelectItem>
-                <SelectItem value="shopify">Shopify</SelectItem>
-                <SelectItem value="trendyol">Trendyol</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Source filter removed - using ChannelTabs above instead */}
             <Select value={awbFilter} onValueChange={(v) => { setAwbFilter(v); if (v !== "with") setAwbStatusFilter("all"); setPage(1); }}>
               <SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="AWB" /></SelectTrigger>
               <SelectContent>
@@ -1295,45 +1387,36 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Buton pentru a vedea erorile de procesare (in-session) */}
-      {processErrors.length > 0 && (
-        <div className="mb-4 p-4 rounded-lg bg-status-error/10 border border-status-error/20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-status-error" />
-            <span className="text-sm font-medium text-status-error">
-              {processErrors.length} comenzi cu erori la procesare
-            </span>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setErrorsDialogOpen(true)}
-              className="border-status-error/30 text-status-error hover:bg-status-error/10"
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              Vezi erori
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => processAllMutation.mutate(processErrors.map(e => e.orderId))}
-              disabled={processAllMutation.isPending}
-              variant="destructive"
-            >
-              <RefreshCw className={cn("h-4 w-4 mr-2", processAllMutation.isPending && "animate-spin")} />
-              Reîncearcă toate
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setProcessErrors([])}
-              className="text-status-error hover:text-status-error/80"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Collapsible error panel - shows ALL errors regardless of tab */}
+      <ProcessingErrorsPanel
+        errors={processErrors}
+        dbErrors={dbErrors}
+        isLoading={dbErrorsLoading}
+        errorsBySource={errorsBySource}
+        onRetryError={(errorId) => {
+          // Check if this is a session error (has orderId directly) or db error (has id)
+          const sessionError = processErrors.find(e => e.orderId === errorId);
+          if (sessionError) {
+            processAllMutation.mutate([sessionError.orderId]);
+          } else {
+            retryDbErrorMutation.mutate(errorId);
+          }
+        }}
+        onSkipError={(errorId) => {
+          skipDbErrorMutation.mutate(errorId);
+        }}
+        onRetryAll={() => {
+          // Retry all session errors first
+          if (processErrors.length > 0) {
+            processAllMutation.mutate(processErrors.map(e => e.orderId));
+          }
+          // Then retry all db errors
+          const activeDbErrors = dbErrors.filter(e => e.status !== 'RESOLVED' && e.status !== 'SKIPPED');
+          activeDbErrors.forEach(e => retryDbErrorMutation.mutate(e.id));
+        }}
+        onClearSessionErrors={() => setProcessErrors([])}
+        isRetrying={processAllMutation.isPending || retryDbErrorMutation.isPending}
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
@@ -1380,14 +1463,13 @@ export default function OrdersPage() {
                   </>
                 ) : orders.length === 0 ? (
                   (() => {
-                    const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || storeFilter !== "all" || sourceFilter !== "all" || awbFilter !== "all" || awbStatusFilter !== "all" || startDate !== "" || endDate !== "";
+                    const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || storeFilter !== "all" || awbFilter !== "all" || awbStatusFilter !== "all" || startDate !== "" || endDate !== "";
                     const emptyStateType = determineEmptyStateType(hasActiveFilters, ordersError);
                     const emptyConfig = getEmptyState("orders", emptyStateType);
                     const clearFilters = () => {
                       setSearchQuery("");
                       setStatusFilter("all");
                       setStoreFilter("all");
-                      setSourceFilter("all");
                       setAwbFilter("all");
                       setAwbStatusFilter("all");
                       setStartDate("");
@@ -1448,7 +1530,14 @@ export default function OrdersPage() {
                         </div>
                       </td>
                       <td className="p-4"><span className="font-semibold">{formatCurrency(parseFloat(order.totalPrice), order.currency)}</span></td>
-                      <td className="p-4"><Badge variant={statusConfig[order.status]?.variant || "default"}>{statusConfig[order.status]?.label || order.status}</Badge></td>
+                      <td className="p-4">
+                        <div className="relative inline-flex items-center">
+                          <Badge variant={statusConfig[order.status]?.variant || "default"}>{statusConfig[order.status]?.label || order.status}</Badge>
+                          {hasOrderError(order.id) && (
+                            <span className="absolute -top-1 -right-1 h-2.5 w-2.5 bg-status-error rounded-full border-2 border-background" title="Eroare de procesare" />
+                          )}
+                        </div>
+                      </td>
                       <td className="p-4">
                         {order.invoice ? (
                           order.invoice.status === "issued" ? (
@@ -1880,6 +1969,8 @@ export default function OrdersPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      </>
+      )}
 
       <Dialog open={awbModalOpen} onOpenChange={setAwbModalOpen}>
         <DialogContent className="max-w-md">
@@ -2823,6 +2914,15 @@ export default function OrdersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Manual Order Dialog */}
+      <ManualOrderDialog
+        open={manualOrderDialogOpen}
+        onOpenChange={setManualOrderDialogOpen}
+        stores={shopifyStores}
+        onCreateOrder={(data) => createManualOrderMutation.mutate(data)}
+        isCreating={createManualOrderMutation.isPending}
+      />
     </div>
     </TooltipProvider>
   );

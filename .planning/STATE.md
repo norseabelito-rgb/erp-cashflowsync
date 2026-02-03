@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Cleanup old Trendyol integration, then Phase 8
+**Current focus:** Phase 7.5 - AWB Tracking Fix
 
 ## Current Position
 
-Phase: 7.2 of 10 (Trendyol Complete Fix)
-Plan: 5 of 6 (PAUSED - checkpoint deferred)
-Status: Code complete, Plan 05 verification deferred (needs Trendyol products first)
-Last activity: 2026-02-02 - Paused at 07.2-05 checkpoint (user will verify after product push)
+Phase: 7.5 of 10 (AWB Tracking Fix)
+Plan: 4 of 4
+Status: PHASE COMPLETE
+Last activity: 2026-02-03 - Completed 07.5-04-PLAN.md (Dashboard Alignment & Admin Page)
 
-Progress: [██████████████████░░] ~88% (7/10 integer phases + 6/6 of 7.1 + 5/6 of 7.2)
+Progress: [██████████████████░░] ~98% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5)
 
 ## Phase 7 Progress
 
@@ -55,6 +55,57 @@ Progress: [██████████████████░░] ~88% (7
 
 Recent decisions affecting current work:
 
+- **07.5-04:** Code-based verification query added for in_transit counts comparison
+- **07.5-04:** Dynamic Prisma model access for UnknownAWBStatus (handles regeneration timing)
+- **07.5-04:** Returns query unified to use getCategoryFilterConditions("returned")
+- **07.5-03:** Modal triggered by selectedStatus state (null = closed)
+- **07.5-03:** Info icon on status cards uses stopPropagation to avoid triggering filter
+- **07.5-03:** Status code badge in AWB cards clickable with same modal behavior
+- **07.5-03:** Category icons mapped from status.category (Truck, Clock, AlertCircle, etc.)
+- **07.5-02:** Status cards use flexbox wrap instead of fixed grid (adapts to status count)
+- **07.5-02:** Filter uses client-side useMemo instead of API parameter (all AWBs already loaded)
+- **07.5-02:** Colors applied via inline styles with hexToRgba helper (dynamic from API)
+- **07.5-02:** UNKNOWN card groups null codes and unmapped codes together
+- **07.4-03:** 300ms debounce on product search (balance responsiveness and API load)
+- **07.4-03:** Romanian phone validation: 10 digits starting with 0
+- **07.4-03:** MasterProduct.price is readonly in dialog (no manual price override)
+- **07.4-03:** "Creare comanda" button visible only on Shopify tab (channelTab === 'shopify')
+- **07.4-03:** shopifyStores passed to dialog (Trendyol stores excluded)
+- **07.4-04:** Custom line items (title/price) instead of variant_id lookup - avoids SKU resolution complexity
+- **07.4-04:** Draft order created then completed - ensures Shopify success before local DB save
+- **07.4-04:** Manual entry assumed validated (phoneValidation/addressValidation = PASSED)
+- **07.4-04:** source='manual' distinguishes from shopify/trendyol orders
+- **07.4-04:** Tags 'manual-erp', 'creat-din-erp' help identify ERP-created orders in Shopify admin
+- **07.4-05:** TemuPlaceholder uses Construction icon (lucide-react) for coming-soon visual
+- **07.4-05:** Romanian text without diacritics for Temu placeholder
+- **07.4-05:** Keep PageHeader and ChannelTabs visible when Temu tab active (navigation)
+- **07.4-05:** Conditional rendering based on channelTab URL parameter
+- **07.4-02:** Error panel shows ALL errors regardless of active channel tab (users need full visibility)
+- **07.4-02:** errorsBySource calculated in parent, passed to ProcessingErrorsPanel as prop
+- **07.4-02:** Inline error indicator as red dot on Status column (complements existing state)
+- **07.4-02:** Panel auto-hides when no errors, auto-shows when errors appear
+- **07.4-01:** Tab state persists in URL via ?tab= parameter for shareability and refresh survival
+- **07.4-01:** sourceCounts NOT filtered by source param (all channels' counts needed for tabs)
+- **07.4-01:** TrendyolStores query only enabled when tab=trendyol (performance)
+- **07.4-01:** Store filter auto-resets when switching to channel where current store doesn't exist
+- **07.3-06:** Dashboard "In Tranzit" counts AWBs by currentStatus patterns, not Order.status
+- **07.3-06:** Status categorization logic extracted to awb-status.ts for DRY
+- **07.3-06:** getCategoryFilterConditions provides Prisma OR clauses for efficient queries
+- **07.3-05:** Returns counted via AWB status patterns (retur, refuz, return) - matches tracking page logic
+- **07.3-05:** Replaced Trendyol pending card with Retururi card (redundant with De procesat)
+- **07.3-05:** Warning variant on Retururi card when returns > 0
+- **07.3-04:** buildFilteredHref function defined inside DashboardPage (needs access to searchParams)
+- **07.3-04:** All stat card navigation preserves date range and store filter context
+- **07.3-04:** Extra params (status, source) combined with preserved filters via URLSearchParams
+- **07.3-03:** StatCard tooltip prop optional - not all cards need explanation
+- **07.3-03:** InfoTooltip positioned side='right' for visibility
+- **07.3-02:** Use buildDateWhere helper for consistent date filtering across all queries
+- **07.3-02:** pendingOrders/validatedOrders include invoice:null check (De Procesat = nefacturate)
+- **07.3-02:** Removed Ads card and AI Insights section from dashboard
+- **07.3-02:** Sales data for chart uses separate function with try/catch for raw SQL
+- **07.3-01:** Use native HTML date inputs for date range picker (follows existing pattern)
+- **07.3-01:** Remove store filter from DashboardCharts (now uses global DashboardFilters)
+- **07.3-01:** Default date filter is today (single day) - most common use case
 - **07.2-06:** Use claude-sonnet-4-20250514 for fast category suggestions
 - **07.2-06:** Limit categories to 500 in prompt to prevent context overflow
 - **07.2-06:** Show confidence score and reasoning with each suggestion
@@ -168,6 +219,20 @@ Recent decisions affecting current work:
   - Plans created: 6 plans in 5 waves
   - Status: COMPLETE (2026-01-30)
 
+- Phase 7.3, 7.4, 7.5 inserted after Phase 7.2 - 2026-02-03 (URGENT)
+  - Reason: Dashboard/Orders/AWB pages need comprehensive rework
+  - Phase 7.3: Dashboard Rework - global filters, correct metrics, tooltips, remove Ads/AI
+  - Phase 7.4: Orders Channel Split - Shopify/Trendyol/Temu tabs, manual order creation
+  - Phase 7.5: AWB Tracking Fix - correct status logic, accurate card counts
+  - Key issues:
+    - Dashboard cards not filtered by store/date
+    - "De Procesat" and "Expediate" meanings unclear
+    - Expediate count doesn't match AWB tracking "In tranzit"
+    - No returns card
+    - Orders page mixes all channels - increases error risk
+    - AWB card counts don't sum to total
+  - Total new plans: ~15 plans in 7 waves
+
 ## Phase 7.1 Progress
 
 | Plan | Wave | Status | Summary |
@@ -220,37 +285,21 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-02
-Stopped at: Phase 7.2 execution - Plan 05 checkpoint pending verification
+Last session: 2026-02-03
+Stopped at: Phase 7.5 COMPLETE (AWB Tracking Fix)
 Resume context:
-- **STAGING BRANCH** - Phase 7.2 code COMPLETE, verification pending
-- Plan 05 (Bulk process Trendyol) - 2/3 tasks done, checkpoint deferred
-- Verification blocked: Need Trendyol products first, then Trendyol orders will exist
+- **STAGING BRANCH** - Phase 7.5 complete (4/4 plans)
+- Dashboard stats use unified categorization from awb-status.ts
+- Admin page at /settings/awb-statuses for managing unknown statuses
+- API at /api/settings/unknown-awb-statuses with GET, PATCH, DELETE
+- Code-based verification detects categorization discrepancies
 
-**CHECKPOINT 07.2-05 DEFERRED:**
-- Code changes complete (commit 7061889)
-- Changed process-all/route.ts to use awb-service instead of fancourier
-- awb-service.ts calls sendTrackingToTrendyol automatically for Trendyol orders
-- invoice-service.ts calls sendInvoiceToTrendyol automatically
-- **TO VERIFY LATER:**
-  1. Go to /orders, select Trendyol order
-  2. Click "Proceseaza" (bulk process)
-  3. Check console for "Folosesc seria TrendyolStore" and Trendyol sync logs
-  4. Type "approved" when verified
+**NEXT STEPS:**
+1. Cleanup old Trendyol integration from Settings (product pull)
+2. Then Phase 8: Notifications and Automation
+3. Or address critical technical debt items
 
-**IMMEDIATE PRIORITY:**
-- User needs to push master product list to Trendyol FIRST
-- Use /trendyol/mapping to map categories + attributes
-- Use /trendyol/publish to push products
-- Then orders will come in and bulk process can be verified
-
-**AFTER VERIFICATION:**
-1. Complete 07.2-05 checkpoint
-2. Run phase verifier
-3. Update ROADMAP.md
-4. Move to Phase 8
-
-Resume file: None
+Resume file: None (Phase 7.5 complete)
 
 ## Phase 7 Features
 
@@ -280,17 +329,95 @@ Task Management Core components:
 - [ ] 07.2-05: Bulk process Trendyol (code done, VERIFICATION PENDING)
 - [x] 07.2-06: AI category suggestion with Claude
 
+## Phase 7.3 Progress
+
+| Plan | Wave | Status | Summary |
+|------|------|--------|---------|
+| 07.3-01 | 1 | Complete | Dashboard global filters with URL persistence |
+| 07.3-02 | 1 | Complete | Apply filters to dashboard queries |
+| 07.3-03 | 2 | Complete | Stat card tooltips with Romanian explanations |
+| 07.3-04 | 2 | Complete | Clickable stat cards preserve filter context |
+| 07.3-05 | 3 | Complete | Retururi card and dashboard cleanup |
+| 07.3-06 | 4 | Complete | AWB status alignment - shared module |
+
+## Phase 7.3 Features (Dashboard Rework)
+
+- [x] 07.3-01: DashboardFilters component with date range and store selector
+- [x] 07.3-02: getFilteredDashboardStats service with consistent filter application
+- [x] 07.3-03: InfoTooltip integration with Romanian explanations for all 8 stat cards
+- [x] 07.3-04: buildFilteredHref helper - clickable stat cards preserve filter context
+- [x] 07.3-05: Returns count in dashboard-stats.ts, Retururi card on dashboard
+- [x] 07.3-06: Shared awb-status.ts module, dashboard "In Tranzit" matches tracking page
+
+## Phase 7.4 Progress (COMPLETE)
+
+| Plan | Wave | Status | Summary |
+|------|------|--------|---------|
+| 07.4-01 | 1 | ✓ Complete | ChannelTabs component with URL persistence and source counts |
+| 07.4-02 | 1 | ✓ Complete | Collapsible ProcessingErrorsPanel with channel badges |
+| 07.4-03 | 2 | ✓ Complete | ManualOrderDialog for manual order creation |
+| 07.4-04 | 2 | ✓ Complete | Shopify draft order API for manual orders |
+| 07.4-05 | 1 | ✓ Complete | TemuPlaceholder with conditional rendering |
+
+## Phase 7.4 Features (Orders Channel Split)
+
+- [x] 07.4-01: ChannelTabs with Shopify/Trendyol/Temu tabs, URL state, source counts API
+- [x] 07.4-02: ProcessingErrorsPanel with collapsible UI, channel breakdown, inline error badges
+- [x] 07.4-03: ManualOrderDialog with product search, customer/address forms
+- [x] 07.4-04: Shopify createDraftOrder/completeDraftOrder methods, /api/orders/manual endpoint
+- [x] 07.4-05: TemuPlaceholder component with Construction icon, conditional rendering when tab=temu
+
+**Verification:** 7/7 must-haves verified (2026-02-03)
+
+## Phase 7.5 Progress (COMPLETE)
+
+| Plan | Wave | Status | Summary |
+|------|------|--------|---------|
+| 07.5-01 | 1 | Complete | AWB status categorization refactor using fanCourierStatusCode |
+| 07.5-02 | 1 | Complete | Individual status cards with /api/awb/stats API |
+| 07.5-03 | 2 | Complete | Status explanation modal with Romanian content |
+| 07.5-04 | 2 | Complete | Dashboard alignment and admin page for unknown statuses |
+
+## Phase 7.5 Features (AWB Tracking Fix)
+
+- [x] 07.5-01: awb-status.ts refactored to use fanCourierStatusCode for categorization
+- [x] 07.5-02: /api/awb/stats endpoint, dynamic status cards, client-side filtering
+- [x] 07.5-03: StatusExplanationModal with info buttons on cards and clickable badges
+- [x] 07.5-04: Dashboard uses unified categorization, admin page at /settings/awb-statuses
+
+**Verification:** All must-haves verified (2026-02-03)
+
 ## Recent Commits
 
-- `49f6db7` feat(07.2-06): add AI category suggestion UI to mapping page
-- `b949da8` feat(07.2-06): add category suggestion API endpoint
-- `91d28ea` feat(07.2-06): create AI category suggestion library
-- `7061889` feat(07.2-05): use awb-service for Trendyol tracking sync
-- `702bf97` feat(07.2-04): update webhook to pass TrendyolStore to sync
-- `dfbeef7` feat(07.2-04): refactor order sync to use TrendyolStore for company
-- `7c908ca` feat(07.2-03): ensure TrendyolStore is linked during order sync
-- `e42f7ff` feat(07.2-03): add TrendyolStore invoice series resolution
+- `06303c6` feat(07.5-04): create admin page for unknown AWB statuses
+- `4a989a4` feat(07.5-04): create API for unknown AWB statuses
+- `03602be` feat(07.5-04): verify and update dashboard-stats alignment
+- `db64fec` feat(07.5-03): integrate StatusExplanationModal into tracking page
+- `3af348d` feat(07.5-03): create StatusExplanationModal component
+- `192c587` feat(07.5-02): refactor tracking page with individual status cards
+- `1a6c8cf` feat(07.5-02): create AWB stats API endpoint
+- `64f88bc` feat(07.5-01): refactor awb-status.ts to use code-based categorization
+- `26e34cb` feat(07.4-03): integrate ManualOrderDialog into orders page
+- `7011e68` feat(07.4-03): create ManualOrderDialog component
+- `8055645` docs(07.4-04): complete Manual Order Shopify Push API plan
+- `8ecd6b1` feat(07.4-05): integrate TemuPlaceholder into orders page
+- `f054356` feat(07.4-05): create TemuPlaceholder component
+- `8bc7d5b` feat(07.4-02): integrate ProcessingErrorsPanel and add inline error badges
+- `5acc6d2` feat(07.4-02): create ProcessingErrorsPanel component
+- `ebc26d3` docs(07.4-01): complete Channel Tabs UI plan
+- `3368e95` feat(07.4-01): integrate ChannelTabs in orders page
+- `cb607ea` feat(07.4-01): add sourceCounts to orders API response
+- `10bb0ba` refactor(07.3-06): use shared awb-status.ts in tracking page
+- `938beac` feat(07.3-06): update dashboard to use inTransit stat
+- `04635bf` feat(07.3-06): update dashboard stats to count AWBs in transit
+- `5081057` feat(07.3-06): create shared awb-status.ts module
+- `22d2ac6` feat(07.3-05): add Retururi card to dashboard
+- `f70276a` feat(07.3-05): add returns count to dashboard stats
+- `e5c43d8` feat(07.3-04): add buildFilteredHref helper function
+- `449ba27` feat(07.3-03): add Romanian tooltip explanations to all stat cards
+- `ce92d32` feat(07.3-03): extend StatCard with tooltip support
+- `be22094` feat(07.3-02): update dashboard page to use filtered stats
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-01 (Phase 7.2 Wave 2 complete - AI category suggestion)*
+*Last updated: 2026-02-03 (Phase 7.5 COMPLETE - AWB Tracking Fix)*

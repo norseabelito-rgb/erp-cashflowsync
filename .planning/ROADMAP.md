@@ -18,7 +18,10 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
 - [x] **Phase 6: UX Foundation** - Consistent design, tooltips, and feedback across all pages
 - [x] **Phase 7: Task Management Core** - Data model and basic UI for task tracking
 - [x] **Phase 7.1: Trendyol Complete Integration** - Full Trendyol channel with real-time sync, order processing, and product push (INSERTED)
-- [ ] **Phase 7.2: Trendyol Complete Fix** - Fix product push, multi-company invoice series, category mapping (INSERTED)
+- [x] **Phase 7.2: Trendyol Complete Fix** - Fix product push, multi-company invoice series, category mapping (INSERTED)
+- [x] **Phase 7.3: Dashboard Rework** - Global filters, correct metrics, tooltips, clickable cards, remove Ads/AI (INSERTED)
+- [x] **Phase 7.4: Orders Channel Split** - Tabs Shopify/Trendyol/Temu, manual order creation (INSERTED)
+- [x] **Phase 7.5: AWB Tracking Fix** - Correct status logic, accurate card counts (INSERTED)
 - [ ] **Phase 8: Task Management Advanced** - Automation, notifications, and reporting
 - [ ] **Phase 9: Documentation** - In-app documentation for all modules
 - [ ] **Phase 10: Quality Assurance** - Final verification and test coverage for critical flows
@@ -214,12 +217,100 @@ Plans:
 - No UI to check batch status and see Trendyol rejection reasons
 
 Plans:
-- [ ] 07.2-01-PLAN.md — Batch status verification & error display UI (Wave 1)
-- [ ] 07.2-02-PLAN.md — Category attribute mapping UI with required field handling (Wave 1)
-- [ ] 07.2-03-PLAN.md — TrendyolStore invoice series integration (Wave 1)
-- [ ] 07.2-04-PLAN.md — Order sync multi-company fix (Wave 1)
-- [ ] 07.2-05-PLAN.md — Bulk process Trendyol orders verification (Wave 2)
-- [ ] 07.2-06-PLAN.md — AI category suggestion (Wave 2)
+- [x] 07.2-01-PLAN.md — Batch status verification & error display UI (Wave 1)
+- [x] 07.2-02-PLAN.md — Category attribute mapping UI with required field handling (Wave 1)
+- [x] 07.2-03-PLAN.md — TrendyolStore invoice series integration (Wave 1)
+- [x] 07.2-04-PLAN.md — Order sync multi-company fix (Wave 1)
+- [x] 07.2-05-PLAN.md — Bulk process Trendyol orders verification (Wave 2)
+- [x] 07.2-06-PLAN.md — AI category suggestion (Wave 2)
+
+### Phase 7.3: Dashboard Rework (INSERTED)
+**Goal**: Complete dashboard overhaul with global filters, accurate metrics, clear explanations, and actionable cards
+**Depends on**: Phase 7.2 (all integrations stable before dashboard rework)
+**Requirements**: DASH-01 through DASH-08
+**Plans**: 6 plans in 3 waves
+**Success Criteria** (what must be TRUE):
+  1. Global date picker (single day or range) filters ALL metrics consistently
+  2. Store filter applies to ALL cards and metrics (not just charts)
+  3. Each card has info icon with clear Romanian explanation of the metric
+  4. Clicking any card navigates to relevant page with filters pre-applied
+  5. Ads section completely removed from dashboard
+  6. AI Insights section completely removed
+  7. New "Retururi" card showing return count with navigation to tracking page
+  8. "De Procesat" shows ONLY orders needing immediate action (PENDING + VALIDATED, not invoiced)
+  9. "Expediate" count matches "In tranzit" from AWB tracking page exactly
+  10. All metrics show data for selected date range, not hardcoded "today"
+
+**Context (issues identified):**
+- Cards show global metrics but chart is store-filtered (confusing)
+- "De Procesat" meaning unclear - no explanation
+- "Expediate" doesn't match AWB tracking "in tranzit" count
+- No returns card
+- Ads and AI Insights sections not useful for daily operations
+- Cards not clickable - no navigation to detail pages
+
+Plans:
+- [x] 07.3-01-PLAN.md — Global filter state (date range + store) with URL persistence (Wave 1)
+- [x] 07.3-02-PLAN.md — Metric calculation fix (all cards respect filters) (Wave 1)
+- [x] 07.3-03-PLAN.md — Card tooltips with metric explanations (Wave 2)
+- [x] 07.3-04-PLAN.md — Clickable cards with filter navigation (Wave 2)
+- [x] 07.3-05-PLAN.md — Remove Ads/AI sections, add Returns card (Wave 3)
+- [x] 07.3-06-PLAN.md — Verify Expediate vs In Tranzit consistency (Wave 4)
+
+### Phase 7.4: Orders Channel Split (INSERTED)
+**Goal**: Orders page split by sales channel (Shopify/Trendyol/Temu) with channel-specific actions
+**Depends on**: Phase 7.3 (dashboard filters established)
+**Requirements**: ORD-01 through ORD-05
+**Plans**: 5 plans in 2 waves
+**Success Criteria** (what must be TRUE):
+  1. Three tabs at top: Shopify (default), Trendyol, Temu
+  2. Each tab shows only orders from that source
+  3. Global filters (date, store, status) apply to all tabs
+  4. Processing errors separated by channel
+  5. Shopify tab has "Creare comanda" button for manual order creation
+  6. Manual order creation: select store > add products > set quantities > creates in Shopify + local DB
+  7. Temu tab shows "Urmeaza sa fie implementat" placeholder
+
+**Context:**
+- Currently all orders mixed in single table
+- Source field exists (shopify/trendyol/manual) but not used for separation
+- Mixing channels increases error risk
+- No manual order creation capability
+
+Plans:
+- [x] 07.4-01-PLAN.md — Tab navigation component with source filtering (Wave 1)
+- [x] 07.4-02-PLAN.md — Channel-specific error display (Wave 1)
+- [x] 07.4-03-PLAN.md — Manual order creation dialog (Wave 2)
+- [x] 07.4-04-PLAN.md — Shopify order push API integration (Wave 2)
+- [x] 07.4-05-PLAN.md — Temu placeholder tab (Wave 1)
+
+### Phase 7.5: AWB Tracking Fix (INSERTED)
+**Goal**: AWB tracking page shows accurate counts with correct status categorization, individual FanCourier status cards with Romanian explanations
+**Depends on**: Phase 7.3 (dashboard must match tracking page)
+**Requirements**: AWB-01 through AWB-04
+**Plans**: 4 plans in 2 waves
+**Success Criteria** (what must be TRUE):
+  1. Sum of all status cards equals Total card exactly
+  2. Status categorization uses code-based lookup from FANCOURIER_STATUSES (not fragile string matching)
+  3. All FanCourier statuses displayed as individual cards with Romanian explanations
+  4. Unknown status codes logged to database for admin review and mapping
+  5. Status explanation modal shows what each status means and what action to take
+  6. Dashboard "Expediate" count matches tracking page "In Tranzit" exactly
+  7. Admin settings page for managing unknown AWB status mappings
+
+**Context (issues identified):**
+- Card counts don't sum to total (categorization gaps)
+- String-based status matching is fragile (typos, variations)
+- Deleted/Cancelled calculation incorrect
+- Some statuses fall through without category
+- Discrepancy between dashboard "Expediate" and tracking "In tranzit"
+- fancourier-statuses.ts already has comprehensive 52+ status mapping
+
+Plans:
+- [x] 07.5-01-PLAN.md — Refactor awb-status.ts to code-based lookup + UnknownAWBStatus table (Wave 1)
+- [x] 07.5-02-PLAN.md — Tracking page individual status cards with stats API (Wave 1)
+- [x] 07.5-03-PLAN.md — Status explanation modal with Romanian content (Wave 2)
+- [x] 07.5-04-PLAN.md — Dashboard-tracking alignment verification + unknown status admin page (Wave 2)
 
 ### Phase 8: Task Management Advanced
 **Goal**: Automated task creation, notifications, and activity reporting
@@ -280,7 +371,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 8 > 9 > 10
+Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7.4 > 7.5 > 8 > 9 > 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -292,7 +383,10 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 8 > 9 >
 | 6. UX Foundation | 6/6 | ✓ Complete | 2026-01-25 |
 | 7. Task Management Core | 5/5 | ✓ Complete | 2026-01-26 |
 | 7.1. Trendyol Complete Integration | 6/6 | ✓ Complete | 2026-01-30 |
-| 7.2. Trendyol Complete Fix | 0/6 | Not started | - |
+| 7.2. Trendyol Complete Fix | 6/6 | ✓ Complete | 2026-02-03 |
+| 7.3. Dashboard Rework | 6/6 | ✓ Complete | 2026-02-03 |
+| 7.4. Orders Channel Split | 5/5 | ✓ Complete | 2026-02-03 |
+| 7.5. AWB Tracking Fix | 4/4 | ✓ Complete | 2026-02-03 |
 | 8. Task Management Advanced | 0/5 | Not started | - |
 | 9. Documentation | 0/4 | Not started | - |
 | 10. Quality Assurance | 0/4 | Not started | - |
@@ -307,4 +401,12 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 8 > 9 >
 *Phase 7.1 inserted: 2026-01-30 (URGENT: Trendyol complete integration)*
 *Phase 7.1 completed: 2026-01-30*
 *Phase 7.2 inserted: 2026-02-01 (URGENT: Fix Trendyol product push, invoice series, multi-company)*
-*Depth: comprehensive (12 phases including insertions)*
+*Phase 7.3 inserted: 2026-02-03 (URGENT: Dashboard rework - global filters, correct metrics, tooltips)*
+*Phase 7.4 inserted: 2026-02-03 (URGENT: Orders channel split - Shopify/Trendyol/Temu tabs)*
+*Phase 7.5 inserted: 2026-02-03 (URGENT: AWB tracking fix - correct status counts)*
+*Phase 7.2 completed: 2026-02-03*
+*Phase 7.3 completed: 2026-02-03*
+*Phase 7.4 planned: 2026-02-03 (5 plans in 2 waves)*
+*Phase 7.4 completed: 2026-02-03*
+*Phase 7.5 completed: 2026-02-03*
+*Depth: comprehensive (15 phases including insertions)*

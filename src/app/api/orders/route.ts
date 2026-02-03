@@ -138,10 +138,42 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Obține numărul total pentru paginare
-    const total = await prisma.order.count({ where });
+    // Build where clause for source counts (excludes source filter)
+    // This is used for tab count badges - we need all channels' counts
+    const sourceCountsWhere: Prisma.OrderWhereInput = {};
 
-    const orders = await prisma.order.findMany({
+    if (status && status !== "all") {
+      sourceCountsWhere.status = status;
+    }
+    if (storeId && storeId !== "all") {
+      sourceCountsWhere.storeId = storeId;
+    }
+    if (startDate || endDate) {
+      sourceCountsWhere.createdAt = {};
+      if (startDate) {
+        sourceCountsWhere.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setDate(end.getDate() + 1);
+        sourceCountsWhere.createdAt.lt = end;
+      }
+    }
+
+    // Parallel queries: total count, source counts, and orders
+    const [total, sourceCountsRaw, orders] = await Promise.all([
+      // Total count for pagination
+      prisma.order.count({ where }),
+
+      // Source counts for channel tabs (NOT filtered by source param)
+      prisma.order.groupBy({
+        by: ['source'],
+        _count: { _all: true },
+        where: sourceCountsWhere,
+      }),
+
+      // Orders with all relations
+      prisma.order.findMany({
       where,
       include: {
         store: {
@@ -193,9 +225,17 @@ export async function GET(request: NextRequest) {
       },
       skip,
       take: limit,
-    });
+    }),
+    ]);
 
-    return NextResponse.json({ 
+    // Transform source counts into object
+    const sourceCounts = {
+      shopify: sourceCountsRaw.find(c => c.source === 'shopify')?._count._all || 0,
+      trendyol: sourceCountsRaw.find(c => c.source === 'trendyol')?._count._all || 0,
+      temu: 0, // Placeholder - no Temu orders yet
+    };
+
+    return NextResponse.json({
       orders,
       pagination: {
         page,
@@ -203,6 +243,7 @@ export async function GET(request: NextRequest) {
         total,
         totalPages: Math.ceil(total / limit),
       },
+      sourceCounts,
     });
   } catch (error: any) {
     console.error("Error fetching orders:", error);

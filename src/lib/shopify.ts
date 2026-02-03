@@ -59,6 +59,35 @@ interface ShopifyOrdersResponse {
   orders: ShopifyOrder[];
 }
 
+// Input for creating draft orders (manual orders)
+export interface CreateDraftOrderInput {
+  lineItems: Array<{
+    sku: string;         // SKU for reference (included in Shopify line item but not for inventory)
+    title: string;       // Product title displayed on order
+    quantity: number;
+    price: string;       // Price as string (Shopify format, e.g., "99.00")
+  }>;
+  customer: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+  };
+  shippingAddress: {
+    firstName: string;
+    lastName: string;
+    address1: string;
+    address2?: string;
+    city: string;
+    province: string;
+    country: string;
+    zip: string;
+    phone?: string;
+  };
+  note?: string;
+  tags?: string[];
+}
+
 interface ShopifyProduct {
   id: number;
   title: string;
@@ -524,6 +553,92 @@ export class ShopifyClient {
         image,
       });
     }
+  }
+
+  // ==================== DRAFT ORDER MANAGEMENT ====================
+
+  /**
+   * Creează un draft order în Shopify pentru comenzi manuale
+   *
+   * NOTĂ: Folosește custom line items (title + price) în loc de variant_id lookup.
+   * - Custom line items NU se leagă de inventarul Shopify
+   * - Acceptabil pentru comenzi manuale (telefon/offline) unde stocul se gestionează separat
+   * - Evită complexitatea rezoluției SKU -> variant_id (ar necesita query-uri API produse)
+   * - Comanda apare în Shopify admin cu totaluri corecte pentru raportare
+   */
+  async createDraftOrder(input: CreateDraftOrderInput): Promise<{
+    id: number;
+    name: string;
+    invoiceUrl: string;
+    lineItems: Array<{ id: number; title: string; quantity: number; price: string }>;
+  }> {
+    // Use custom line items with title/price (no variant_id lookup)
+    const lineItems = input.lineItems.map((item) => ({
+      title: item.title,
+      quantity: item.quantity,
+      price: item.price,
+      sku: item.sku, // Include SKU for reference but not for inventory linkage
+    }));
+
+    const response = await this.client.post<{ draft_order: any }>("/draft_orders.json", {
+      draft_order: {
+        line_items: lineItems,
+        customer: {
+          first_name: input.customer.firstName,
+          last_name: input.customer.lastName,
+          email: input.customer.email,
+          phone: input.customer.phone,
+        },
+        shipping_address: {
+          first_name: input.shippingAddress.firstName,
+          last_name: input.shippingAddress.lastName,
+          address1: input.shippingAddress.address1,
+          address2: input.shippingAddress.address2 || "",
+          city: input.shippingAddress.city,
+          province: input.shippingAddress.province,
+          country: input.shippingAddress.country || "Romania",
+          zip: input.shippingAddress.zip,
+          phone: input.shippingAddress.phone,
+        },
+        note: input.note,
+        tags: input.tags?.join(", ") || "manual-erp",
+      },
+    });
+
+    return {
+      id: response.data.draft_order.id,
+      name: response.data.draft_order.name,
+      invoiceUrl: response.data.draft_order.invoice_url,
+      lineItems: response.data.draft_order.line_items.map((li: any) => ({
+        id: li.id,
+        title: li.title,
+        quantity: li.quantity,
+        price: li.price,
+      })),
+    };
+  }
+
+  /**
+   * Completează un draft order (îl convertește în comandă reală)
+   */
+  async completeDraftOrder(draftOrderId: number, paymentPending: boolean = true): Promise<{
+    id: number;
+    order_number: number;
+    name: string;
+    totalPrice: string;
+  }> {
+    const response = await this.client.put<{ draft_order: any }>(
+      `/draft_orders/${draftOrderId}/complete.json`,
+      { payment_pending: paymentPending }
+    );
+
+    const order = response.data.draft_order.order;
+    return {
+      id: order.id,
+      order_number: order.order_number,
+      name: order.name,
+      totalPrice: order.total_price,
+    };
   }
 }
 
