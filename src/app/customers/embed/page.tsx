@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Users, Search, Phone, Mail, Calendar } from "lucide-react";
+import { Users, Search, Phone, Mail, Calendar, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -284,11 +284,22 @@ function CustomersEmbedContent() {
   );
 }
 
-// Wrap with QueryClientProvider since this is outside the main app layout
+// Loading fallback
+function LoadingFallback() {
+  return (
+    <div className="p-4 md:p-6 space-y-4 bg-background min-h-screen flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
+
+// Wrap with QueryClientProvider and Suspense since this is outside the main app layout
 export default function CustomersEmbedPage() {
   return (
     <QueryClientProvider client={queryClient}>
-      <CustomersEmbedContent />
+      <Suspense fallback={<LoadingFallback />}>
+        <CustomersEmbedContent />
+      </Suspense>
     </QueryClientProvider>
   );
 }
