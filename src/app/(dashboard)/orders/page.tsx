@@ -907,7 +907,6 @@ export default function OrdersPage() {
   const dbErrorStats = dbErrorsData?.stats || { pending: 0, retrying: 0, failed: 0, resolved: 0, skipped: 0, total: 0 };
   const allSelected = orders.length > 0 && selectedOrders.length === orders.length;
   const allDbErrorsSelected = dbErrors.length > 0 && selectedDbErrors.length === dbErrors.filter(e => e.status !== "RESOLVED" && e.status !== "SKIPPED").length;
-  const allDbErrorsSelected = dbErrors.length > 0 && selectedDbErrors.length === dbErrors.filter(e => e.status !== "RESOLVED" && e.status !== "SKIPPED").length;
 
   // Calculate errors by source for the error panel
   const errorsBySource = {
@@ -1346,45 +1345,36 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Buton pentru a vedea erorile de procesare (in-session) */}
-      {processErrors.length > 0 && (
-        <div className="mb-4 p-4 rounded-lg bg-status-error/10 border border-status-error/20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-status-error" />
-            <span className="text-sm font-medium text-status-error">
-              {processErrors.length} comenzi cu erori la procesare
-            </span>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setErrorsDialogOpen(true)}
-              className="border-status-error/30 text-status-error hover:bg-status-error/10"
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              Vezi erori
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => processAllMutation.mutate(processErrors.map(e => e.orderId))}
-              disabled={processAllMutation.isPending}
-              variant="destructive"
-            >
-              <RefreshCw className={cn("h-4 w-4 mr-2", processAllMutation.isPending && "animate-spin")} />
-              Reîncearcă toate
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setProcessErrors([])}
-              className="text-status-error hover:text-status-error/80"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Collapsible error panel - shows ALL errors regardless of tab */}
+      <ProcessingErrorsPanel
+        errors={processErrors}
+        dbErrors={dbErrors}
+        isLoading={dbErrorsLoading}
+        errorsBySource={errorsBySource}
+        onRetryError={(errorId) => {
+          // Check if this is a session error (has orderId directly) or db error (has id)
+          const sessionError = processErrors.find(e => e.orderId === errorId);
+          if (sessionError) {
+            processAllMutation.mutate([sessionError.orderId]);
+          } else {
+            retryDbErrorMutation.mutate(errorId);
+          }
+        }}
+        onSkipError={(errorId) => {
+          skipDbErrorMutation.mutate(errorId);
+        }}
+        onRetryAll={() => {
+          // Retry all session errors first
+          if (processErrors.length > 0) {
+            processAllMutation.mutate(processErrors.map(e => e.orderId));
+          }
+          // Then retry all db errors
+          const activeDbErrors = dbErrors.filter(e => e.status !== 'RESOLVED' && e.status !== 'SKIPPED');
+          activeDbErrors.forEach(e => retryDbErrorMutation.mutate(e.id));
+        }}
+        onClearSessionErrors={() => setProcessErrors([])}
+        isRetrying={processAllMutation.isPending || retryDbErrorMutation.isPending}
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
@@ -1498,7 +1488,14 @@ export default function OrdersPage() {
                         </div>
                       </td>
                       <td className="p-4"><span className="font-semibold">{formatCurrency(parseFloat(order.totalPrice), order.currency)}</span></td>
-                      <td className="p-4"><Badge variant={statusConfig[order.status]?.variant || "default"}>{statusConfig[order.status]?.label || order.status}</Badge></td>
+                      <td className="p-4">
+                        <div className="relative inline-flex items-center">
+                          <Badge variant={statusConfig[order.status]?.variant || "default"}>{statusConfig[order.status]?.label || order.status}</Badge>
+                          {hasOrderError(order.id) && (
+                            <span className="absolute -top-1 -right-1 h-2.5 w-2.5 bg-status-error rounded-full border-2 border-background" title="Eroare de procesare" />
+                          )}
+                        </div>
+                      </td>
                       <td className="p-4">
                         {order.invoice ? (
                           order.invoice.status === "issued" ? (
