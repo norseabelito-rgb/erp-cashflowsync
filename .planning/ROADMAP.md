@@ -22,6 +22,7 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
 - [x] **Phase 7.3: Dashboard Rework** - Global filters, correct metrics, tooltips, clickable cards, remove Ads/AI (INSERTED)
 - [x] **Phase 7.4: Orders Channel Split** - Tabs Shopify/Trendyol/Temu, manual order creation (INSERTED)
 - [x] **Phase 7.5: AWB Tracking Fix** - Correct status logic, accurate card counts (INSERTED)
+- [ ] **Phase 7.6: Customers Page** - Customer management with order history and analytics (INSERTED)
 - [ ] **Phase 8: Task Management Advanced** - Automation, notifications, and reporting
 - [ ] **Phase 9: Documentation** - In-app documentation for all modules
 - [ ] **Phase 10: Quality Assurance** - Final verification and test coverage for critical flows
@@ -204,7 +205,7 @@ Plans:
   1. Products pushed to Trendyol appear on seller dashboard (batch errors shown in ERP)
   2. Each TrendyolStore has its own invoice series from Oblio for correct invoicing
   3. Trendyol orders use TrendyolStore.companyId for company resolution (not global Settings)
-  4. Bulk process (factură + AWB) works correctly for Trendyol orders
+  4. Bulk process (factura + AWB) works correctly for Trendyol orders
   5. Category attributes are properly mapped (not placeholder values)
   6. Batch status checked automatically and errors displayed to user
   7. AI-based category suggestion reduces manual mapping overhead
@@ -312,6 +313,29 @@ Plans:
 - [x] 07.5-03-PLAN.md — Status explanation modal with Romanian content (Wave 2)
 - [x] 07.5-04-PLAN.md — Dashboard-tracking alignment verification + unknown status admin page (Wave 2)
 
+### Phase 7.6: Customers Page (INSERTED)
+**Goal**: Customer management page with order history, purchase analytics, and multi-store filtering
+**Depends on**: Phase 7.5 (uses existing order infrastructure)
+**Requirements**: CUST-01 through CUST-05
+**Plans**: 3 plans in 3 waves
+**Success Criteria** (what must be TRUE):
+  1. Customers page accessible from sidebar under Comenzi (in Vanzari section)
+  2. Customer list shows all customers with search by name, phone, order number
+  3. Clicking customer opens detail view with full order history
+  4. Customer detail shows: most ordered products, total spent, order count
+  5. Store tabs filter customers by their orders from each store
+  6. Search works across all fields (name, phone, email, order number)
+
+**Context:**
+- Customer data exists in Order table (billingAddress, shippingAddress)
+- Need aggregation for purchase analytics
+- Multi-store filtering aligns with Orders page pattern
+
+Plans:
+- [ ] 07.6-01-PLAN.md — Customer List and Detail APIs with aggregation (Wave 1)
+- [ ] 07.6-02-PLAN.md — Customer List Page and sidebar navigation (Wave 2)
+- [ ] 07.6-03-PLAN.md — Customer Detail Modal with order history and analytics (Wave 3)
+
 ### Phase 8: Task Management Advanced
 **Goal**: Automated task creation, notifications, and activity reporting
 **Depends on**: Phase 7 (core task system must exist)
@@ -371,7 +395,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7.4 > 7.5 > 8 > 9 > 10
+Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7.4 > 7.5 > 7.6 > 8 > 9 > 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -387,6 +411,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7
 | 7.3. Dashboard Rework | 6/6 | ✓ Complete | 2026-02-03 |
 | 7.4. Orders Channel Split | 5/5 | ✓ Complete | 2026-02-03 |
 | 7.5. AWB Tracking Fix | 4/4 | ✓ Complete | 2026-02-03 |
+| 7.6. Customers Page | 0/3 | Planned | - |
 | 8. Task Management Advanced | 0/5 | Not started | - |
 | 9. Documentation | 0/4 | Not started | - |
 | 10. Quality Assurance | 0/4 | Not started | - |
@@ -409,4 +434,6 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7
 *Phase 7.4 planned: 2026-02-03 (5 plans in 2 waves)*
 *Phase 7.4 completed: 2026-02-03*
 *Phase 7.5 completed: 2026-02-03*
-*Depth: comprehensive (15 phases including insertions)*
+*Phase 7.6 inserted: 2026-02-04 (Customers page - order history, analytics, multi-store filtering)*
+*Phase 7.6 planned: 2026-02-04 (3 plans in 3 waves)*
+*Depth: comprehensive (16 phases including insertions)*

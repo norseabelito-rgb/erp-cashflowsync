@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 7.5 - AWB Tracking Fix
+**Current focus:** Phase 7.6 - Customers Page
 
 ## Current Position
 
-Phase: 7.5 of 10 (AWB Tracking Fix)
-Plan: 4 of 4
-Status: PHASE COMPLETE
-Last activity: 2026-02-03 - Completed 07.5-04-PLAN.md (Dashboard Alignment & Admin Page)
+Phase: 7.6 of 10 (Customers Page)
+Plan: 2 of 3
+Status: In progress
+Last activity: 2026-02-04 - Completed 07.6-02-PLAN.md (Customer List Page)
 
-Progress: [██████████████████░░] ~98% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5)
+Progress: [██████████████████░░] ~98% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6)
 
 ## Phase 7 Progress
 
@@ -55,6 +55,14 @@ Progress: [██████████████████░░] ~98% (7
 
 Recent decisions affecting current work:
 
+- **07.6-02:** Store filter uses Select dropdown (simpler than ChannelTabs for customers)
+- **07.6-02:** Clienti placed between Comenzi and Facturi in sidebar Vanzari section
+- **07.6-02:** PageHeader component doesn't support icon prop
+- **07.6-02:** Row click handler ready for detail modal integration (Plan 03)
+- **07.6-01:** Use $queryRawUnsafe for efficient GROUP BY aggregation instead of Prisma ORM
+- **07.6-01:** Email normalized with LOWER() for consistent customer grouping
+- **07.6-01:** Permission check uses orders.view since customers derived from orders
+- **07.6-01:** Top products limited to 5 items sorted by quantity
 - **07.5-04:** Code-based verification query added for in_transit counts comparison
 - **07.5-04:** Dynamic Prisma model access for UnknownAWBStatus (handles regeneration timing)
 - **07.5-04:** Returns query unified to use getCategoryFilterConditions("returned")
@@ -233,6 +241,12 @@ Recent decisions affecting current work:
     - AWB card counts don't sum to total
   - Total new plans: ~15 plans in 7 waves
 
+- Phase 7.6 inserted after Phase 7.5 - 2026-02-04
+  - Reason: Customers page for order history and purchase analytics
+  - Features: customer list, order history, most ordered products, total spent
+  - Multi-store tabs and search across name/phone/order number
+  - Sidebar placement: under Comenzi in Vanzari section
+
 ## Phase 7.1 Progress
 
 | Plan | Wave | Status | Summary |
@@ -285,21 +299,20 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-03
-Stopped at: Phase 7.5 COMPLETE (AWB Tracking Fix)
+Last session: 2026-02-04
+Stopped at: Completed 07.6-02-PLAN.md (Customer List Page)
 Resume context:
-- **STAGING BRANCH** - Phase 7.5 complete (4/4 plans)
-- Dashboard stats use unified categorization from awb-status.ts
-- Admin page at /settings/awb-statuses for managing unknown statuses
-- API at /api/settings/unknown-awb-statuses with GET, PATCH, DELETE
-- Code-based verification detects categorization discrepancies
+- **STAGING BRANCH** - Phase 7.6 plan 02 complete (2/3 plans)
+- Customer list page at /customers with search, store filter, pagination
+- Sidebar Clienti link under Vanzari section between Comenzi and Facturi
+- Row click handler ready for detail modal
 
 **NEXT STEPS:**
-1. Cleanup old Trendyol integration from Settings (product pull)
-2. Then Phase 8: Notifications and Automation
-3. Or address critical technical debt items
+1. Continue Phase 7.6: Plan 03 (Customer detail modal)
+2. Cleanup old Trendyol integration from Settings (product pull)
+3. Then Phase 8: Notifications and Automation
 
-Resume file: None (Phase 7.5 complete)
+Resume file: .planning/phases/07.6-customers-page/07.6-03-PLAN.md
 
 ## Phase 7 Features
 
@@ -387,8 +400,26 @@ Task Management Core components:
 
 **Verification:** All must-haves verified (2026-02-03)
 
+## Phase 7.6 Progress
+
+| Plan | Wave | Status | Summary |
+|------|------|--------|---------|
+| 07.6-01 | 1 | Complete | Customer list and detail APIs with aggregation |
+| 07.6-02 | 2 | Complete | Customer list page UI with search, store filter, sidebar nav |
+| 07.6-03 | 2 | Pending | Customer detail page UI |
+
+## Phase 7.6 Features (Customers Page)
+
+- [x] 07.6-01: Customer list API with aggregation, Customer detail API with order history
+- [x] 07.6-02: Customer list page with search and store filter, sidebar Clienti link
+- [ ] 07.6-03: Customer detail page with order history and analytics
+
 ## Recent Commits
 
+- `5f4a86c` feat(07.6-02): add Clienti navigation to sidebar
+- `288473e` feat(07.6-02): create Customer List Page with search and store filter
+- `caf5ce2` feat(07.6-01): create Customer Detail API with order history
+- `213576c` feat(07.6-01): create Customer List API with aggregation
 - `06303c6` feat(07.5-04): create admin page for unknown AWB statuses
 - `4a989a4` feat(07.5-04): create API for unknown AWB statuses
 - `03602be` feat(07.5-04): verify and update dashboard-stats alignment
@@ -420,4 +451,4 @@ Task Management Core components:
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-03 (Phase 7.5 COMPLETE - AWB Tracking Fix)*
+*Last updated: 2026-02-04 (Phase 7.6-02 COMPLETE - Customer List Page)*
