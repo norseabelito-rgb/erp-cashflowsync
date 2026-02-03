@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.4 of 10 (Orders Channel Split)
-Plan: 5 of 6
+Plan: 6 of 6
 Status: In progress
-Last activity: 2026-02-03 - Completed 07.4-05-PLAN.md (Temu Placeholder)
+Last activity: 2026-02-03 - Completed 07.4-04-PLAN.md (Manual Order Shopify Push API)
 
-Progress: [██████████████████░░] ~96% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/6 of 7.4)
+Progress: [██████████████████░░] ~96% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 6/6 of 7.4)
 
 ## Phase 7 Progress
 
@@ -55,6 +55,11 @@ Progress: [██████████████████░░] ~96% (7
 
 Recent decisions affecting current work:
 
+- **07.4-04:** Custom line items (title/price) instead of variant_id lookup - avoids SKU resolution complexity
+- **07.4-04:** Draft order created then completed - ensures Shopify success before local DB save
+- **07.4-04:** Manual entry assumed validated (phoneValidation/addressValidation = PASSED)
+- **07.4-04:** source='manual' distinguishes from shopify/trendyol orders
+- **07.4-04:** Tags 'manual-erp', 'creat-din-erp' help identify ERP-created orders in Shopify admin
 - **07.4-05:** TemuPlaceholder uses Construction icon (lucide-react) for coming-soon visual
 - **07.4-05:** Romanian text without diacritics for Temu placeholder
 - **07.4-05:** Keep PageHeader and ChannelTabs visible when Temu tab active (navigation)
@@ -265,21 +270,19 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 07.4-05-PLAN.md (Temu Placeholder)
+Stopped at: Completed 07.4-04-PLAN.md (Manual Order Shopify Push API)
 Resume context:
-- **STAGING BRANCH** - Phase 7.4 IN PROGRESS (5/6 plans)
-- TemuPlaceholder shows "Urmeaza sa fie implementat" when tab=temu
-- ChannelTabs and ProcessingErrorsPanel integrated
-- Remaining: Plans 03, 04, 06
+- **STAGING BRANCH** - Phase 7.4 IN PROGRESS (6/6 plans - Gap closure pending)
+- ManualOrderDialog (Plan 03) + API (Plan 04) complete
+- Shopify draft order workflow: create -> complete -> save locally
+- Remaining: Plan 06 (Gap closure)
 
 **NEXT STEPS:**
-1. Continue Phase 7.4: Plan 03 (Bulk actions per channel)
-2. Plan 04 (Manual order creation)
-3. Plan 06 (Gap closure)
-4. Then Phase 7.5: AWB Tracking Fix
-5. Cleanup old Trendyol integration from Settings
+1. Continue Phase 7.4: Plan 06 (Gap closure)
+2. Then Phase 7.5: AWB Tracking Fix
+3. Cleanup old Trendyol integration from Settings
 
-Resume file: None (Plan 07.4-05 complete)
+Resume file: None (Plan 07.4-04 complete)
 
 ## Phase 7 Features
 
@@ -335,8 +338,8 @@ Task Management Core components:
 |------|------|--------|---------|
 | 07.4-01 | 1 | Complete | ChannelTabs component with URL persistence and source counts |
 | 07.4-02 | 1 | Complete | Collapsible ProcessingErrorsPanel with channel badges |
-| 07.4-03 | 2 | Pending | Bulk actions per channel |
-| 07.4-04 | 3 | Pending | Manual order creation |
+| 07.4-03 | 2 | Complete | ManualOrderDialog for manual order creation |
+| 07.4-04 | 2 | Complete | Shopify draft order API for manual orders |
 | 07.4-05 | 1 | Complete | TemuPlaceholder with conditional rendering |
 | 07.4-06 | 4 | Pending | Gap closure |
 
@@ -344,10 +347,15 @@ Task Management Core components:
 
 - [x] 07.4-01: ChannelTabs with Shopify/Trendyol/Temu tabs, URL state, source counts API
 - [x] 07.4-02: ProcessingErrorsPanel with collapsible UI, channel breakdown, inline error badges
+- [x] 07.4-03: ManualOrderDialog with product search, customer/address forms
+- [x] 07.4-04: Shopify createDraftOrder/completeDraftOrder methods, /api/orders/manual endpoint
 - [x] 07.4-05: TemuPlaceholder component with Construction icon, conditional rendering when tab=temu
 
 ## Recent Commits
 
+- `b9baeab` feat(07.4-04): create /api/orders/manual endpoint
+- `6d6b24f` feat(07.4-04): add createDraftOrder and completeDraftOrder methods to ShopifyClient
+- `7011e68` feat(07.4-03): create ManualOrderDialog component
 - `8ecd6b1` feat(07.4-05): integrate TemuPlaceholder into orders page
 - `f054356` feat(07.4-05): create TemuPlaceholder component
 - `8bc7d5b` feat(07.4-02): integrate ProcessingErrorsPanel and add inline error badges
@@ -368,4 +376,4 @@ Task Management Core components:
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-03 (Phase 7.4 Plan 05 COMPLETE - TemuPlaceholder with conditional rendering when tab=temu)*
+*Last updated: 2026-02-03 (Phase 7.4 Plan 04 COMPLETE - Manual Order Shopify Push API)*
