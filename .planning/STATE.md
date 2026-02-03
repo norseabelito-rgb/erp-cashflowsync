@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.4 of 10 (Orders Channel Split)
-Plan: 2 of 6
+Plan: 5 of 6
 Status: In progress
-Last activity: 2026-02-03 - Completed 07.4-02-PLAN.md (Processing Errors Panel)
+Last activity: 2026-02-03 - Completed 07.4-05-PLAN.md (Temu Placeholder)
 
-Progress: [██████████████████░░] ~95% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 2/6 of 7.4)
+Progress: [██████████████████░░] ~96% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/6 of 7.4)
 
 ## Phase 7 Progress
 
@@ -55,6 +55,10 @@ Progress: [██████████████████░░] ~95% (7
 
 Recent decisions affecting current work:
 
+- **07.4-05:** TemuPlaceholder uses Construction icon (lucide-react) for coming-soon visual
+- **07.4-05:** Romanian text without diacritics for Temu placeholder
+- **07.4-05:** Keep PageHeader and ChannelTabs visible when Temu tab active (navigation)
+- **07.4-05:** Conditional rendering based on channelTab URL parameter
 - **07.4-02:** Error panel shows ALL errors regardless of active channel tab (users need full visibility)
 - **07.4-02:** errorsBySource calculated in parent, passed to ProcessingErrorsPanel as prop
 - **07.4-02:** Inline error indicator as red dot on Status column (complements existing state)
@@ -261,20 +265,21 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 07.4-02-PLAN.md (Processing Errors Panel)
+Stopped at: Completed 07.4-05-PLAN.md (Temu Placeholder)
 Resume context:
-- **STAGING BRANCH** - Phase 7.4 IN PROGRESS (2/6 plans)
-- ProcessingErrorsPanel component with collapsible UI
-- Channel breakdown in error panel (Shopify: X | Trendyol: Y)
-- Inline error badges on order Status column
+- **STAGING BRANCH** - Phase 7.4 IN PROGRESS (5/6 plans)
+- TemuPlaceholder shows "Urmeaza sa fie implementat" when tab=temu
+- ChannelTabs and ProcessingErrorsPanel integrated
+- Remaining: Plans 03, 04, 06
 
 **NEXT STEPS:**
-1. Continue Phase 7.4: Plan 03 (Bulk actions or column additions)
-2. Then remaining 7.4 plans (Manual order, Temu placeholder, Gap closure)
-3. Phase 7.5: AWB Tracking Fix
-4. Cleanup old Trendyol integration from Settings
+1. Continue Phase 7.4: Plan 03 (Bulk actions per channel)
+2. Plan 04 (Manual order creation)
+3. Plan 06 (Gap closure)
+4. Then Phase 7.5: AWB Tracking Fix
+5. Cleanup old Trendyol integration from Settings
 
-Resume file: None (Plan 07.4-02 complete)
+Resume file: None (Plan 07.4-05 complete)
 
 ## Phase 7 Features
 
@@ -332,22 +337,24 @@ Task Management Core components:
 | 07.4-02 | 1 | Complete | Collapsible ProcessingErrorsPanel with channel badges |
 | 07.4-03 | 2 | Pending | Bulk actions per channel |
 | 07.4-04 | 3 | Pending | Manual order creation |
-| 07.4-05 | 3 | Pending | Temu placeholder |
+| 07.4-05 | 1 | Complete | TemuPlaceholder with conditional rendering |
 | 07.4-06 | 4 | Pending | Gap closure |
 
 ## Phase 7.4 Features (Orders Channel Split)
 
 - [x] 07.4-01: ChannelTabs with Shopify/Trendyol/Temu tabs, URL state, source counts API
 - [x] 07.4-02: ProcessingErrorsPanel with collapsible UI, channel breakdown, inline error badges
+- [x] 07.4-05: TemuPlaceholder component with Construction icon, conditional rendering when tab=temu
 
 ## Recent Commits
 
-- `21c3509` feat(07.4-02): integrate ProcessingErrorsPanel and add inline error badges
+- `8ecd6b1` feat(07.4-05): integrate TemuPlaceholder into orders page
+- `f054356` feat(07.4-05): create TemuPlaceholder component
+- `8bc7d5b` feat(07.4-02): integrate ProcessingErrorsPanel and add inline error badges
 - `5acc6d2` feat(07.4-02): create ProcessingErrorsPanel component
 - `ebc26d3` docs(07.4-01): complete Channel Tabs UI plan
 - `3368e95` feat(07.4-01): integrate ChannelTabs in orders page
 - `cb607ea` feat(07.4-01): add sourceCounts to orders API response
-- `f054356` feat(07.4-05): create TemuPlaceholder component
 - `10bb0ba` refactor(07.3-06): use shared awb-status.ts in tracking page
 - `938beac` feat(07.3-06): update dashboard to use inTransit stat
 - `04635bf` feat(07.3-06): update dashboard stats to count AWBs in transit
@@ -361,4 +368,4 @@ Task Management Core components:
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-03 (Phase 7.4 Plan 01 COMPLETE - ChannelTabs with URL persistence, sourceCounts API, channel-specific stores)*
+*Last updated: 2026-02-03 (Phase 7.4 Plan 05 COMPLETE - TemuPlaceholder with conditional rendering when tab=temu)*
