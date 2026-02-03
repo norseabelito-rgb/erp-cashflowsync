@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.5 of 10 (AWB Tracking Fix)
-Plan: 3 of 4
-Status: In progress
-Last activity: 2026-02-03 - Completed 07.5-03-PLAN.md (Status Explanation Modal)
+Plan: 4 of 4
+Status: PHASE COMPLETE
+Last activity: 2026-02-03 - Completed 07.5-04-PLAN.md (Dashboard Alignment & Admin Page)
 
-Progress: [██████████████████░░] ~97% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 3/4 of 7.5)
+Progress: [██████████████████░░] ~98% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5)
 
 ## Phase 7 Progress
 
@@ -55,6 +55,9 @@ Progress: [██████████████████░░] ~97% (7
 
 Recent decisions affecting current work:
 
+- **07.5-04:** Code-based verification query added for in_transit counts comparison
+- **07.5-04:** Dynamic Prisma model access for UnknownAWBStatus (handles regeneration timing)
+- **07.5-04:** Returns query unified to use getCategoryFilterConditions("returned")
 - **07.5-03:** Modal triggered by selectedStatus state (null = closed)
 - **07.5-03:** Info icon on status cards uses stopPropagation to avoid triggering filter
 - **07.5-03:** Status code badge in AWB cards clickable with same modal behavior
@@ -283,20 +286,20 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Phase 7.5 Plan 03 COMPLETE (Status Explanation Modal)
+Stopped at: Phase 7.5 COMPLETE (AWB Tracking Fix)
 Resume context:
-- **STAGING BRANCH** - Phase 7.5 in progress (3/4 plans)
-- StatusExplanationModal component with Romanian explanations
-- Info icon on status cards opens modal without changing filter
-- Status code badge in AWB cards clickable to open modal
-- Action recommendations wired from FANCOURIER_STATUSES.action field
+- **STAGING BRANCH** - Phase 7.5 complete (4/4 plans)
+- Dashboard stats use unified categorization from awb-status.ts
+- Admin page at /settings/awb-statuses for managing unknown statuses
+- API at /api/settings/unknown-awb-statuses with GET, PATCH, DELETE
+- Code-based verification detects categorization discrepancies
 
 **NEXT STEPS:**
-1. Continue Phase 7.5: Plan 04 (Final verification and polish)
-2. Then cleanup old Trendyol integration from Settings
-3. Then Phase 8: Notifications and Automation
+1. Cleanup old Trendyol integration from Settings (product pull)
+2. Then Phase 8: Notifications and Automation
+3. Or address critical technical debt items
 
-Resume file: .planning/phases/07.5-awb-tracking-fix/07.5-04-PLAN.md
+Resume file: None (Phase 7.5 complete)
 
 ## Phase 7 Features
 
@@ -366,23 +369,29 @@ Task Management Core components:
 
 **Verification:** 7/7 must-haves verified (2026-02-03)
 
-## Phase 7.5 Progress
+## Phase 7.5 Progress (COMPLETE)
 
 | Plan | Wave | Status | Summary |
 |------|------|--------|---------|
 | 07.5-01 | 1 | Complete | AWB status categorization refactor using fanCourierStatusCode |
 | 07.5-02 | 1 | Complete | Individual status cards with /api/awb/stats API |
 | 07.5-03 | 2 | Complete | Status explanation modal with Romanian content |
-| 07.5-04 | 3 | Pending | Final verification and polish |
+| 07.5-04 | 2 | Complete | Dashboard alignment and admin page for unknown statuses |
 
 ## Phase 7.5 Features (AWB Tracking Fix)
 
 - [x] 07.5-01: awb-status.ts refactored to use fanCourierStatusCode for categorization
 - [x] 07.5-02: /api/awb/stats endpoint, dynamic status cards, client-side filtering
 - [x] 07.5-03: StatusExplanationModal with info buttons on cards and clickable badges
+- [x] 07.5-04: Dashboard uses unified categorization, admin page at /settings/awb-statuses
+
+**Verification:** All must-haves verified (2026-02-03)
 
 ## Recent Commits
 
+- `06303c6` feat(07.5-04): create admin page for unknown AWB statuses
+- `4a989a4` feat(07.5-04): create API for unknown AWB statuses
+- `03602be` feat(07.5-04): verify and update dashboard-stats alignment
 - `db64fec` feat(07.5-03): integrate StatusExplanationModal into tracking page
 - `3af348d` feat(07.5-03): create StatusExplanationModal component
 - `192c587` feat(07.5-02): refactor tracking page with individual status cards
@@ -411,4 +420,4 @@ Task Management Core components:
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-03 (Phase 7.5 Plan 03 COMPLETE - Status Explanation Modal)*
+*Last updated: 2026-02-03 (Phase 7.5 COMPLETE - AWB Tracking Fix)*
