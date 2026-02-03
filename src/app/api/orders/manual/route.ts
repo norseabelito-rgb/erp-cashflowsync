@@ -179,32 +179,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get available shipping rates from Shopify and apply the first one
+    // Wait for Shopify to finish calculating the draft order
+    // Shopify calculates taxes and may calculate shipping asynchronously
+    console.log("[Manual Order] Waiting for draft order to be ready...");
+    const isReady = await shopify.waitForDraftOrderReady(draftOrder.id);
+    if (!isReady) {
+      console.warn("[Manual Order] Draft order may still be calculating, attempting completion anyway");
+    }
+
+    // Get draft order details to see if shipping was auto-applied
     let shippingCost = 0;
     let shippingTitle = "Transport";
     try {
-      const shippingRates = await shopify.getDraftOrderShippingRates(draftOrder.id);
-      console.log("[Manual Order] Available shipping rates:", shippingRates);
-
-      if (shippingRates.length > 0) {
-        // Use the first available shipping rate (usually the default/cheapest)
-        const selectedRate = shippingRates[0];
-        shippingCost = parseFloat(selectedRate.price);
-        shippingTitle = selectedRate.title;
-
-        // Update draft order with shipping line
-        await shopify.updateDraftOrderShipping(draftOrder.id, {
-          handle: selectedRate.handle,
-          title: selectedRate.title,
-          price: selectedRate.price,
-        });
-        console.log(`[Manual Order] Applied shipping: ${selectedRate.title} - ${selectedRate.price} RON`);
+      const draftDetails = await shopify.getDraftOrder(draftOrder.id);
+      if (draftDetails.shippingLine) {
+        shippingCost = parseFloat(draftDetails.shippingLine.price);
+        shippingTitle = draftDetails.shippingLine.title;
+        console.log(`[Manual Order] Shipping from draft: ${shippingTitle} - ${shippingCost} RON`);
       } else {
-        console.log("[Manual Order] No shipping rates available, proceeding without shipping");
+        console.log("[Manual Order] No shipping line in draft order");
       }
     } catch (error: any) {
-      // Non-fatal: continue without shipping if we can't get rates
-      console.warn("[Manual Order] Could not get/apply shipping rates:", error.message);
+      console.warn("[Manual Order] Could not get draft order details:", error.message);
     }
 
     // Complete draft order (convert to real order)

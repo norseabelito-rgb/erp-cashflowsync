@@ -619,82 +619,64 @@ export class ShopifyClient {
   }
 
   /**
-   * Obține tarifele de transport disponibile pentru un draft order folosind GraphQL
-   * Returnează lista de opțiuni de shipping configurate în Shopify
+   * Obține detaliile unui draft order pentru a verifica statusul
    */
-  async getDraftOrderShippingRates(draftOrderId: number): Promise<Array<{
-    handle: string;
-    title: string;
-    price: string;
-  }>> {
-    const query = `
-      query getDraftOrderShippingRates($id: ID!) {
-        draftOrder(id: $id) {
-          availableShippingRates {
-            handle
-            title
-            price {
-              amount
-            }
-          }
-        }
-      }
-    `;
+  async getDraftOrder(draftOrderId: number): Promise<{
+    id: number;
+    status: string;
+    shippingLine: { title: string; price: string } | null;
+    totalPrice: string;
+  }> {
+    const response = await this.client.get<{ draft_order: any }>(
+      `/draft_orders/${draftOrderId}.json`
+    );
 
-    try {
-      const response = await this.client.post<{
-        data: {
-          draftOrder: {
-            availableShippingRates: Array<{
-              handle: string;
-              title: string;
-              price: { amount: string };
-            }> | null;
-          } | null;
-        };
-        errors?: Array<{ message: string }>;
-      }>("/graphql.json", {
-        query,
-        variables: {
-          id: `gid://shopify/DraftOrder/${draftOrderId}`,
-        },
-      });
-
-      if (response.data?.errors?.length) {
-        console.warn("[Shopify] GraphQL errors:", response.data.errors);
-      }
-
-      const rates = response.data?.data?.draftOrder?.availableShippingRates || [];
-      return rates.map((rate) => ({
-        handle: rate.handle,
-        title: rate.title,
-        price: rate.price.amount,
-      }));
-    } catch (error) {
-      console.error("[Shopify] Failed to get shipping rates:", error);
-      return [];
-    }
+    const draft = response.data.draft_order;
+    return {
+      id: draft.id,
+      status: draft.status,
+      shippingLine: draft.shipping_line
+        ? { title: draft.shipping_line.title, price: draft.shipping_line.price }
+        : null,
+      totalPrice: draft.total_price,
+    };
   }
 
   /**
-   * Actualizează un draft order cu o linie de transport
+   * Așteaptă ca un draft order să termine calculul (polling)
+   * Shopify calculează asincron taxe și shipping - trebuie să așteptăm
    */
-  async updateDraftOrderShipping(
-    draftOrderId: number,
-    shippingLine: { title: string; price: string; handle?: string }
-  ): Promise<void> {
-    await this.client.put(`/draft_orders/${draftOrderId}.json`, {
-      draft_order: {
-        shipping_line: shippingLine.handle
-          ? { handle: shippingLine.handle } // Use Shopify's configured rate
-          : { title: shippingLine.title, price: shippingLine.price, custom: true }, // Custom rate
-      },
-    });
+  async waitForDraftOrderReady(draftOrderId: number, maxAttempts: number = 5): Promise<boolean> {
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const draft = await this.getDraftOrder(draftOrderId);
+        console.log(`[Shopify] Draft order ${draftOrderId} status: ${draft.status} (attempt ${attempt})`);
+
+        // "open" means ready, "invoice_sent" also OK
+        if (draft.status === "open" || draft.status === "invoice_sent") {
+          return true;
+        }
+
+        // Wait before next attempt (exponential backoff: 1s, 2s, 3s, 4s, 5s)
+        if (attempt < maxAttempts) {
+          await delay(attempt * 1000);
+        }
+      } catch (error) {
+        console.warn(`[Shopify] Error checking draft order status (attempt ${attempt}):`, error);
+        if (attempt < maxAttempts) {
+          await delay(attempt * 1000);
+        }
+      }
+    }
+
+    return false;
   }
 
   /**
    * Completează un draft order (îl convertește în comandă reală)
-   * NOTĂ: payment_pending trebuie trimis ca query parameter, nu în body
+   * Include retry logic pentru cazul când Shopify încă calculează
    */
   async completeDraftOrder(draftOrderId: number, paymentPending: boolean = true): Promise<{
     id: number;
@@ -702,18 +684,41 @@ export class ShopifyClient {
     name: string;
     totalPrice: string;
   }> {
-    const response = await this.client.put<{ draft_order: any }>(
-      `/draft_orders/${draftOrderId}/complete.json?payment_pending=${paymentPending}`,
-      {} // Body gol - parametrul e în query string
-    );
+    const maxRetries = 3;
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    const order = response.data.draft_order.order;
-    return {
-      id: order.id,
-      order_number: order.order_number,
-      name: order.name,
-      totalPrice: order.total_price,
-    };
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await this.client.put<{ draft_order: any }>(
+          `/draft_orders/${draftOrderId}/complete.json?payment_pending=${paymentPending}`,
+          {} // Body gol - parametrul e în query string
+        );
+
+        const order = response.data.draft_order.order;
+        return {
+          id: order.id,
+          order_number: order.order_number,
+          name: order.name,
+          totalPrice: order.total_price,
+        };
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.errors || error.response?.data?.error || "";
+        const isCalculating =
+          typeof errorMessage === "string" && errorMessage.includes("not finished calculating");
+
+        if (isCalculating && attempt < maxRetries) {
+          console.log(
+            `[Shopify] Draft order still calculating, waiting... (attempt ${attempt}/${maxRetries})`
+          );
+          await delay(attempt * 2000); // 2s, 4s before retry
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    throw new Error("Failed to complete draft order after retries");
   }
 }
 
