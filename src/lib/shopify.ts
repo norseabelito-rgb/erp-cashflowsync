@@ -694,12 +694,26 @@ export class ShopifyClient {
           {} // Body gol - parametrul e în query string
         );
 
-        const order = response.data.draft_order.order;
+        const draftOrder = response.data?.draft_order;
+        console.log("[Shopify] Complete draft order response:", JSON.stringify(draftOrder, null, 2));
+
+        // Shopify poate returna order-ul în diferite locuri
+        const order = draftOrder?.order;
+        const orderId = order?.id || draftOrder?.order_id;
+        const orderNumber = order?.order_number || order?.name || draftOrder?.name;
+        const orderName = order?.name || draftOrder?.name;
+        const totalPrice = order?.total_price || draftOrder?.total_price;
+
+        if (!orderId) {
+          // Dacă nu avem order_id, înseamnă că draft-ul nu s-a completat corect
+          throw new Error(`Draft order completed but no order ID found in response`);
+        }
+
         return {
-          id: order.id,
-          order_number: order.order_number,
-          name: order.name,
-          totalPrice: order.total_price,
+          id: orderId,
+          order_number: typeof orderNumber === 'string' ? parseInt(orderNumber.replace(/\D/g, '')) || orderId : orderNumber,
+          name: orderName || `#${orderId}`,
+          totalPrice: totalPrice || "0",
         };
       } catch (error: any) {
         const errorMessage = error.response?.data?.errors || error.response?.data?.error || "";
