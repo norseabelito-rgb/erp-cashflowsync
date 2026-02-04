@@ -3,8 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
+import { createExcel } from "@/lib/excel";
 
-// GET /api/products/export - Export products to CSV
+// GET /api/products/export - Export products to CSV or Excel
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -58,69 +59,87 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ products });
     }
 
-    // Generate CSV
-    const headers = [
-      "SKU",
-      "Barcode",
-      "Titlu",
-      "Descriere",
-      "Pret",
-      "Pret_Comparat",
-      "Categorie",
-      "Tags",
-      "Greutate_kg",
-      "Locatie_Depozit",
-      "Stoc",
-      "Activ",
-      "Inventar_SKU",
-      "Este_Compus",
-      "Trendyol_Barcode",
-      "Trendyol_Brand",
-      "Link_Shopify",
+    // Column definitions for both CSV and Excel
+    const columns = [
+      { key: "sku", label: "SKU" },
+      { key: "barcode", label: "Barcode" },
+      { key: "title", label: "Titlu" },
+      { key: "description", label: "Descriere" },
+      { key: "price", label: "Pret" },
+      { key: "compareAtPrice", label: "Pret_Comparat" },
+      { key: "category", label: "Categorie" },
+      { key: "tags", label: "Tags" },
+      { key: "weight", label: "Greutate_kg" },
+      { key: "warehouseLocation", label: "Locatie_Depozit" },
+      { key: "stock", label: "Stoc" },
+      { key: "isActive", label: "Activ" },
+      { key: "inventorySku", label: "Inventar_SKU" },
+      { key: "isComposite", label: "Este_Compus" },
+      { key: "trendyolBarcode", label: "Trendyol_Barcode" },
+      { key: "trendyolBrand", label: "Trendyol_Brand" },
+      { key: "shopifyLink", label: "Link_Shopify" },
     ];
 
-    const rows = products.map((p) => {
-      // Build Shopify admin URL from channel data
+    // Transform products to flat data
+    const data = products.map((p) => {
       const shopifyChannel = p.channels[0];
       const shopifyLink =
         shopifyChannel?.channel?.store?.shopifyDomain && shopifyChannel?.externalId
           ? `https://${shopifyChannel.channel.store.shopifyDomain}/admin/products/${shopifyChannel.externalId}`
           : "";
 
-      return [
-        escapeCsvField(p.sku),
-        escapeCsvField(p.barcode || ""),
-        escapeCsvField(p.title),
-        escapeCsvField(p.description?.replace(/<[^>]*>/g, "") || ""), // Strip HTML
-        p.price?.toString() || "0",
-        p.compareAtPrice?.toString() || "",
-        escapeCsvField(p.category?.name || ""),
-        escapeCsvField(p.tags?.join(", ") || ""),
-        p.weight?.toString() || "",
-        escapeCsvField(p.warehouseLocation || ""),
-        p.stock?.toString() || "0",
-        p.isActive ? "Da" : "Nu",
-        escapeCsvField(p.inventoryItem?.sku || ""),
-        p.isComposite ? "Da" : "Nu",
-        escapeCsvField(p.trendyolBarcode || ""),
-        escapeCsvField(p.trendyolBrandName || ""),
-        escapeCsvField(shopifyLink),
-      ];
+      return {
+        sku: p.sku,
+        barcode: p.barcode || "",
+        title: p.title,
+        description: p.description?.replace(/<[^>]*>/g, "") || "",
+        price: p.price?.toString() || "0",
+        compareAtPrice: p.compareAtPrice?.toString() || "",
+        category: p.category?.name || "",
+        tags: p.tags?.join(", ") || "",
+        weight: p.weight?.toString() || "",
+        warehouseLocation: p.warehouseLocation || "",
+        stock: p.stock?.toString() || "0",
+        isActive: p.isActive ? "Da" : "Nu",
+        inventorySku: p.inventoryItem?.sku || "",
+        isComposite: p.isComposite ? "Da" : "Nu",
+        trendyolBarcode: p.trendyolBarcode || "",
+        trendyolBrand: p.trendyolBrandName || "",
+        shopifyLink,
+      };
     });
+
+    const dateStr = new Date().toISOString().split("T")[0];
+
+    // Excel export
+    if (format === "xlsx" || format === "excel") {
+      const buffer = createExcel(data, columns);
+      return new NextResponse(buffer, {
+        headers: {
+          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "Content-Disposition": `attachment; filename="produse_${dateStr}.xlsx"`,
+        },
+      });
+    }
+
+    // CSV export (default)
+    const headers = columns.map((c) => c.label);
+    const rows = data.map((row) =>
+      columns.map((c) => escapeCsvField(String(row[c.key as keyof typeof row] || "")))
+    );
 
     const csvContent = [
       headers.join(","),
       ...rows.map((row) => row.join(",")),
     ].join("\n");
 
-    // Add BOM for Excel UTF-8 compatibility
     const bom = "\uFEFF";
     const csvWithBom = bom + csvContent;
 
     return new NextResponse(csvWithBom, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="produse_${new Date().toISOString().split("T")[0]}.csv"`,
+        "Content-Disposition": `attachment; filename="produse_${dateStr}.csv"`,
       },
     });
   } catch (error: any) {
