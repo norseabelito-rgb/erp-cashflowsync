@@ -113,15 +113,18 @@ export function DashboardFilters({ stores }: DashboardFiltersProps) {
         params.set("store", value);
       }
     } else if (key === "startDate") {
-      if (value === today && endDate === today) {
+      if (value === today && (endDate === today || !searchParams.get("endDate"))) {
         // Default state - remove params
         params.delete("startDate");
         params.delete("endDate");
       } else {
         params.set("startDate", value);
-        // If new start date is after end date, update end date too
-        if (value > endDate) {
+        // Always ensure endDate is set - use current endDate or same as startDate
+        const currentEndDate = searchParams.get("endDate");
+        if (!currentEndDate || value > currentEndDate) {
           params.set("endDate", value);
+        } else {
+          params.set("endDate", currentEndDate);
         }
       }
     } else if (key === "endDate") {
@@ -131,9 +134,12 @@ export function DashboardFilters({ stores }: DashboardFiltersProps) {
         params.delete("endDate");
       } else {
         params.set("endDate", value);
-        // If new end date is before start date, update start date too
-        if (value < startDate) {
+        // Always ensure startDate is set
+        const currentStartDate = searchParams.get("startDate");
+        if (!currentStartDate || value < currentStartDate) {
           params.set("startDate", value);
+        } else {
+          params.set("startDate", currentStartDate);
         }
       }
     }

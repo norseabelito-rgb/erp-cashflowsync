@@ -176,9 +176,11 @@ function buildDateWhere(startDate?: string, endDate?: string) {
     };
   }
 
+  // If only startDate provided, use it for both start and end (single day filter)
   if (startDate) {
     return {
       gte: toRomaniaStartOfDay(startDate),
+      lte: toRomaniaEndOfDay(startDate),
     };
   }
 
