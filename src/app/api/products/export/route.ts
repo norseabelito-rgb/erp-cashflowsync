@@ -39,6 +39,17 @@ export async function GET(request: NextRequest) {
       include: {
         category: { select: { name: true } },
         inventoryItem: { select: { sku: true, name: true } },
+        channels: {
+          where: { isPublished: true, externalId: { not: null } },
+          include: {
+            channel: {
+              include: {
+                store: { select: { shopifyDomain: true } },
+              },
+            },
+          },
+          take: 1,
+        },
       },
       orderBy: { sku: "asc" },
     });
@@ -65,26 +76,37 @@ export async function GET(request: NextRequest) {
       "Este_Compus",
       "Trendyol_Barcode",
       "Trendyol_Brand",
+      "Link_Shopify",
     ];
 
-    const rows = products.map((p) => [
-      escapeCsvField(p.sku),
-      escapeCsvField(p.barcode || ""),
-      escapeCsvField(p.title),
-      escapeCsvField(p.description?.replace(/<[^>]*>/g, "") || ""), // Strip HTML
-      p.price?.toString() || "0",
-      p.compareAtPrice?.toString() || "",
-      escapeCsvField(p.category?.name || ""),
-      escapeCsvField(p.tags?.join(", ") || ""),
-      p.weight?.toString() || "",
-      escapeCsvField(p.warehouseLocation || ""),
-      p.stock?.toString() || "0",
-      p.isActive ? "Da" : "Nu",
-      escapeCsvField(p.inventoryItem?.sku || ""),
-      p.isComposite ? "Da" : "Nu",
-      escapeCsvField(p.trendyolBarcode || ""),
-      escapeCsvField(p.trendyolBrandName || ""),
-    ]);
+    const rows = products.map((p) => {
+      // Build Shopify admin URL from channel data
+      const shopifyChannel = p.channels[0];
+      const shopifyLink =
+        shopifyChannel?.channel?.store?.shopifyDomain && shopifyChannel?.externalId
+          ? `https://${shopifyChannel.channel.store.shopifyDomain}/admin/products/${shopifyChannel.externalId}`
+          : "";
+
+      return [
+        escapeCsvField(p.sku),
+        escapeCsvField(p.barcode || ""),
+        escapeCsvField(p.title),
+        escapeCsvField(p.description?.replace(/<[^>]*>/g, "") || ""), // Strip HTML
+        p.price?.toString() || "0",
+        p.compareAtPrice?.toString() || "",
+        escapeCsvField(p.category?.name || ""),
+        escapeCsvField(p.tags?.join(", ") || ""),
+        p.weight?.toString() || "",
+        escapeCsvField(p.warehouseLocation || ""),
+        p.stock?.toString() || "0",
+        p.isActive ? "Da" : "Nu",
+        escapeCsvField(p.inventoryItem?.sku || ""),
+        p.isComposite ? "Da" : "Nu",
+        escapeCsvField(p.trendyolBarcode || ""),
+        escapeCsvField(p.trendyolBrandName || ""),
+        escapeCsvField(shopifyLink),
+      ];
+    });
 
     const csvContent = [
       headers.join(","),
