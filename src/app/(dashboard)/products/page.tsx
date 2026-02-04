@@ -441,10 +441,11 @@ export default function ProductsPage() {
     });
   };
 
-  const handleExport = async () => {
+  const handleExport = async (format: "csv" | "xlsx" = "csv") => {
     try {
       setIsExporting(true);
       const params = new URLSearchParams();
+      params.set("format", format);
       if (categoryFilter !== "all") params.set("categoryId", categoryFilter);
       if (channelFilter !== "all") params.set("channelId", channelFilter);
 
@@ -455,13 +456,15 @@ export default function ProductsPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `produse_${new Date().toISOString().split("T")[0]}.csv`;
+      const ext = format === "xlsx" ? "xlsx" : "csv";
+      a.download = `produse_${new Date().toISOString().split("T")[0]}.${ext}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      toast({ title: "Export finalizat", description: "Fișierul CSV a fost descărcat" });
+      const fileType = format === "xlsx" ? "Excel" : "CSV";
+      toast({ title: "Export finalizat", description: `Fișierul ${fileType} a fost descărcat` });
     } catch (error: any) {
       toast({ title: "Eroare", description: error.message, variant: "destructive" });
     } finally {
@@ -616,9 +619,13 @@ export default function ProductsPage() {
                   </DropdownMenuTrigger>
                 </ActionTooltip>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleExport} disabled={isExporting}>
+                  <DropdownMenuItem onClick={() => handleExport("csv")} disabled={isExporting}>
                     <Download className="h-4 w-4 mr-2" />
                     {isExporting ? "Se exportă..." : "Export CSV"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport("xlsx")} disabled={isExporting}>
+                    <Download className="h-4 w-4 mr-2" />
+                    {isExporting ? "Se exportă..." : "Export Excel"}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
                     <FileUp className="h-4 w-4 mr-2" />
