@@ -95,13 +95,15 @@ export async function GET(request: NextRequest) {
 
     // Transform products to flat data with per-store links
     const data = products.map((p) => {
-      // Build map of storeId -> product link
+      // Build map of storeId -> product link (public storefront URL)
       const storeLinks: Record<string, string> = {};
       for (const channel of p.channels) {
         const storeId = channel.channel?.store?.id;
         const domain = channel.channel?.store?.shopifyDomain;
-        if (storeId && domain && channel.externalId) {
-          storeLinks[storeId] = `https://${domain}/admin/products/${channel.externalId}`;
+        const handle = (channel as any).externalHandle;
+        if (storeId && domain && handle) {
+          // Use public storefront URL: https://domain/products/handle
+          storeLinks[storeId] = `https://${domain}/products/${handle}`;
         }
       }
 

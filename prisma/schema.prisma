@@ -1365,7 +1365,8 @@ model MasterProductChannel {
   isActive    Boolean @default(true) // Dacă primește update-uri
 
   // ID extern (ex: Shopify Product ID)
-  externalId String?
+  externalId     String?
+  externalHandle String? // Handle/slug-ul produsului pe canal (ex: "tricou-negru")
 
   // Override-uri - JSON cu câmpurile modificate
   // Ex: { "title": "Titlu diferit", "price": 89.00 }

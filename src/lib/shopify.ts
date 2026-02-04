@@ -91,6 +91,7 @@ export interface CreateDraftOrderInput {
 interface ShopifyProduct {
   id: number;
   title: string;
+  handle: string;
   body_html: string | null;
   vendor: string | null;
   product_type: string | null;
