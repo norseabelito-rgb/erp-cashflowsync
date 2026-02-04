@@ -469,6 +469,10 @@ model Order {
   tasks                 Task[]
   returnAwbs            ReturnAWB[]
 
+  // Internal workflow status (separate from OrderStatus enum)
+  internalStatusId String?
+  internalStatus   InternalOrderStatus? @relation(fields: [internalStatusId], references: [id])
+
   @@unique([shopifyOrderId, storeId])
   @@index([status])
   @@index([storeId])
@@ -477,6 +481,7 @@ model Order {
   @@index([billingCompanyId])
   @@index([intercompanyStatus])
   @@index([source])
+  @@index([internalStatusId])
   @@map("orders")
 }
 
@@ -3562,4 +3567,26 @@ model CustomerNote {
 
   @@index([email])
   @@map("customer_notes")
+}
+
+// ==========================================
+// INTERNAL ORDER STATUS (NOMENCLATOR)
+// ==========================================
+
+// User-defined internal workflow statuses for orders
+// Separate from OrderStatus enum - for custom workflow tracking
+model InternalOrderStatus {
+  id        String  @id @default(cuid())
+  name      String  @unique // "Apel client", "Verificare stoc", etc.
+  color     String  @default("#6b7280") // Hex color for badge display
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
+  @@index([sortOrder])
+  @@map("internal_order_statuses")
 }
