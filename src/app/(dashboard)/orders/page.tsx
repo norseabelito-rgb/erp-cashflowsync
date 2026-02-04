@@ -32,6 +32,7 @@ import {
   BoxIcon,
   ShoppingBag,
   Plus,
+  Tag,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -91,6 +92,7 @@ import { ManualOrderDialog, type ManualOrderData } from "@/components/orders/man
 import { SkeletonTableRow } from "@/components/ui/skeleton";
 import { useErrorModal } from "@/hooks/use-error-modal";
 import { ActionTooltip } from "@/components/ui/action-tooltip";
+import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 
 interface Order {
   id: string;
@@ -141,6 +143,11 @@ interface Order {
     price: string;
     imageUrl?: string | null;
   }>;
+  internalStatus?: {
+    id: string;
+    name: string;
+    color: string;
+  } | null;
 }
 
 interface Store {
@@ -326,6 +333,7 @@ export default function OrdersPage() {
   // sourceFilter removed - using channelTab from URL instead
   const [awbFilter, setAwbFilter] = useState<string>("all"); // "all" | "with" | "without"
   const [awbStatusFilter, setAwbStatusFilter] = useState<string>("all"); // "all" | "tranzit" | "livrat" | "retur" | "pending" | "anulat"
+  const [internalStatusFilter, setInternalStatusFilter] = useState<string>("all"); // "all" | "none" | status ID
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [productFilter, setProductFilter] = useState<string>(""); // Filtru SKU sau nume produs
@@ -393,7 +401,7 @@ export default function OrdersPage() {
   const [selectedDbErrors, setSelectedDbErrors] = useState<string[]>([]);
 
   const { data: ordersData, isLoading: ordersLoading, isError: ordersError, refetch: refetchOrders } = useQuery({
-    queryKey: ["orders", statusFilter, storeFilter, channelTab, awbFilter, awbStatusFilter, searchQuery, startDate, endDate, productFilter, page, limit],
+    queryKey: ["orders", statusFilter, storeFilter, channelTab, awbFilter, awbStatusFilter, internalStatusFilter, searchQuery, startDate, endDate, productFilter, page, limit],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.set("status", statusFilter);
@@ -403,6 +411,7 @@ export default function OrdersPage() {
       if (awbFilter === "with") params.set("hasAwb", "true");
       if (awbFilter === "without") params.set("hasAwb", "false");
       if (awbFilter === "with" && awbStatusFilter !== "all") params.set("awbStatus", awbStatusFilter);
+      if (internalStatusFilter !== "all") params.set("internalStatusId", internalStatusFilter);
       if (searchQuery) params.set("search", searchQuery);
       if (startDate) params.set("startDate", startDate);
       if (endDate) params.set("endDate", endDate);
@@ -438,6 +447,16 @@ export default function OrdersPage() {
     },
     enabled: channelTab === "trendyol",
   });
+
+  // Internal order statuses query (for filter dropdown)
+  const { data: internalStatusesData } = useQuery({
+    queryKey: ["order-statuses-active"],
+    queryFn: async () => {
+      const res = await fetch("/api/order-statuses?activeOnly=true");
+      return res.json();
+    },
+  });
+  const internalStatuses: { id: string; name: string; color: string }[] = internalStatusesData?.statuses || [];
 
   // Query pentru erori persistente din DB
   const { data: dbErrorsData, isLoading: dbErrorsLoading, refetch: refetchDbErrors } = useQuery({
@@ -580,6 +599,28 @@ export default function OrdersPage() {
     },
     onError: (error: any) => {
       toast({ title: "Eroare", description: error.message || "Eroare la ștergerea AWB", variant: "destructive" });
+    },
+  });
+
+  // Mutatie pentru actualizare status intern
+  const updateInternalStatusMutation = useMutation({
+    mutationFn: async ({ orderId, internalStatusId }: { orderId: string; internalStatusId: string | null }) => {
+      const res = await fetch(`/api/orders/${orderId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ internalStatusId }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to update status");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Eroare", description: error.message, variant: "destructive" });
     },
   });
 
@@ -1257,6 +1298,27 @@ export default function OrdersPage() {
                 </SelectContent>
               </Select>
             )}
+            {/* Internal status filter */}
+            <Select value={internalStatusFilter} onValueChange={(v) => { setInternalStatusFilter(v); setPage(1); }}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <div className="flex items-center gap-2">
+                  <Tag className="h-4 w-4" />
+                  <SelectValue placeholder="Status intern" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate statusurile</SelectItem>
+                <SelectItem value="none">Fara status intern</SelectItem>
+                {internalStatuses.map((status) => (
+                  <SelectItem key={status.id} value={status.id}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: status.color }} />
+                      {status.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
           {/* Filtre pe date și produs */}
@@ -1444,6 +1506,7 @@ export default function OrdersPage() {
                   <th className="p-4 text-left text-sm font-medium">Validări</th>
                   <th className="p-4 text-left text-sm font-medium">Valoare</th>
                   <th className="p-4 text-left text-sm font-medium">Status</th>
+                  <th className="p-4 text-left text-sm font-medium">Status Intern</th>
                   <th className="p-4 text-left text-sm font-medium">Factură</th>
                   <th className="p-4 text-left text-sm font-medium">AWB</th>
                   <th className="p-4 text-left text-sm font-medium">Sync Status</th>
@@ -1463,7 +1526,7 @@ export default function OrdersPage() {
                   </>
                 ) : orders.length === 0 ? (
                   (() => {
-                    const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || storeFilter !== "all" || awbFilter !== "all" || awbStatusFilter !== "all" || startDate !== "" || endDate !== "";
+                    const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || storeFilter !== "all" || awbFilter !== "all" || awbStatusFilter !== "all" || internalStatusFilter !== "all" || startDate !== "" || endDate !== "";
                     const emptyStateType = determineEmptyStateType(hasActiveFilters, ordersError);
                     const emptyConfig = getEmptyState("orders", emptyStateType);
                     const clearFilters = () => {
@@ -1472,6 +1535,7 @@ export default function OrdersPage() {
                       setStoreFilter("all");
                       setAwbFilter("all");
                       setAwbStatusFilter("all");
+                      setInternalStatusFilter("all");
                       setStartDate("");
                       setEndDate("");
                     };
@@ -1537,6 +1601,36 @@ export default function OrdersPage() {
                             <span className="absolute -top-1 -right-1 h-2.5 w-2.5 bg-status-error rounded-full border-2 border-background" title="Eroare de procesare" />
                           )}
                         </div>
+                      </td>
+                      <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                        <Select
+                          value={order.internalStatus?.id || "none"}
+                          onValueChange={(v) => updateInternalStatusMutation.mutate({
+                            orderId: order.id,
+                            internalStatusId: v === "none" ? null : v,
+                          })}
+                        >
+                          <SelectTrigger className="h-8 w-[140px] text-xs">
+                            {order.internalStatus ? (
+                              <OrderStatusBadge status={order.internalStatus} />
+                            ) : (
+                              <span className="text-muted-foreground">Selecteaza...</span>
+                            )}
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">
+                              <span className="text-muted-foreground">Fara status</span>
+                            </SelectItem>
+                            {internalStatuses.map((status) => (
+                              <SelectItem key={status.id} value={status.id}>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: status.color }} />
+                                  {status.name}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </td>
                       <td className="p-4">
                         {order.invoice ? (

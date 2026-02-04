@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
     const containsProduct = searchParams.get("containsProduct"); // Filtru după SKU sau nume produs
     const hasAwb = searchParams.get("hasAwb"); // "true" sau "false"
     const awbStatus = searchParams.get("awbStatus"); // "tranzit" | "livrat" | "retur" | "pending" | "anulat"
+    const internalStatusId = searchParams.get("internalStatusId"); // Internal workflow status filter
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = (page - 1) * limit;
@@ -121,6 +122,16 @@ export async function GET(request: NextRequest) {
       }
     } else if (hasAwb === "false") {
       where.awb = { is: null };
+    }
+
+    // Filtru dupa status intern (nomenclator)
+    if (internalStatusId && internalStatusId !== "all") {
+      if (internalStatusId === "none") {
+        // Filter for orders without internal status
+        where.internalStatusId = null;
+      } else {
+        where.internalStatusId = internalStatusId;
+      }
     }
 
     if (search) {
@@ -216,6 +227,13 @@ export async function GET(request: NextRequest) {
             trackingSendError: true,
             localAwbNumber: true,
             localCarrier: true,
+          },
+        },
+        internalStatus: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
           },
         },
         lineItems: true,
