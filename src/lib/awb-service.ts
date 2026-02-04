@@ -240,10 +240,19 @@ export async function createAWBForOrder(
       }
     }
 
-    // Determinăm serviciul (Cont Colector dacă e ramburs și serviciul nu e deja Cont Colector)
+    // Determinăm serviciul
     let service = options?.serviceType || settings?.defaultServiceType || "Standard";
+
+    // Cont Colector dacă e ramburs și serviciul nu e deja Cont Colector
     if (cod && cod > 0 && !service.toLowerCase().includes("colector")) {
       service = "Cont Colector";
+    }
+
+    // IMPORTANT: Dacă cod=0 și serviciul e Cont Colector, trecem la Standard
+    // (Cont Colector necesită COD obligatoriu)
+    if ((!cod || cod === 0) && service.toLowerCase().includes("colector")) {
+      service = "Standard";
+      console.log(`[AWB] Comanda plătită - schimbăm serviciul din Cont Colector în Standard`);
     }
 
     // Construim observațiile cu lista de produse
