@@ -34,7 +34,14 @@ export async function GET(request: NextRequest) {
       where.channels = { some: { channelId, isPublished: true } };
     }
 
-    // Fetch products with related data
+    // Fetch all active stores for dynamic columns
+    const stores = await prisma.store.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, shopifyDomain: true },
+      orderBy: { name: "asc" },
+    });
+
+    // Fetch products with ALL channel data (not just first one)
     const products = await prisma.masterProduct.findMany({
       where,
       include: {
@@ -45,11 +52,10 @@ export async function GET(request: NextRequest) {
           include: {
             channel: {
               include: {
-                store: { select: { shopifyDomain: true } },
+                store: { select: { id: true, shopifyDomain: true } },
               },
             },
           },
-          take: 1,
         },
       },
       orderBy: { sku: "asc" },
@@ -59,8 +65,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ products });
     }
 
-    // Column definitions for both CSV and Excel
-    const columns = [
+    // Base column definitions
+    const baseColumns = [
       { key: "sku", label: "SKU" },
       { key: "barcode", label: "Barcode" },
       { key: "title", label: "Titlu" },
@@ -77,18 +83,29 @@ export async function GET(request: NextRequest) {
       { key: "isComposite", label: "Este_Compus" },
       { key: "trendyolBarcode", label: "Trendyol_Barcode" },
       { key: "trendyolBrand", label: "Trendyol_Brand" },
-      { key: "shopifyLink", label: "Link_Shopify" },
     ];
 
-    // Transform products to flat data
-    const data = products.map((p) => {
-      const shopifyChannel = p.channels[0];
-      const shopifyLink =
-        shopifyChannel?.channel?.store?.shopifyDomain && shopifyChannel?.externalId
-          ? `https://${shopifyChannel.channel.store.shopifyDomain}/admin/products/${shopifyChannel.externalId}`
-          : "";
+    // Add dynamic store link columns
+    const storeColumns = stores.map((store) => ({
+      key: `link_${store.id}`,
+      label: `Link_${store.name.replace(/\s+/g, "_")}`,
+    }));
 
-      return {
+    const columns = [...baseColumns, ...storeColumns];
+
+    // Transform products to flat data with per-store links
+    const data = products.map((p) => {
+      // Build map of storeId -> product link
+      const storeLinks: Record<string, string> = {};
+      for (const channel of p.channels) {
+        const storeId = channel.channel?.store?.id;
+        const domain = channel.channel?.store?.shopifyDomain;
+        if (storeId && domain && channel.externalId) {
+          storeLinks[storeId] = `https://${domain}/admin/products/${channel.externalId}`;
+        }
+      }
+
+      const row: Record<string, string> = {
         sku: p.sku,
         barcode: p.barcode || "",
         title: p.title,
@@ -105,8 +122,14 @@ export async function GET(request: NextRequest) {
         isComposite: p.isComposite ? "Da" : "Nu",
         trendyolBarcode: p.trendyolBarcode || "",
         trendyolBrand: p.trendyolBrandName || "",
-        shopifyLink,
       };
+
+      // Add store links
+      for (const store of stores) {
+        row[`link_${store.id}`] = storeLinks[store.id] || "";
+      }
+
+      return row;
     });
 
     const dateStr = new Date().toISOString().split("T")[0];
