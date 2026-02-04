@@ -230,17 +230,19 @@ export async function processBulkPublishJob(jobId: string): Promise<void> {
         // Verifică dacă avem deja externalId în DB
         const existingChannel = product.channels.find((c) => c.channelId === channel.id);
         let shopifyProductId = existingChannel?.externalId;
+        let shopifyHandle: string | undefined;
 
         // Dacă NU avem externalId, caută în Shopify după SKU
         if (!shopifyProductId) {
           const existingProduct = await shopifyClient.findProductBySku(product.sku);
           if (existingProduct) {
             shopifyProductId = existingProduct.id.toString();
-            // Salvează externalId găsit în DB pentru viitor
+            shopifyHandle = existingProduct.handle;
+            // Salvează externalId și handle găsite în DB pentru viitor
             if (existingChannel) {
               await prisma.masterProductChannel.update({
                 where: { id: existingChannel.id },
-                data: { externalId: shopifyProductId },
+                data: { externalId: shopifyProductId, externalHandle: shopifyHandle },
               });
             }
           }
@@ -275,13 +277,15 @@ export async function processBulkPublishJob(jobId: string): Promise<void> {
 
         if (shopifyProductId) {
           // UPDATE produs existent
-          await shopifyClient.updateProduct(shopifyProductId, productData);
+          const updatedProduct = await shopifyClient.updateProduct(shopifyProductId, productData);
+          shopifyHandle = updatedProduct.handle;
           updatedCount++;
           channelProgress[channel.id].updated++;
         } else {
           // CREATE produs nou
           const newProduct = await shopifyClient.createProduct(productData);
           shopifyProductId = newProduct.id.toString();
+          shopifyHandle = newProduct.handle;
           createdCount++;
           channelProgress[channel.id].created++;
         }
@@ -298,6 +302,7 @@ export async function processBulkPublishJob(jobId: string): Promise<void> {
             productId: product.id,
             channelId: channel.id,
             externalId: shopifyProductId,
+            externalHandle: shopifyHandle,
             isPublished: true,
             isActive: true,
             lastSyncedAt: new Date(),
@@ -305,6 +310,7 @@ export async function processBulkPublishJob(jobId: string): Promise<void> {
           },
           update: {
             externalId: shopifyProductId,
+            externalHandle: shopifyHandle,
             isPublished: true,
             isActive: true,
             lastSyncedAt: new Date(),
