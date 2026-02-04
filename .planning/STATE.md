@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 Phase: 7.6 of 10 (Customers Page)
 Plan: 2 of 3
 Status: In progress
-Last activity: 2026-02-04 - Completed 07.6-02-PLAN.md (Customer List Page)
+Last activity: 2026-02-04 - Completed quick task q003 (Export produse cu linkuri)
 
 Progress: [██████████████████░░] ~98% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6)
 
@@ -296,6 +296,7 @@ Recent decisions affecting current work:
 |------|--------|---------|
 | q001 | Complete | Bulk product push to all Shopify stores with progress tracking |
 | q002 | Complete | Return AWB scanning with auto-mapping to original orders |
+| q003 | Complete | Export produse cu linkuri Shopify (Link_Shopify column in CSV) |
 
 ## Session Continuity
 
