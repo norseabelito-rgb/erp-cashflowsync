@@ -1,0 +1,1325 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2867
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\csgray\c0;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f0\fs22 \cf2 \CocoaLigature0 CronLock.jobName | character varying | NO\
+ CronLock.lockId | character varying | NO\
+ CronLock.lockedAt | timestamp without time zone | NO\
+ CronLock.expiresAt | timestamp without time zone | NO\
+ _prisma_migrations.id | character varying | NO\
+ _prisma_migrations.checksum | character varying | NO\
+ _prisma_migrations.finished_at | timestamp with time zone | YES\
+ _prisma_migrations.migration_name | character varying | NO\
+ _prisma_migrations.logs | text | YES\
+ _prisma_migrations.rolled_back_at | timestamp with time zone | YES\
+ _prisma_migrations.started_at | timestamp with time zone | NO\
+ _prisma_migrations.applied_steps_count | integer | NO\
+ accounts.id | text | NO\
+ accounts.userId | text | NO\
+ accounts.type | text | NO\
+ accounts.provider | text | NO\
+ accounts.providerAccountId | text | NO\
+ accounts.refresh_token | text | YES\
+ accounts.access_token | text | YES\
+ accounts.expires_at | integer | YES\
+ accounts.token_type | text | YES\
+ accounts.scope | text | YES\
+ accounts.id_token | text | YES\
+ accounts.session_state | text | YES\
+ activity_logs.id | text | NO\
+ activity_logs.entityType | USER-DEFINED | NO\
+ activity_logs.entityId | text | YES\
+ activity_logs.action | USER-DEFINED | NO\
+ activity_logs.description | text | NO\
+ activity_logs.details | jsonb | YES\
+ activity_logs.orderId | text | YES\
+ activity_logs.orderNumber | text | YES\
+ activity_logs.invoiceNumber | text | YES\
+ activity_logs.invoiceSeries | text | YES\
+ activity_logs.awbNumber | text | YES\
+ activity_logs.productSku | text | YES\
+ activity_logs.success | boolean | NO\
+ activity_logs.errorMessage | text | YES\
+ activity_logs.source | text | YES\
+ activity_logs.ipAddress | text | YES\
+ activity_logs.userAgent | text | YES\
+ activity_logs.createdAt | timestamp without time zone | NO\
+ ads_accounts.id | text | NO\
+ ads_accounts.platform | USER-DEFINED | NO\
+ ads_accounts.externalId | text | NO\
+ ads_accounts.name | text | NO\
+ ads_accounts.currency | text | NO\
+ ads_accounts.timezone | text | NO\
+ ads_accounts.businessId | text | YES\
+ ads_accounts.businessName | text | YES\
+ ads_accounts.accessToken | text | NO\
+ ads_accounts.refreshToken | text | YES\
+ ads_accounts.tokenExpiresAt | timestamp without time zone | YES\
+ ads_accounts.tokenScope | text | YES\
+ ads_accounts.status | USER-DEFINED | NO\
+ ads_accounts.lastSyncAt | timestamp without time zone | YES\
+ ads_accounts.lastSyncError | text | YES\
+ ads_accounts.syncInProgress | boolean | NO\
+ ads_accounts.createdAt | timestamp without time zone | NO\
+ ads_accounts.updatedAt | timestamp without time zone | NO\
+ ads_accounts.appId | text | YES\
+ ads_ads.id | text | NO\
+ ads_ads.adSetId | text | NO\
+ ads_ads.externalId | text | NO\
+ ads_ads.name | text | NO\
+ ads_ads.status | USER-DEFINED | NO\
+ ads_ads.effectiveStatus | text | YES\
+ ads_ads.creativeType | text | YES\
+ ads_ads.thumbnailUrl | text | YES\
+ ads_ads.previewUrl | text | YES\
+ ads_ads.headline | text | YES\
+ ads_ads.description | text | YES\
+ ads_ads.callToAction | text | YES\
+ ads_ads.destinationUrl | text | YES\
+ ads_ads.spend | numeric | NO\
+ ads_ads.impressions | bigint | NO\
+ ads_ads.clicks | bigint | NO\
+ ads_ads.conversions | integer | NO\
+ ads_ads.revenue | numeric | NO\
+ ads_ads.ctr | numeric | YES\
+ ads_ads.cpc | numeric | YES\
+ ads_ads.cpa | numeric | YES\
+ ads_ads.roas | numeric | YES\
+ ads_ads.lastSyncAt | timestamp without time zone | YES\
+ ads_ads.createdAt | timestamp without time zone | NO\
+ ads_ads.updatedAt | timestamp without time zone | NO\
+ ads_adsets.id | text | NO\
+ ads_adsets.campaignId | text | NO\
+ ads_adsets.externalId | text | NO\
+ ads_adsets.name | text | NO\
+ ads_adsets.status | USER-DEFINED | NO\
+ ads_adsets.effectiveStatus | text | YES\
+ ads_adsets.targetingAge | text | YES\
+ ads_adsets.targetingGender | text | YES\
+ ads_adsets.targetingGeo | jsonb | YES\
+ ads_adsets.targetingCustom | jsonb | YES\
+ ads_adsets.placements | jsonb | YES\
+ ads_adsets.dailyBudget | numeric | YES\
+ ads_adsets.lifetimeBudget | numeric | YES\
+ ads_adsets.bidStrategy | text | YES\
+ ads_adsets.bidAmount | numeric | YES\
+ ads_adsets.spend | numeric | NO\
+ ads_adsets.impressions | bigint | NO\
+ ads_adsets.clicks | bigint | NO\
+ ads_adsets.conversions | integer | NO\
+ ads_adsets.revenue | numeric | NO\
+ ads_adsets.ctr | numeric | YES\
+ ads_adsets.cpc | numeric | YES\
+ ads_adsets.cpm | numeric | YES\
+ ads_adsets.cpa | numeric | YES\
+ ads_adsets.roas | numeric | YES\
+ ads_adsets.lastSyncAt | timestamp without time zone | YES\
+ ads_adsets.createdAt | timestamp without time zone | NO\
+ ads_adsets.updatedAt | timestamp without time zone | NO\
+ ads_alert_rules.id | text | NO\
+ ads_alert_rules.name | text | NO\
+ ads_alert_rules.description | text | YES\
+ ads_alert_rules.isActive | boolean | NO\
+ ads_alert_rules.scopeType | USER-DEFINED | NO\
+ ads_alert_rules.scopePlatform | USER-DEFINED | YES\
+ ads_alert_rules.scopeSku | text | YES\
+ ads_alert_rules.scopeCampaigns | jsonb | YES\
+ ads_alert_rules.conditions | jsonb | NO\
+ ads_alert_rules.conditionLogic | text | NO\
+ ads_alert_rules.action | USER-DEFINED | NO\
+ ads_alert_rules.reducePct | integer | YES\
+ ads_alert_rules.autoRollback | boolean | NO\
+ ads_alert_rules.rollbackAfterH | integer | YES\
+ ads_alert_rules.notifyEmail | boolean | NO\
+ ads_alert_rules.notifyInApp | boolean | NO\
+ ads_alert_rules.emailTo | text | YES\
+ ads_alert_rules.cooldownHours | integer | NO\
+ ads_alert_rules.lastCheckedAt | timestamp without time zone | YES\
+ ads_alert_rules.triggerCount | integer | NO\
+ ads_alert_rules.createdAt | timestamp without time zone | NO\
+ ads_alert_rules.updatedAt | timestamp without time zone | NO\
+ ads_alerts.id | text | NO\
+ ads_alerts.ruleId | text | NO\
+ ads_alerts.campaignId | text | NO\
+ ads_alerts.metricSnapshot | jsonb | NO\
+ ads_alerts.conditionsMet | jsonb | NO\
+ ads_alerts.actionTaken | text | NO\
+ ads_alerts.previousState | jsonb | YES\
+ ads_alerts.rollbackEligible | boolean | NO\
+ ads_alerts.rollbackAt | timestamp without time zone | YES\
+ ads_alerts.rolledBack | boolean | NO\
+ ads_alerts.rollbackResult | text | YES\
+ ads_alerts.status | USER-DEFINED | NO\
+ ads_alerts.seenAt | timestamp without time zone | YES\
+ ads_alerts.seenBy | text | YES\
+ ads_alerts.resolvedAt | timestamp without time zone | YES\
+ ads_alerts.resolvedBy | text | YES\
+ ads_alerts.resolution | text | YES\
+ ads_alerts.createdAt | timestamp without time zone | NO\
+ ads_apps.id | text | NO\
+ ads_apps.platform | USER-DEFINED | NO\
+ ads_apps.name | text | NO\
+ ads_apps.appId | text | NO\
+ ads_apps.appSecret | text | NO\
+ ads_apps.redirectUri | text | NO\
+ ads_apps.isActive | boolean | NO\
+ ads_apps.createdAt | timestamp without time zone | NO\
+ ads_apps.updatedAt | timestamp without time zone | NO\
+ ads_campaign_products.id | text | NO\
+ ads_campaign_products.campaignId | text | NO\
+ ads_campaign_products.sku | text | YES\
+ ads_campaign_products.masterProductId | text | YES\
+ ads_campaign_products.categoryId | text | YES\
+ ads_campaign_products.mappingSource | USER-DEFINED | NO\
+ ads_campaign_products.confidence | numeric | YES\
+ ads_campaign_products.allocatedSpend | numeric | NO\
+ ads_campaign_products.allocatedRev | numeric | NO\
+ ads_campaign_products.allocatedConv | integer | NO\
+ ads_campaign_products.createdAt | timestamp without time zone | NO\
+ ads_campaign_products.updatedAt | timestamp without time zone | NO\
+ ads_campaigns.id | text | NO\
+ ads_campaigns.accountId | text | NO\
+ ads_campaigns.externalId | text | NO\
+ ads_campaigns.name | text | NO\
+ ads_campaigns.parsedObjective | text | YES\
+ ads_campaigns.parsedType | text | YES\
+ ads_campaigns.parsedCodes | jsonb | YES\
+ ads_campaigns.parsedAudience | text | YES\
+ ads_campaigns.namingValid | boolean | NO\
+ ads_campaigns.status | USER-DEFINED | NO\
+ ads_campaigns.effectiveStatus | text | YES\
+ ads_campaigns.objective | text | YES\
+ ads_campaigns.dailyBudget | numeric | YES\
+ ads_campaigns.lifetimeBudget | numeric | YES\
+ ads_campaigns.budgetRemaining | numeric | YES\
+ ads_campaigns.spend | numeric | NO\
+ ads_campaigns.impressions | bigint | NO\
+ ads_campaigns.reach | bigint | NO\
+ ads_campaigns.clicks | bigint | NO\
+ ads_campaigns.conversions | integer | NO\
+ ads_campaigns.revenue | numeric | NO\
+ ads_campaigns.ctr | numeric | YES\
+ ads_campaigns.cpc | numeric | YES\
+ ads_campaigns.cpm | numeric | YES\
+ ads_campaigns.cpa | numeric | YES\
+ ads_campaigns.roas | numeric | YES\
+ ads_campaigns.frequency | numeric | YES\
+ ads_campaigns.startDate | timestamp without time zone | YES\
+ ads_campaigns.endDate | timestamp without time zone | YES\
+ ads_campaigns.autoRollback | boolean | NO\
+ ads_campaigns.rollbackAfterH | integer | YES\
+ ads_campaigns.lastSyncAt | timestamp without time zone | YES\
+ ads_campaigns.createdAt | timestamp without time zone | NO\
+ ads_campaigns.updatedAt | timestamp without time zone | NO\
+ ads_campaigns.detailSyncInProgress | boolean | NO\
+ ads_campaigns.lastDetailSyncAt | timestamp without time zone | YES\
+ ads_creatives.id | text | NO\
+ ads_creatives.name | text | NO\
+ ads_creatives.type | text | NO\
+ ads_creatives.driveFileId | text | YES\
+ ads_creatives.driveUrl | text | YES\
+ ads_creatives.fileName | text | YES\
+ ads_creatives.width | integer | YES\
+ ads_creatives.height | integer | YES\
+ ads_creatives.duration | integer | YES\
+ ads_creatives.fileSize | integer | YES\
+ ads_creatives.mimeType | text | YES\
+ ads_creatives.metaMediaId | text | YES\
+ ads_creatives.metaUploadedAt | timestamp without time zone | YES\
+ ads_creatives.tiktokMediaId | text | YES\
+ ads_creatives.tiktokUploadedAt | timestamp without time zone | YES\
+ ads_creatives.tags | jsonb | YES\
+ ads_creatives.usedInAds | jsonb | YES\
+ ads_creatives.createdAt | timestamp without time zone | NO\
+ ads_creatives.updatedAt | timestamp without time zone | NO\
+ ads_daily_stats.id | text | NO\
+ ads_daily_stats.campaignId | text | NO\
+ ads_daily_stats.date | date | NO\
+ ads_daily_stats.spend | numeric | NO\
+ ads_daily_stats.impressions | bigint | NO\
+ ads_daily_stats.reach | bigint | NO\
+ ads_daily_stats.clicks | bigint | NO\
+ ads_daily_stats.conversions | integer | NO\
+ ads_daily_stats.revenue | numeric | NO\
+ ads_daily_stats.ctr | numeric | YES\
+ ads_daily_stats.cpc | numeric | YES\
+ ads_daily_stats.cpm | numeric | YES\
+ ads_daily_stats.cpa | numeric | YES\
+ ads_daily_stats.roas | numeric | YES\
+ ads_daily_stats.createdAt | timestamp without time zone | NO\
+ ads_pixels.id | text | NO\
+ ads_pixels.accountId | text | NO\
+ ads_pixels.platform | USER-DEFINED | NO\
+ ads_pixels.externalId | text | NO\
+ ads_pixels.name | text | NO\
+ ads_pixels.isInstalled | boolean | NO\
+ ads_pixels.lastEventAt | timestamp without time zone | YES\
+ ads_pixels.eventsTracked | jsonb | YES\
+ ads_pixels.lastCheckedAt | timestamp without time zone | YES\
+ ads_pixels.checkStatus | text | YES\
+ ads_pixels.checkMessage | text | YES\
+ ads_pixels.createdAt | timestamp without time zone | NO\
+ ads_pixels.updatedAt | timestamp without time zone | NO\
+ ads_settings.id | text | NO\
+ ads_settings.platform | USER-DEFINED | NO\
+ ads_settings.appId | text | YES\
+ ads_settings.appSecret | text | YES\
+ ads_settings.redirectUri | text | YES\
+ ads_settings.isConfigured | boolean | NO\
+ ads_settings.testMode | boolean | NO\
+ ads_settings.notes | text | YES\
+ ads_settings.createdAt | timestamp without time zone | NO\
+ ads_settings.updatedAt | timestamp without time zone | NO\
+ ads_sync_jobs.id | text | NO\
+ ads_sync_jobs.accountId | text | NO\
+ ads_sync_jobs.status | text | NO\
+ ads_sync_jobs.totalCampaigns | integer | NO\
+ ads_sync_jobs.syncedCampaigns | integer | NO\
+ ads_sync_jobs.totalAdSets | integer | NO\
+ ads_sync_jobs.syncedAdSets | integer | NO\
+ ads_sync_jobs.totalAds | integer | NO\
+ ads_sync_jobs.syncedAds | integer | NO\
+ ads_sync_jobs.currentPhase | text | YES\
+ ads_sync_jobs.currentCampaignIdx | integer | NO\
+ ads_sync_jobs.currentAdSetIdx | integer | NO\
+ ads_sync_jobs.campaignsList | jsonb | YES\
+ ads_sync_jobs.errorMessage | text | YES\
+ ads_sync_jobs.errorCode | text | YES\
+ ads_sync_jobs.retryAt | timestamp without time zone | YES\
+ ads_sync_jobs.retryCount | integer | NO\
+ ads_sync_jobs.maxRetries | integer | NO\
+ ads_sync_jobs.startedAt | timestamp without time zone | YES\
+ ads_sync_jobs.completedAt | timestamp without time zone | YES\
+ ads_sync_jobs.createdAt | timestamp without time zone | NO\
+ ads_sync_jobs.updatedAt | timestamp without time zone | NO\
+ ads_webhook_configs.id | text | NO\
+ ads_webhook_configs.platform | USER-DEFINED | NO\
+ ads_webhook_configs.verifyToken | text | NO\
+ ads_webhook_configs.appSecret | text | YES\
+ ads_webhook_configs.subscriptions | jsonb | YES\
+ ads_webhook_configs.isActive | boolean | NO\
+ ads_webhook_configs.isVerified | boolean | NO\
+ ads_webhook_configs.lastEventAt | timestamp without time zone | YES\
+ ads_webhook_configs.eventsReceived | integer | NO\
+ ads_webhook_configs.lastError | text | YES\
+ ads_webhook_configs.lastErrorAt | timestamp without time zone | YES\
+ ads_webhook_configs.createdAt | timestamp without time zone | NO\
+ ads_webhook_configs.updatedAt | timestamp without time zone | NO\
+ ads_webhook_events.id | text | NO\
+ ads_webhook_events.platform | USER-DEFINED | NO\
+ ads_webhook_events.eventType | text | NO\
+ ads_webhook_events.objectId | text | YES\
+ ads_webhook_events.payload | jsonb | NO\
+ ads_webhook_events.processed | boolean | NO\
+ ads_webhook_events.processedAt | timestamp without time zone | YES\
+ ads_webhook_events.processError | text | YES\
+ ads_webhook_events.receivedAt | timestamp without time zone | NO\
+ ai_action_logs.id | text | NO\
+ ai_action_logs.insightId | text | NO\
+ ai_action_logs.action | text | NO\
+ ai_action_logs.previousValue | text | NO\
+ ai_action_logs.newValue | text | NO\
+ ai_action_logs.success | boolean | NO\
+ ai_action_logs.errorMessage | text | YES\
+ ai_action_logs.performedBy | text | NO\
+ ai_action_logs.performedAt | timestamp without time zone | NO\
+ ai_action_logs.outcomeTracked | boolean | NO\
+ ai_action_logs.outcomeDate | timestamp without time zone | YES\
+ ai_action_logs.outcomeMetrics | jsonb | YES\
+ ai_action_logs.outcomeNotes | text | YES\
+ ai_analysis_runs.id | text | NO\
+ ai_analysis_runs.type | text | NO\
+ ai_analysis_runs.status | text | NO\
+ ai_analysis_runs.insightsGenerated | integer | NO\
+ ai_analysis_runs.tokensUsed | integer | NO\
+ ai_analysis_runs.costEstimate | numeric | YES\
+ ai_analysis_runs.startedAt | timestamp without time zone | NO\
+ ai_analysis_runs.completedAt | timestamp without time zone | YES\
+ ai_analysis_runs.duration | integer | YES\
+ ai_analysis_runs.errorMessage | text | YES\
+ ai_analysis_runs.triggeredBy | text | YES\
+ ai_insights.id | text | NO\
+ ai_insights.type | USER-DEFINED | NO\
+ ai_insights.targetType | text | NO\
+ ai_insights.targetId | text | YES\
+ ai_insights.targetName | text | YES\
+ ai_insights.currentValue | text | NO\
+ ai_insights.suggestedValue | text | NO\
+ ai_insights.title | text | NO\
+ ai_insights.reasoning | text | NO\
+ ai_insights.confidence | numeric | NO\
+ ai_insights.estimatedImpact | text | YES\
+ ai_insights.status | USER-DEFINED | NO\
+ ai_insights.statusChangedAt | timestamp without time zone | YES\
+ ai_insights.statusChangedBy | text | YES\
+ ai_insights.analysisContext | jsonb | YES\
+ ai_insights.createdAt | timestamp without time zone | NO\
+ ai_insights.expiresAt | timestamp without time zone | YES\
+ audit_logs.id | text | NO\
+ audit_logs.userId | text | YES\
+ audit_logs.action | text | NO\
+ audit_logs.entityType | text | NO\
+ audit_logs.entityId | text | YES\
+ audit_logs.oldValue | jsonb | YES\
+ audit_logs.newValue | jsonb | YES\
+ audit_logs.metadata | jsonb | YES\
+ audit_logs.createdAt | timestamp without time zone | NO\
+ awb_comment_images.id | text | NO\
+ awb_comment_images.commentId | text | YES\
+ awb_comment_images.filename | text | NO\
+ awb_comment_images.storagePath | text | NO\
+ awb_comment_images.mimeType | text | NO\
+ awb_comment_images.size | integer | NO\
+ awb_comment_images.createdAt | timestamp without time zone | NO\
+ awb_comments.id | text | NO\
+ awb_comments.awbId | text | NO\
+ awb_comments.userId | text | NO\
+ awb_comments.content | text | NO\
+ awb_comments.createdAt | timestamp without time zone | NO\
+ awb_comments.updatedAt | timestamp without time zone | NO\
+ awb_status_history.id | text | NO\
+ awb_status_history.awbId | text | NO\
+ awb_status_history.status | text | NO\
+ awb_status_history.statusDate | timestamp without time zone | NO\
+ awb_status_history.location | text | YES\
+ awb_status_history.description | text | YES\
+ awb_status_history.createdAt | timestamp without time zone | NO\
+ awbs.id | text | NO\
+ awbs.orderId | text | NO\
+ awbs.awbNumber | text | YES\
+ awbs.serviceType | text | NO\
+ awbs.paymentType | text | NO\
+ awbs.weight | numeric | NO\
+ awbs.packages | integer | NO\
+ awbs.declaredValue | numeric | YES\
+ awbs.cashOnDelivery | numeric | YES\
+ awbs.observations | text | YES\
+ awbs.currentStatus | text | NO\
+ awbs.currentStatusDate | timestamp without time zone | YES\
+ awbs.errorMessage | text | YES\
+ awbs.fanCourierStatusCode | text | YES\
+ awbs.fanCourierStatusName | text | YES\
+ awbs.fanCourierStatusDesc | text | YES\
+ awbs.handedOverAt | timestamp without time zone | YES\
+ awbs.handedOverBy | text | YES\
+ awbs.handedOverByName | text | YES\
+ awbs.handedOverNote | text | YES\
+ awbs.notHandedOver | boolean | NO\
+ awbs.notHandedOverAt | timestamp without time zone | YES\
+ awbs.hasC0WithoutScan | boolean | NO\
+ awbs.c0ReceivedAt | timestamp without time zone | YES\
+ awbs.createdAt | timestamp without time zone | NO\
+ awbs.updatedAt | timestamp without time zone | NO\
+ awbs.handoverSessionId | text | YES\
+ awbs.collectedAmount | numeric | YES\
+ awbs.collectedAt | timestamp without time zone | YES\
+ awbs.companyId | text | YES\
+ awbs.isCollected | boolean | NO\
+ bulk_publish_jobs.id | text | NO\
+ bulk_publish_jobs.user_id | text | YES\
+ bulk_publish_jobs.status | USER-DEFINED | NO\
+ bulk_publish_jobs.product_ids | jsonb | NO\
+ bulk_publish_jobs.channel_ids | jsonb | NO\
+ bulk_publish_jobs.total_products | integer | NO\
+ bulk_publish_jobs.total_channels | integer | NO\
+ bulk_publish_jobs.processed_items | integer | NO\
+ bulk_publish_jobs.total_items | integer | NO\
+ bulk_publish_jobs.created_count | integer | NO\
+ bulk_publish_jobs.updated_count | integer | NO\
+ bulk_publish_jobs.failed_count | integer | NO\
+ bulk_publish_jobs.channel_progress | jsonb | NO\
+ bulk_publish_jobs.current_channel_id | text | YES\
+ bulk_publish_jobs.current_product_idx | integer | NO\
+ bulk_publish_jobs.started_at | timestamp without time zone | YES\
+ bulk_publish_jobs.completed_at | timestamp without time zone | YES\
+ bulk_publish_jobs.error_message | text | YES\
+ bulk_publish_jobs.created_at | timestamp without time zone | NO\
+ bulk_publish_jobs.updated_at | timestamp without time zone | NO\
+ bulk_push_jobs.id | text | NO\
+ bulk_push_jobs.status | text | NO\
+ bulk_push_jobs.started_at | timestamp without time zone | NO\
+ bulk_push_jobs.completed_at | timestamp without time zone | YES\
+ bulk_push_jobs.progress | jsonb | NO\
+ bulk_push_jobs.error | text | YES\
+ bulk_push_jobs.created_at | timestamp without time zone | NO\
+ bulk_push_jobs.updated_at | timestamp without time zone | NO\
+ categories.id | text | NO\
+ categories.name | text | NO\
+ categories.description | text | YES\
+ categories.shopifyCollectionIds | jsonb | YES\
+ categories.trendyolCategoryId | integer | YES\
+ categories.trendyolCategoryName | text | YES\
+ categories.trendyolAttributes | jsonb | YES\
+ categories.createdAt | timestamp without time zone | NO\
+ categories.updatedAt | timestamp without time zone | NO\
+ channels.id | text | NO\
+ channels.name | text | NO\
+ channels.type | USER-DEFINED | NO\
+ channels.storeId | text | YES\
+ channels.isActive | boolean | NO\
+ channels.settings | jsonb | YES\
+ channels.createdAt | timestamp without time zone | NO\
+ channels.updatedAt | timestamp without time zone | NO\
+ companies.id | text | NO\
+ companies.name | text | NO\
+ companies.code | text | NO\
+ companies.cif | text | YES\
+ companies.regCom | text | YES\
+ companies.address | text | YES\
+ companies.city | text | YES\
+ companies.county | text | YES\
+ companies.postalCode | text | YES\
+ companies.country | text | NO\
+ companies.bankName | text | YES\
+ companies.bankAccount | text | YES\
+ companies.email | text | YES\
+ companies.phone | text | YES\
+ companies.oblioEmail | text | YES\
+ companies.oblioSecretToken | text | YES\
+ companies.oblioCif | text | YES\
+ companies.fancourierClientId | text | YES\
+ companies.fancourierUsername | text | YES\
+ companies.fancourierPassword | text | YES\
+ companies.senderName | text | YES\
+ companies.senderPhone | text | YES\
+ companies.senderEmail | text | YES\
+ companies.senderCounty | text | YES\
+ companies.senderCity | text | YES\
+ companies.senderStreet | text | YES\
+ companies.senderNumber | text | YES\
+ companies.senderPostalCode | text | YES\
+ companies.isPrimary | boolean | NO\
+ companies.intercompanyMarkup | numeric | NO\
+ companies.defaultVatRate | numeric | NO\
+ companies.vatPayer | boolean | NO\
+ companies.isActive | boolean | NO\
+ companies.createdAt | timestamp without time zone | NO\
+ companies.updatedAt | timestamp without time zone | NO\
+ companies.intercompanySeriesName | text | YES\
+ daily_sales.id | text | NO\
+ daily_sales.date | date | NO\
+ daily_sales.totalSales | numeric | NO\
+ daily_sales.totalOrders | integer | NO\
+ daily_sales.totalInvoices | integer | NO\
+ daily_sales.totalItems | integer | NO\
+ daily_sales.totalCost | numeric | NO\
+ daily_sales.totalProfit | numeric | NO\
+ daily_sales.totalAWBs | integer | NO\
+ daily_sales.totalDelivered | integer | NO\
+ daily_sales.totalReturned | integer | NO\
+ daily_sales.createdAt | timestamp without time zone | NO\
+ daily_sales.updatedAt | timestamp without time zone | NO\
+ failed_invoice_attempts.id | text | NO\
+ failed_invoice_attempts.orderId | text | NO\
+ failed_invoice_attempts.errorCode | text | NO\
+ failed_invoice_attempts.errorMessage | text | NO\
+ failed_invoice_attempts.storeId | text | YES\
+ failed_invoice_attempts.storeName | text | YES\
+ failed_invoice_attempts.companyId | text | YES\
+ failed_invoice_attempts.companyName | text | YES\
+ failed_invoice_attempts.seriesId | text | YES\
+ failed_invoice_attempts.seriesName | text | YES\
+ failed_invoice_attempts.status | text | NO\
+ failed_invoice_attempts.retriedAt | timestamp without time zone | YES\
+ failed_invoice_attempts.resolvedAt | timestamp without time zone | YES\
+ failed_invoice_attempts.attemptNumber | integer | NO\
+ failed_invoice_attempts.createdAt | timestamp without time zone | NO\
+ failed_invoice_attempts.updatedAt | timestamp without time zone | NO\
+ goods_receipt_items.id | text | NO\
+ goods_receipt_items.receiptId | text | NO\
+ goods_receipt_items.itemId | text | NO\
+ goods_receipt_items.quantity | numeric | NO\
+ goods_receipt_items.unitCost | numeric | YES\
+ goods_receipt_items.totalCost | numeric | YES\
+ goods_receipt_items.lotNumber | text | YES\
+ goods_receipt_items.expiryDate | timestamp without time zone | YES\
+ goods_receipt_items.notes | text | YES\
+ goods_receipt_items.createdAt | timestamp without time zone | NO\
+ goods_receipts.id | text | NO\
+ goods_receipts.receiptNumber | text | NO\
+ goods_receipts.supplierId | text | YES\
+ goods_receipts.documentNumber | text | YES\
+ goods_receipts.documentDate | timestamp without time zone | YES\
+ goods_receipts.status | USER-DEFINED | NO\
+ goods_receipts.totalItems | integer | NO\
+ goods_receipts.totalQuantity | numeric | NO\
+ goods_receipts.totalValue | numeric | NO\
+ goods_receipts.notes | text | YES\
+ goods_receipts.createdBy | text | YES\
+ goods_receipts.createdByName | text | YES\
+ goods_receipts.completedBy | text | YES\
+ goods_receipts.completedByName | text | YES\
+ goods_receipts.completedAt | timestamp without time zone | YES\
+ goods_receipts.createdAt | timestamp without time zone | NO\
+ goods_receipts.updatedAt | timestamp without time zone | NO\
+ goods_receipts.warehouseId | text | YES\
+ group_role_assignments.id | text | NO\
+ group_role_assignments.groupId | text | NO\
+ group_role_assignments.roleId | text | NO\
+ group_role_assignments.assignedAt | timestamp without time zone | NO\
+ group_role_assignments.assignedBy | text | YES\
+ groups.id | text | NO\
+ groups.name | text | NO\
+ groups.description | text | YES\
+ groups.color | text | YES\
+ groups.createdAt | timestamp without time zone | NO\
+ groups.updatedAt | timestamp without time zone | NO\
+ handover_sessions.id | text | NO\
+ handover_sessions.date | date | NO\
+ handover_sessions.status | USER-DEFINED | NO\
+ handover_sessions.closedAt | timestamp without time zone | YES\
+ handover_sessions.closedBy | text | YES\
+ handover_sessions.closedByName | text | YES\
+ handover_sessions.closeType | text | YES\
+ handover_sessions.reopenedAt | timestamp without time zone | YES\
+ handover_sessions.reopenedBy | text | YES\
+ handover_sessions.reopenedByName | text | YES\
+ handover_sessions.totalIssued | integer | NO\
+ handover_sessions.totalHandedOver | integer | NO\
+ handover_sessions.totalNotHandedOver | integer | NO\
+ handover_sessions.totalFromPrevDays | integer | NO\
+ handover_sessions.createdAt | timestamp without time zone | NO\
+ handover_sessions.updatedAt | timestamp without time zone | NO\
+ intercompany_invoices.id | text | NO\
+ intercompany_invoices.issuedByCompanyId | text | NO\
+ intercompany_invoices.receivedByCompanyId | text | NO\
+ intercompany_invoices.periodStart | timestamp without time zone | NO\
+ intercompany_invoices.periodEnd | timestamp without time zone | NO\
+ intercompany_invoices.invoiceNumber | text | NO\
+ intercompany_invoices.invoiceSeries | text | YES\
+ intercompany_invoices.totalValue | numeric | NO\
+ intercompany_invoices.totalVat | numeric | NO\
+ intercompany_invoices.totalWithVat | numeric | NO\
+ intercompany_invoices.totalItems | integer | NO\
+ intercompany_invoices.status | text | NO\
+ intercompany_invoices.issuedAt | timestamp without time zone | YES\
+ intercompany_invoices.paidAt | timestamp without time zone | YES\
+ intercompany_invoices.lineItems | jsonb | NO\
+ intercompany_invoices.notes | text | YES\
+ intercompany_invoices.createdAt | timestamp without time zone | NO\
+ intercompany_invoices.updatedAt | timestamp without time zone | NO\
+ intercompany_order_links.id | text | NO\
+ intercompany_order_links.orderId | text | NO\
+ intercompany_order_links.intercompanyInvoiceId | text | YES\
+ intercompany_order_links.status | text | NO\
+ intercompany_order_links.settledAt | timestamp without time zone | YES\
+ intercompany_order_links.orderValue | numeric | YES\
+ intercompany_order_links.costValue | numeric | YES\
+ intercompany_order_links.intercompanyValue | numeric | YES\
+ intercompany_order_links.createdAt | timestamp without time zone | NO\
+ inventory_items.id | text | NO\
+ inventory_items.sku | text | NO\
+ inventory_items.name | text | NO\
+ inventory_items.description | text | YES\
+ inventory_items.currentStock | numeric | NO\
+ inventory_items.minStock | numeric | YES\
+ inventory_items.unit | text | NO\
+ inventory_items.unitsPerBox | integer | YES\
+ inventory_items.boxUnit | text | YES\
+ inventory_items.costPrice | numeric | YES\
+ inventory_items.isComposite | boolean | NO\
+ inventory_items.trackLots | boolean | NO\
+ inventory_items.isActive | boolean | NO\
+ inventory_items.supplierId | text | YES\
+ inventory_items.createdAt | timestamp without time zone | NO\
+ inventory_items.updatedAt | timestamp without time zone | NO\
+ inventory_recipe_components.id | text | NO\
+ inventory_recipe_components.compositeItemId | text | NO\
+ inventory_recipe_components.componentItemId | text | NO\
+ inventory_recipe_components.quantity | numeric | NO\
+ inventory_recipe_components.unit | text | YES\
+ inventory_recipe_components.sortOrder | integer | NO\
+ inventory_recipe_components.createdAt | timestamp without time zone | NO\
+ inventory_stock_movements.id | text | NO\
+ inventory_stock_movements.itemId | text | NO\
+ inventory_stock_movements.type | USER-DEFINED | NO\
+ inventory_stock_movements.quantity | numeric | NO\
+ inventory_stock_movements.previousStock | numeric | NO\
+ inventory_stock_movements.newStock | numeric | NO\
+ inventory_stock_movements.orderId | text | YES\
+ inventory_stock_movements.orderNumber | text | YES\
+ inventory_stock_movements.invoiceId | text | YES\
+ inventory_stock_movements.invoiceNumber | text | YES\
+ inventory_stock_movements.receiptId | text | YES\
+ inventory_stock_movements.lotNumber | text | YES\
+ inventory_stock_movements.reason | text | YES\
+ inventory_stock_movements.notes | text | YES\
+ inventory_stock_movements.userId | text | YES\
+ inventory_stock_movements.userName | text | YES\
+ inventory_stock_movements.createdAt | timestamp without time zone | NO\
+ inventory_stock_movements.transferId | text | YES\
+ inventory_stock_movements.warehouseId | text | YES\
+ invitations.id | text | NO\
+ invitations.email | text | NO\
+ invitations.token | text | NO\
+ invitations.roleIds | ARRAY | YES\
+ invitations.groupIds | ARRAY | YES\
+ invitations.storeIds | ARRAY | YES\
+ invitations.invitedById | text | NO\
+ invitations.expiresAt | timestamp without time zone | NO\
+ invitations.acceptedAt | timestamp without time zone | YES\
+ invitations.createdAt | timestamp without time zone | NO\
+ invoice_series.id | text | NO\
+ invoice_series.name | text | NO\
+ invoice_series.type | text | NO\
+ invoice_series.isDefault | boolean | NO\
+ invoice_series.isActive | boolean | NO\
+ invoice_series.createdAt | timestamp without time zone | NO\
+ invoice_series.updatedAt | timestamp without time zone | NO\
+ invoice_series.currentNumber | integer | NO\
+ invoice_series.description | text | YES\
+ invoice_series.prefix | text | NO\
+ invoice_series.smartBillSeries | text | YES\
+ invoice_series.startNumber | integer | NO\
+ invoice_series.syncToSmartBill | boolean | NO\
+ invoice_series.companyId | text | YES\
+ invoice_series.oblioSeries | text | YES\
+ invoice_series.numberPadding | integer | NO\
+ invoice_series.syncToOblio | boolean | NO\
+ invoice_series.syncToFacturis | boolean | YES\
+ invoice_series.facturisSeries | text | YES\
+ invoices.id | text | NO\
+ invoices.orderId | text | NO\
+ invoices.smartbillNumber | text | YES\
+ invoices.smartbillSeries | text | YES\
+ invoices.smartbillId | text | YES\
+ invoices.status | text | NO\
+ invoices.errorMessage | text | YES\
+ invoices.dueDate | timestamp without time zone | YES\
+ invoices.paymentStatus | text | NO\
+ invoices.paidAmount | numeric | NO\
+ invoices.paidAt | timestamp without time zone | YES\
+ invoices.cancelledAt | timestamp without time zone | YES\
+ invoices.cancelReason | text | YES\
+ invoices.stornoNumber | text | YES\
+ invoices.stornoSeries | text | YES\
+ invoices.pdfUrl | text | YES\
+ invoices.pdfData | bytea | YES\
+ invoices.issuedAt | timestamp without time zone | YES\
+ invoices.createdAt | timestamp without time zone | NO\
+ invoices.updatedAt | timestamp without time zone | NO\
+ invoices.companyId | text | YES\
+ invoices.oblioId | text | YES\
+ invoices.invoiceProvider | text | NO\
+ invoices.invoiceSeriesId | text | YES\
+ invoices.smartbill_series | text | YES\
+ invoices.smartbill_id | text | YES\
+ invoices.invoiceSeriesName | text | YES\
+ invoices.invoiceNumber | text | YES\
+ invoices.facturisId | text | YES\
+ line_items.id | text | NO\
+ line_items.orderId | text | NO\
+ line_items.shopifyLineItemId | text | NO\
+ line_items.title | text | NO\
+ line_items.variantTitle | text | YES\
+ line_items.sku | text | YES\
+ line_items.quantity | integer | NO\
+ line_items.price | numeric | NO\
+ line_items.barcode | text | YES\
+ line_items.imageUrl | text | YES\
+ line_items.weight | numeric | YES\
+ line_items.location | text | YES\
+ line_items.masterProductId | text | YES\
+ master_product_channels.id | text | NO\
+ master_product_channels.productId | text | NO\
+ master_product_channels.channelId | text | NO\
+ master_product_channels.isPublished | boolean | NO\
+ master_product_channels.isActive | boolean | NO\
+ master_product_channels.externalId | text | YES\
+ master_product_channels.overrides | jsonb | YES\
+ master_product_channels.lastSyncedAt | timestamp without time zone | YES\
+ master_product_channels.syncTag | text | YES\
+ master_product_channels.syncError | text | YES\
+ master_product_channels.externalOverrides | jsonb | YES\
+ master_product_channels.hasExternalChanges | boolean | NO\
+ master_product_channels.createdAt | timestamp without time zone | NO\
+ master_product_channels.updatedAt | timestamp without time zone | NO\
+ master_product_images.id | text | NO\
+ master_product_images.productId | text | NO\
+ master_product_images.url | text | NO\
+ master_product_images.filename | text | NO\
+ master_product_images.position | integer | NO\
+ master_product_images.driveFileId | text | YES\
+ master_product_images.driveModified | timestamp without time zone | YES\
+ master_product_images.createdAt | timestamp without time zone | NO\
+ master_product_images.updatedAt | timestamp without time zone | NO\
+ master_products.id | text | NO\
+ master_products.sku | text | NO\
+ master_products.barcode | text | YES\
+ master_products.title | text | NO\
+ master_products.description | text | YES\
+ master_products.price | numeric | NO\
+ master_products.compareAtPrice | numeric | YES\
+ master_products.tags | ARRAY | YES\
+ master_products.weight | numeric | YES\
+ master_products.warehouseLocation | text | YES\
+ master_products.categoryId | text | YES\
+ master_products.stock | integer | NO\
+ master_products.stockLastSyncedAt | timestamp without time zone | YES\
+ master_products.isComposite | boolean | NO\
+ master_products.driveFolderUrl | text | YES\
+ master_products.imagesLastSyncedAt | timestamp without time zone | YES\
+ master_products.trendyolBarcode | text | YES\
+ master_products.trendyolBrandId | integer | YES\
+ master_products.trendyolBrandName | text | YES\
+ master_products.trendyolProductId | text | YES\
+ master_products.trendyolStatus | text | YES\
+ master_products.trendyolBatchId | text | YES\
+ master_products.trendyolError | text | YES\
+ master_products.trendyolAttributes | jsonb | YES\
+ master_products.trendyolLastSyncedAt | timestamp without time zone | YES\
+ master_products.isActive | boolean | NO\
+ master_products.createdAt | timestamp without time zone | NO\
+ master_products.updatedAt | timestamp without time zone | NO\
+ master_products.inventoryItemId | text | YES\
+ master_products.trendyolCategoryId | integer | YES\
+ master_products.trendyol_attribute_values | jsonb | YES\
+ notifications.id | text | NO\
+ notifications.userId | text | NO\
+ notifications.type | text | NO\
+ notifications.title | text | NO\
+ notifications.message | text | NO\
+ notifications.data | jsonb | YES\
+ notifications.read | boolean | NO\
+ notifications.attachmentData | bytea | YES\
+ notifications.attachmentName | text | YES\
+ notifications.attachmentMimeType | text | YES\
+ notifications.actionUrl | text | YES\
+ notifications.createdAt | timestamp without time zone | NO\
+ orders.id | text | NO\
+ orders.shopifyOrderId | text | NO\
+ orders.shopifyOrderNumber | text | NO\
+ orders.storeId | text | NO\
+ orders.customerEmail | text | YES\
+ orders.customerPhone | text | YES\
+ orders.customerFirstName | text | YES\
+ orders.customerLastName | text | YES\
+ orders.shippingAddress1 | text | YES\
+ orders.shippingAddress2 | text | YES\
+ orders.shippingCity | text | YES\
+ orders.shippingProvince | text | YES\
+ orders.shippingCountry | text | YES\
+ orders.shippingZip | text | YES\
+ orders.totalPrice | numeric | NO\
+ orders.subtotalPrice | numeric | NO\
+ orders.totalShipping | numeric | NO\
+ orders.totalTax | numeric | NO\
+ orders.currency | text | NO\
+ orders.status | USER-DEFINED | NO\
+ orders.financialStatus | text | YES\
+ orders.fulfillmentStatus | text | YES\
+ orders.phoneValidation | USER-DEFINED | NO\
+ orders.phoneValidationMsg | text | YES\
+ orders.addressValidation | USER-DEFINED | NO\
+ orders.addressValidationMsg | text | YES\
+ orders.shopifyCreatedAt | timestamp without time zone | NO\
+ orders.shopifyUpdatedAt | timestamp without time zone | NO\
+ orders.rawData | jsonb | YES\
+ orders.createdAt | timestamp without time zone | NO\
+ orders.updatedAt | timestamp without time zone | NO\
+ orders.billingCompanyId | text | YES\
+ orders.intercompanyStatus | text | YES\
+ orders.operationalWarehouseId | text | YES\
+ orders.requiredTransferId | text | YES\
+ orders.source | character varying | NO\
+ permissions.id | text | NO\
+ permissions.code | text | NO\
+ permissions.name | text | NO\
+ permissions.description | text | YES\
+ permissions.category | text | NO\
+ permissions.sortOrder | integer | NO\
+ picking_list_awbs.id | text | NO\
+ picking_list_awbs.pickingListId | text | NO\
+ picking_list_awbs.awbId | text | NO\
+ picking_list_awbs.isPrinted | boolean | NO\
+ picking_list_awbs.printedAt | timestamp without time zone | YES\
+ picking_list_awbs.isPacked | boolean | NO\
+ picking_list_awbs.packedAt | timestamp without time zone | YES\
+ picking_list_awbs.createdAt | timestamp without time zone | NO\
+ picking_list_items.id | text | NO\
+ picking_list_items.pickingListId | text | NO\
+ picking_list_items.sku | text | NO\
+ picking_list_items.barcode | text | YES\
+ picking_list_items.title | text | NO\
+ picking_list_items.variantTitle | text | YES\
+ picking_list_items.imageUrl | text | YES\
+ picking_list_items.isRecipeParent | boolean | NO\
+ picking_list_items.parentItemId | text | YES\
+ picking_list_items.recipeLevel | integer | NO\
+ picking_list_items.location | text | YES\
+ picking_list_items.quantityRequired | integer | NO\
+ picking_list_items.quantityPicked | integer | NO\
+ picking_list_items.isComplete | boolean | NO\
+ picking_list_items.pickedAt | timestamp without time zone | YES\
+ picking_list_items.pickedBy | text | YES\
+ picking_list_items.pickedByName | text | YES\
+ picking_list_items.masterProductId | text | YES\
+ picking_list_items.createdAt | timestamp without time zone | NO\
+ picking_list_items.updatedAt | timestamp without time zone | NO\
+ picking_lists.id | text | NO\
+ picking_lists.code | text | NO\
+ picking_lists.name | text | YES\
+ picking_lists.createdBy | text | YES\
+ picking_lists.createdByName | text | YES\
+ picking_lists.startedBy | text | YES\
+ picking_lists.startedByName | text | YES\
+ picking_lists.completedBy | text | YES\
+ picking_lists.completedByName | text | YES\
+ picking_lists.assignedTo | text | YES\
+ picking_lists.status | USER-DEFINED | NO\
+ picking_lists.startedAt | timestamp without time zone | YES\
+ picking_lists.completedAt | timestamp without time zone | YES\
+ picking_lists.totalItems | integer | NO\
+ picking_lists.totalQuantity | integer | NO\
+ picking_lists.pickedQuantity | integer | NO\
+ picking_lists.pdfData | bytea | YES\
+ picking_lists.pdfGeneratedAt | timestamp without time zone | YES\
+ picking_lists.notes | text | YES\
+ picking_lists.createdAt | timestamp without time zone | NO\
+ picking_lists.updatedAt | timestamp without time zone | NO\
+ picking_logs.id | text | NO\
+ picking_logs.pickingListId | text | NO\
+ picking_logs.action | USER-DEFINED | NO\
+ picking_logs.userId | text | YES\
+ picking_logs.userName | text | YES\
+ picking_logs.itemId | text | YES\
+ picking_logs.itemSku | text | YES\
+ picking_logs.itemTitle | text | YES\
+ picking_logs.quantityBefore | integer | YES\
+ picking_logs.quantityAfter | integer | YES\
+ picking_logs.quantityAttempted | integer | YES\
+ picking_logs.message | text | YES\
+ picking_logs.metadata | jsonb | YES\
+ picking_logs.createdAt | timestamp without time zone | NO\
+ print_jobs.id | text | NO\
+ print_jobs.printerId | text | NO\
+ print_jobs.documentType | text | NO\
+ print_jobs.documentId | text | NO\
+ print_jobs.documentNumber | text | YES\
+ print_jobs.orderId | text | YES\
+ print_jobs.orderNumber | text | YES\
+ print_jobs.status | USER-DEFINED | NO\
+ print_jobs.attempts | integer | NO\
+ print_jobs.maxAttempts | integer | NO\
+ print_jobs.completedAt | timestamp without time zone | YES\
+ print_jobs.errorMessage | text | YES\
+ print_jobs.createdAt | timestamp without time zone | NO\
+ print_jobs.updatedAt | timestamp without time zone | NO\
+ printers.id | text | NO\
+ printers.name | text | NO\
+ printers.appToken | text | NO\
+ printers.printerToken | text | NO\
+ printers.paperSize | text | NO\
+ printers.orientation | text | NO\
+ printers.copies | integer | NO\
+ printers.autoPrint | boolean | NO\
+ printers.outputFormat | text | NO\
+ printers.isConnected | boolean | NO\
+ printers.lastSeenAt | timestamp without time zone | YES\
+ printers.lastError | text | YES\
+ printers.isActive | boolean | NO\
+ printers.createdAt | timestamp without time zone | NO\
+ printers.updatedAt | timestamp without time zone | NO\
+ processing_errors.id | text | NO\
+ processing_errors.orderId | text | NO\
+ processing_errors.orderNumber | text | YES\
+ processing_errors.type | USER-DEFINED | NO\
+ processing_errors.status | USER-DEFINED | NO\
+ processing_errors.errorMessage | text | NO\
+ processing_errors.errorDetails | jsonb | YES\
+ processing_errors.retryCount | integer | NO\
+ processing_errors.maxRetries | integer | NO\
+ processing_errors.lastRetryAt | timestamp without time zone | YES\
+ processing_errors.nextRetryAt | timestamp without time zone | YES\
+ processing_errors.resolvedAt | timestamp without time zone | YES\
+ processing_errors.resolvedBy | text | YES\
+ processing_errors.resolvedByName | text | YES\
+ processing_errors.resolution | text | YES\
+ processing_errors.pickingListId | text | YES\
+ processing_errors.batchId | text | YES\
+ processing_errors.createdAt | timestamp without time zone | NO\
+ processing_errors.updatedAt | timestamp without time zone | NO\
+ product_components.id | text | NO\
+ product_components.compositeProductId | text | NO\
+ product_components.componentProductId | text | NO\
+ product_components.quantity | integer | NO\
+ product_components.createdAt | timestamp without time zone | NO\
+ product_recipes.id | text | NO\
+ product_recipes.parentProductId | text | NO\
+ product_recipes.componentProductId | text | NO\
+ product_recipes.quantity | numeric | NO\
+ product_recipes.unit | text | YES\
+ product_recipes.sortOrder | integer | NO\
+ product_recipes.createdAt | timestamp without time zone | NO\
+ product_recipes.updatedAt | timestamp without time zone | NO\
+ products.id | text | NO\
+ products.sku | text | NO\
+ products.name | text | NO\
+ products.description | text | YES\
+ products.price | numeric | NO\
+ products.costPrice | numeric | NO\
+ products.stockQuantity | integer | NO\
+ products.lowStockAlert | integer | NO\
+ products.isComposite | boolean | NO\
+ products.isActive | boolean | NO\
+ products.category | text | YES\
+ products.supplier | text | YES\
+ products.barcode | text | YES\
+ products.unit | text | NO\
+ products.createdAt | timestamp without time zone | NO\
+ products.updatedAt | timestamp without time zone | NO\
+ return_awbs.id | text | NO\
+ return_awbs.returnAwbNumber | text | NO\
+ return_awbs.originalAwbId | text | YES\
+ return_awbs.orderId | text | YES\
+ return_awbs.status | text | NO\
+ return_awbs.scannedAt | timestamp without time zone | NO\
+ return_awbs.scannedBy | text | YES\
+ return_awbs.scannedByName | text | YES\
+ return_awbs.processedAt | timestamp without time zone | YES\
+ return_awbs.processedBy | text | YES\
+ return_awbs.processedByName | text | YES\
+ return_awbs.notes | text | YES\
+ return_awbs.createdAt | timestamp without time zone | NO\
+ return_awbs.updatedAt | timestamp without time zone | NO\
+ role_permissions.id | text | NO\
+ role_permissions.roleId | text | NO\
+ role_permissions.permissionId | text | NO\
+ roles.id | text | NO\
+ roles.name | text | NO\
+ roles.description | text | YES\
+ roles.color | text | YES\
+ roles.isSystem | boolean | NO\
+ roles.createdAt | timestamp without time zone | NO\
+ roles.updatedAt | timestamp without time zone | NO\
+ sessions.id | text | NO\
+ sessions.sessionToken | text | NO\
+ sessions.userId | text | NO\
+ sessions.expires | timestamp without time zone | NO\
+ settings.id | text | NO\
+ settings.smartbillEmail | text | YES\
+ settings.smartbillToken | text | YES\
+ settings.smartbillCompanyCif | text | YES\
+ settings.smartbillSeriesName | text | YES\
+ settings.smartbillWarehouseName | text | YES\
+ settings.smartbillUseStock | boolean | NO\
+ settings.smartbillTaxName | text | YES\
+ settings.smartbillTaxPercent | integer | NO\
+ settings.smartbillDueDays | integer | NO\
+ settings.smartbillSeriesCache | text | YES\
+ settings.smartbillTaxesCache | text | YES\
+ settings.smartbillCacheUpdated | timestamp without time zone | YES\
+ settings.fancourierClientId | text | YES\
+ settings.fancourierUsername | text | YES\
+ settings.fancourierPassword | text | YES\
+ settings.defaultWeight | numeric | NO\
+ settings.defaultServiceType | text | NO\
+ settings.defaultPaymentType | text | NO\
+ settings.defaultPackages | integer | NO\
+ settings.senderName | text | YES\
+ settings.senderPhone | text | YES\
+ settings.senderEmail | text | YES\
+ settings.senderCounty | text | YES\
+ settings.senderCity | text | YES\
+ settings.senderStreet | text | YES\
+ settings.senderNumber | text | YES\
+ settings.senderPostalCode | text | YES\
+ settings.googleDriveFolderUrl | text | YES\
+ settings.googleDriveCredentials | text | YES\
+ settings.googleDriveLastSync | timestamp without time zone | YES\
+ settings.trendyolSupplierId | text | YES\
+ settings.trendyolApiKey | text | YES\
+ settings.trendyolApiSecret | text | YES\
+ settings.trendyolIsTestMode | boolean | NO\
+ settings.trendyolDefaultBrandId | integer | YES\
+ settings.trendyolCurrencyRate | numeric | YES\
+ settings.trendyolStoreFrontCode | text | YES\
+ settings.trendyolInvoiceSeries | text | YES\
+ settings.handoverAutoCloseTime | text | NO\
+ settings.handoverTimezone | text | NO\
+ settings.createdAt | timestamp without time zone | NO\
+ settings.updatedAt | timestamp without time zone | NO\
+ settings.smartbillWarehousesCache | text | YES\
+ settings.aiApiKey | text | YES\
+ settings.aiDailyAnalysisEnabled | boolean | NO\
+ settings.aiDailyAnalysisTime | text | NO\
+ settings.aiLastAnalysisAt | timestamp without time zone | YES\
+ settings.aiModel | text | NO\
+ settings.backupAutoEnabled | boolean | NO\
+ settings.backupAutoTime | text | NO\
+ settings.backupFolderUrl | text | YES\
+ settings.backupLastAt | timestamp without time zone | YES\
+ settings.defaultVatRate | integer | YES\
+ settings.defaultDueDays | integer | YES\
+ stock_movements.id | text | NO\
+ stock_movements.productId | text | NO\
+ stock_movements.type | USER-DEFINED | NO\
+ stock_movements.quantity | integer | NO\
+ stock_movements.previousStock | integer | NO\
+ stock_movements.newStock | integer | NO\
+ stock_movements.orderId | text | YES\
+ stock_movements.invoiceId | text | YES\
+ stock_movements.reference | text | YES\
+ stock_movements.notes | text | YES\
+ stock_movements.createdAt | timestamp without time zone | NO\
+ stock_movements.createdBy | text | YES\
+ stores.id | text | NO\
+ stores.name | text | NO\
+ stores.shopifyDomain | text | NO\
+ stores.accessToken | text | NO\
+ stores.webhookSecret | text | YES\
+ stores.isActive | boolean | NO\
+ stores.invoiceSeriesId | text | YES\
+ stores.createdAt | timestamp without time zone | NO\
+ stores.updatedAt | timestamp without time zone | NO\
+ stores.companyId | text | YES\
+ stores.oblioSeriesName | character varying | YES\
+ suppliers.id | text | NO\
+ suppliers.name | text | NO\
+ suppliers.code | text | YES\
+ suppliers.contactPerson | text | YES\
+ suppliers.email | text | YES\
+ suppliers.phone | text | YES\
+ suppliers.address | text | YES\
+ suppliers.city | text | YES\
+ suppliers.county | text | YES\
+ suppliers.postalCode | text | YES\
+ suppliers.country | text | NO\
+ suppliers.cif | text | YES\
+ suppliers.regCom | text | YES\
+ suppliers.bankAccount | text | YES\
+ suppliers.bankName | text | YES\
+ suppliers.notes | text | YES\
+ suppliers.isActive | boolean | NO\
+ suppliers.createdAt | timestamp without time zone | NO\
+ suppliers.updatedAt | timestamp without time zone | NO\
+ sync_log_entries.id | text | NO\
+ sync_log_entries.syncLogId | text | NO\
+ sync_log_entries.level | USER-DEFINED | NO\
+ sync_log_entries.orderId | text | YES\
+ sync_log_entries.orderNumber | text | YES\
+ sync_log_entries.awbNumber | text | YES\
+ sync_log_entries.invoiceNumber | text | YES\
+ sync_log_entries.action | text | NO\
+ sync_log_entries.message | text | NO\
+ sync_log_entries.details | jsonb | YES\
+ sync_log_entries.timestamp | timestamp without time zone | NO\
+ sync_logs.id | text | NO\
+ sync_logs.type | USER-DEFINED | NO\
+ sync_logs.status | USER-DEFINED | NO\
+ sync_logs.ordersProcessed | integer | NO\
+ sync_logs.awbsUpdated | integer | NO\
+ sync_logs.invoicesChecked | integer | NO\
+ sync_logs.errorsCount | integer | NO\
+ sync_logs.startedAt | timestamp without time zone | NO\
+ sync_logs.completedAt | timestamp without time zone | YES\
+ sync_logs.durationMs | integer | YES\
+ sync_logs.summary | text | YES\
+ task_attachments.id | text | NO\
+ task_attachments.task_id | text | NO\
+ task_attachments.filename | text | NO\
+ task_attachments.storage_path | text | NO\
+ task_attachments.mime_type | text | NO\
+ task_attachments.size | integer | NO\
+ task_attachments.uploaded_by_id | text | NO\
+ task_attachments.created_at | timestamp without time zone | NO\
+ trendyol_campaign_products.id | text | NO\
+ trendyol_campaign_products.campaignId | text | NO\
+ trendyol_campaign_products.trendyolProductId | text | NO\
+ trendyol_campaign_products.barcode | text | NO\
+ trendyol_campaign_products.campaignPrice | numeric | YES\
+ trendyol_campaign_products.originalPrice | numeric | YES\
+ trendyol_campaign_products.discountPercentage | numeric | YES\
+ trendyol_campaign_products.unitsSold | integer | NO\
+ trendyol_campaign_products.revenue | numeric | NO\
+ trendyol_campaign_products.localSku | text | YES\
+ trendyol_campaign_products.masterProductId | text | YES\
+ trendyol_campaign_products.createdAt | timestamp without time zone | NO\
+ trendyol_campaigns.id | text | NO\
+ trendyol_campaigns.trendyolCampaignId | text | NO\
+ trendyol_campaigns.name | text | NO\
+ trendyol_campaigns.description | text | YES\
+ trendyol_campaigns.type | text | NO\
+ trendyol_campaigns.discountType | text | YES\
+ trendyol_campaigns.discountValue | numeric | YES\
+ trendyol_campaigns.startDate | timestamp without time zone | NO\
+ trendyol_campaigns.endDate | timestamp without time zone | NO\
+ trendyol_campaigns.status | text | NO\
+ trendyol_campaigns.totalRevenue | numeric | NO\
+ trendyol_campaigns.totalUnitsSold | integer | NO\
+ trendyol_campaigns.createdAt | timestamp without time zone | NO\
+ trendyol_campaigns.updatedAt | timestamp without time zone | NO\
+ trendyol_campaigns.lastSyncedAt | timestamp without time zone | YES\
+ trendyol_order_items.id | text | NO\
+ trendyol_order_items.trendyolOrderId | text | NO\
+ trendyol_order_items.trendyolProductId | text | NO\
+ trendyol_order_items.barcode | text | NO\
+ trendyol_order_items.title | text | NO\
+ trendyol_order_items.quantity | integer | NO\
+ trendyol_order_items.price | numeric | NO\
+ trendyol_order_items.merchantSku | text | YES\
+ trendyol_order_items.productColor | text | YES\
+ trendyol_order_items.productSize | text | YES\
+ trendyol_order_items.localSku | text | YES\
+ trendyol_order_items.masterProductId | text | YES\
+ trendyol_order_items.isMapped | boolean | NO\
+ trendyol_orders.id | text | NO\
+ trendyol_orders.trendyolOrderId | text | NO\
+ trendyol_orders.trendyolOrderNumber | text | NO\
+ trendyol_orders.orderDate | timestamp without time zone | NO\
+ trendyol_orders.status | text | NO\
+ trendyol_orders.customerName | text | NO\
+ trendyol_orders.customerEmail | text | YES\
+ trendyol_orders.customerPhone | text | YES\
+ trendyol_orders.customerAddress | text | NO\
+ trendyol_orders.customerCity | text | NO\
+ trendyol_orders.customerDistrict | text | YES\
+ trendyol_orders.customerPostalCode | text | YES\
+ trendyol_orders.cargoProviderName | text | YES\
+ trendyol_orders.cargoTrackingNumber | text | YES\
+ trendyol_orders.cargoTrackingLink | text | YES\
+ trendyol_orders.totalPrice | numeric | NO\
+ trendyol_orders.currency | text | NO\
+ trendyol_orders.shipmentPackageId | text | YES\
+ trendyol_orders.orderId | text | YES\
+ trendyol_orders.createdAt | timestamp without time zone | NO\
+ trendyol_orders.updatedAt | timestamp without time zone | NO\
+ trendyol_orders.lastSyncedAt | timestamp without time zone | YES\
+ trendyol_orders.invoice_sent_to_trendyol | boolean | YES\
+ trendyol_orders.invoice_sent_at | timestamp without time zone | YES\
+ trendyol_orders.invoice_send_error | text | YES\
+ trendyol_orders.oblio_invoice_link | text | YES\
+ trendyol_orders.tracking_sent_to_trendyol | boolean | YES\
+ trendyol_orders.tracking_sent_at | timestamp without time zone | YES\
+ trendyol_orders.tracking_send_error | text | YES\
+ trendyol_orders.local_awb_number | text | YES\
+ trendyol_orders.local_carrier | text | YES\
+ trendyol_orders.trendyol_store_id | character varying | YES\
+ trendyol_product_mappings.id | text | NO\
+ trendyol_product_mappings.trendyolProductId | text | NO\
+ trendyol_product_mappings.barcode | text | NO\
+ trendyol_product_mappings.trendyolTitle | text | NO\
+ trendyol_product_mappings.merchantSku | text | YES\
+ trendyol_product_mappings.localSku | text | NO\
+ trendyol_product_mappings.masterProductId | text | YES\
+ trendyol_product_mappings.isAutoMapped | boolean | NO\
+ trendyol_product_mappings.mappedBy | text | YES\
+ trendyol_product_mappings.createdAt | timestamp without time zone | NO\
+ trendyol_product_mappings.updatedAt | timestamp without time zone | NO\
+ trendyol_products.id | text | NO\
+ trendyol_products.trendyolProductId | text | NO\
+ trendyol_products.barcode | text | NO\
+ trendyol_products.title | text | NO\
+ trendyol_products.merchantSku | text | YES\
+ trendyol_products.brandName | text | YES\
+ trendyol_products.categoryName | text | YES\
+ trendyol_products.listPrice | numeric | YES\
+ trendyol_products.salePrice | numeric | YES\
+ trendyol_products.quantity | integer | NO\
+ trendyol_products.onSale | boolean | NO\
+ trendyol_products.approved | boolean | NO\
+ trendyol_products.archived | boolean | NO\
+ trendyol_products.locked | boolean | NO\
+ trendyol_products.images | jsonb | YES\
+ trendyol_products.localSku | text | YES\
+ trendyol_products.masterProductId | text | YES\
+ trendyol_products.createdAt | timestamp without time zone | NO\
+ trendyol_products.updatedAt | timestamp without time zone | NO\
+ trendyol_products.lastSyncedAt | timestamp without time zone | YES\
+ trendyol_stores.id | character varying | NO\
+ trendyol_stores.name | character varying | NO\
+ trendyol_stores.supplier_id | character varying | NO\
+ trendyol_stores.api_key | character varying | NO\
+ trendyol_stores.api_secret | character varying | NO\
+ trendyol_stores.webhook_secret | character varying | NO\
+ trendyol_stores.store_front_code | character varying | NO\
+ trendyol_stores.is_test_mode | boolean | YES\
+ trendyol_stores.default_brand_id | integer | YES\
+ trendyol_stores.currency_rate | numeric | YES\
+ trendyol_stores.invoice_series_name | character varying | YES\
+ trendyol_stores.company_id | character varying | NO\
+ trendyol_stores.is_active | boolean | YES\
+ trendyol_stores.created_at | timestamp without time zone | YES\
+ trendyol_stores.updated_at | timestamp without time zone | YES\
+ user_group_memberships.id | text | NO\
+ user_group_memberships.userId | text | NO\
+ user_group_memberships.groupId | text | NO\
+ user_group_memberships.joinedAt | timestamp without time zone | NO\
+ user_group_memberships.addedBy | text | YES\
+ user_role_assignments.id | text | NO\
+ user_role_assignments.userId | text | NO\
+ user_role_assignments.roleId | text | NO\
+ user_role_assignments.assignedAt | timestamp without time zone | NO\
+ user_role_assignments.assignedBy | text | YES\
+ user_store_access.id | text | NO\
+ user_store_access.userId | text | NO\
+ user_store_access.storeId | text | NO\
+ user_store_access.grantedAt | timestamp without time zone | NO\
+ user_store_access.grantedBy | text | YES\
+ user_warehouse_access.id | text | NO\
+ user_warehouse_access.userId | text | NO\
+ user_warehouse_access.warehouseId | text | NO\
+ user_warehouse_access.grantedAt | timestamp without time zone | NO\
+ user_warehouse_access.grantedBy | text | YES\
+ users.id | text | NO\
+ users.name | text | YES\
+ users.email | text | NO\
+ users.emailVerified | timestamp without time zone | YES\
+ users.image | text | YES\
+ users.password | text | YES\
+ users.isSuperAdmin | boolean | NO\
+ users.isActive | boolean | NO\
+ users.preferences | jsonb | YES\
+ users.createdAt | timestamp without time zone | NO\
+ users.updatedAt | timestamp without time zone | NO\
+ verification_tokens.identifier | text | NO\
+ verification_tokens.token | text | NO\
+ verification_tokens.expires | timestamp without time zone | NO\
+ warehouse_stocks.id | text | NO\
+ warehouse_stocks.warehouseId | text | NO\
+ warehouse_stocks.itemId | text | NO\
+ warehouse_stocks.currentStock | numeric | NO\
+ warehouse_stocks.minStock | numeric | YES\
+ warehouse_stocks.updatedAt | timestamp without time zone | NO\
+ warehouse_transfer_items.id | text | NO\
+ warehouse_transfer_items.transferId | text | NO\
+ warehouse_transfer_items.itemId | text | NO\
+ warehouse_transfer_items.quantity | numeric | NO\
+ warehouse_transfer_items.fromStockBefore | numeric | YES\
+ warehouse_transfer_items.fromStockAfter | numeric | YES\
+ warehouse_transfer_items.toStockBefore | numeric | YES\
+ warehouse_transfer_items.toStockAfter | numeric | YES\
+ warehouse_transfer_items.notes | text | YES\
+ warehouse_transfer_items.createdAt | timestamp without time zone | NO\
+ warehouse_transfers.id | text | NO\
+ warehouse_transfers.transferNumber | text | NO\
+ warehouse_transfers.fromWarehouseId | text | NO\
+ warehouse_transfers.toWarehouseId | text | NO\
+ warehouse_transfers.status | USER-DEFINED | NO\
+ warehouse_transfers.notes | text | YES\
+ warehouse_transfers.createdById | text | YES\
+ warehouse_transfers.createdByName | text | YES\
+ warehouse_transfers.completedById | text | YES\
+ warehouse_transfers.completedByName | text | YES\
+ warehouse_transfers.completedAt | timestamp without time zone | YES\
+ warehouse_transfers.createdAt | timestamp without time zone | NO\
+ warehouse_transfers.updatedAt | timestamp without time zone | NO\
+ warehouse_transfers.approvedAt | timestamp without time zone | YES\
+ warehouse_transfers.approvedById | text | YES\
+ warehouse_transfers.approvedByName | text | YES\
+ warehouse_transfers.isAutoProposed | boolean | NO\
+ warehouse_transfers.requiredForOrderId | text | YES\
+ warehouses.id | text | NO\
+ warehouses.code | text | NO\
+ warehouses.name | text | NO\
+ warehouses.description | text | YES\
+ warehouses.address | text | YES\
+ warehouses.isActive | boolean | NO\
+ warehouses.isPrimary | boolean | NO\
+ warehouses.sortOrder | integer | NO\
+ warehouses.createdAt | timestamp without time zone | NO\
+ warehouses.updatedAt | timestamp without time zone | NO\
+ warehouses.isOperational | boolean | NO}

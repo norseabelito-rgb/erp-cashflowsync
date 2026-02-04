@@ -319,6 +319,18 @@ export async function getFilteredDashboardStats(
   const baseWhere = buildBaseWhere(filters);
   const dateWhere = buildDateWhere(filters.startDate, filters.endDate);
 
+  // DEBUG: Log filters and calculated date range
+  console.log("[Dashboard Stats] Filters received:", {
+    storeId: filters.storeId,
+    startDate: filters.startDate,
+    endDate: filters.endDate,
+  });
+  console.log("[Dashboard Stats] Date range calculated:", {
+    gte: dateWhere.gte?.toISOString(),
+    lte: dateWhere.lte?.toISOString(),
+  });
+  console.log("[Dashboard Stats] Base where clause:", JSON.stringify(baseWhere, null, 2));
+
   // Run all queries in parallel for performance
   const [
     // Order counts - ALL use baseWhere
