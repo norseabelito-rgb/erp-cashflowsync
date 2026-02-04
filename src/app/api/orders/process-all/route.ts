@@ -492,6 +492,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // PASUL 5: Trimitem AWB-urile la printare
+    if (createdAwbIds.length > 0) {
+      try {
+        await sendAWBsToPrint(createdAwbIds);
+      } catch (printError: any) {
+        console.error("Eroare la trimiterea AWB-urilor la printare:", printError);
+        // Nu oprim procesarea dacă printarea eșuează
+      }
+    }
+
     console.log(`\n📊 Rezultat procesare:`);
     console.log(`   ✅ Succes: ${successCount}/${orderIds.length}`);
     console.log(`   📄 Facturi emise: ${invoicesIssued}`);
@@ -572,5 +582,69 @@ async function notifyPickers(pickingList: any) {
     console.log(`🔔 Notificări trimise la ${pickerUserIds.length} pickeri`);
   } catch (error) {
     console.error("Eroare la trimiterea notificărilor:", error);
+  }
+}
+
+// Trimite AWB-urile la printare automată
+async function sendAWBsToPrint(awbIds: string[]) {
+  // Verificăm dacă există imprimante cu autoPrint
+  const autoPrintPrinter = await prisma.printer.findFirst({
+    where: { isActive: true, autoPrint: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (!autoPrintPrinter) {
+    console.log("Nu există imprimante cu autoPrint activat");
+    return;
+  }
+
+  // Obținem AWB-urile
+  const awbs = await prisma.aWB.findMany({
+    where: { id: { in: awbIds } },
+    include: { order: true },
+  });
+
+  // Filtrăm AWB-urile care au awbNumber valid
+  const awbsWithNumber = awbs.filter(awb => awb.awbNumber);
+  if (awbsWithNumber.length === 0) {
+    return;
+  }
+
+  // Verificăm dacă există deja print jobs PENDING pentru aceste AWB-uri
+  const awbNumbers = awbsWithNumber.map(awb => awb.awbNumber as string);
+  const existingPendingJobs = await prisma.printJob.findMany({
+    where: {
+      documentType: "awb",
+      documentId: { in: awbNumbers },
+      status: "PENDING",
+    },
+    select: { documentId: true },
+  });
+  const existingAwbNumbers = new Set(existingPendingJobs.map(job => job.documentId));
+
+  // Creăm joburi de printare doar pentru AWB-urile care NU au deja job PENDING
+  let created = 0;
+  for (const awb of awbsWithNumber) {
+    if (!existingAwbNumbers.has(awb.awbNumber)) {
+      await prisma.printJob.create({
+        data: {
+          printerId: autoPrintPrinter.id,
+          documentType: "awb",
+          documentId: awb.awbNumber!,
+          documentNumber: awb.awbNumber!,
+          orderId: awb.order.id,
+          orderNumber: awb.order.shopifyOrderNumber,
+          status: "PENDING",
+        },
+      });
+      created++;
+    }
+  }
+
+  if (created > 0) {
+    console.log(`🖨️ ${created} AWB-uri trimise la printare`);
+  }
+  if (existingAwbNumbers.size > 0) {
+    console.log(`ℹ️ ${existingAwbNumbers.size} AWB-uri aveau deja job PENDING - skip`);
   }
 }
