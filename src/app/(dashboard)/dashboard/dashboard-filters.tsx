@@ -20,24 +20,77 @@ interface DashboardFiltersProps {
   stores: StoreOption[];
 }
 
+/**
+ * Romania timezone for consistent date handling
+ * Ensures dates match business days in Romania regardless of user's browser timezone
+ */
+const ROMANIA_TIMEZONE = "Europe/Bucharest";
+
+/**
+ * Get today's date in Romania timezone as YYYY-MM-DD string
+ * This ensures consistency between client and server date calculations
+ */
 function getToday(): string {
   const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  // Use Intl.DateTimeFormat with en-CA locale which returns YYYY-MM-DD format
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ROMANIA_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return formatter.format(now);
 }
 
+/**
+ * Get the start of the current week (Monday) in Romania timezone
+ */
 function getWeekStart(): string {
   const now = new Date();
-  const day = now.getDay();
-  // Week starts Monday (day 1), Sunday is 0
+  // Get current date parts in Romania timezone
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ROMANIA_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  // Get the day of week in Romania timezone (0 = Sunday, 1 = Monday, etc.)
+  const dayOfWeekFormatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: ROMANIA_TIMEZONE,
+    weekday: "short",
+  });
+  const dayName = dayOfWeekFormatter.format(now);
+  const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const day = dayMap[dayName] ?? 0;
+
+  // Calculate days to subtract to get to Monday
+  // If Sunday (0), go back 6 days; otherwise go back (day - 1) days
   const diff = day === 0 ? 6 : day - 1;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - diff);
-  return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+
+  // Create a new date by subtracting the difference
+  const monday = new Date(now.getTime() - diff * 24 * 60 * 60 * 1000);
+  return formatter.format(monday);
 }
 
+/**
+ * Get the first day of the current month in Romania timezone
+ */
 function getMonthStart(): string {
   const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  // Get current year and month in Romania timezone
+  const yearFormatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: ROMANIA_TIMEZONE,
+    year: "numeric",
+  });
+  const monthFormatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: ROMANIA_TIMEZONE,
+    month: "2-digit",
+  });
+
+  const year = yearFormatter.format(now);
+  const month = monthFormatter.format(now);
+  return `${year}-${month}-01`;
 }
 
 export function DashboardFilters({ stores }: DashboardFiltersProps) {

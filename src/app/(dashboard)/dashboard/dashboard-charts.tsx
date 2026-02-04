@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AreaChart,
   Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -11,7 +13,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { formatCurrency } from "@/lib/utils";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Clock } from "lucide-react";
 
 interface SalesData {
   date: string;
@@ -121,6 +123,113 @@ export function DashboardCharts({ salesData }: DashboardChartsProps) {
                   fill="url(#salesGradient)"
                 />
               </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+interface OrdersByHourData {
+  hour: number;
+  orderCount: number;
+}
+
+interface OrdersByHourChartProps {
+  data: OrdersByHourData[];
+}
+
+export function OrdersByHourChart({ data }: OrdersByHourChartProps) {
+  // Format hour for display (e.g., "08:00", "14:00")
+  const formattedData = data.map((item) => ({
+    ...item,
+    displayHour: `${String(item.hour).padStart(2, "0")}:00`,
+  }));
+
+  // Find peak hour
+  const peakHour = data.reduce(
+    (max, item) => (item.orderCount > max.orderCount ? item : max),
+    data[0] || { hour: 0, orderCount: 0 }
+  );
+
+  // Calculate total orders
+  const totalOrders = data.reduce((sum, item) => sum + item.orderCount, 0);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Clock className="h-5 w-5 text-blue-500" />
+          Distribuția Comenzilor pe Ore
+        </CardTitle>
+        {/* Stats row */}
+        <div className="flex items-center gap-6 text-sm mt-2">
+          <div>
+            <span className="text-muted-foreground">Total: </span>
+            <span className="font-semibold">{totalOrders} comenzi</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Ora de vârf: </span>
+            <span className="font-semibold">
+              {String(peakHour.hour).padStart(2, "0")}:00 ({peakHour.orderCount} comenzi)
+            </span>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {totalOrders === 0 ? (
+          <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+            <p>Nu există comenzi pentru această perioadă</p>
+          </div>
+        ) : (
+          <div className="h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={formattedData}>
+                <defs>
+                  <linearGradient id="hourGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.3} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis
+                  dataKey="displayHour"
+                  tick={{ fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={false}
+                  className="text-muted-foreground"
+                  interval={2}
+                />
+                <YAxis
+                  tick={{ fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
+                  className="text-muted-foreground"
+                  width={40}
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="bg-popover border rounded-lg shadow-lg p-3">
+                          <p className="font-medium mb-1">{label}</p>
+                          <p className="text-blue-500">
+                            Comenzi: {payload[0].value}
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Bar
+                  dataKey="orderCount"
+                  fill="url(#hourGradient)"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
             </ResponsiveContainer>
           </div>
         )}

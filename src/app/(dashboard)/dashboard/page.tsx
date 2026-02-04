@@ -21,7 +21,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { InfoTooltip } from "@/components/ui/feature-tooltip";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import Link from "next/link";
-import { DashboardCharts } from "./dashboard-charts";
+import { DashboardCharts, OrdersByHourChart } from "./dashboard-charts";
 import { DashboardFilters } from "./dashboard-filters";
 import { getFilteredDashboardStats } from "@/lib/dashboard-stats";
 
@@ -266,69 +266,19 @@ export default async function DashboardPage({
       </div>
 
       {/* Charts Row */}
-      <div className="grid gap-6 lg:grid-cols-3 mb-6">
-        <div className="lg:col-span-2">
-          <Suspense fallback={<Card className="h-[300px] animate-pulse" />}>
-            <DashboardCharts
-              salesData={stats.salesData.map(d => ({ date: d.date, sales: d.total, orders: d.orders }))}
-            />
-          </Suspense>
-        </div>
-
-        {/* Quick Stats */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Sumar Rapid
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2">
-                <Package className="h-4 w-4 text-primary" />
-                <span className="text-sm">Total Produse</span>
-              </div>
-              <span className="font-semibold">{stats.totalProducts}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-status-warning" />
-                <span className="text-sm">Stoc Scazut</span>
-              </div>
-              <Badge variant={stats.lowStockCount > 0 ? "warning" : "success"}>
-                {stats.lowStockCount}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-status-error" />
-                <span className="text-sm">Erori Validare</span>
-              </div>
-              <Badge variant={stats.validationFailed > 0 ? "destructive" : "success"}>
-                {stats.validationFailed}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-status-success" />
-                <span className="text-sm">Facturi emise</span>
-              </div>
-              <span className="font-semibold">{stats.todayInvoices}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2">
-                <Truck className="h-4 w-4 text-status-info" />
-                <span className="text-sm">Livrate</span>
-              </div>
-              <span className="font-semibold">{stats.delivered}</span>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-6 lg:grid-cols-2 mb-6">
+        <Suspense fallback={<Card className="h-[300px] animate-pulse" />}>
+          <DashboardCharts
+            salesData={stats.salesData.map(d => ({ date: d.date, sales: d.total, orders: d.orders }))}
+          />
+        </Suspense>
+        <Suspense fallback={<Card className="h-[300px] animate-pulse" />}>
+          <OrdersByHourChart data={stats.ordersByHour} />
+        </Suspense>
       </div>
 
       {/* Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3 mb-6">
         {/* Recent Orders */}
         <Card className="lg:col-span-2">
           <CardHeader>
