@@ -788,83 +788,54 @@ export async function syncTrendyolOrders(options?: {
   endDate?: Date;
   status?: string;
   onProgress?: (current: number, total: number, item: string) => void;
+  storeId?: string; // Optional: sync specific store only
 }): Promise<{
   synced: number;
   created: number;
   updated: number;
   errors: string[];
+  storeResults?: { storeName: string; synced: number; created: number; updated: number; errors: string[] }[];
 }> {
-  const result = { synced: 0, created: 0, updated: 0, errors: [] as string[] };
+  const result = { synced: 0, created: 0, updated: 0, errors: [] as string[], storeResults: [] as any[] };
 
   try {
-    const settings = await prisma.settings.findFirst();
-    if (!settings?.trendyolSupplierId || !settings?.trendyolApiKey || !settings?.trendyolApiSecret) {
-      throw new Error("Trendyol credentials not configured");
+    // Fetch active TrendyolStore records (multi-store support)
+    const stores = await prisma.trendyolStore.findMany({
+      where: {
+        isActive: true,
+        ...(options?.storeId ? { id: options.storeId } : {}),
+      },
+    });
+
+    if (stores.length === 0) {
+      throw new Error("No active Trendyol stores configured");
     }
 
-    const client = new TrendyolClient({
-      supplierId: settings.trendyolSupplierId,
-      apiKey: settings.trendyolApiKey,
-      apiSecret: settings.trendyolApiSecret,
-      isTestMode: settings.trendyolIsTestMode || false,
-    });
+    console.log(`[Trendyol Sync] Syncing orders from ${stores.length} store(s)`);
 
-    const startDate = options?.startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const endDate = options?.endDate || new Date();
+    // Sync each store
+    for (const store of stores) {
+      console.log(`[Trendyol Sync] Starting sync for store: ${store.name}`);
 
-    let page = 0;
-    let hasMore = true;
-    let totalItems = 0;
-    let processedItems = 0;
-
-    // First, get total count
-    const firstResponse = await client.getOrders({
-      startDate: startDate.getTime(),
-      endDate: endDate.getTime(),
-      status: options?.status,
-      page: 0,
-      size: 1,
-    });
-    totalItems = firstResponse.data?.totalElements || 0;
-
-    while (hasMore) {
-      const response = await client.getOrders({
-        startDate: startDate.getTime(),
-        endDate: endDate.getTime(),
+      const storeResult = await syncTrendyolOrdersForStore(store, {
+        startDate: options?.startDate,
+        endDate: options?.endDate,
         status: options?.status,
-        page,
-        size: 50,
-        orderByField: "CreatedDate",
-        orderByDirection: "DESC",
+        onProgress: options?.onProgress,
       });
 
-      const content = response.data?.content || [];
-      const totalPages = Math.ceil((response.data?.totalElements || 0) / 50);
-
-      for (const orderData of content) {
-        try {
-          processedItems++;
-          if (options?.onProgress) {
-            options.onProgress(processedItems, totalItems, `Comandă ${orderData.orderNumber}`);
-          }
-
-          const wasCreated = await syncSingleTrendyolOrder(orderData);
-          if (wasCreated) {
-            result.created++;
-          } else {
-            result.updated++;
-          }
-          result.synced++;
-        } catch (error: any) {
-          result.errors.push(`Order ${orderData.orderNumber}: ${error.message}`);
-        }
-      }
-
-      page++;
-      hasMore = page < totalPages;
+      // Aggregate results
+      result.synced += storeResult.synced;
+      result.created += storeResult.created;
+      result.updated += storeResult.updated;
+      result.errors.push(...storeResult.errors);
+      result.storeResults.push({
+        storeName: store.name,
+        ...storeResult,
+      });
     }
 
-    console.log(`[Trendyol Sync] Synced ${result.synced} orders (${result.created} created, ${result.updated} updated), ${result.errors.length} errors`);
+    console.log(`[Trendyol Sync] Total: Synced ${result.synced} orders (${result.created} created, ${result.updated} updated) from ${stores.length} store(s), ${result.errors.length} errors`);
   } catch (error: any) {
     console.error("[Trendyol Sync] Failed:", error);
     result.errors.push(`Sync failed: ${error.message}`);
