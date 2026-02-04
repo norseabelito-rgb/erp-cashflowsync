@@ -155,6 +155,12 @@ export interface DashboardStats {
     total: number;
     orders: number;
   }>;
+
+  // Orders by hour of day (for distribution chart)
+  ordersByHour: Array<{
+    hour: number;
+    orderCount: number;
+  }>;
 }
 
 /**
@@ -201,6 +207,52 @@ function buildBaseWhere(filters: DashboardFilters, dateField: string = "createdA
   where[dateField] = buildDateWhere(filters.startDate, filters.endDate);
 
   return where;
+}
+
+/**
+ * Get orders grouped by hour of day
+ * Shows what time during the day most orders are placed
+ * Uses Romania timezone for hour calculation
+ */
+async function getOrdersByHourOfDay(
+  startDate: Date,
+  endDate: Date,
+  storeId?: string
+): Promise<Array<{ hour: number; orderCount: bigint }>> {
+  try {
+    if (storeId && storeId !== "all") {
+      return await prisma.$queryRaw<Array<{
+        hour: number;
+        orderCount: bigint;
+      }>>`
+        SELECT
+          EXTRACT(HOUR FROM "createdAt" AT TIME ZONE 'Europe/Bucharest')::int as hour,
+          COUNT(*) as "orderCount"
+        FROM orders
+        WHERE "createdAt" >= ${startDate}
+          AND "createdAt" <= ${endDate}
+          AND "storeId" = ${storeId}
+        GROUP BY EXTRACT(HOUR FROM "createdAt" AT TIME ZONE 'Europe/Bucharest')
+        ORDER BY hour ASC
+      `;
+    } else {
+      return await prisma.$queryRaw<Array<{
+        hour: number;
+        orderCount: bigint;
+      }>>`
+        SELECT
+          EXTRACT(HOUR FROM "createdAt" AT TIME ZONE 'Europe/Bucharest')::int as hour,
+          COUNT(*) as "orderCount"
+        FROM orders
+        WHERE "createdAt" >= ${startDate}
+          AND "createdAt" <= ${endDate}
+        GROUP BY EXTRACT(HOUR FROM "createdAt" AT TIME ZONE 'Europe/Bucharest')
+        ORDER BY hour ASC
+      `;
+    }
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -308,6 +360,9 @@ export async function getFilteredDashboardStats(
 
     // Returns count (AWBs with return status)
     returnsCount,
+
+    // Orders by hour of day (for distribution chart)
+    ordersByHourRaw,
   ] = await Promise.all([
     // Total orders with filters
     prisma.order.count({ where: baseWhere }),
@@ -479,6 +534,13 @@ export async function getFilteredDashboardStats(
         OR: getCategoryFilterConditions("returned") || [],
       },
     }),
+
+    // Orders by hour of day (for distribution chart)
+    getOrdersByHourOfDay(
+      dateWhere.gte,
+      dateWhere.lte ?? new Date(),
+      filters.storeId
+    ),
   ]);
 
   // VERIFICATION: Compare string-based count with code-based count for in_transit
@@ -618,5 +680,14 @@ export async function getFilteredDashboardStats(
 
     // Sales data for chart
     salesData,
+
+    // Orders by hour of day (fill in missing hours with 0)
+    ordersByHour: Array.from({ length: 24 }, (_, hour) => {
+      const found = ordersByHourRaw.find((r) => r.hour === hour);
+      return {
+        hour,
+        orderCount: found ? Number(found.orderCount) : 0,
+      };
+    }),
   };
 }
