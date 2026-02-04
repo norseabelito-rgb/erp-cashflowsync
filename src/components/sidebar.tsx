@@ -211,6 +211,7 @@ const navigation: NavItem[] = [
     children: [
       // Configurare
       { name: "Setări Generale", href: "/settings", icon: Settings, permissions: ["settings.view"] },
+      { name: "Statusuri Comenzi", href: "/settings/order-statuses", icon: ClipboardList, permissions: ["settings.view"] },
       { name: "Firme", href: "/settings/companies", icon: Building2, permissions: ["companies.view"] },
       { name: "Depozite", href: "/settings/warehouses", icon: Warehouse, permissions: ["warehouses.view"] },
       { name: "Serii Facturi", href: "/settings/invoice-series", icon: FileText, permissions: ["invoices.series"] },
