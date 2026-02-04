@@ -1,7 +1,77 @@
 import prisma from "@/lib/db";
-import { startOfDay, endOfDay, parseISO } from "date-fns";
 import { getCategoryFilterConditions } from "@/lib/awb-status";
 import { FANCOURIER_STATUSES } from "@/lib/fancourier-statuses";
+
+/**
+ * Romania timezone constant
+ * Europe/Bucharest is UTC+2 in winter (EET) and UTC+3 in summer (EEST)
+ */
+const ROMANIA_TIMEZONE = "Europe/Bucharest";
+
+/**
+ * Get Romania timezone offset in hours for a given date
+ * Uses Intl.DateTimeFormat to correctly handle DST transitions
+ * Returns positive value for UTC+ timezones (e.g., 2 for UTC+2, 3 for UTC+3)
+ */
+function getRomaniaOffsetHours(year: number, month: number, day: number): number {
+  // Create a sample date at noon UTC for this day
+  const sampleDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+
+  // Get what hour it is in Romania at 12:00 UTC
+  const romaniaFormatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: ROMANIA_TIMEZONE,
+    hour: "numeric",
+    minute: "numeric",
+    hour12: false,
+  });
+  const romaniaParts = romaniaFormatter.formatToParts(sampleDate);
+  const romaniaHour = parseInt(romaniaParts.find(p => p.type === "hour")?.value || "0");
+
+  // If it's 12:00 UTC and it shows 14:00 in Romania, offset is +2 hours
+  // If it's 12:00 UTC and it shows 15:00 in Romania, offset is +3 hours
+  return romaniaHour - 12;
+}
+
+/**
+ * Convert a date string (YYYY-MM-DD) to start of day in Romania timezone (as UTC timestamp)
+ * Example: "2026-01-27" -> 2026-01-26T22:00:00.000Z (midnight Romania = 22:00 UTC in winter)
+ *
+ * Romania is ahead of UTC, so midnight in Romania occurs BEFORE midnight UTC.
+ * When it's 00:00 in Romania (UTC+2), it's 22:00 UTC the previous day.
+ */
+function toRomaniaStartOfDay(dateString: string): Date {
+  const [year, month, day] = dateString.split("-").map(Number);
+  const offsetHours = getRomaniaOffsetHours(year, month, day);
+
+  // Midnight in Romania = midnight UTC minus the offset (because Romania is ahead)
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0) - offsetHours * 3600000);
+}
+
+/**
+ * Convert a date string (YYYY-MM-DD) to end of day in Romania timezone (as UTC timestamp)
+ * Example: "2026-01-27" -> 2026-01-27T21:59:59.999Z (23:59:59.999 Romania = 21:59:59.999 UTC in winter)
+ */
+function toRomaniaEndOfDay(dateString: string): Date {
+  const [year, month, day] = dateString.split("-").map(Number);
+  const offsetHours = getRomaniaOffsetHours(year, month, day);
+
+  // End of day in Romania = 23:59:59.999 UTC minus the offset
+  return new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999) - offsetHours * 3600000);
+}
+
+/**
+ * Get today's date in Romania timezone as YYYY-MM-DD string
+ */
+function getTodayInRomania(): string {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ROMANIA_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return formatter.format(now); // Returns YYYY-MM-DD format
+}
 
 /**
  * Dashboard Filters Interface
@@ -89,27 +159,28 @@ export interface DashboardStats {
 
 /**
  * Build date range where clause for Prisma queries
- * Defaults to today if no dates provided
+ * Uses Romania timezone (Europe/Bucharest) for consistent date boundaries
+ * Defaults to today (in Romania timezone) if no dates provided
  */
 function buildDateWhere(startDate?: string, endDate?: string) {
   if (startDate && endDate) {
     return {
-      gte: startOfDay(parseISO(startDate)),
-      lte: endOfDay(parseISO(endDate)),
+      gte: toRomaniaStartOfDay(startDate),
+      lte: toRomaniaEndOfDay(endDate),
     };
   }
 
   if (startDate) {
     return {
-      gte: startOfDay(parseISO(startDate)),
+      gte: toRomaniaStartOfDay(startDate),
     };
   }
 
-  // Default to today
-  const now = new Date();
+  // Default to today in Romania timezone
+  const todayRomania = getTodayInRomania();
   return {
-    gte: startOfDay(now),
-    lte: endOfDay(now),
+    gte: toRomaniaStartOfDay(todayRomania),
+    lte: toRomaniaEndOfDay(todayRomania),
   };
 }
 
@@ -135,6 +206,7 @@ function buildBaseWhere(filters: DashboardFilters, dateField: string = "createdA
 /**
  * Get sales data grouped by date for chart
  * Uses raw query for efficient grouping
+ * Groups by Romania date (Europe/Bucharest timezone), not UTC
  */
 async function getSalesDataForChart(
   startDate: Date,
@@ -143,38 +215,38 @@ async function getSalesDataForChart(
 ): Promise<Array<{ date: Date; totalSales: number; orderCount: bigint }>> {
   try {
     if (storeId && storeId !== "all") {
-      // Query with store filter
+      // Query with store filter - group by Romania date
       return await prisma.$queryRaw<Array<{
         date: Date;
         totalSales: number;
         orderCount: bigint;
       }>>`
         SELECT
-          DATE("createdAt" AT TIME ZONE 'UTC') as date,
+          DATE("createdAt" AT TIME ZONE 'Europe/Bucharest') as date,
           COALESCE(SUM("totalPrice"::numeric), 0) as "totalSales",
           COUNT(*) as "orderCount"
         FROM orders
         WHERE "createdAt" >= ${startDate}
           AND "createdAt" <= ${endDate}
           AND "storeId" = ${storeId}
-        GROUP BY DATE("createdAt" AT TIME ZONE 'UTC')
+        GROUP BY DATE("createdAt" AT TIME ZONE 'Europe/Bucharest')
         ORDER BY date ASC
       `;
     } else {
-      // Query without store filter
+      // Query without store filter - group by Romania date
       return await prisma.$queryRaw<Array<{
         date: Date;
         totalSales: number;
         orderCount: bigint;
       }>>`
         SELECT
-          DATE("createdAt" AT TIME ZONE 'UTC') as date,
+          DATE("createdAt" AT TIME ZONE 'Europe/Bucharest') as date,
           COALESCE(SUM("totalPrice"::numeric), 0) as "totalSales",
           COUNT(*) as "orderCount"
         FROM orders
         WHERE "createdAt" >= ${startDate}
           AND "createdAt" <= ${endDate}
-        GROUP BY DATE("createdAt" AT TIME ZONE 'UTC')
+        GROUP BY DATE("createdAt" AT TIME ZONE 'Europe/Bucharest')
         ORDER BY date ASC
       `;
     }
@@ -454,13 +526,24 @@ export async function getFilteredDashboardStats(
   }
 
   // Generate complete date range for chart (fill in missing dates with 0)
+  // We need to iterate by Romania dates, not UTC dates
   const salesData: Array<{ date: string; total: number; orders: number }> = [];
-  const startDate = dateWhere.gte;
-  const endDate = dateWhere.lte ?? new Date();
 
-  // Iterate through each day in the range
-  const currentDate = new Date(startDate);
-  while (currentDate <= endDate) {
+  // Get the start and end dates as Romania date strings (YYYY-MM-DD)
+  const startDateStr = filters.startDate || getTodayInRomania();
+  const endDateStr = filters.endDate || startDateStr;
+
+  // Parse the date strings into components
+  const [startYear, startMonth, startDay] = startDateStr.split("-").map(Number);
+  const [endYear, endMonth, endDay] = endDateStr.split("-").map(Number);
+
+  // Create Date objects for iteration (using UTC to avoid any local timezone issues)
+  const startDateObj = new Date(Date.UTC(startYear, startMonth - 1, startDay));
+  const endDateObj = new Date(Date.UTC(endYear, endMonth - 1, endDay));
+
+  // Iterate through each day in the range (in Romania timezone terms)
+  const currentDate = new Date(startDateObj);
+  while (currentDate <= endDateObj) {
     const dateKey = `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, '0')}-${String(currentDate.getUTCDate()).padStart(2, '0')}`;
     const data = salesByDate.get(dateKey) || { total: 0, orders: 0 };
     salesData.push({
