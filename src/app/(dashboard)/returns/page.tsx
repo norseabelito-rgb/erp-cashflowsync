@@ -14,6 +14,8 @@ import {
   Clock,
   Link2,
   MapPin,
+  Download,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -106,8 +108,44 @@ export default function ReturnsPage() {
     open: boolean;
     returnAwb: ScannedReturn | null;
   }>({ open: false, returnAwb: null });
+  const [exportDialog, setExportDialog] = useState(false);
+  const [exportStartDate, setExportStartDate] = useState<string>(
+    new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+  );
+  const [exportEndDate, setExportEndDate] = useState<string>(
+    new Date().toISOString().split("T")[0]
+  );
+  const [isExporting, setIsExporting] = useState(false);
   const scanInputRef = useRef<HTMLInputElement>(null);
   const scanTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Export handler
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const params = new URLSearchParams();
+      params.set("startDate", exportStartDate);
+      params.set("endDate", exportEndDate);
+
+      const res = await fetch(`/api/returns/export?${params}`);
+      if (!res.ok) throw new Error("Export failed");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `raport-retururi-${exportStartDate}_${exportEndDate}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      toast({ title: "Raport exportat cu succes" });
+      setExportDialog(false);
+    } catch (error) {
+      toast({ title: "Eroare la export", variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Fetch returns data
   const { data, isLoading, refetch } = useQuery({
@@ -274,10 +312,16 @@ export default function ReturnsPage() {
               </h1>
               <p className="text-muted-foreground text-sm md:text-base">{todayStr}</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setExportDialog(true)}>
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
           </div>
 
           {/* Stats Cards */}
@@ -656,6 +700,81 @@ export default function ReturnsPage() {
                   onClick={() => setLinkDialog({ open: false, returnAwb: null })}
                 >
                   Anuleaza
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Export Dialog */}
+          <Dialog open={exportDialog} onOpenChange={setExportDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Download className="h-5 w-5" />
+                  Export Retururi
+                </DialogTitle>
+                <DialogDescription>
+                  Selecteaza intervalul de date pentru export
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      <Calendar className="h-4 w-4 inline mr-1" />
+                      Data inceput
+                    </label>
+                    <input
+                      type="date"
+                      value={exportStartDate}
+                      onChange={(e) => setExportStartDate(e.target.value)}
+                      max={exportEndDate}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      <Calendar className="h-4 w-4 inline mr-1" />
+                      Data sfarsit
+                    </label>
+                    <input
+                      type="date"
+                      value={exportEndDate}
+                      onChange={(e) => setExportEndDate(e.target.value)}
+                      min={exportStartDate}
+                      max={new Date().toISOString().split("T")[0]}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="text-sm text-muted-foreground">
+                  Exportul va include:
+                  <ul className="list-disc list-inside mt-1">
+                    <li>Toate retururile scanate in perioada selectata</li>
+                    <li>Miscarile de stoc asociate</li>
+                    <li>Statistici sumare</li>
+                  </ul>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setExportDialog(false)}>
+                  Anuleaza
+                </Button>
+                <Button onClick={handleExport} disabled={isExporting}>
+                  {isExporting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Se exporta...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 mr-2" />
+                      Descarca Excel
+                    </>
+                  )}
                 </Button>
               </DialogFooter>
             </DialogContent>

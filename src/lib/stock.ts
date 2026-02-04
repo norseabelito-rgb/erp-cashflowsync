@@ -493,12 +493,14 @@ export async function processStockReturnForOrder(
   processed: number;
   errors: string[];
   movements: Array<{ sku: string; quantity: number; newStock: number }>;
+  alreadyProcessed?: boolean;
 }> {
   const result = {
     success: true,
     processed: 0,
     errors: [] as string[],
     movements: [] as Array<{ sku: string; quantity: number; newStock: number }>,
+    alreadyProcessed: false,
   };
 
   console.log("\n" + "=".repeat(60));
@@ -508,6 +510,18 @@ export async function processStockReturnForOrder(
   console.log(`📦 Return AWB ID: ${returnAwbId}`);
 
   try {
+    // Verificăm dacă stocul a fost deja procesat pentru acest retur
+    const existingMovements = await prisma.stockMovement.findFirst({
+      where: {
+        reference: `RETUR-${returnAwbId}`,
+      },
+    });
+
+    if (existingMovements) {
+      console.log(`⚠️ Stocul pentru returul ${returnAwbId} a fost deja procesat - skip`);
+      result.alreadyProcessed = true;
+      return result;
+    }
     // Obține produsele din comandă
     const lineItems = await prisma.lineItem.findMany({
       where: { orderId },

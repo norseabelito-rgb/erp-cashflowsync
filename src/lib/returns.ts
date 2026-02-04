@@ -117,21 +117,34 @@ export async function scanReturnAWB(
       });
 
       // Readăugăm stocul în inventar
+      let stockMessage = "";
       if (directMatch.orderId) {
         try {
           const stockResult = await processStockReturnForOrder(directMatch.orderId, returnRecord.id);
-          if (stockResult.success && stockResult.processed > 0) {
+          if (stockResult.alreadyProcessed) {
+            stockMessage = " Stocul fusese deja procesat.";
+          } else if (stockResult.success && stockResult.processed > 0) {
+            // Actualizăm status la stock_returned
+            await prisma.returnAWB.update({
+              where: { id: returnRecord.id },
+              data: { status: "stock_returned" },
+            });
             console.log(`[Returns] Stoc readăugat: ${stockResult.processed} mișcări pentru comanda ${directMatch.orderId}`);
+            stockMessage = ` Stocul a fost actualizat (${stockResult.processed} produse).`;
+          } else if (stockResult.errors.length > 0) {
+            stockMessage = ` ATENȚIE: Erori la stoc - ${stockResult.errors.join("; ")}`;
+          } else {
+            stockMessage = " Stocul nu a necesitat actualizare.";
           }
-        } catch (stockError) {
+        } catch (stockError: any) {
           console.error("[Returns] Eroare la readăugarea stocului:", stockError);
-          // Non-blocking - returul a fost înregistrat, stocul poate fi corectat manual
+          stockMessage = ` EROARE la stoc: ${stockError.message}. Verifică manual!`;
         }
       }
 
       return {
         success: true,
-        message: `Retur scanat! Comanda ${directMatch.order?.shopifyOrderNumber || directMatch.orderId}. Stocul a fost actualizat.`,
+        message: `Retur scanat! Comanda ${directMatch.order?.shopifyOrderNumber || directMatch.orderId}.${stockMessage}`,
         type: "success",
         returnAwb: {
           id: returnRecord.id,
@@ -364,20 +377,46 @@ export async function linkReturnToOrder(
   // Readăugăm stocul în inventar
   try {
     const stockResult = await processStockReturnForOrder(orderId, returnAwbId);
+
+    if (stockResult.alreadyProcessed) {
+      return {
+        success: true,
+        message: `Return AWB mapat la comanda ${order.shopifyOrderNumber}. Stocul fusese deja procesat anterior.`,
+      };
+    }
+
     if (stockResult.success && stockResult.processed > 0) {
+      // Actualizăm status la stock_returned
+      await prisma.returnAWB.update({
+        where: { id: returnAwbId },
+        data: { status: "stock_returned" },
+      });
+
       console.log(`[Returns] Stoc readăugat: ${stockResult.processed} mișcări pentru comanda ${orderId}`);
       return {
         success: true,
         message: `Return AWB mapat la comanda ${order.shopifyOrderNumber}. Stocul a fost actualizat (${stockResult.processed} produse).`,
       };
     }
-  } catch (stockError) {
-    console.error("[Returns] Eroare la readăugarea stocului:", stockError);
-    // Non-blocking - maparea a fost făcută, stocul poate fi corectat manual
-  }
 
-  return {
-    success: true,
-    message: `Return AWB mapat la comanda ${order.shopifyOrderNumber}`,
-  };
+    if (stockResult.errors.length > 0) {
+      console.error("[Returns] Erori la procesarea stocului:", stockResult.errors);
+      return {
+        success: true,
+        message: `Return AWB mapat la comanda ${order.shopifyOrderNumber}. ATENȚIE: Stocul NU a fost actualizat complet - ${stockResult.errors.join("; ")}`,
+      };
+    }
+
+    // Nicio mișcare procesată (posibil produse fără SKU)
+    return {
+      success: true,
+      message: `Return AWB mapat la comanda ${order.shopifyOrderNumber}. Stocul nu a necesitat actualizare (produse fără SKU în inventar).`,
+    };
+  } catch (stockError: any) {
+    console.error("[Returns] Eroare la readăugarea stocului:", stockError);
+    return {
+      success: true,
+      message: `Return AWB mapat la comanda ${order.shopifyOrderNumber}. EROARE la stoc: ${stockError.message}. Verifică manual!`,
+    };
+  }
 }
