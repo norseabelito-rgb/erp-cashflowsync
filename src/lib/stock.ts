@@ -141,6 +141,13 @@ export async function getEffectiveComponents(
 }
 
 /**
+ * @deprecated Since Phase 7.8 (Stock Unification).
+ * Stock movements should now be recorded via inventory-stock.ts functions which
+ * automatically create InventoryStockMovement records.
+ *
+ * This function creates StockMovement records tied to Product.stockQuantity
+ * which is the legacy system. New code should use the InventoryItem system.
+ *
  * Înregistrează o mișcare de stoc
  */
 export async function recordStockMovement(data: {
@@ -222,6 +229,23 @@ export async function recordStockMovement(data: {
 }
 
 /**
+ * @deprecated Since Phase 7.8 (Stock Unification).
+ * Use `processInventoryStockForOrderFromPrimary()` from `@/lib/inventory-stock` instead.
+ *
+ * This function uses the legacy Product.stockQuantity system which doesn't sync with
+ * InventoryItem.currentStock used by NIR/GoodsReceipt.
+ *
+ * Migration:
+ * ```typescript
+ * // Before
+ * import { processStockForOrder } from "@/lib/stock";
+ * await processStockForOrder(orderId, invoiceId);
+ *
+ * // After
+ * import { processInventoryStockForOrderFromPrimary } from "@/lib/inventory-stock";
+ * await processInventoryStockForOrderFromPrimary(orderId, invoiceId);
+ * ```
+ *
  * Procesează descărcarea stocului pentru o comandă (la emiterea facturii)
  */
 export async function processStockForOrder(
@@ -482,6 +506,23 @@ export async function getStockStats() {
 }
 
 /**
+ * @deprecated Since Phase 7.8 (Stock Unification).
+ * Use `addInventoryStockForReturn()` from `@/lib/inventory-stock` instead.
+ *
+ * This function uses the legacy Product.stockQuantity system which doesn't sync with
+ * InventoryItem.currentStock used by NIR/GoodsReceipt.
+ *
+ * Migration:
+ * ```typescript
+ * // Before
+ * import { processStockReturnForOrder } from "@/lib/stock";
+ * await processStockReturnForOrder(orderId, returnAwbId);
+ *
+ * // After
+ * import { addInventoryStockForReturn } from "@/lib/inventory-stock";
+ * await addInventoryStockForReturn(orderId, returnAwbId);
+ * ```
+ *
  * Procesează readăugarea stocului pentru o comandă returnată
  * Se apelează când se scanează un retur și se confirmă primirea
  */
