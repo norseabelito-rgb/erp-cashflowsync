@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.9 of 10 (Reception Workflow)
-Plan: 7 of 12
+Plan: 9 of 12
 Status: In progress
-Last activity: 2026-02-06 - Completed 07.9-07-PLAN.md (Reception UI)
+Last activity: 2026-02-06 - Completed 07.9-09-PLAN.md (Supplier Invoices UI)
 
-Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7 + 5/5 of 7.8 + 7/12 of 7.9)
+Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7 + 5/5 of 7.8 + 9/12 of 7.9)
 
 ## Phase 7 Progress
 
@@ -535,10 +535,10 @@ Task Management Core components:
 | 07.9-03 | 2 | Complete | Reception Reports API + photo upload + finalization with NIR generation |
 | 07.9-04 | 2 | Complete | Supplier Invoices CRUD API + document upload |
 | 07.9-05 | 2 | Complete | NIR Workflow APIs: state machine + 6 endpoints + stock transfer |
-| 07.9-06 | 3 | Pending | Purchase Orders UI: list, create/edit, labels page |
+| 07.9-06 | 3 | Complete | Purchase Orders UI: list, create/edit, labels page |
 | 07.9-07 | 3 | Complete | Reception UI: warehouse dashboard, PV completion, photos |
-| 07.9-08 | 3 | Pending | Office Dashboard + Pending Approval page |
-| 07.9-09 | 3 | Pending | Supplier Invoices UI: list and detail pages |
+| 07.9-08 | 3 | Complete | Office Dashboard + Manager Approval + NIRWorkflowActions |
+| 07.9-09 | 3 | Complete | Supplier Invoices UI: list, detail, form, payment tracking |
 | 07.9-10 | 4 | Pending | In-app Notifications: Notification model API + bell icon UI |
 | 07.9-11 | 4 | Pending | Low stock alerts migration: dashboard-stats.ts → InventoryItem.currentStock |
 | 07.9-12 | 4 | Pending | Stock sync verification: Temu + Trendyol use InventoryItem correctly |
@@ -580,6 +580,8 @@ Task Management Core components:
 
 ## Recent Commits
 
+- `a866743` feat(07.9-09): create Supplier Invoice detail page with payment update
+- `552b2e6` feat(07.9-09): create Supplier Invoices list page with filtering
 - `8c5c237` feat(07.9-07): create Photo Upload Component for reception
 - `d589edf` feat(07.9-07): create Reception Report Completion page and ReceptionItemsTable
 - `7e59f27` feat(07.9-07): create Warehouse Reception Dashboard
