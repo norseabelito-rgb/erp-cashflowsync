@@ -8,7 +8,7 @@
  */
 
 import prisma from "@/lib/db";
-import { processStockReturnForOrder } from "@/lib/stock";
+import { addInventoryStockForReturn } from "@/lib/inventory-stock";
 
 export interface ScanReturnResult {
   success: boolean;
@@ -120,7 +120,7 @@ export async function scanReturnAWB(
       let stockMessage = "";
       if (directMatch.orderId) {
         try {
-          const stockResult = await processStockReturnForOrder(directMatch.orderId, returnRecord.id);
+          const stockResult = await addInventoryStockForReturn(directMatch.orderId, returnRecord.id);
           if (stockResult.alreadyProcessed) {
             stockMessage = " Stocul fusese deja procesat.";
           } else if (stockResult.success && stockResult.processed > 0) {
@@ -376,7 +376,7 @@ export async function linkReturnToOrder(
 
   // Readăugăm stocul în inventar
   try {
-    const stockResult = await processStockReturnForOrder(orderId, returnAwbId);
+    const stockResult = await addInventoryStockForReturn(orderId, returnAwbId);
 
     if (stockResult.alreadyProcessed) {
       return {
