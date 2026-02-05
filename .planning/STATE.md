@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.8 of 10 (Stock Unification)
-Plan: 4 of 5
-Status: In progress
-Last activity: 2026-02-05 - Completed 07.8-04-PLAN.md (Picking Stock Migration)
+Plan: 5 of 5 (PHASE COMPLETE)
+Status: Phase complete
+Last activity: 2026-02-06 - Completed 07.8-05-PLAN.md (Legacy Deprecation)
 
-Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7)
+Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7 + 5/5 of 7.8)
 
 ## Phase 7 Progress
 
@@ -63,6 +63,9 @@ Recent decisions affecting current work:
 - **07.7-06:** Temu section uses orders.view permission (consistent with main orders)
 - **07.7-06:** Temu dashboard follows Trendyol page pattern for UI consistency
 - **07.7-06:** Stats endpoint queries Order table where source='temu'
+- **07.8-05:** Deprecate but do not delete legacy stock functions for backward compatibility
+- **07.8-05:** Use RAISE NOTICE for migration result reporting in SQL
+- **07.8-05:** Initialize WarehouseStock for primary warehouse during migration
 - **07.7-03:** TemuStoreForSync type follows TrendyolStoreForSync pattern for consistency
 - **07.7-03:** Invoice series resolution Priority 0a for Temu (before Trendyol at 0b)
 - **07.7-03:** Temu orders use shopifyOrderId field with temuOrderId value (reuse existing field)
@@ -337,20 +340,19 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-05
-Stopped at: Completed 07.8-03-PLAN.md (Return Stock Migration)
+Last session: 2026-02-06
+Stopped at: Completed 07.8-05-PLAN.md (Legacy Deprecation)
 Resume context:
-- **Phase 7.8 IN PROGRESS** - 3/5 plans complete (Wave 2 in progress)
-- 07.8-01: addInventoryStockForReturn() and addInventoryStockFromWarehouse() created
-- 07.8-02: invoice-service.ts migrated to processInventoryStockForOrderFromPrimary
-- 07.8-03: returns.ts and reprocess-stock API migrated to addInventoryStockForReturn
-- Next: 07.8-04 (picking migration) and 07.8-05 (cleanup)
+- **Phase 7.8 COMPLETE** - 5/5 plans complete
+- All stock operations now use NEW InventoryItem system
+- Legacy stock.ts functions deprecated (kept for backward compatibility)
+- Migration script ready at prisma/migrations/manual/map_masterproduct_to_inventoryitem.sql
 
 **NEXT STEPS:**
-1. Execute 07.8-04: Migrate picking to InventoryItem
-2. Execute 07.8-05: MasterProduct mapping script + deprecation
+1. Run migration script on production to map MasterProducts to InventoryItems
+2. Start Phase 7.9: Reception Workflow
 
-Resume file: .planning/phases/07.8-stock-unification/07.8-04-PLAN.md
+Resume file: .planning/phases/07.9-reception-workflow/07.9-01-PLAN.md
 
 ## Phase 7 Features
 
@@ -479,8 +481,8 @@ Task Management Core components:
 | 07.8-01 | 1 | Complete | Create addInventoryStockForReturn() function |
 | 07.8-02 | 1 | Complete | Migrate invoice-service.ts to processInventoryStockForOrderFromPrimary |
 | 07.8-03 | 2 | Complete | Migrate returns/reprocess-stock to addInventoryStockForReturn |
-| 07.8-04 | 2 | Pending | Migrate picking to use InventoryItem.currentStock |
-| 07.8-05 | 3 | Pending | MasterProduct→InventoryItem mapping script + deprecation markers |
+| 07.8-04 | 2 | Complete | Migrate picking to use InventoryItem.currentStock |
+| 07.8-05 | 3 | Complete | MasterProduct→InventoryItem mapping script + deprecation markers |
 
 ## Phase 7.8 Context (Stock Unification)
 
@@ -558,6 +560,8 @@ Task Management Core components:
 
 ## Recent Commits
 
+- `55506b7` chore(07.8-05): add MasterProduct to InventoryItem mapping migration
+- `02e4bd7` chore(07.8-05): add deprecation markers to legacy stock functions
 - `4526f92` feat(07.8-02): migrate invoice stock deduction to NEW inventory system
 - `5bda2a3` feat(07.8-01): add addInventoryStockForReturn function
 - `514d432` feat(07.8-01): add addInventoryStockFromWarehouse function
