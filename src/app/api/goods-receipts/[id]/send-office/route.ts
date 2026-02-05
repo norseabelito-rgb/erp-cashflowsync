@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { transitionNIR } from "@/lib/reception-workflow";
+import { notifyOfficeNIRReady } from "@/lib/notification-service";
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +51,11 @@ export async function POST(
     }
 
     console.log(`[NIR] ${id} trimis la Office de ${session.user.email}`);
+
+    // Fire-and-forget notification (don't block response)
+    notifyOfficeNIRReady(id).catch(err => {
+      console.error('Failed to send notification:', err);
+    });
 
     return NextResponse.json({
       success: true,

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hasPermission, getPrimaryWarehouse } from "@/lib/permissions";
+import { notifyNIRStockTransferred } from "@/lib/notification-service";
 
 export const dynamic = 'force-dynamic';
 
@@ -202,6 +203,11 @@ export async function POST(
       console.log(`   - ${m.sku}: +${m.quantity} (${m.previousStock} -> ${m.newStock})`);
     });
     console.log("=".repeat(60) + "\n");
+
+    // Fire-and-forget notification to warehouse user
+    notifyNIRStockTransferred(id).catch(err => {
+      console.error('Failed to send stock transferred notification:', err);
+    });
 
     return NextResponse.json({
       success: true,

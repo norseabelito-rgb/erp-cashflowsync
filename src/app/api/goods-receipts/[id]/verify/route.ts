@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { transitionNIR } from "@/lib/reception-workflow";
+import { notifyGeorgeApprovalNeeded } from "@/lib/notification-service";
 
 export const dynamic = 'force-dynamic';
 
@@ -62,6 +63,11 @@ export async function POST(
     if (result.hasDifferences) {
       response.warning = 'NIR-ul are diferente. Este necesara aprobarea managerului inainte de aprobare.';
       response.requiresManagerApproval = true;
+
+      // Fire-and-forget notification to George (manager)
+      notifyGeorgeApprovalNeeded(id).catch(err => {
+        console.error('Failed to send difference approval notification:', err);
+      });
     }
 
     return NextResponse.json(response);
