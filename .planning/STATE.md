@@ -63,6 +63,10 @@ Recent decisions affecting current work:
 - **07.7-06:** Temu section uses orders.view permission (consistent with main orders)
 - **07.7-06:** Temu dashboard follows Trendyol page pattern for UI consistency
 - **07.7-06:** Stats endpoint queries Order table where source='temu'
+- **07.9-05:** State machine validation guards for each transition (e.g., supplierInvoice required for TRIMIS_OFFICE)
+- **07.9-05:** approveDifferences() is separate action, not status transition - NIR stays in VERIFICAT until approved
+- **07.9-05:** Stock transfer uses InventoryMovementType.RECEIPT for consistency with complete/route.ts
+- **07.9-05:** New permissions: reception.verify (Office), reception.approve_differences (George)
 - **07.9-04:** Stats scoped to supplier when supplierId filter is provided
 - **07.9-04:** Auto-calculate totalWithVat if vatValue provided but totalWithVat not
 - **07.9-04:** Auto-set paidAt when payment status changes to PLATITA
@@ -572,6 +576,9 @@ Task Management Core components:
 
 ## Recent Commits
 
+- `eb7f397` feat(07.9-05): create stock transfer endpoint
+- `46dd961` feat(07.9-05): create NIR workflow API endpoints
+- `dbf39b6` feat(07.9-05): create NIR workflow state machine
 - `bf847e6` feat(07.9-02): create Labels API for purchase orders
 - `cb6b42e` feat(07.9-02): create Purchase Orders CRUD API
 - `6f17b9b` feat(07.9-02): create document numbering utility
@@ -634,4 +641,4 @@ Task Management Core components:
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-06 (07.9-04 Complete - Supplier Invoices CRUD API)*
+*Last updated: 2026-02-06 (07.9-05 Complete - NIR Workflow APIs)*
