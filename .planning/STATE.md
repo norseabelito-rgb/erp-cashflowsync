@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.9 of 10 (Reception Workflow)
-Plan: 9 of 12
+Plan: 11 of 12
 Status: In progress
-Last activity: 2026-02-06 - Completed 07.9-09-PLAN.md (Supplier Invoices UI)
+Last activity: 2026-02-06 - Completed 07.9-11-PLAN.md (Dashboard Low Stock Alerts)
 
-Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7 + 5/5 of 7.8 + 9/12 of 7.9)
+Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7 + 5/5 of 7.8 + 11/12 of 7.9)
 
 ## Phase 7 Progress
 
@@ -63,6 +63,9 @@ Recent decisions affecting current work:
 - **07.7-06:** Temu section uses orders.view permission (consistent with main orders)
 - **07.7-06:** Temu dashboard follows Trendyol page pattern for UI consistency
 - **07.7-06:** Stats endpoint queries Order table where source='temu'
+- **07.9-11:** Reuse getLowStockAlerts() from inventory-stock.ts for dashboard (no query duplication)
+- **07.9-11:** Add status field ('out_of_stock' | 'low_stock') for cleaner UI variant selection
+- **07.9-11:** Dashboard low stock link changed from /products to /inventory?filter=low
 - **07.9-09:** backHref prop for PageHeader navigation instead of JSX in title
 - **07.9-09:** Payment status quick update via separate dialog (simpler than inline dropdown)
 - **07.9-09:** Delete button hidden when linked documents exist (soft block vs error)
