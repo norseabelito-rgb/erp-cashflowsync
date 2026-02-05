@@ -24,6 +24,8 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
 - [x] **Phase 7.5: AWB Tracking Fix** - Correct status logic, accurate card counts (INSERTED)
 - [ ] **Phase 7.6: Customers Page** - Customer management with order history and analytics (INSERTED)
 - [x] **Phase 7.7: Temu Complete Integration** - Full Temu channel with product push, order sync, invoicing, and AWB (INSERTED)
+- [x] **Phase 7.8: Stock Unification** - Unify dual stock systems (Product vs InventoryItem) for consistent inventory tracking (INSERTED)
+- [ ] **Phase 7.9: Reception Workflow** - Complete goods reception flow with PurchaseOrder, ReceptionReport, SupplierInvoice, NIR workflow, and notifications (INSERTED)
 - [ ] **Phase 8: Task Management Advanced** - Automation, notifications, and reporting
 - [ ] **Phase 9: Documentation** - In-app documentation for all modules
 - [ ] **Phase 10: Quality Assurance** - Final verification and test coverage for critical flows
@@ -378,6 +380,104 @@ Plans:
 - [x] 07.7-05-PLAN.md — Replace placeholder with real Temu orders list (Wave 3)
 - [x] 07.7-06-PLAN.md — Sidebar navigation + Temu dashboard (Wave 3)
 
+### Phase 7.8: Stock Unification (INSERTED)
+**Goal**: Unify dual stock systems so facturare, retururi, and picking all use InventoryItem.currentStock instead of the legacy Product.stockQuantity/MasterProduct.stock
+**Depends on**: Phase 7.7 (multi-channel integration complete, now fix underlying stock inconsistency)
+**Requirements**: STOCK-01 through STOCK-05
+**Plans**: 5 plans in 3 waves
+**Success Criteria** (what must be TRUE):
+  1. Invoice generation uses `processInventoryStockForOrderFromPrimary()` (not legacy `processStockForOrder()`)
+  2. Return processing uses new `addInventoryStockForReturn()` function
+  3. Picking list scanning updates `InventoryItem.currentStock` (not `MasterProduct.stock`)
+  4. All MasterProducts with SKU are mapped to InventoryItem via `inventoryItemId`
+  5. Legacy stock functions deprecated but not deleted (backward compatibility)
+  6. Trendyol/Temu stock sync continues to work (already uses InventoryItem with fallback)
+
+**Context (critical issue identified):**
+- Two parallel stock systems exist that DON'T sync:
+  - OLD: `Product.stockQuantity` + `StockMovement` (used by invoice-service.ts, returns)
+  - NEW: `InventoryItem.currentStock` + `InventoryStockMovement` + `WarehouseStock` (used by NIR/GoodsReceipt)
+- `processInventoryStockForOrderFromPrimary()` already exists and is READY (inventory-stock.ts:1068-1216)
+- Picking decrements `MasterProduct.stock` instead of `InventoryItem.currentStock`
+- Result: Stock gets out of sync between systems
+
+**Conservative approach:**
+- Additive changes only - no deletion of existing code
+- New functions added, old functions deprecated
+- Migration scripts provided separately for Railway CLI
+- All database changes are nullable (non-breaking)
+
+Plans:
+- [x] 07.8-01-PLAN.md — Create addInventoryStockForReturn() function (Wave 1)
+- [x] 07.8-02-PLAN.md — Migrate invoice-service.ts to use processInventoryStockForOrderFromPrimary (Wave 1)
+- [x] 07.8-03-PLAN.md — Migrate returns/reprocess-stock to use addInventoryStockForReturn (Wave 2)
+- [x] 07.8-04-PLAN.md — Migrate picking to use InventoryItem.currentStock (Wave 2)
+- [x] 07.8-05-PLAN.md — MasterProduct→InventoryItem mapping script + deprecation markers (Wave 3)
+
+### Phase 7.9: Reception Workflow (INSERTED)
+**Goal**: Complete goods reception workflow with purchase orders, reception reports, supplier invoices, NIR approval workflow, and in-app notifications
+**Depends on**: Phase 7.8 (stock unification must be complete - all flows use InventoryItem)
+**Requirements**: REC-01 through REC-12
+**Plans**: 12 plans in 4 waves
+**Success Criteria** (what must be TRUE):
+  1. Purchase orders can be created with supplier, products, quantities, and expected date
+  2. Purchase orders generate printable labels for warehouse staff
+  3. Reception reports track received quantities vs expected (with difference detection)
+  4. Photos can be uploaded per reception report (categories: overview, labels, damage, invoice)
+  5. Supplier invoices are tracked with payment status and linked to receptions
+  6. NIR generated automatically when reception report finalized
+  7. NIR workflow: GENERAT → TRIMIS_OFFICE → VERIFICAT → APROBAT → IN_STOC (or RESPINS)
+  8. Differences require manager approval (George) before stock transfer
+  9. In-app notifications alert Office when NIR ready for verification
+  10. In-app notifications alert George when differences need approval
+  11. Dashboard low stock alerts use InventoryItem.currentStock (not Product.stockQuantity)
+  12. Temu/Trendyol stock sync verified to use InventoryItem correctly
+
+**Context (from requirements document):**
+- Flux: Precomanda → Etichete → Recepție PV → Factură Furnizor → NIR → Verificare Office → Aprobare → Transfer Stoc
+- GoodsReceipt (NIR) exists but simplified - needs workflow extension
+- Supplier model exists - can be reused
+- InventoryItem system ready after Phase 7.8
+
+**Database models to add:**
+- PurchaseOrder + PurchaseOrderItem (precomanda cu produse)
+- ReceptionReport + ReceptionReportItem (PV recepție)
+- ReceptionPhoto (poze per recepție)
+- SupplierInvoice (factură furnizor)
+- PurchaseOrderLabel (etichete pentru scanare)
+- Notification (notificări in-app)
+- GoodsReceipt extensions (+12 câmpuri pentru workflow)
+
+**New enums:**
+- PurchaseOrderStatus: DRAFT, APROBATA, IN_RECEPTIE, RECEPTIONATA, ANULATA
+- ReceptionReportStatus: DESCHIS, IN_COMPLETARE, FINALIZAT
+- GoodsReceiptStatus: DRAFT, GENERAT, TRIMIS_OFFICE, VERIFICAT, APROBAT, IN_STOC, RESPINS, CANCELLED
+- PaymentStatus: NEPLATITA, PARTIAL_PLATITA, PLATITA
+- PhotoCategory: OVERVIEW, ETICHETE, DETERIORARI, FACTURA
+
+**UI pages to add:**
+- /inventory/purchase-orders (list + create/edit)
+- /inventory/purchase-orders/[id]/labels (generate labels)
+- /inventory/reception (warehouse dashboard)
+- /inventory/reception/[reportId] (PV în completare)
+- /inventory/receipts/office (Office verification dashboard)
+- /inventory/receipts/pending-approval (George approval page)
+- /inventory/supplier-invoices (list + detail)
+
+Plans:
+- [ ] 07.9-01-PLAN.md — Prisma models: PurchaseOrder, ReceptionReport, SupplierInvoice, Notification, GoodsReceipt extensions (Wave 1)
+- [ ] 07.9-02-PLAN.md — Purchase Orders CRUD API + labels generation (Wave 2)
+- [ ] 07.9-03-PLAN.md — Reception Reports API + photo upload (Wave 2)
+- [ ] 07.9-04-PLAN.md — Supplier Invoices CRUD API (Wave 2)
+- [ ] 07.9-05-PLAN.md — NIR Workflow APIs: send-to-office, verify, approve, reject, transfer-stock (Wave 2)
+- [ ] 07.9-06-PLAN.md — Purchase Orders UI: list, create/edit, labels page (Wave 3)
+- [ ] 07.9-07-PLAN.md — Reception UI: warehouse dashboard, PV completion, photos (Wave 3)
+- [ ] 07.9-08-PLAN.md — Office Dashboard + Pending Approval page (Wave 3)
+- [ ] 07.9-09-PLAN.md — Supplier Invoices UI: list and detail pages (Wave 3)
+- [ ] 07.9-10-PLAN.md — In-app Notifications: Notification model API + bell icon UI (Wave 4)
+- [ ] 07.9-11-PLAN.md — Low stock alerts migration: dashboard-stats.ts → InventoryItem.currentStock (Wave 4)
+- [ ] 07.9-12-PLAN.md — Stock sync verification: Temu + Trendyol use InventoryItem correctly (Wave 4)
+
 ### Phase 8: Task Management Advanced
 **Goal**: Automated task creation, notifications, and activity reporting
 **Depends on**: Phase 7 (core task system must exist)
@@ -437,7 +537,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7.4 > 7.5 > 7.6 > 7.7 > 8 > 9 > 10
+Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7.4 > 7.5 > 7.6 > 7.7 > 7.8 > 7.9 > 8 > 9 > 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -455,6 +555,8 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7
 | 7.5. AWB Tracking Fix | 4/4 | ✓ Complete | 2026-02-03 |
 | 7.6. Customers Page | 0/3 | Planned | - |
 | 7.7. Temu Complete Integration | 6/6 | ✓ Complete | 2026-02-05 |
+| 7.8. Stock Unification | 5/5 | ✓ Complete | 2026-02-06 |
+| 7.9. Reception Workflow | 0/12 | Planned | - |
 | 8. Task Management Advanced | 0/5 | Not started | - |
 | 9. Documentation | 0/4 | Not started | - |
 | 10. Quality Assurance | 0/4 | Not started | - |
@@ -482,4 +584,9 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7
 *Phase 7.7 inserted: 2026-02-05 (Temu complete integration - product push, order sync, invoicing, AWB)*
 *Phase 7.7 planned: 2026-02-05 (6 plans in 3 waves)*
 *Phase 7.7 completed: 2026-02-05*
-*Depth: comprehensive (17 phases including insertions)*
+*Phase 7.8 inserted: 2026-02-05 (CRITICAL: Unify dual stock systems - facturare/retururi/picking use InventoryItem)*
+*Phase 7.8 planned: 2026-02-05 (5 plans in 3 waves)*
+*Phase 7.8 completed: 2026-02-06*
+*Phase 7.9 inserted: 2026-02-05 (Reception Workflow - PurchaseOrder, ReceptionReport, SupplierInvoice, NIR workflow, notifications)*
+*Phase 7.9 planned: 2026-02-05 (12 plans in 4 waves)*
+*Depth: comprehensive (19 phases including insertions)*

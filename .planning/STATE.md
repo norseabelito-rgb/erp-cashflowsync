@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 7.8 - Stock Unification
+**Current focus:** Phase 7.9 - Reception Workflow (Phase 7.8 complete, 7.6 partial)
 
 ## Current Position
 
