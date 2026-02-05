@@ -1042,6 +1042,228 @@ export async function deductInventoryStockFromWarehouse(
 }
 
 /**
+ * Adaugă stoc pentru un articol dintr-un DEPOZIT SPECIFIC (mirror of deductInventoryStockFromWarehouse)
+ * Folosit pentru procesarea retururilor
+ */
+export async function addInventoryStockFromWarehouse(
+  itemId: string,
+  warehouseId: string,
+  quantity: number,
+  options: {
+    orderId?: string;
+    reason?: string;
+    userId?: string;
+    userName?: string;
+  } = {}
+): Promise<{
+  success: boolean;
+  movements: Array<{
+    itemId: string;
+    sku: string;
+    quantity: number;
+    previousStock: number;
+    newStock: number;
+    warehouseId: string;
+  }>;
+  error?: string;
+}> {
+  const movements: Array<{
+    itemId: string;
+    sku: string;
+    quantity: number;
+    previousStock: number;
+    newStock: number;
+    warehouseId: string;
+  }> = [];
+
+  try {
+    const item = await prisma.inventoryItem.findUnique({
+      where: { id: itemId },
+      include: {
+        recipeComponents: {
+          include: {
+            componentItem: true,
+          },
+        },
+      },
+    });
+
+    if (!item) {
+      return { success: false, movements, error: "Articolul nu a fost găsit" };
+    }
+
+    // Verifică existența depozitului
+    const warehouse = await prisma.warehouse.findUnique({
+      where: { id: warehouseId },
+    });
+
+    if (!warehouse || !warehouse.isActive) {
+      return { success: false, movements, error: "Depozitul nu a fost găsit sau este inactiv" };
+    }
+
+    if (!item.isComposite) {
+      // Articol individual - adăugăm stocul în depozitul specificat
+      const warehouseStock = await prisma.warehouseStock.findUnique({
+        where: {
+          warehouseId_itemId: {
+            warehouseId,
+            itemId,
+          },
+        },
+      });
+
+      const previousStock = Number(warehouseStock?.currentStock || 0);
+      const newStock = previousStock + quantity;
+
+      await prisma.$transaction(async (tx) => {
+        // Actualizează sau creează WarehouseStock
+        await tx.warehouseStock.upsert({
+          where: {
+            warehouseId_itemId: {
+              warehouseId,
+              itemId,
+            },
+          },
+          create: {
+            warehouseId,
+            itemId,
+            currentStock: newStock,
+          },
+          update: {
+            currentStock: newStock,
+          },
+        });
+
+        // Creează mișcarea de stoc cu type RETURN
+        await tx.inventoryStockMovement.create({
+          data: {
+            itemId,
+            type: "RETURN",
+            quantity: quantity, // pozitiv pentru adăugare
+            previousStock,
+            newStock,
+            warehouseId,
+            orderId: options.orderId,
+            reason: options.reason || "Retur",
+            userId: options.userId,
+            userName: options.userName,
+          },
+        });
+
+        // Actualizează stocul total în InventoryItem
+        const totalStock = await tx.warehouseStock.aggregate({
+          where: { itemId },
+          _sum: { currentStock: true },
+        });
+
+        await tx.inventoryItem.update({
+          where: { id: itemId },
+          data: { currentStock: totalStock._sum.currentStock || 0 },
+        });
+      });
+
+      movements.push({
+        itemId,
+        sku: item.sku,
+        quantity,
+        previousStock,
+        newStock,
+        warehouseId,
+      });
+    } else {
+      // Articol compus - adăugăm stocul componentelor în depozitul specificat
+      if (item.recipeComponents.length === 0) {
+        return {
+          success: false,
+          movements,
+          error: "Articolul compus nu are rețetă definită",
+        };
+      }
+
+      await prisma.$transaction(async (tx) => {
+        for (const comp of item.recipeComponents) {
+          const componentQuantity = Number(comp.quantity) * quantity;
+
+          const warehouseStock = await tx.warehouseStock.findUnique({
+            where: {
+              warehouseId_itemId: {
+                warehouseId,
+                itemId: comp.componentItemId,
+              },
+            },
+          });
+
+          const previousStock = Number(warehouseStock?.currentStock || 0);
+          const newStock = previousStock + componentQuantity;
+
+          // Actualizează WarehouseStock
+          await tx.warehouseStock.upsert({
+            where: {
+              warehouseId_itemId: {
+                warehouseId,
+                itemId: comp.componentItemId,
+              },
+            },
+            create: {
+              warehouseId,
+              itemId: comp.componentItemId,
+              currentStock: newStock,
+            },
+            update: {
+              currentStock: newStock,
+            },
+          });
+
+          // Creează mișcarea de stoc cu type RETURN
+          await tx.inventoryStockMovement.create({
+            data: {
+              itemId: comp.componentItemId,
+              type: "RETURN",
+              quantity: componentQuantity, // pozitiv pentru adăugare
+              previousStock,
+              newStock,
+              warehouseId,
+              orderId: options.orderId,
+              reason: options.reason || `Retur - Component pentru ${item.name}`,
+              userId: options.userId,
+              userName: options.userName,
+            },
+          });
+
+          // Actualizează stocul total în InventoryItem
+          const totalStock = await tx.warehouseStock.aggregate({
+            where: { itemId: comp.componentItemId },
+            _sum: { currentStock: true },
+          });
+
+          await tx.inventoryItem.update({
+            where: { id: comp.componentItemId },
+            data: { currentStock: totalStock._sum.currentStock || 0 },
+          });
+
+          movements.push({
+            itemId: comp.componentItemId,
+            sku: comp.componentItem.sku,
+            quantity: componentQuantity,
+            previousStock,
+            newStock,
+            warehouseId,
+          });
+        }
+      });
+    }
+
+    return { success: true, movements };
+  } catch (error: any) {
+    return {
+      success: false,
+      movements,
+      error: error.message || "Eroare la adăugarea stocului",
+    };
+  }
+}
+
+/**
  * Sincronizează stocul total al unui articol cu suma din depozite
  */
 export async function syncItemTotalStock(itemId: string): Promise<number> {
