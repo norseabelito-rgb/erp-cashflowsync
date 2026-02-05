@@ -67,6 +67,10 @@ Recent decisions affecting current work:
 - **07.9-04:** Auto-calculate totalWithVat if vatValue provided but totalWithVat not
 - **07.9-04:** Auto-set paidAt when payment status changes to PLATITA
 - **07.9-04:** Manual findFirst check for unique constraint to provide user-friendly error messages
+- **07.9-02:** Document number format PC-DD/MM/YYYY-NNNN with daily auto-increment
+- **07.9-02:** Label code format PO-{id8}-{timestamp36}-{random4} for unique scanning
+- **07.9-02:** Labels can only be generated for APROBATA or IN_RECEPTIE orders
+- **07.9-02:** One label generated per line item (not per quantity)
 - **07.9-01:** Backward-compatible enum extension - keep DRAFT and COMPLETED in GoodsReceiptStatus
 - **07.9-01:** Cascade delete for child models (PurchaseOrderItem, PurchaseOrderLabel, etc.)
 - **07.9-01:** Unique constraint on GoodsReceipt.receptionReportId for 1:1 relationship
@@ -518,7 +522,7 @@ Task Management Core components:
 | Plan | Wave | Status | Summary |
 |------|------|--------|---------|
 | 07.9-01 | 1 | Complete | 7 new models + 4 enums + extended GoodsReceipt for reception workflow |
-| 07.9-02 | 2 | Pending | Purchase Orders CRUD API + labels generation |
+| 07.9-02 | 2 | Complete | Purchase Orders CRUD API + labels generation |
 | 07.9-03 | 2 | Pending | Reception Reports API + photo upload |
 | 07.9-04 | 2 | Complete | Supplier Invoices CRUD API + document upload |
 | 07.9-05 | 2 | Pending | NIR Workflow APIs: send-to-office, verify, approve, reject, transfer-stock |
@@ -567,6 +571,9 @@ Task Management Core components:
 
 ## Recent Commits
 
+- `bf847e6` feat(07.9-02): create Labels API for purchase orders
+- `cb6b42e` feat(07.9-02): create Purchase Orders CRUD API
+- `6f17b9b` feat(07.9-02): create document numbering utility
 - `3a6e983` feat(07.9-04): create Invoice Upload endpoint
 - `4956233` feat(07.9-04): create Supplier Invoices CRUD API
 - `b3b251c` style(07.9-01): format schema.prisma with prisma format
