@@ -5,7 +5,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useParams } from "next/navigation";
 import {
   ArrowLeft,
-  ClipboardList,
   Plus,
   Trash2,
   Save,
@@ -19,6 +18,8 @@ import {
   Clock,
   User,
   AlertTriangle,
+  Send,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +63,7 @@ import {
 } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
+import NIRWorkflowActions from "@/components/inventory/NIRWorkflowActions";
 
 interface ReceiptItem {
   id?: string;
@@ -71,7 +73,24 @@ interface ReceiptItem {
   unit: string;
   quantity: number;
   unitCost: number | null;
+  notes?: string;
 }
+
+// Status display configuration
+const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "warning" | "success" | "destructive" | "info" }> = {
+  DRAFT: { label: "Ciorna", variant: "warning" },
+  GENERAT: { label: "Generat", variant: "secondary" },
+  TRIMIS_OFFICE: { label: "Trimis Office", variant: "info" },
+  VERIFICAT: { label: "Verificat", variant: "info" },
+  APROBAT: { label: "Aprobat", variant: "success" },
+  IN_STOC: { label: "In Stoc", variant: "success" },
+  RESPINS: { label: "Respins", variant: "destructive" },
+  COMPLETED: { label: "Finalizat", variant: "success" },
+  CANCELLED: { label: "Anulat", variant: "secondary" },
+};
+
+// Workflow statuses for timeline
+const WORKFLOW_STATUSES = ['GENERAT', 'TRIMIS_OFFICE', 'VERIFICAT', 'APROBAT', 'IN_STOC'];
 
 export default function GoodsReceiptDetailPage() {
   const router = useRouter();
@@ -147,7 +166,7 @@ export default function GoodsReceiptDetailPage() {
       if (result.success) {
         queryClient.invalidateQueries({ queryKey: ["goods-receipt", receiptId] });
         queryClient.invalidateQueries({ queryKey: ["goods-receipts"] });
-        toast({ title: "Succes", description: "Recepția a fost actualizată" });
+        toast({ title: "Succes", description: "Receptia a fost actualizata" });
         setIsEditing(false);
       } else {
         toast({ title: "Eroare", description: result.error, variant: "destructive" });
@@ -155,7 +174,7 @@ export default function GoodsReceiptDetailPage() {
     },
   });
 
-  // Complete mutation
+  // Complete mutation (for legacy DRAFT -> COMPLETED flow)
   const completeMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/goods-receipts/${receiptId}/complete`, {
@@ -213,6 +232,7 @@ export default function GoodsReceiptDetailPage() {
         unit: item.item?.unit || "",
         quantity: Number(item.quantity),
         unitCost: item.unitCost ? Number(item.unitCost) : null,
+        notes: item.notes || "",
       })));
       setIsEditing(true);
     }
@@ -222,7 +242,7 @@ export default function GoodsReceiptDetailPage() {
     if (!selectedItemId || !itemQuantity) {
       toast({
         title: "Eroare",
-        description: "Selectează un articol și introdu cantitatea",
+        description: "Selecteaza un articol si introdu cantitatea",
         variant: "destructive",
       });
       return;
@@ -232,7 +252,7 @@ export default function GoodsReceiptDetailPage() {
     if (quantity <= 0) {
       toast({
         title: "Eroare",
-        description: "Cantitatea trebuie să fie pozitivă",
+        description: "Cantitatea trebuie sa fie pozitiva",
         variant: "destructive",
       });
       return;
@@ -276,7 +296,7 @@ export default function GoodsReceiptDetailPage() {
     if (items.length === 0) {
       toast({
         title: "Eroare",
-        description: "Adaugă cel puțin un articol în recepție",
+        description: "Adauga cel putin un articol in receptie",
         variant: "destructive",
       });
       return;
@@ -316,16 +336,17 @@ export default function GoodsReceiptDetailPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "DRAFT":
-        return <Badge variant="warning">Ciornă</Badge>;
-      case "COMPLETED":
-        return <Badge variant="success">Finalizat</Badge>;
-      case "CANCELLED":
-        return <Badge variant="secondary">Anulat</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
+    const config = STATUS_CONFIG[status] || { label: status, variant: "default" };
+    return <Badge variant={config.variant as any}>{config.label}</Badge>;
+  };
+
+  // Determine if this is a workflow NIR (has GENERAT or later status)
+  const isWorkflowNir = receipt && WORKFLOW_STATUSES.includes(receipt.status);
+
+  // Get current step index for timeline
+  const getCurrentStepIndex = (status: string) => {
+    if (status === 'RESPINS') return -1; // Rejected is special
+    return WORKFLOW_STATUSES.indexOf(status);
   };
 
   if (isLoading) {
@@ -341,14 +362,14 @@ export default function GoodsReceiptDetailPage() {
       <div className="p-4 md:p-6 lg:p-8">
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Recepție negăsită</AlertTitle>
+          <AlertTitle>Receptie negasita</AlertTitle>
           <AlertDescription>
-            Recepția cu ID-ul specificat nu a fost găsită.
+            Receptia cu ID-ul specificat nu a fost gasita.
           </AlertDescription>
         </Alert>
         <Button className="mt-4" onClick={() => router.push("/inventory/receipts")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Înapoi la listă
+          Inapoi la lista
         </Button>
       </div>
     );
@@ -360,6 +381,8 @@ export default function GoodsReceiptDetailPage() {
   const totalValue = isEditing
     ? items.reduce((sum, i) => sum + (i.quantity * (i.unitCost || 0)), 0)
     : Number(receipt.totalValue);
+
+  const currentStepIndex = getCurrentStepIndex(receipt.status);
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto">
@@ -375,37 +398,104 @@ export default function GoodsReceiptDetailPage() {
                 {receipt.receiptNumber}
               </h1>
               {getStatusBadge(receipt.status)}
+              {receipt.hasDifferences && (
+                <Badge variant="warning" className="flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Diferente
+                </Badge>
+              )}
             </div>
             <p className="text-muted-foreground">
-              {receipt.supplier?.name || "Fără furnizor"} • {formatDate(receipt.createdAt)}
+              {receipt.supplier?.name || "Fara furnizor"} - {formatDate(receipt.createdAt)}
             </p>
           </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-2" />
-            Reîncarcă
+            Reincarca
           </Button>
           {receipt.status === "DRAFT" && !isEditing && (
             <>
               <Button variant="outline" onClick={startEditing}>
                 <Edit className="h-4 w-4 mr-2" />
-                Editează
+                Editeaza
               </Button>
               <Button onClick={() => setCompleteDialogOpen(true)}>
                 <CheckCircle2 className="h-4 w-4 mr-2" />
-                Finalizează
+                Finalizeaza
               </Button>
             </>
           )}
         </div>
       </div>
 
-      {/* Status Alert for completed receipts */}
+      {/* Workflow Status Timeline (only for workflow NIRs) */}
+      {isWorkflowNir && receipt.status !== 'RESPINS' && (
+        <Card className="mb-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Progres Workflow</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              {WORKFLOW_STATUSES.map((status, index) => {
+                const isCompleted = index <= currentStepIndex;
+                const isCurrent = index === currentStepIndex;
+                const config = STATUS_CONFIG[status];
+
+                return (
+                  <div key={status} className="flex items-center flex-1">
+                    <div className="flex flex-col items-center">
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                          isCompleted
+                            ? 'bg-status-success text-white'
+                            : isCurrent
+                            ? 'bg-status-info text-white'
+                            : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {isCompleted ? (
+                          <CheckCircle2 className="h-4 w-4" />
+                        ) : (
+                          index + 1
+                        )}
+                      </div>
+                      <span className={`text-xs mt-1 ${isCurrent ? 'font-medium' : 'text-muted-foreground'}`}>
+                        {config?.label || status}
+                      </span>
+                    </div>
+                    {index < WORKFLOW_STATUSES.length - 1 && (
+                      <div
+                        className={`flex-1 h-0.5 mx-2 ${
+                          index < currentStepIndex ? 'bg-status-success' : 'bg-muted'
+                        }`}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Rejected Status Alert */}
+      {receipt.status === 'RESPINS' && (
+        <Alert variant="destructive" className="mb-6">
+          <XCircle className="h-4 w-4" />
+          <AlertTitle>NIR Respins</AlertTitle>
+          <AlertDescription>
+            Acest NIR a fost respins si nu poate fi procesat mai departe.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Status Alert for completed receipts (legacy flow) */}
       {receipt.status === "COMPLETED" && (
         <Alert className="mb-6 border-status-success/50 bg-status-success/10">
           <CheckCircle2 className="h-4 w-4 text-status-success" />
-          <AlertTitle>Recepție finalizată</AlertTitle>
+          <AlertTitle>Receptie finalizata</AlertTitle>
           <AlertDescription>
             Stocul a fost actualizat la {formatDateTime(receipt.completedAt)}
             {receipt.completedByName && ` de ${receipt.completedByName}`}.
@@ -419,7 +509,7 @@ export default function GoodsReceiptDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Informații document
+              Informatii document
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -433,10 +523,10 @@ export default function GoodsReceiptDetailPage() {
                     </Label>
                     <Select value={supplierId} onValueChange={setSupplierId}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selectează furnizor" />
+                        <SelectValue placeholder="Selecteaza furnizor" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Fără furnizor</SelectItem>
+                        <SelectItem value="none">Fara furnizor</SelectItem>
                         {suppliers.map((supplier: any) => (
                           <SelectItem key={supplier.id} value={supplier.id}>
                             {supplier.name}
@@ -446,7 +536,7 @@ export default function GoodsReceiptDetailPage() {
                     </Select>
                   </div>
                   <div>
-                    <Label>Număr document/factură</Label>
+                    <Label>Numar document/factura</Label>
                     <Input
                       value={documentNumber}
                       onChange={(e) => setDocumentNumber(e.target.value)}
@@ -509,10 +599,10 @@ export default function GoodsReceiptDetailPage() {
                   </p>
                   <p className="font-medium">{receipt.createdByName || "-"}</p>
                 </div>
-                {receipt.notes && (
+                {receipt.notes && !receipt.notes.includes("[RESPINS") && (
                   <div className="md:col-span-2 lg:col-span-3">
                     <p className="text-sm text-muted-foreground">Note</p>
-                    <p className="font-medium">{receipt.notes}</p>
+                    <p className="font-medium whitespace-pre-wrap">{receipt.notes}</p>
                   </div>
                 )}
               </div>
@@ -525,11 +615,11 @@ export default function GoodsReceiptDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
-              Articole recepționate
+              Articole receptionate
             </CardTitle>
             {isEditing && (
               <CardDescription>
-                Modifică articolele și cantitățile
+                Modifica articolele si cantitatile
               </CardDescription>
             )}
           </CardHeader>
@@ -541,7 +631,7 @@ export default function GoodsReceiptDetailPage() {
                   <Label>Articol</Label>
                   <Select value={selectedItemId} onValueChange={setSelectedItemId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selectează articol" />
+                      <SelectValue placeholder="Selecteaza articol" />
                     </SelectTrigger>
                     <SelectContent>
                       {availableItems.map((item: any) => (
@@ -574,7 +664,7 @@ export default function GoodsReceiptDetailPage() {
                 </div>
                 <Button type="button" onClick={handleAddItem}>
                   <Plus className="h-4 w-4 mr-1" />
-                  Adaugă
+                  Adauga
                 </Button>
               </div>
             )}
@@ -589,12 +679,16 @@ export default function GoodsReceiptDetailPage() {
                     <TableHead className="text-right">Cantitate</TableHead>
                     <TableHead className="text-right">Cost unitar</TableHead>
                     <TableHead className="text-right">Valoare</TableHead>
+                    {!isEditing && <TableHead>Observatii</TableHead>}
                     {isEditing && <TableHead className="w-[50px]"></TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(isEditing ? items : receipt.items).map((item: any) => (
-                    <TableRow key={item.itemId || item.id}>
+                    <TableRow
+                      key={item.itemId || item.id}
+                      className={item.notes ? "bg-status-warning/5" : ""}
+                    >
                       <TableCell className="font-mono text-sm">
                         {item.sku || item.item?.sku}
                       </TableCell>
@@ -647,6 +741,15 @@ export default function GoodsReceiptDetailPage() {
                           : (item.unitCost ? formatCurrency(Number(item.quantity) * Number(item.unitCost)) : "-")
                         }
                       </TableCell>
+                      {!isEditing && (
+                        <TableCell>
+                          {item.notes ? (
+                            <span className="text-status-warning text-sm">{item.notes}</span>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
+                      )}
                       {isEditing && (
                         <TableCell>
                           <Button
@@ -667,10 +770,10 @@ export default function GoodsReceiptDetailPage() {
               <div className="border-t bg-muted/30 px-4 py-3">
                 <div className="flex justify-between items-center">
                   <div className="text-sm text-muted-foreground">
-                    {isEditing ? items.length : receipt.items.length} articole, {Math.round(Number(totalQuantity))} unități total
+                    {isEditing ? items.length : receipt.items.length} articole, {Math.round(Number(totalQuantity))} unitati total
                   </div>
                   <div className="text-right">
-                    <span className="text-sm text-muted-foreground mr-2">Valoare totală:</span>
+                    <span className="text-sm text-muted-foreground mr-2">Valoare totala:</span>
                     <span className="text-lg font-bold">{formatCurrency(totalValue)}</span>
                   </div>
                 </div>
@@ -679,7 +782,133 @@ export default function GoodsReceiptDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Actions */}
+        {/* Workflow History (for workflow NIRs) */}
+        {isWorkflowNir && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Istoric Workflow
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {receipt.createdAt && (
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium">NIR Generat</p>
+                      <p className="text-muted-foreground">
+                        {formatDateTime(receipt.createdAt)} - {receipt.createdByName || "Sistem"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {receipt.sentToOfficeAt && (
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="w-8 h-8 rounded-full bg-status-info/20 flex items-center justify-center">
+                      <Send className="h-4 w-4 text-status-info" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Trimis la Office</p>
+                      <p className="text-muted-foreground">{formatDateTime(receipt.sentToOfficeAt)}</p>
+                    </div>
+                  </div>
+                )}
+
+                {receipt.verifiedAt && (
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="w-8 h-8 rounded-full bg-status-info/20 flex items-center justify-center">
+                      <CheckCircle2 className="h-4 w-4 text-status-info" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Verificat de Office</p>
+                      <p className="text-muted-foreground">
+                        {formatDateTime(receipt.verifiedAt)} - {receipt.verifiedByName || "-"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {receipt.differencesApprovedAt && (
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="w-8 h-8 rounded-full bg-status-warning/20 flex items-center justify-center">
+                      <AlertTriangle className="h-4 w-4 text-status-warning" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Diferente aprobate</p>
+                      <p className="text-muted-foreground">
+                        {formatDateTime(receipt.differencesApprovedAt)} - {receipt.differencesApprovedByName || "-"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {receipt.status === 'RESPINS' && (
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="w-8 h-8 rounded-full bg-status-error/20 flex items-center justify-center">
+                      <XCircle className="h-4 w-4 text-status-error" />
+                    </div>
+                    <div>
+                      <p className="font-medium">NIR Respins</p>
+                      <p className="text-muted-foreground text-status-error">
+                        {receipt.notes?.includes("[RESPINS") &&
+                          receipt.notes.split("[RESPINS").slice(-1)[0]?.split("]")[1]?.trim()
+                        }
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {receipt.transferredToStockAt && (
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="w-8 h-8 rounded-full bg-status-success/20 flex items-center justify-center">
+                      <Package className="h-4 w-4 text-status-success" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Transferat in stoc</p>
+                      <p className="text-muted-foreground">{formatDateTime(receipt.transferredToStockAt)}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Workflow Actions (for workflow NIRs) */}
+        {isWorkflowNir && !isEditing && (
+          <NIRWorkflowActions
+            nir={{
+              id: receipt.id,
+              receiptNumber: receipt.receiptNumber,
+              status: receipt.status,
+              hasDifferences: receipt.hasDifferences,
+              differencesApprovedBy: receipt.differencesApprovedBy,
+              differencesApprovedByName: receipt.differencesApprovedByName,
+              differencesApprovedAt: receipt.differencesApprovedAt,
+              supplierInvoiceId: receipt.supplierInvoiceId,
+              sentToOfficeAt: receipt.sentToOfficeAt,
+              verifiedAt: receipt.verifiedAt,
+              verifiedByName: receipt.verifiedByName,
+              transferredToStockAt: receipt.transferredToStockAt,
+              totalItems: receipt.totalItems,
+              totalValue: receipt.totalValue,
+              notes: receipt.notes,
+            }}
+            onAction={() => refetch()}
+            userPermissions={{
+              canVerify: true, // TODO: Check actual permissions
+              canApproveDifferences: true, // TODO: Check actual permissions
+              canEdit: true,
+            }}
+          />
+        )}
+
+        {/* Actions (edit mode for DRAFT) */}
         {isEditing && (
           <div className="flex justify-between items-center">
             <Button
@@ -687,17 +916,17 @@ export default function GoodsReceiptDetailPage() {
               onClick={() => setDeleteDialogOpen(true)}
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Șterge recepția
+              Sterge receptia
             </Button>
             <div className="flex gap-4">
               <Button variant="outline" onClick={() => setIsEditing(false)}>
-                Anulează
+                Anuleaza
               </Button>
               <Button onClick={handleSave} disabled={updateMutation.isPending || items.length === 0}>
-                {updateMutation.isPending ? "Se salvează..." : (
+                {updateMutation.isPending ? "Se salveaza..." : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
-                    Salvează
+                    Salveaza
                   </>
                 )}
               </Button>
@@ -706,17 +935,17 @@ export default function GoodsReceiptDetailPage() {
         )}
       </div>
 
-      {/* Complete Dialog */}
+      {/* Complete Dialog (legacy flow) */}
       <Dialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Finalizare recepție</DialogTitle>
+            <DialogTitle>Finalizare receptie</DialogTitle>
             <DialogDescription>
-              Ești sigur că vrei să finalizezi recepția{" "}
+              Esti sigur ca vrei sa finalizezi receptia{" "}
               <strong>{receipt.receiptNumber}</strong>?
               <br /><br />
-              Aceasta va adăuga {receipt.totalItems} articole în stoc
-              cu o valoare totală de {formatCurrency(Number(receipt.totalValue))}.
+              Aceasta va adauga {receipt.totalItems} articole in stoc
+              cu o valoare totala de {formatCurrency(Number(receipt.totalValue))}.
               <br /><br />
               <span className="text-status-warning">
                 Actiunea este ireversibila - receptiile finalizate nu pot fi modificate.
@@ -725,13 +954,13 @@ export default function GoodsReceiptDetailPage() {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCompleteDialogOpen(false)}>
-              Anulează
+              Anuleaza
             </Button>
             <Button
               onClick={() => completeMutation.mutate()}
               disabled={completeMutation.isPending}
             >
-              {completeMutation.isPending ? "Se procesează..." : "Finalizează"}
+              {completeMutation.isPending ? "Se proceseaza..." : "Finalizeaza"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -741,24 +970,24 @@ export default function GoodsReceiptDetailPage() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmare ștergere</DialogTitle>
+            <DialogTitle>Confirmare stergere</DialogTitle>
             <DialogDescription>
-              Ești sigur că vrei să ștergi recepția{" "}
+              Esti sigur ca vrei sa stergi receptia{" "}
               <strong>{receipt.receiptNumber}</strong>?
               <br /><br />
-              Această acțiune nu poate fi anulată.
+              Aceasta actiune nu poate fi anulata.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Anulează
+              Anuleaza
             </Button>
             <Button
               variant="destructive"
               onClick={() => deleteMutation.mutate()}
               disabled={deleteMutation.isPending}
             >
-              {deleteMutation.isPending ? "Se șterge..." : "Șterge"}
+              {deleteMutation.isPending ? "Se sterge..." : "Sterge"}
             </Button>
           </DialogFooter>
         </DialogContent>
