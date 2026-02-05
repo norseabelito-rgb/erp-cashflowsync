@@ -23,6 +23,7 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
 - [x] **Phase 7.4: Orders Channel Split** - Tabs Shopify/Trendyol/Temu, manual order creation (INSERTED)
 - [x] **Phase 7.5: AWB Tracking Fix** - Correct status logic, accurate card counts (INSERTED)
 - [ ] **Phase 7.6: Customers Page** - Customer management with order history and analytics (INSERTED)
+- [ ] **Phase 7.7: Temu Complete Integration** - Full Temu channel with product push, order sync, invoicing, and AWB (INSERTED)
 - [ ] **Phase 8: Task Management Advanced** - Automation, notifications, and reporting
 - [ ] **Phase 9: Documentation** - In-app documentation for all modules
 - [ ] **Phase 10: Quality Assurance** - Final verification and test coverage for critical flows
@@ -336,6 +337,47 @@ Plans:
 - [ ] 07.6-02-PLAN.md — Customer List Page and sidebar navigation (Wave 2)
 - [ ] 07.6-03-PLAN.md — Customer Detail Modal with order history and analytics (Wave 3)
 
+### Phase 7.7: Temu Complete Integration (INSERTED)
+**Goal**: Complete Temu sales channel integration with product push, order sync, invoicing, and AWB generation - fully integrated into ERP ecosystem
+**Depends on**: Phase 7.6 (uses established multi-channel patterns from Trendyol)
+**Requirements**: TEMU-01 through TEMU-12
+**Plans**: 6 plans in 3 waves
+**Success Criteria** (what must be TRUE):
+  1. Temu Partner API client library with EU endpoint and MD5 signature authentication
+  2. TemuStore model with company association (multiple stores per company supported)
+  3. TemuStore linked to Oblio invoice series (like TrendyolStore)
+  4. Products can be pushed from MasterList to Temu with category/attribute mapping
+  5. Temu orders sync to main Order table with source='temu'
+  6. Temu orders appear in Orders page Temu tab (existing from Phase 7.4)
+  7. Temu orders have dedicated page in sidebar (like Trendyol)
+  8. Invoices generated for Temu orders using TemuStore.invoiceSeriesName
+  9. AWBs generated using company credentials associated with TemuStore
+  10. Stock decreases on invoice generation for Temu orders
+  11. Stock increases on return for Temu orders
+  12. Tracking numbers sent back to Temu after AWB creation
+
+**Context (from API documentation research):**
+- EU Endpoint: `https://openapi-b-eu.temu.com/openapi/router`
+- Authentication: OAuth with access_token (3-month expiration) + MD5 signature
+- Rate limit: 20 req/sec per app_key
+- API methods use `bg.` prefix (e.g., bg.local.goods.sku.list.query, bg.order.*)
+- Product identifiers: Goods ID (product) + SKU ID (variant)
+- Similar architecture to Trendyol integration already in codebase
+
+**Existing foundation:**
+- Orders page already has Temu tab placeholder (Phase 7.4)
+- Multi-channel order architecture established (source field)
+- TrendyolStore pattern can be replicated for TemuStore
+- Invoice/AWB generation flows support multi-company
+
+Plans:
+- [ ] 07.7-01-PLAN.md — TemuClient with MD5 signature + TemuStore/TemuOrder models (Wave 1)
+- [ ] 07.7-02-PLAN.md — TemuStore API routes + Settings UI (Wave 1)
+- [ ] 07.7-03-PLAN.md — Order sync service + invoice series extension (Wave 2)
+- [ ] 07.7-04-PLAN.md — AWB tracking send to Temu (Wave 2)
+- [ ] 07.7-05-PLAN.md — Replace placeholder with real Temu orders list (Wave 3)
+- [ ] 07.7-06-PLAN.md — Sidebar navigation + Temu dashboard (Wave 3)
+
 ### Phase 8: Task Management Advanced
 **Goal**: Automated task creation, notifications, and activity reporting
 **Depends on**: Phase 7 (core task system must exist)
@@ -395,7 +437,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7.4 > 7.5 > 7.6 > 8 > 9 > 10
+Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7.4 > 7.5 > 7.6 > 7.7 > 8 > 9 > 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -412,6 +454,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7
 | 7.4. Orders Channel Split | 5/5 | ✓ Complete | 2026-02-03 |
 | 7.5. AWB Tracking Fix | 4/4 | ✓ Complete | 2026-02-03 |
 | 7.6. Customers Page | 0/3 | Planned | - |
+| 7.7. Temu Complete Integration | 0/6 | Planned | - |
 | 8. Task Management Advanced | 0/5 | Not started | - |
 | 9. Documentation | 0/4 | Not started | - |
 | 10. Quality Assurance | 0/4 | Not started | - |
@@ -436,4 +479,6 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7
 *Phase 7.5 completed: 2026-02-03*
 *Phase 7.6 inserted: 2026-02-04 (Customers page - order history, analytics, multi-store filtering)*
 *Phase 7.6 planned: 2026-02-04 (3 plans in 3 waves)*
-*Depth: comprehensive (16 phases including insertions)*
+*Phase 7.7 inserted: 2026-02-05 (Temu complete integration - product push, order sync, invoicing, AWB)*
+*Phase 7.7 planned: 2026-02-05 (6 plans in 3 waves)*
+*Depth: comprehensive (17 phases including insertions)*
