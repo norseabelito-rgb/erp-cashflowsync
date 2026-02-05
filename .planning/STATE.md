@@ -55,6 +55,10 @@ Progress: [██████████████████░░] ~98% (7
 
 Recent decisions affecting current work:
 
+- **07.7-03:** TemuStoreForSync type follows TrendyolStoreForSync pattern for consistency
+- **07.7-03:** Invoice series resolution Priority 0a for Temu (before Trendyol at 0b)
+- **07.7-03:** Temu orders use shopifyOrderId field with temuOrderId value (reuse existing field)
+- **07.7-03:** Local OrderStatus type in temu-status.ts handles Prisma client regeneration timing
 - **07.6-02:** Store filter uses Select dropdown (simpler than ChannelTabs for customers)
 - **07.6-02:** Clienti placed between Comenzi and Facturi in sidebar Vanzari section
 - **07.6-02:** PageHeader component doesn't support icon prop
@@ -310,16 +314,16 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-05
-Stopped at: Completed 07.7-04 (AWB Tracking Service)
+Stopped at: Completed 07.7-03 (Order Sync Service)
 Resume context:
-- **Phase 7.7** - Plan 04 complete (4/6 plans)
-- sendTrackingToTemu function in src/lib/temu-awb.ts
-- AWB service integration for source='temu' orders
-- Non-blocking tracking pattern (fire-and-forget)
+- **Phase 7.7** - Plan 03 complete (4/6 plans - 01, 02, 03, 04)
+- temu-order-sync.ts with syncTemuOrderToMainOrder, syncTemuOrdersForStore
+- temu-status.ts with mapTemuToInternalStatus
+- Invoice series resolution extended for TemuStore.invoiceSeriesName
 
 **NEXT STEPS:**
-1. Continue Phase 7.7: Plan 03 (Order Sync Service) - skipped in wave execution
-2. Plan 05 (Stock Sync)
+1. Continue Phase 7.7: Plan 05 (Stock Sync)
+2. Plan 06 (UI Integration)
 3. Plan 06 (UI Integration)
 4. Apply add_temu_tables.sql to staging database
 
@@ -431,7 +435,7 @@ Task Management Core components:
 |------|------|--------|---------|
 | 07.7-01 | 1 | Complete | TemuClient with MD5 signature + database models |
 | 07.7-02 | 1 | Complete | TemuStore CRUD API + TemuStoresTab Settings UI |
-| 07.7-03 | 2 | Pending | Order Sync Service |
+| 07.7-03 | 2 | Complete | Order Sync Service + Invoice Series Resolution |
 | 07.7-04 | 2 | Complete | AWB tracking service |
 | 07.7-05 | 3 | Pending | Stock sync |
 | 07.7-06 | 4 | Pending | UI integration |
@@ -440,7 +444,7 @@ Task Management Core components:
 
 - [x] 07.7-01: TemuClient with MD5 signature, TemuStore/TemuOrder/TemuOrderItem models
 - [x] 07.7-02: TemuStore CRUD API, TemuStoresTab Settings UI, Temu tab in Settings
-- [ ] 07.7-03: Order Sync Service with TemuStore credential mapping
+- [x] 07.7-03: Order Sync Service with TemuStore credential mapping, invoice series resolution
 - [x] 07.7-04: AWB tracking send to Temu (sendTrackingToTemu + AWB service integration)
 - [ ] 07.7-05: Stock sync on order/return
 - [ ] 07.7-06: Replace TemuPlaceholder with real Temu orders view
