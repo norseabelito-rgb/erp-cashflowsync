@@ -2969,15 +2969,15 @@ model Supplier {
 
 // Status recepție marfă (extended for workflow)
 enum GoodsReceiptStatus {
-  DRAFT         // Ciornă (deprecated - kept for backward compat)
-  GENERAT       // NIR creat automat din PV
+  DRAFT // Ciornă (deprecated - kept for backward compat)
+  GENERAT // NIR creat automat din PV
   TRIMIS_OFFICE // Trimis la Office pentru verificare
-  VERIFICAT     // Verificat de Office
-  APROBAT       // Aprobat (direct sau dupa aprobare diferente)
-  IN_STOC       // Transferat in stoc
-  RESPINS       // Respins de George (diferente neaprobate)
-  COMPLETED     // (deprecated - kept for backward compat)
-  CANCELLED     // Anulat
+  VERIFICAT // Verificat de Office
+  APROBAT // Aprobat (direct sau dupa aprobare diferente)
+  IN_STOC // Transferat in stoc
+  RESPINS // Respins de George (diferente neaprobate)
+  COMPLETED // (deprecated - kept for backward compat)
+  CANCELLED // Anulat
 }
 
 // ============================================
@@ -2986,18 +2986,18 @@ enum GoodsReceiptStatus {
 
 // Purchase Order Status
 enum PurchaseOrderStatus {
-  DRAFT        // In editare
-  APROBATA     // Aprobata, asteapta receptie
-  IN_RECEPTIE  // Receptie in curs
+  DRAFT // In editare
+  APROBATA // Aprobata, asteapta receptie
+  IN_RECEPTIE // Receptie in curs
   RECEPTIONATA // Finalizata
-  ANULATA      // Anulata
+  ANULATA // Anulata
 }
 
 // Reception Report Status
 enum ReceptionReportStatus {
-  DESCHIS       // Deschis, se completeaza
+  DESCHIS // Deschis, se completeaza
   IN_COMPLETARE // In completare cantitati
-  FINALIZAT     // Finalizat, NIR generat
+  FINALIZAT // Finalizat, NIR generat
 }
 
 // Supplier Invoice Payment Status
@@ -3009,10 +3009,10 @@ enum PaymentStatus {
 
 // Photo Categories for Reception
 enum PhotoCategory {
-  OVERVIEW     // Marfa pe paleti
-  ETICHETE     // Close-up etichete
-  DETERIORARI  // Damage photos
-  FACTURA      // Invoice scan
+  OVERVIEW // Marfa pe paleti
+  ETICHETE // Close-up etichete
+  DETERIORARI // Damage photos
+  FACTURA // Invoice scan
 }
 
 // Recepție marfă (NIR)
@@ -3061,10 +3061,10 @@ model GoodsReceipt {
   supplierInvoice   SupplierInvoice? @relation(fields: [supplierInvoiceId], references: [id])
 
   // Difference tracking
-  hasDifferences          Boolean   @default(false)
-  differencesApprovedBy   String?
+  hasDifferences            Boolean   @default(false)
+  differencesApprovedBy     String?
   differencesApprovedByName String?
-  differencesApprovedAt   DateTime?
+  differencesApprovedAt     DateTime?
 
   // Workflow timestamps
   sentToOfficeAt       DateTime?
@@ -3126,8 +3126,8 @@ model GoodsReceiptItem {
 
 // Precomanda - initiaza fluxul de receptie
 model PurchaseOrder {
-  id             String              @id @default(cuid())
-  documentNumber String              @unique // PC-DD/MM/YYYY-NNNN
+  id             String @id @default(cuid())
+  documentNumber String @unique // PC-DD/MM/YYYY-NNNN
 
   supplierId String
   supplier   Supplier @relation(fields: [supplierId], references: [id])
@@ -3195,8 +3195,8 @@ model PurchaseOrderLabel {
   purchaseOrderId String
   purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
 
-  labelCode String   @unique // Scannable barcode/QR value
-  printed   Boolean  @default(false)
+  labelCode String    @unique // Scannable barcode/QR value
+  printed   Boolean   @default(false)
   printedAt DateTime?
   printedBy String?
 
@@ -3260,9 +3260,9 @@ model ReceptionReportItem {
   quantityExpected Decimal  @db.Decimal(10, 3)
   quantityReceived Decimal? @db.Decimal(10, 3)
 
-  verified      Boolean  @default(false)
-  hasDifference Boolean  @default(false)
-  observations  String?  @db.Text // Required if hasDifference
+  verified      Boolean @default(false)
+  hasDifference Boolean @default(false)
+  observations  String? @db.Text // Required if hasDifference
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
