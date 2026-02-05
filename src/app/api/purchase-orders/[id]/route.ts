@@ -61,7 +61,7 @@ export async function GET(
             id: true,
             invoiceNumber: true,
             invoiceDate: true,
-            totalAmount: true,
+            totalValue: true,
           },
         },
       },
