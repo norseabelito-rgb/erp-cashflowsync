@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.8 of 10 (Stock Unification)
-Plan: 2 of 5
+Plan: 3 of 5
 Status: In progress
-Last activity: 2026-02-05 - Completed 07.8-02-PLAN.md (Invoice Stock Migration)
+Last activity: 2026-02-05 - Completed 07.8-03-PLAN.md (Return Stock Migration)
 
 Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7)
 
@@ -338,19 +338,19 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-05
-Stopped at: Completed 07.8-02-PLAN.md (Invoice Stock Migration)
+Stopped at: Completed 07.8-03-PLAN.md (Return Stock Migration)
 Resume context:
-- **Phase 7.8 IN PROGRESS** - 2/5 plans complete (Wave 1 done)
+- **Phase 7.8 IN PROGRESS** - 3/5 plans complete (Wave 2 in progress)
 - 07.8-01: addInventoryStockForReturn() and addInventoryStockFromWarehouse() created
 - 07.8-02: invoice-service.ts migrated to processInventoryStockForOrderFromPrimary
-- Next: 07.8-03 (returns migration) and 07.8-04 (picking migration)
+- 07.8-03: returns.ts and reprocess-stock API migrated to addInventoryStockForReturn
+- Next: 07.8-04 (picking migration) and 07.8-05 (cleanup)
 
 **NEXT STEPS:**
-1. Execute 07.8-03: Migrate returns to addInventoryStockForReturn
-2. Execute 07.8-04: Migrate picking to InventoryItem
-3. Execute 07.8-05: MasterProduct mapping script + deprecation
+1. Execute 07.8-04: Migrate picking to InventoryItem
+2. Execute 07.8-05: MasterProduct mapping script + deprecation
 
-Resume file: .planning/phases/07.8-stock-unification/07.8-03-PLAN.md
+Resume file: .planning/phases/07.8-stock-unification/07.8-04-PLAN.md
 
 ## Phase 7 Features
 
@@ -478,7 +478,7 @@ Task Management Core components:
 |------|------|--------|---------|
 | 07.8-01 | 1 | Complete | Create addInventoryStockForReturn() function |
 | 07.8-02 | 1 | Complete | Migrate invoice-service.ts to processInventoryStockForOrderFromPrimary |
-| 07.8-03 | 2 | Pending | Migrate returns/reprocess-stock to addInventoryStockForReturn |
+| 07.8-03 | 2 | Complete | Migrate returns/reprocess-stock to addInventoryStockForReturn |
 | 07.8-04 | 2 | Pending | Migrate picking to use InventoryItem.currentStock |
 | 07.8-05 | 3 | Pending | MasterProduct→InventoryItem mapping script + deprecation markers |
 
