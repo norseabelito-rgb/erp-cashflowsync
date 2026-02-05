@@ -85,7 +85,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getEmptyState, determineEmptyStateType } from "@/lib/empty-states";
 import { FILTER_BAR } from "@/lib/design-system";
 import { TransferWarningModal } from "@/components/orders/transfer-warning-modal";
-import { TemuPlaceholder } from "@/components/orders/temu-placeholder";
+import { TemuOrdersList } from "@/components/orders/temu-orders-list";
 import { ChannelTabs, type ChannelTab, type ChannelCounts } from "@/components/orders/channel-tabs";
 import { ProcessingErrorsPanel, type ProcessError, type DBProcessingError } from "@/components/orders/processing-errors-panel";
 import { ManualOrderDialog, type ManualOrderData } from "@/components/orders/manual-order-dialog";
@@ -1239,9 +1239,16 @@ export default function OrdersPage() {
         )}
       </div>
 
-      {/* Show TemuPlaceholder when Temu tab is active, full orders UI for other channels */}
+      {/* Show TemuOrdersList when Temu tab is active, full orders UI for other channels */}
       {channelTab === "temu" ? (
-        <TemuPlaceholder />
+        <TemuOrdersList
+          filters={{
+            status: statusFilter !== "all" ? statusFilter : undefined,
+            startDate: startDate ? new Date(startDate) : undefined,
+            endDate: endDate ? new Date(endDate) : undefined,
+            search: searchQuery || undefined,
+          }}
+        />
       ) : (
       <>
       <Card className="mb-4 md:mb-6">
