@@ -50,6 +50,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { TrendyolStoresTab } from "@/components/settings/TrendyolStoresTab";
+import { TemuStoresTab } from "@/components/settings/TemuStoresTab";
 
 interface Settings {
   // FanCourier
@@ -416,14 +417,18 @@ export default function SettingsPage() {
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 md:grid-cols-7 lg:w-[1050px]">
+        <TabsList className="grid w-full grid-cols-4 md:grid-cols-8 lg:w-[1200px]">
           <TabsTrigger value="stores" className="gap-2">
             <Store className="h-4 w-4" />
             <span className="hidden sm:inline">Magazine</span>
           </TabsTrigger>
           <TabsTrigger value="trendyol" className="gap-2">
             <ShoppingBag className="h-4 w-4" />
-            <span className="hidden sm:inline">Mag. Trendyol</span>
+            <span className="hidden sm:inline">Trendyol</span>
+          </TabsTrigger>
+          <TabsTrigger value="temu" className="gap-2">
+            <Store className="h-4 w-4" />
+            <span className="hidden sm:inline">Temu</span>
           </TabsTrigger>
           <TabsTrigger value="products" className="gap-2">
             <Package className="h-4 w-4" />
@@ -533,6 +538,11 @@ export default function SettingsPage() {
         {/* TAB: Magazine Trendyol */}
         <TabsContent value="trendyol" className="space-y-6">
           <TrendyolStoresTab />
+        </TabsContent>
+
+        {/* TAB: Magazine Temu */}
+        <TabsContent value="temu" className="space-y-6">
+          <TemuStoresTab />
         </TabsContent>
 
         {/* TAB: Produse (Google Drive) */}
