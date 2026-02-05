@@ -67,6 +67,7 @@ import { useState, useEffect, useMemo } from "react";
 import { toast } from "@/hooks/use-toast";
 import { UserMenu } from "@/components/user-menu";
 import { usePermissions } from "@/hooks/use-permissions";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 
 // Tip pentru item de navigație
 interface NavItem {
@@ -557,14 +558,17 @@ export function Sidebar() {
           </div>
           <span className="text-lg font-semibold text-gradient">Cash Flow</span>
         </Link>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="lg:hidden"
-        >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </Button>
+        <div className="flex items-center gap-1">
+          <NotificationBell />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="lg:hidden"
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        </div>
       </div>
 
       {/* Mobile Overlay */}
@@ -608,9 +612,17 @@ export function Sidebar() {
         )}
       </nav>
 
-      {/* User Menu */}
+      {/* User Menu & Notifications */}
       <div className="border-t border-border/50 p-3">
-        <UserMenu collapsed={collapsed} />
+        <div className={cn(
+          "flex items-center gap-2",
+          collapsed ? "flex-col" : "justify-between"
+        )}>
+          <div className={cn(collapsed ? "w-full" : "flex-1")}>
+            <UserMenu collapsed={collapsed} />
+          </div>
+          <NotificationBell />
+        </div>
       </div>
 
       {/* Sync Buttons */}
