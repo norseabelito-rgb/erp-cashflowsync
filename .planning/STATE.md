@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 7.6 - Customers Page
+**Current focus:** Phase 7.7 - Temu Complete Integration
 
 ## Current Position
 
-Phase: 7.6 of 10 (Customers Page)
-Plan: 2 of 3
+Phase: 7.7 of 10 (Temu Complete Integration)
+Plan: 1 of 6
 Status: In progress
-Last activity: 2026-02-04 - Completed quick task q004 (Order Status Nomenclator)
+Last activity: 2026-02-05 - Completed 07.7-01 (TemuClient and Database Models)
 
-Progress: [██████████████████░░] ~98% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6)
+Progress: [██████████████████░░] ~98% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 1/6 of 7.7)
 
 ## Phase 7 Progress
 
@@ -247,6 +247,14 @@ Recent decisions affecting current work:
   - Multi-store tabs and search across name/phone/order number
   - Sidebar placement: under Comenzi in Vanzari section
 
+- Phase 7.7 inserted after Phase 7.6 - 2026-02-05 (URGENT)
+  - Reason: Complete Temu sales channel integration
+  - Features: TemuStore model, product push, order sync, invoicing, AWB
+  - Multi-store support: multiple Temu seller stores per company
+  - Invoice series: per TemuStore (like TrendyolStore)
+  - Stock management: decrease on invoice, increase on return
+  - API: EU endpoint with MD5 signature authentication
+
 ## Phase 7.1 Progress
 
 | Plan | Wave | Status | Summary |
@@ -301,20 +309,20 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-04
-Stopped at: Completed quick task q004 (Order Status Nomenclator)
+Last session: 2026-02-05
+Stopped at: Completed 07.7-01 (TemuClient and Database Models)
 Resume context:
-- **STAGING BRANCH** - Phase 7.6 plan 02 complete (2/3 plans)
-- Customer list page at /customers with search, store filter, pagination
-- Sidebar Clienti link under Vanzari section between Comenzi and Facturi
-- Row click handler ready for detail modal
+- **Phase 7.7** - Plan 01 complete (1/6 plans)
+- TemuClient class with MD5 signature authentication
+- TemuStore, TemuOrder, TemuOrderItem models in Prisma schema
+- SQL migration ready for staging/production
 
 **NEXT STEPS:**
-1. Continue Phase 7.6: Plan 03 (Customer detail modal)
-2. Cleanup old Trendyol integration from Settings (product pull)
-3. Then Phase 8: Notifications and Automation
+1. Continue Phase 7.7: Plan 02 (Order Sync Service)
+2. Apply add_temu_tables.sql to staging database
+3. Complete Temu integration (plans 03-06)
 
-Resume file: .planning/phases/07.6-customers-page/07.6-03-PLAN.md
+Resume file: .planning/phases/07.7-temu-complete-integration/07.7-02-PLAN.md
 
 ## Phase 7 Features
 
@@ -416,8 +424,31 @@ Task Management Core components:
 - [x] 07.6-02: Customer list page with search and store filter, sidebar Clienti link
 - [ ] 07.6-03: Customer detail page with order history and analytics
 
+## Phase 7.7 Progress
+
+| Plan | Wave | Status | Summary |
+|------|------|--------|---------|
+| 07.7-01 | 1 | Complete | TemuClient with MD5 signature + database models |
+| 07.7-02 | 2 | Pending | Order sync service |
+| 07.7-03 | 3 | Pending | Invoice service integration |
+| 07.7-04 | 3 | Pending | AWB tracking service |
+| 07.7-05 | 4 | Pending | Stock sync |
+| 07.7-06 | 5 | Pending | UI integration |
+
+## Phase 7.7 Features (Temu Complete Integration)
+
+- [x] 07.7-01: TemuClient with MD5 signature, TemuStore/TemuOrder/TemuOrderItem models
+- [ ] 07.7-02: Order sync to main Order table (source='temu')
+- [ ] 07.7-03: Invoice series from TemuStore, invoice link back to Temu
+- [ ] 07.7-04: AWB tracking send to Temu
+- [ ] 07.7-05: Stock sync on order/return
+- [ ] 07.7-06: Replace TemuPlaceholder with real Temu orders view
+
 ## Recent Commits
 
+- `f4da462` feat(07.7-01): create SQL migration for Temu tables
+- `3d9b482` feat(07.7-01): add TemuStore, TemuOrder, TemuOrderItem models
+- `63edb5b` feat(07.7-01): create TemuClient with MD5 signature authentication
 - `5f4a86c` feat(07.6-02): add Clienti navigation to sidebar
 - `288473e` feat(07.6-02): create Customer List Page with search and store filter
 - `caf5ce2` feat(07.6-01): create Customer Detail API with order history
@@ -453,4 +484,4 @@ Task Management Core components:
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-04 (Phase 7.6-02 COMPLETE - Customer List Page)*
+*Last updated: 2026-02-05 (Phase 7.7-01 COMPLETE - TemuClient and Database Models)*
