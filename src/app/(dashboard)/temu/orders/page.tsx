@@ -94,10 +94,6 @@ interface TemuStore {
   region: string;
 }
 
-export const metadata = {
-  title: "Comenzi Temu | CashFlowSync",
-};
-
 function getStatusBadge(status: string) {
   const statusMap: Record<string, { label: string; variant: any }> = {
     PENDING_SHIPMENT: { label: "De expediat", variant: "default" },
