@@ -176,9 +176,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       const actualQuantityPicked = Math.min(newQuantityPicked, item.quantityRequired);
       const quantityToDeduct = actualQuantityPicked - item.quantityPicked;
 
-      // Tranzacție pentru update item + decrementare stoc
+      // Update picking list item (in transaction for data integrity)
       const [updatedItem] = await prisma.$transaction(async (tx) => {
-        // 1. Update picking list item
         const updated = await tx.pickingListItem.update({
           where: { id: item.id },
           data: {
@@ -188,41 +187,58 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             pickedBy: pickedBy || undefined,
           },
         });
-
-        // 2. Decrementăm stocul din MasterProduct (dacă există legătură)
-        if (item.masterProductId && quantityToDeduct > 0) {
-          const masterProduct = await tx.masterProduct.findUnique({
-            where: { id: item.masterProductId },
-            select: { id: true, stock: true },
-          });
-
-          if (masterProduct) {
-            await tx.masterProduct.update({
-              where: { id: item.masterProductId },
-              data: {
-                stock: Math.max(0, masterProduct.stock - quantityToDeduct),
-              },
-            });
-          }
-        } else if (!item.masterProductId && item.sku && quantityToDeduct > 0) {
-          // Încercăm să găsim MasterProduct după SKU
-          const masterProduct = await tx.masterProduct.findUnique({
-            where: { sku: item.sku },
-            select: { id: true, stock: true },
-          });
-
-          if (masterProduct) {
-            await tx.masterProduct.update({
-              where: { id: masterProduct.id },
-              data: {
-                stock: Math.max(0, masterProduct.stock - quantityToDeduct),
-              },
-            });
-          }
-        }
-
         return [updated];
       });
+
+      // Stock deduction (NON-BLOCKING - errors logged, not thrown)
+      // Picking item was already updated successfully above
+      if (quantityToDeduct > 0) {
+        try {
+          let masterProduct = null;
+          if (item.masterProductId) {
+            masterProduct = await prisma.masterProduct.findUnique({
+              where: { id: item.masterProductId },
+              select: { id: true, sku: true, stock: true, inventoryItemId: true },
+            });
+          } else if (item.sku) {
+            masterProduct = await prisma.masterProduct.findUnique({
+              where: { sku: item.sku },
+              select: { id: true, sku: true, stock: true, inventoryItemId: true },
+            });
+          }
+
+          if (masterProduct?.inventoryItemId) {
+            // NEW stock system - use InventoryItem via deductInventoryStockFromWarehouse
+            const primaryWarehouse = await getPrimaryWarehouse();
+            if (primaryWarehouse) {
+              const stockResult = await deductInventoryStockFromWarehouse(
+                masterProduct.inventoryItemId,
+                primaryWarehouse.id,
+                quantityToDeduct,
+                { reason: `Picking - ${pickingList.code}, Item: ${item.title}` }
+              );
+              if (!stockResult.success) {
+                // Log warning but DO NOT throw - picking already succeeded
+                console.warn(`[Picking] Stock deduction warning for ${masterProduct.sku}: ${stockResult.error}`);
+              }
+            } else {
+              console.warn(`[Picking] No primary warehouse configured - stock deduction skipped for ${masterProduct.sku}`);
+            }
+          } else if (masterProduct) {
+            // Legacy fallback for unmapped products
+            console.warn(`[Picking] MasterProduct ${masterProduct.sku} not mapped to InventoryItem - using legacy stock`);
+            await prisma.masterProduct.update({
+              where: { id: masterProduct.id },
+              data: { stock: Math.max(0, masterProduct.stock - quantityToDeduct) },
+            });
+          }
+        } catch (stockError) {
+          // NON-BLOCKING: picking item was already updated successfully
+          // Stock discrepancy can be corrected manually via inventory adjustment
+          console.error("[Picking] Stock deduction error (non-blocking):", stockError);
+          // DO NOT re-throw - picking must succeed even if stock ops fail
+        }
+      }
 
       // Actualizăm statisticile picking list-ului
       const allItems = await prisma.pickingListItem.findMany({
@@ -317,9 +333,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       const newQuantityPicked = item.quantityPicked + actualQuantity;
       const isComplete = newQuantityPicked >= item.quantityRequired;
 
-      // Tranzacție pentru update item + decrementare stoc
+      // Update picking list item (in transaction for data integrity)
       const [updatedItem] = await prisma.$transaction(async (tx) => {
-        // 1. Update picking list item
         const updated = await tx.pickingListItem.update({
           where: { id: item.id },
           data: {
@@ -330,40 +345,58 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             pickedByName: userName,
           },
         });
-
-        // 2. Decrementăm stocul din MasterProduct
-        if (item.masterProductId && actualQuantity > 0) {
-          const masterProduct = await tx.masterProduct.findUnique({
-            where: { id: item.masterProductId },
-            select: { id: true, stock: true },
-          });
-
-          if (masterProduct) {
-            await tx.masterProduct.update({
-              where: { id: item.masterProductId },
-              data: {
-                stock: Math.max(0, masterProduct.stock - actualQuantity),
-              },
-            });
-          }
-        } else if (!item.masterProductId && item.sku && actualQuantity > 0) {
-          const masterProduct = await tx.masterProduct.findUnique({
-            where: { sku: item.sku },
-            select: { id: true, stock: true },
-          });
-
-          if (masterProduct) {
-            await tx.masterProduct.update({
-              where: { id: masterProduct.id },
-              data: {
-                stock: Math.max(0, masterProduct.stock - actualQuantity),
-              },
-            });
-          }
-        }
-
         return [updated];
       });
+
+      // Stock deduction (NON-BLOCKING - errors logged, not thrown)
+      // Picking item was already updated successfully above
+      if (actualQuantity > 0) {
+        try {
+          let masterProduct = null;
+          if (item.masterProductId) {
+            masterProduct = await prisma.masterProduct.findUnique({
+              where: { id: item.masterProductId },
+              select: { id: true, sku: true, stock: true, inventoryItemId: true },
+            });
+          } else if (item.sku) {
+            masterProduct = await prisma.masterProduct.findUnique({
+              where: { sku: item.sku },
+              select: { id: true, sku: true, stock: true, inventoryItemId: true },
+            });
+          }
+
+          if (masterProduct?.inventoryItemId) {
+            // NEW stock system - use InventoryItem via deductInventoryStockFromWarehouse
+            const primaryWarehouse = await getPrimaryWarehouse();
+            if (primaryWarehouse) {
+              const stockResult = await deductInventoryStockFromWarehouse(
+                masterProduct.inventoryItemId,
+                primaryWarehouse.id,
+                actualQuantity,
+                { reason: `Picking - ${pickingList.code}, Item: ${item.title}` }
+              );
+              if (!stockResult.success) {
+                // Log warning but DO NOT throw - picking already succeeded
+                console.warn(`[Picking] Stock deduction warning for ${masterProduct.sku}: ${stockResult.error}`);
+              }
+            } else {
+              console.warn(`[Picking] No primary warehouse configured - stock deduction skipped for ${masterProduct.sku}`);
+            }
+          } else if (masterProduct) {
+            // Legacy fallback for unmapped products
+            console.warn(`[Picking] MasterProduct ${masterProduct.sku} not mapped to InventoryItem - using legacy stock`);
+            await prisma.masterProduct.update({
+              where: { id: masterProduct.id },
+              data: { stock: Math.max(0, masterProduct.stock - actualQuantity) },
+            });
+          }
+        } catch (stockError) {
+          // NON-BLOCKING: picking item was already updated successfully
+          // Stock discrepancy can be corrected manually via inventory adjustment
+          console.error("[Picking] Stock deduction error (non-blocking):", stockError);
+          // DO NOT re-throw - picking must succeed even if stock ops fail
+        }
+      }
 
       // Logăm acțiunea
       await prisma.pickingLog.create({
@@ -585,9 +618,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
       const quantityToRestore = itemToReset.quantityPicked;
 
-      // Tranzacție pentru reset item + restaurare stoc
+      // Reset item (in transaction for data integrity)
       const [updatedItem] = await prisma.$transaction(async (tx) => {
-        // 1. Reset item
         const updated = await tx.pickingListItem.update({
           where: { id: itemId },
           data: {
@@ -597,34 +629,58 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             pickedBy: null,
           },
         });
-
-        // 2. Restaurăm stocul în MasterProduct (dacă a fost decrementat)
-        if (quantityToRestore > 0) {
-          if (itemToReset.masterProductId) {
-            await tx.masterProduct.update({
-              where: { id: itemToReset.masterProductId },
-              data: {
-                stock: { increment: quantityToRestore },
-              },
-            });
-          } else if (itemToReset.sku) {
-            // Încercăm să găsim MasterProduct după SKU
-            const masterProduct = await tx.masterProduct.findUnique({
-              where: { sku: itemToReset.sku },
-            });
-            if (masterProduct) {
-              await tx.masterProduct.update({
-                where: { id: masterProduct.id },
-                data: {
-                  stock: { increment: quantityToRestore },
-                },
-              });
-            }
-          }
-        }
-
         return [updated];
       });
+
+      // Stock restoration (NON-BLOCKING - errors logged, not thrown)
+      // Item was already reset successfully above
+      if (quantityToRestore > 0) {
+        try {
+          let masterProduct = null;
+          if (itemToReset.masterProductId) {
+            masterProduct = await prisma.masterProduct.findUnique({
+              where: { id: itemToReset.masterProductId },
+              select: { id: true, sku: true, stock: true, inventoryItemId: true },
+            });
+          } else if (itemToReset.sku) {
+            masterProduct = await prisma.masterProduct.findUnique({
+              where: { sku: itemToReset.sku },
+              select: { id: true, sku: true, stock: true, inventoryItemId: true },
+            });
+          }
+
+          if (masterProduct?.inventoryItemId) {
+            // NEW stock system - use InventoryItem via addInventoryStockFromWarehouse
+            const primaryWarehouse = await getPrimaryWarehouse();
+            if (primaryWarehouse) {
+              const stockResult = await addInventoryStockFromWarehouse(
+                masterProduct.inventoryItemId,
+                primaryWarehouse.id,
+                quantityToRestore,
+                { reason: `Picking Reset - ${pickingList.code}, Item: ${itemToReset.title}` }
+              );
+              if (!stockResult.success) {
+                // Log warning but DO NOT throw - reset already succeeded
+                console.warn(`[Picking] Stock restoration warning for ${masterProduct.sku}: ${stockResult.error}`);
+              }
+            } else {
+              console.warn(`[Picking] No primary warehouse configured - stock restoration skipped for ${masterProduct.sku}`);
+            }
+          } else if (masterProduct) {
+            // Legacy fallback for unmapped products
+            console.warn(`[Picking] MasterProduct ${masterProduct.sku} not mapped to InventoryItem - using legacy stock`);
+            await prisma.masterProduct.update({
+              where: { id: masterProduct.id },
+              data: { stock: { increment: quantityToRestore } },
+            });
+          }
+        } catch (stockError) {
+          // NON-BLOCKING: item was already reset successfully
+          // Stock discrepancy can be corrected manually via inventory adjustment
+          console.error("[Picking] Stock restoration error (non-blocking):", stockError);
+          // DO NOT re-throw - reset must succeed even if stock ops fail
+        }
+      }
 
       // Recalculăm statisticile
       const allItems = await prisma.pickingListItem.findMany({
