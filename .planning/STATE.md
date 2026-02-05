@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.9 of 10 (Reception Workflow)
-Plan: 4 of 12
+Plan: 5 of 12
 Status: In progress
-Last activity: 2026-02-06 - Completed 07.9-04-PLAN.md (Supplier Invoices CRUD API)
+Last activity: 2026-02-06 - Completed 07.9-05-PLAN.md (NIR Workflow APIs)
 
-Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7 + 5/5 of 7.8 + 4/12 of 7.9)
+Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7 + 5/5 of 7.8 + 5/12 of 7.9)
 
 ## Phase 7 Progress
 
@@ -352,18 +352,19 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-06
-Stopped at: Completed 07.9-04-PLAN.md (Supplier Invoices CRUD API)
+Stopped at: Completed 07.9-05-PLAN.md (NIR Workflow APIs)
 Resume context:
-- **Phase 7.9 IN PROGRESS** - 4/12 plans complete
-- Supplier invoices CRUD with document upload complete
-- Payment status tracking with auto-timestamps
-- Stats aggregation by payment status
+- **Phase 7.9 IN PROGRESS** - 5/12 plans complete
+- NIR workflow state machine: transitionNIR, approveDifferences, getAvailableTransitions
+- 6 workflow endpoints: send-office, verify, approve, approve-differences, reject, transfer-stock
+- Stock transfer uses InventoryItem.currentStock with RECEIPT movement type
+- New permissions: reception.view, reception.verify, reception.approve_differences
 
 **NEXT STEPS:**
-1. Continue with 07.9-05: NIR Workflow APIs
-2. Then 07.9-06: Purchase Orders UI
+1. Continue with 07.9-06: Purchase Orders UI
+2. Then 07.9-07: Reception UI
 
-Resume file: .planning/phases/07.9-reception-workflow/07.9-05-PLAN.md
+Resume file: .planning/phases/07.9-reception-workflow/07.9-06-PLAN.md
 
 ## Phase 7 Features
 
@@ -523,9 +524,9 @@ Task Management Core components:
 |------|------|--------|---------|
 | 07.9-01 | 1 | Complete | 7 new models + 4 enums + extended GoodsReceipt for reception workflow |
 | 07.9-02 | 2 | Complete | Purchase Orders CRUD API + labels generation |
-| 07.9-03 | 2 | Pending | Reception Reports API + photo upload |
+| 07.9-03 | 2 | Complete | Reception Reports API + photo upload + finalization with NIR generation |
 | 07.9-04 | 2 | Complete | Supplier Invoices CRUD API + document upload |
-| 07.9-05 | 2 | Pending | NIR Workflow APIs: send-to-office, verify, approve, reject, transfer-stock |
+| 07.9-05 | 2 | Complete | NIR Workflow APIs: state machine + 6 endpoints + stock transfer |
 | 07.9-06 | 3 | Pending | Purchase Orders UI: list, create/edit, labels page |
 | 07.9-07 | 3 | Pending | Reception UI: warehouse dashboard, PV completion, photos |
 | 07.9-08 | 3 | Pending | Office Dashboard + Pending Approval page |
