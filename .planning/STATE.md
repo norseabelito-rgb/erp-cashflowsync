@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.9 of 10 (Reception Workflow)
-Plan: 1 of 12
+Plan: 4 of 12
 Status: In progress
-Last activity: 2026-02-06 - Completed 07.9-01-PLAN.md (Schema Extensions)
+Last activity: 2026-02-06 - Completed 07.9-04-PLAN.md (Supplier Invoices CRUD API)
 
-Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7 + 5/5 of 7.8 + 1/12 of 7.9)
+Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7 + 5/5 of 7.8 + 4/12 of 7.9)
 
 ## Phase 7 Progress
 
@@ -63,6 +63,10 @@ Recent decisions affecting current work:
 - **07.7-06:** Temu section uses orders.view permission (consistent with main orders)
 - **07.7-06:** Temu dashboard follows Trendyol page pattern for UI consistency
 - **07.7-06:** Stats endpoint queries Order table where source='temu'
+- **07.9-04:** Stats scoped to supplier when supplierId filter is provided
+- **07.9-04:** Auto-calculate totalWithVat if vatValue provided but totalWithVat not
+- **07.9-04:** Auto-set paidAt when payment status changes to PLATITA
+- **07.9-04:** Manual findFirst check for unique constraint to provide user-friendly error messages
 - **07.9-01:** Backward-compatible enum extension - keep DRAFT and COMPLETED in GoodsReceiptStatus
 - **07.9-01:** Cascade delete for child models (PurchaseOrderItem, PurchaseOrderLabel, etc.)
 - **07.9-01:** Unique constraint on GoodsReceipt.receptionReportId for 1:1 relationship
@@ -344,18 +348,18 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-06
-Stopped at: Completed 07.9-01-PLAN.md (Schema Extensions)
+Stopped at: Completed 07.9-04-PLAN.md (Supplier Invoices CRUD API)
 Resume context:
-- **Phase 7.9 IN PROGRESS** - 1/12 plans complete
-- 7 new Prisma models added for reception workflow
-- GoodsReceipt extended with 11 new fields for workflow tracking
-- SQL migration ready at prisma/migrations/manual/add_reception_workflow.sql
+- **Phase 7.9 IN PROGRESS** - 4/12 plans complete
+- Supplier invoices CRUD with document upload complete
+- Payment status tracking with auto-timestamps
+- Stats aggregation by payment status
 
 **NEXT STEPS:**
-1. Run add_reception_workflow.sql on staging/production
-2. Continue with 07.9-02: Purchase Orders CRUD API
+1. Continue with 07.9-05: NIR Workflow APIs
+2. Then 07.9-06: Purchase Orders UI
 
-Resume file: .planning/phases/07.9-reception-workflow/07.9-02-PLAN.md
+Resume file: .planning/phases/07.9-reception-workflow/07.9-05-PLAN.md
 
 ## Phase 7 Features
 
@@ -516,7 +520,7 @@ Task Management Core components:
 | 07.9-01 | 1 | Complete | 7 new models + 4 enums + extended GoodsReceipt for reception workflow |
 | 07.9-02 | 2 | Pending | Purchase Orders CRUD API + labels generation |
 | 07.9-03 | 2 | Pending | Reception Reports API + photo upload |
-| 07.9-04 | 2 | Pending | Supplier Invoices CRUD API |
+| 07.9-04 | 2 | Complete | Supplier Invoices CRUD API + document upload |
 | 07.9-05 | 2 | Pending | NIR Workflow APIs: send-to-office, verify, approve, reject, transfer-stock |
 | 07.9-06 | 3 | Pending | Purchase Orders UI: list, create/edit, labels page |
 | 07.9-07 | 3 | Pending | Reception UI: warehouse dashboard, PV completion, photos |
@@ -563,6 +567,8 @@ Task Management Core components:
 
 ## Recent Commits
 
+- `3a6e983` feat(07.9-04): create Invoice Upload endpoint
+- `4956233` feat(07.9-04): create Supplier Invoices CRUD API
 - `b3b251c` style(07.9-01): format schema.prisma with prisma format
 - `90f8069` chore(07.9-01): create SQL migration for reception workflow
 - `521c3fc` feat(07.9-01): add reception workflow models and enums
@@ -620,4 +626,4 @@ Task Management Core components:
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-06 (07.9-01 Complete - Schema Extensions for Reception Workflow)*
+*Last updated: 2026-02-06 (07.9-04 Complete - Supplier Invoices CRUD API)*
