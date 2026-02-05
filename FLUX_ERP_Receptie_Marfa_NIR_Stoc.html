@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FLUX ERP — Recepție Marfă → NIR → Stoc</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f5f5f5; color: #1a1a1a; line-height: 1.5; padding: 32px; }
+  .container { max-width: 960px; margin: 0 auto; }
+
+  /* Header */
+  .doc-header { background: #0f172a; color: white; padding: 28px 32px; border-radius: 12px 12px 0 0; }
+  .doc-header h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .doc-header .subtitle { color: #94a3b8; font-size: 14px; }
+  .doc-header .meta { display: flex; gap: 24px; margin-top: 12px; font-size: 12px; color: #64748b; }
+  .doc-header .meta span { background: #1e293b; padding: 3px 10px; border-radius: 4px; }
+
+  /* Sections */
+  .section { background: white; border: 1px solid #e2e8f0; padding: 24px 28px; margin-bottom: 0; border-top: none; }
+  .section:last-child { border-radius: 0 0 12px 12px; }
+  .section h2 { font-size: 15px; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
+  .section h3 { font-size: 13px; font-weight: 700; color: #334155; margin: 16px 0 8px 0; }
+
+  /* State Machine */
+  .state-flow { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin: 16px 0; }
+  .state { background: #f1f5f9; border: 2px solid #cbd5e1; border-radius: 8px; padding: 8px 14px; font-size: 12px; font-weight: 600; text-align: center; min-width: 100px; }
+  .state.active { background: #dbeafe; border-color: #3b82f6; color: #1e40af; }
+  .state.end { background: #dcfce7; border-color: #22c55e; color: #166534; }
+  .state.error { background: #fef2f2; border-color: #ef4444; color: #991b1b; }
+  .arrow { font-size: 18px; color: #94a3b8; padding: 0 6px; font-weight: bold; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  th { background: #f8fafc; text-align: left; padding: 10px 12px; border: 1px solid #e2e8f0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; color: #64748b; font-weight: 600; }
+  td { padding: 10px 12px; border: 1px solid #e2e8f0; vertical-align: top; }
+  tr:hover { background: #f8fafc; }
+
+  /* Step cards */
+  .step-card { border: 1px solid #e2e8f0; border-radius: 8px; margin: 12px 0; overflow: hidden; }
+  .step-header { display: flex; align-items: center; padding: 12px 16px; font-weight: 700; font-size: 14px; gap: 12px; }
+  .step-num { background: #0f172a; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+  .step-body { padding: 0 16px 16px 56px; }
+  .step-body .row { display: flex; gap: 8px; margin-bottom: 6px; font-size: 13px; }
+  .step-body .label { font-weight: 600; color: #64748b; min-width: 110px; flex-shrink: 0; font-size: 11px; text-transform: uppercase; }
+  .step-body .value { color: #1a1a1a; }
+
+  .step-card.depot .step-header { background: #eff6ff; color: #1e40af; }
+  .step-card.system .step-header { background: #f0fdf4; color: #166534; }
+  .step-card.office .step-header { background: #fefce8; color: #854d0e; }
+
+  /* Tags */
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .tag.block { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+  .tag.auto { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+  .tag.manual { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+  .tag.validation { background: #fefce8; color: #854d0e; border: 1px solid #fde68a; }
+
+  /* Code-like */
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 3px; font-size: 12px; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+  pre { background: #0f172a; color: #e2e8f0; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 12px; line-height: 1.6; margin: 12px 0; font-family: 'JetBrains Mono', monospace; }
+  pre .comment { color: #64748b; }
+  pre .keyword { color: #7dd3fc; }
+  pre .string { color: #86efac; }
+  pre .val { color: #fde68a; }
+
+  /* Divider */
+  .divider { height: 3px; background: linear-gradient(90deg, #3b82f6, #8b5cf6); margin: 0; }
+
+  /* Hard rules */
+  .hard-rule { background: #fef2f2; border-left: 4px solid #ef4444; padding: 10px 14px; margin: 8px 0; font-size: 13px; border-radius: 0 6px 6px 0; }
+  .hard-rule strong { color: #991b1b; }
+
+  /* Notes */
+  .note { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 10px 14px; margin: 8px 0; font-size: 13px; border-radius: 0 6px 6px 0; }
+
+  .escalation-box { background: #fefce8; border: 1px solid #fde68a; border-radius: 8px; padding: 14px 18px; margin: 12px 0; }
+  .escalation-box h4 { font-size: 12px; color: #854d0e; text-transform: uppercase; margin-bottom: 8px; }
+  .escalation-box ul { margin-left: 16px; font-size: 13px; }
+  .escalation-box li { margin-bottom: 4px; }
+
+  @media print {
+    body { padding: 10mm; background: white; font-size: 10pt; }
+    .section { border: 1px solid #ccc; }
+    .step-card { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- HEADER -->
+<div class="doc-header">
+  <h1>FLUX ERP: Recepție Marfă → NIR → Stoc</h1>
+  <div class="subtitle">Specificație pentru dezvoltator — un singur flux liniar, fără ambiguități</div>
+  <div class="meta">
+    <span>SOP: SOP-OPS-REC-01</span>
+    <span>Firmă: Aquaterra Mobili SRL</span>
+    <span>Locație: Săcueni</span>
+    <span>v2.0 — Feb 2026</span>
+  </div>
+</div>
+
+<!-- 1. ENTITĂȚILE IMPLICATE -->
+<div class="section">
+  <h2>1. Entități (tabele) implicate</h2>
+  <table>
+    <tr><th>Entitate</th><th>Tabel ERP</th><th>Rol în flux</th></tr>
+    <tr><td><strong>Precomandă</strong></td><td><code>precomanda</code></td><td>Declanșează tot. Fără precomandă = BLOCARE.</td></tr>
+    <tr><td><strong>PV Recepție</strong></td><td><code>pv_receptie</code></td><td>Document fizic: ce a ajuns vs. ce era așteptat.</td></tr>
+    <tr><td><strong>NIR</strong></td><td><code>nir</code></td><td>Generat automat la închidere PV. Merge la Office.</td></tr>
+    <tr><td><strong>Factură Furnizor</strong></td><td><code>facturi_furnizori</code></td><td>Atașată la PV/NIR. Obligatorie.</td></tr>
+    <tr><td><strong>Stoc</strong></td><td><code>stocuri</code></td><td>Se actualizează DOAR după aprobare Office.</td></tr>
+    <tr><td><strong>Mișcări Stoc</strong></td><td><code>miscari_stoc</code></td><td>Log: tip=INTRARE_NIR, cantitate, document_referinta.</td></tr>
+    <tr><td><strong>Etichete</strong></td><td><code>etichete_generate</code></td><td>Generate la precomandă. Lipite fizic la recepție.</td></tr>
+  </table>
+</div>
+
+<!-- 2. STATE MACHINE -->
+<div class="divider"></div>
+<div class="section">
+  <h2>2. State machine — statusuri și tranziții</h2>
+
+  <h3>Precomandă</h3>
+  <div class="state-flow">
+    <div class="state">DRAFT</div><span class="arrow">→</span>
+    <div class="state active">APROBATĂ</div><span class="arrow">→</span>
+    <div class="state active">ÎN RECEPȚIE</div><span class="arrow">→</span>
+    <div class="state end">RECEPȚIONATĂ</div>
+  </div>
+
+  <h3>PV Recepție</h3>
+  <div class="state-flow">
+    <div class="state">DESCHIS</div><span class="arrow">→</span>
+    <div class="state active">ÎN COMPLETARE</div><span class="arrow">→</span>
+    <div class="state end">FINALIZAT</div>
+  </div>
+
+  <h3>NIR</h3>
+  <div class="state-flow">
+    <div class="state">GENERAT</div><span class="arrow">→</span>
+    <div class="state">TRIMIS_OFFICE</div><span class="arrow">→</span>
+    <div class="state">VERIFICAT</div><span class="arrow">→</span>
+    <div class="state active">APROBAT</div><span class="arrow">→</span>
+    <div class="state end">IN_STOC</div>
+  </div>
+  <div class="state-flow" style="margin-top:4px;">
+    <div class="state">VERIFICAT</div><span class="arrow">→</span>
+    <div class="state error">RESPINS</div>
+    <span style="font-size:12px; color:#64748b; margin-left:12px;">(diferențe neaprobate de George)</span>
+  </div>
+
+  <div class="hard-rule">
+    <strong>REGULA DE AUR:</strong> Stocul se mișcă DOAR la status <code>NIR.status = IN_STOC</code>. 
+    Orice altceva = marfa există fizic, dar NU în scriptic.
+  </div>
+</div>
+
+<!-- 3. FLUXUL PAS CU PAS -->
+<div class="divider"></div>
+<div class="section">
+  <h2>3. Fluxul — pas cu pas</h2>
+
+  <!-- STEP 1 -->
+  <div class="step-card depot">
+    <div class="step-header">
+      <div class="step-num">1</div>
+      VERIFICARE PRECOMANDĂ
+      <span class="tag manual">MANUAL</span>
+    </div>
+    <div class="step-body">
+      <div class="row"><span class="label">Actor</span><span class="value">Gestionar (depozit)</span></div>
+      <div class="row"><span class="label">Trigger</span><span class="value">Camionul/curierul ajunge la rampă</span></div>
+      <div class="row"><span class="label">Ce face UI</span><span class="value">Gestionarul deschide modulul <code>Recepție</code> → caută precomanda după furnizor sau nr. precomandă</span></div>
+      <div class="row">
+        <span class="label">Validare ERP</span>
+        <span class="value">
+          <code>precomanda.status IN ('APROBATĂ', 'ÎN RECEPȚIE')</code><br>
+          Dacă <strong>NU</strong> → <span class="tag block">BLOCARE</span> — UI afișează: "Nu există precomandă validă. Contactează supervizor."
+        </span>
+      </div>
+      <div class="row"><span class="label">La succes</span><span class="value"><code>precomanda.status = 'ÎN RECEPȚIE'</code></span></div>
+      <div class="row"><span class="label">Evidență</span><span class="value">Timestamp deschidere</span></div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step-card depot">
+    <div class="step-header">
+      <div class="step-num">2</div>
+      VERIFICARE & ATAȘARE FACTURĂ FURNIZOR
+      <span class="tag manual">MANUAL</span>
+    </div>
+    <div class="step-body">
+      <div class="row"><span class="label">Actor</span><span class="value">Gestionar</span></div>
+      <div class="row"><span class="label">Ce face UI</span><span class="value">
+        Câmp upload: <code>factură furnizor (scan/poză)</code><br>
+        Câmpuri auto-populate din factură (sau manuale):<br>
+        — <code>numar_factura</code>, <code>serie_factura</code>, <code>data_factura</code>, <code>furnizor</code>
+      </span></div>
+      <div class="row">
+        <span class="label">Validare ERP</span>
+        <span class="value">
+          <code>factura.furnizor_id == precomanda.furnizor_id</code><br>
+          Fișier atașat obligatoriu. Dacă <strong>NU</strong> → <span class="tag block">BLOCARE</span> — nu se poate deschide PV.
+        </span>
+      </div>
+      <div class="row"><span class="label">La succes</span><span class="value">INSERT în <code>facturi_furnizori</code> cu <code>status_plata = 'NEPLATITA'</code></span></div>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step-card system">
+    <div class="step-header">
+      <div class="step-num">3</div>
+      DESCHIDE PV RECEPȚIE
+      <span class="tag auto">AUTOMAT</span>
+    </div>
+    <div class="step-body">
+      <div class="row"><span class="label">Trigger</span><span class="value">Precomandă validă + factură atașată</span></div>
+      <div class="row">
+        <span class="label">Acțiune sistem</span>
+        <span class="value">
+          INSERT în <code>pv_receptie</code>:<br>
+          — <code>numar = DD/MM/YYYY-NNNN</code> (auto-increment zilnic)<br>
+          — <code>precomanda_id</code> (FK)<br>
+          — <code>factura_furnizor_id</code> (FK)<br>
+          — <code>status = 'DESCHIS'</code><br>
+          Copiază liniile din <code>precomanda_linii</code> → <code>pv_receptie_linii</code>:<br>
+          — produs_id, cantitate_asteptata (pre-populate), <strong>cantitate_primita = NULL</strong>
+        </span>
+      </div>
+      <div class="row"><span class="label">UI arată</span><span class="value">Lista produse cu coloane: SKU | Denumire | Cant. Așteptată | <strong>Cant. Primită (editabil)</strong> | Observații</span></div>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step-card depot">
+    <div class="step-header">
+      <div class="step-num">4</div>
+      NUMĂRARE + COMPLETARE CANTITĂȚI
+      <span class="tag manual">MANUAL</span>
+    </div>
+    <div class="step-body">
+      <div class="row"><span class="label">Actor</span><span class="value">Gestionar (+ ajutor depozit)</span></div>
+      <div class="row"><span class="label">Ce face UI</span><span class="value">
+        Pentru fiecare linie:<br>
+        — Gestionar completează <code>cantitate_primita</code><br>
+        — Bifează checkbox "verificat"<br>
+        — Dacă <code>cantitate_primita ≠ cantitate_asteptata</code> → câmp <code>observatii</code> devine <strong>obligatoriu</strong>
+      </span></div>
+      <div class="row">
+        <span class="label">Validare ERP</span>
+        <span class="value">
+          <code>cantitate_primita >= 0</code> (integer)<br>
+          Dacă diferență → setează flag <code>linie.are_diferenta = TRUE</code><br>
+          Toate liniile trebuie bifate "verificat" pentru a putea trece la pasul 6
+        </span>
+      </div>
+      <div class="row"><span class="label">Status PV</span><span class="value"><code>'ÎN COMPLETARE'</code></span></div>
+    </div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step-card depot">
+    <div class="step-header">
+      <div class="step-num">5</div>
+      POZE OBLIGATORII
+      <span class="tag manual">MANUAL</span>
+    </div>
+    <div class="step-body">
+      <div class="row"><span class="label">Actor</span><span class="value">Gestionar</span></div>
+      <div class="row"><span class="label">Ce face UI</span><span class="value">
+        Secțiune upload poze cu categorii:<br>
+        — <code>overview</code> (marfa pe paleți) — <strong>obligatoriu</strong><br>
+        — <code>etichete</code> (close-up) — <strong>obligatoriu</strong><br>
+        — <code>deteriorari</code> — opțional<br>
+        — <code>factura</code> — <strong>obligatoriu</strong>
+      </span></div>
+      <div class="row">
+        <span class="label">Validare ERP</span>
+        <span class="value">
+          Minim 3 fișiere uploadate (overview + etichete + factura).<br>
+          Dacă <code>deteriorari</code> bifat pe vreo linie → poza <code>deteriorari</code> devine obligatorie.<br>
+          <span class="tag block">BLOCARE</span> finalizare PV fără pozele obligatorii.
+        </span>
+      </div>
+      <div class="row"><span class="label">Stocare</span><span class="value"><code>/receptii/{precomanda_id}/{pv_id}/</code></span></div>
+    </div>
+  </div>
+
+  <!-- STEP 6 -->
+  <div class="step-card system">
+    <div class="step-header">
+      <div class="step-num">6</div>
+      FINALIZARE PV → GENERARE NIR
+      <span class="tag auto">AUTOMAT</span>
+    </div>
+    <div class="step-body">
+      <div class="row"><span class="label">Trigger</span><span class="value">Gestionar apasă buton <strong>"Finalizare PV"</strong></span></div>
+      <div class="row">
+        <span class="label">Pre-validare</span>
+        <span class="value">
+          ☐ Toate liniile au <code>cantitate_primita</code> completată?<br>
+          ☐ Toate liniile bifate "verificat"?<br>
+          ☐ Poze obligatorii uploadate?<br>
+          ☐ Factură furnizor atașată?<br>
+          ☐ Semnătură gestionar (checkbox confirmare)?<br>
+          Dacă oricare NU → <span class="tag block">BLOCARE</span> + mesaj specific ce lipsește.
+        </span>
+      </div>
+      <div class="row">
+        <span class="label">Acțiune sistem</span>
+        <span class="value">
+          1. <code>pv_receptie.status = 'FINALIZAT'</code><br>
+          2. INSERT în <code>nir</code>:<br>
+          &nbsp;&nbsp;— <code>numar = DD/MM/YYYY-NNNN</code><br>
+          &nbsp;&nbsp;— copiază cantități din PV<br>
+          &nbsp;&nbsp;— calculează <code>valoare_totala_fara_tva</code> și <code>cu_tva</code><br>
+          &nbsp;&nbsp;— <code>are_diferente = TRUE</code> dacă oricare linie are diferență cantitate SAU preț factură ≠ preț precomandă<br>
+          &nbsp;&nbsp;— <code>status = 'GENERAT'</code><br>
+          3. Asociază factura: <code>nir.factura_furnizor_id = facturi_furnizori.id</code><br>
+          4. <code>precomanda.status = 'RECEPȚIONATĂ'</code>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 7 -->
+  <div class="step-card system">
+    <div class="step-header">
+      <div class="step-num">7</div>
+      NOTIFICARE OFFICE
+      <span class="tag auto">AUTOMAT</span>
+    </div>
+    <div class="step-body">
+      <div class="row"><span class="label">Trigger</span><span class="value"><code>nir.status = 'GENERAT'</code></span></div>
+      <div class="row">
+        <span class="label">Acțiune sistem</span>
+        <span class="value">
+          Email automat la <code>office@cashflowgrup.net</code>:<br>
+          — Subject: <code>[NIR] {numar} — {furnizor}</code><br>
+          — Body: link NIR + rezumat cantități + ⚠️ diferențe (dacă există) + valori + termen plată<br>
+          — Atașamente: NIR PDF + factură scan<br><br>
+          <code>nir.status = 'TRIMIS_OFFICE'</code><br>
+          <code>nir.trimis_la_office = TRUE</code><br>
+          <code>nir.data_trimitere_office = NOW()</code>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 8 -->
+  <div class="step-card office">
+    <div class="step-header">
+      <div class="step-num">8</div>
+      VERIFICARE OFFICE
+      <span class="tag manual">MANUAL</span>
+      <span class="tag validation">VALIDARE</span>
+    </div>
+    <div class="step-body">
+      <div class="row"><span class="label">Actor</span><span class="value">Office (Denisa)</span></div>
+      <div class="row"><span class="label">Ce face UI</span><span class="value">
+        Ecran verificare NIR cu checklist:<br>
+        ☐ Cantități primite = cantități precomandă?<br>
+        ☐ Prețuri factură = prețuri negociate/precomandă?<br>
+        ☐ Termen plată corect? (max 15–30 zile)<br>
+        ☐ Factură furnizor atașată și corectă?<br>
+      </span></div>
+      <div class="row">
+        <span class="label">Decizie</span>
+        <span class="value">
+          <strong>A) TOTUL OK (fără diferențe):</strong><br>
+          → Office apasă <strong>"Aprobă"</strong><br>
+          → <code>nir.status = 'APROBAT'</code> → trece la pas 9<br><br>
+          <strong>B) DIFERENȚE (cantitate sau preț):</strong><br>
+          → <code>nir.status = 'VERIFICAT'</code> + <code>are_diferente = TRUE</code><br>
+          → Notificare automată la George (email + in-app)<br>
+          → UI: așteptare aprobare George<br>
+          → George aprobă → <code>nir.status = 'APROBAT'</code> + <code>aprobat_diferente = TRUE</code><br>
+          → George respinge → <code>nir.status = 'RESPINS'</code> → flux se oprește, necesită reclamație furnizor
+        </span>
+      </div>
+      <div class="row"><span class="label">Timestamp</span><span class="value"><code>data_verificare_office = NOW()</code>, <code>verificat_de_user_id</code></span></div>
+    </div>
+  </div>
+
+  <!-- STEP 9 -->
+  <div class="step-card system">
+    <div class="step-header">
+      <div class="step-num">9</div>
+      TRANSFER ÎN STOC
+      <span class="tag auto">AUTOMAT</span>
+    </div>
+    <div class="step-body">
+      <div class="row"><span class="label">Trigger</span><span class="value"><code>nir.status = 'APROBAT'</code></span></div>
+      <div class="row">
+        <span class="label">Acțiune sistem</span>
+        <span class="value">
+          1. Pentru fiecare linie NIR:<br>
+          &nbsp;&nbsp;— UPDATE <code>stocuri</code>: <code>cantitate += cantitate_primita</code> WHERE <code>produs_id</code> AND <code>locatie = 'SĂCUENI'</code><br>
+          &nbsp;&nbsp;— INSERT <code>miscari_stoc</code>: <code>tip = 'INTRARE_NIR'</code>, <code>document_referinta = 'NIR-{numar}'</code><br>
+          &nbsp;&nbsp;— Recalculează <code>pret_mediu_achizitie</code><br>
+          2. <code>nir.status = 'IN_STOC'</code><br>
+          3. <code>nir.transferat_in_stoc = TRUE</code><br>
+          4. <code>nir.data_transfer_stoc = NOW()</code><br>
+          5. Indexare: NIR → Index Recepții; Factură → Index Facturi Furnizori<br>
+          6. Setează alertă: verificare SPV la 5 zile (<code>alert_spv_trimis</code>)
+        </span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 4. VALIDĂRI HARD (BLOCANTE) -->
+<div class="divider"></div>
+<div class="section">
+  <h2>4. Validări hard — sistemul NU lasă să treci fără</h2>
+  <table>
+    <tr><th>#</th><th>Regulă</th><th>Unde blochează</th><th>Mesaj UI</th></tr>
+    <tr>
+      <td>V1</td>
+      <td>Precomandă inexistentă sau status ≠ APROBATĂ/ÎN RECEPȚIE</td>
+      <td>Pas 1</td>
+      <td>"Nu există precomandă validă pentru acest furnizor."</td>
+    </tr>
+    <tr>
+      <td>V2</td>
+      <td>Factură furnizor neîncărcată</td>
+      <td>Pas 2</td>
+      <td>"Factura furnizor este obligatorie. Încarcă scan/poză."</td>
+    </tr>
+    <tr>
+      <td>V3</td>
+      <td>Furnizor factură ≠ furnizor precomandă</td>
+      <td>Pas 2</td>
+      <td>"Furnizorul de pe factură nu corespunde cu precomanda."</td>
+    </tr>
+    <tr>
+      <td>V4</td>
+      <td>Linie cu <code>cantitate_primita</code> necompletată</td>
+      <td>Pas 6</td>
+      <td>"Completează cantitatea primită pentru toate produsele."</td>
+    </tr>
+    <tr>
+      <td>V5</td>
+      <td>Diferență cantitate fără observații</td>
+      <td>Pas 4</td>
+      <td>"Există diferență pe {SKU}. Completează observații."</td>
+    </tr>
+    <tr>
+      <td>V6</td>
+      <td>Poze obligatorii lipsă (min 3)</td>
+      <td>Pas 6</td>
+      <td>"Încarcă pozele obligatorii (overview, etichete, factură)."</td>
+    </tr>
+    <tr>
+      <td>V7</td>
+      <td>NIR cu diferențe fără aprobare George</td>
+      <td>Pas 8</td>
+      <td>"NIR-ul are diferențe. Așteptare aprobare George."</td>
+    </tr>
+  </table>
+</div>
+
+<!-- 5. ESCALADĂRI AUTOMATE -->
+<div class="divider"></div>
+<div class="section">
+  <h2>5. Escaladări — notificări automate la George</h2>
+  <div class="escalation-box">
+    <h4>Sistemul trimite alertă automată (email + in-app) la George când:</h4>
+    <table>
+      <tr><th>Condiție</th><th>Trigger automat</th></tr>
+      <tr><td>Diferență cantitativă &gt; 5%</td><td>La finalizare PV (pas 6)</td></tr>
+      <tr><td>Diferență preț factură vs. precomandă &gt; 2%</td><td>La verificare Office (pas 8)</td></tr>
+      <tr><td>Deteriorare marfă notată în observații</td><td>La finalizare PV (pas 6)</td></tr>
+      <tr><td>Factură neîncărcată la 24h de la PV</td><td>CRON job zilnic</td></tr>
+      <tr><td>NIR neverificat Office la 24h</td><td>CRON job zilnic</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- 6. NU SE APLICĂ -->
+<div class="divider"></div>
+<div class="section">
+  <h2>6. Atenție — ce NU intră în acest flux</h2>
+  <table>
+    <tr><th>Tip</th><th>Unde se procesează</th></tr>
+    <tr><td>Colete refuzate (expedieri returnate de curier)</td><td>Modul separat: PV Colete Refuzate</td></tr>
+    <tr><td>Retururi client (pe bază sesizare)</td><td>Modul separat: PV Recepție Retur</td></tr>
+    <tr><td>Achiziții cu card firmă (consumabile mici)</td><td>Modul separat: Registru Deconturi Card</td></tr>
+  </table>
+  <div class="note">
+    <strong>Regula:</strong> Dacă vine un colet la rampă care NU este marfă cu precomandă, gestionarul trebuie să identifice tipul (refuzat/retur/altceva) și să-l direcționeze la fluxul corect. ERP-ul afișează selector la intrare.
+  </div>
+</div>
+
+<!-- 7. REZUMAT VIZUAL -->
+<div class="divider"></div>
+<div class="section">
+  <h2>7. Rezumat — flux complet într-o singură privire</h2>
+<pre>
+<span class="comment">// FLUX LINIAR — fără ramificări (excepțiile sunt blocaje, nu ramuri)</span>
+
+<span class="keyword">PRECOMANDĂ</span> [status: APROBATĂ]
+    │
+    ├── <span class="val">Validare: există? status OK?</span>  →  <span class="string">BLOCARE dacă NU</span>
+    │
+    ▼
+<span class="keyword">FACTURĂ FURNIZOR</span> [upload scan]
+    │
+    ├── <span class="val">Validare: fișier atașat? furnizor match?</span>  →  <span class="string">BLOCARE dacă NU</span>
+    │
+    ▼
+<span class="keyword">PV RECEPȚIE</span> [auto-generat din precomandă]
+    │
+    ├── Gestionar: completează cantități primite per linie
+    ├── Gestionar: lipește etichete fizice
+    ├── Gestionar: uploadează poze (min 3)
+    │
+    ├── <span class="val">Validare: toate completate? poze? semnătură?</span>  →  <span class="string">BLOCARE dacă NU</span>
+    │
+    ▼
+<span class="keyword">NIR</span> [auto-generat la finalizare PV]
+    │
+    ├── Email automat → Office
+    │
+    ▼
+<span class="keyword">VERIFICARE OFFICE</span>
+    │
+    ├── <span class="val">Fără diferențe</span> → Office aprobă → <span class="keyword">STOC</span>
+    ├── <span class="val">Cu diferențe</span>  → George decide:
+    │       ├── Aprobă  → <span class="keyword">STOC</span>
+    │       └── Respinge → <span class="string">STOP (reclamație furnizor)</span>
+    │
+    ▼
+<span class="keyword">STOC ACTUALIZAT</span>
+    │
+    ├── stocuri.cantitate += cantitate_primita
+    ├── miscari_stoc: tip = INTRARE_NIR
+    ├── Alertă SPV la 5 zile
+    │
+    ▼
+<span class="keyword">✅ GATA</span>
+</pre>
+</div>
+
+<!-- 8. NUMEROTARE DOCUMENTE -->
+<div class="divider"></div>
+<div class="section">
+  <h2>8. Format numerotare documente</h2>
+  <table>
+    <tr><th>Document</th><th>Format</th><th>Exemplu</th></tr>
+    <tr><td>Precomandă</td><td><code>PC-DD/MM/YYYY-NNNN</code></td><td>PC-05/02/2026-0001</td></tr>
+    <tr><td>PV Recepție</td><td><code>PV-DD/MM/YYYY-NNNN</code></td><td>PV-05/02/2026-0001</td></tr>
+    <tr><td>NIR</td><td><code>DD/MM/YYYY-NNNN</code></td><td>05/02/2026-0001</td></tr>
+    <tr><td>Factură furnizor</td><td>Nr. original furnizor</td><td>(cum vine)</td></tr>
+  </table>
+  <div class="note"><code>NNNN</code> = auto-increment zilnic, reset la 0001 în fiecare zi.</div>
+</div>
+
+</div><!-- /container -->
+</body>
+</html>

@@ -91,7 +91,17 @@ export async function GET(request: NextRequest) {
     }
 
     if (status) {
-      where.status = status;
+      // Handle comma-separated status values
+      if (status.includes(",")) {
+        const statuses = status.split(",").filter(s =>
+          Object.values(ReceptionReportStatus).includes(s as ReceptionReportStatus)
+        );
+        if (statuses.length > 0) {
+          where.status = { in: statuses };
+        }
+      } else {
+        where.status = status;
+      }
     }
 
     if (purchaseOrderId) {
