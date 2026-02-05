@@ -2822,6 +2822,10 @@ model InventoryItem {
   warehouseStocks WarehouseStock[]
   transferItems   WarehouseTransferItem[]
 
+  // Reception workflow relations
+  purchaseOrderItems   PurchaseOrderItem[]
+  receptionReportItems ReceptionReportItem[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -2951,6 +2955,10 @@ model Supplier {
   items    InventoryItem[]
   receipts GoodsReceipt[]
 
+  // Reception workflow relations
+  purchaseOrders   PurchaseOrder[]
+  supplierInvoices SupplierInvoice[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -2959,11 +2967,52 @@ model Supplier {
   @@map("suppliers")
 }
 
-// Status recepție marfă
+// Status recepție marfă (extended for workflow)
 enum GoodsReceiptStatus {
-  DRAFT // Ciornă, poate fi modificată
-  COMPLETED // Finalizată, a actualizat stocul
-  CANCELLED // Anulată
+  DRAFT         // Ciornă (deprecated - kept for backward compat)
+  GENERAT       // NIR creat automat din PV
+  TRIMIS_OFFICE // Trimis la Office pentru verificare
+  VERIFICAT     // Verificat de Office
+  APROBAT       // Aprobat (direct sau dupa aprobare diferente)
+  IN_STOC       // Transferat in stoc
+  RESPINS       // Respins de George (diferente neaprobate)
+  COMPLETED     // (deprecated - kept for backward compat)
+  CANCELLED     // Anulat
+}
+
+// ============================================
+// RECEPTION WORKFLOW ENUMS
+// ============================================
+
+// Purchase Order Status
+enum PurchaseOrderStatus {
+  DRAFT        // In editare
+  APROBATA     // Aprobata, asteapta receptie
+  IN_RECEPTIE  // Receptie in curs
+  RECEPTIONATA // Finalizata
+  ANULATA      // Anulata
+}
+
+// Reception Report Status
+enum ReceptionReportStatus {
+  DESCHIS       // Deschis, se completeaza
+  IN_COMPLETARE // In completare cantitati
+  FINALIZAT     // Finalizat, NIR generat
+}
+
+// Supplier Invoice Payment Status
+enum PaymentStatus {
+  NEPLATITA
+  PARTIAL_PLATITA
+  PLATITA
+}
+
+// Photo Categories for Reception
+enum PhotoCategory {
+  OVERVIEW     // Marfa pe paleti
+  ETICHETE     // Close-up etichete
+  DETERIORARI  // Damage photos
+  FACTURA      // Invoice scan
 }
 
 // Recepție marfă (NIR)
@@ -3003,6 +3052,27 @@ model GoodsReceipt {
   completedByName String?
   completedAt     DateTime?
 
+  // Reception workflow link
+  receptionReportId String?          @unique
+  receptionReport   ReceptionReport? @relation(fields: [receptionReportId], references: [id])
+
+  // Supplier invoice link
+  supplierInvoiceId String?
+  supplierInvoice   SupplierInvoice? @relation(fields: [supplierInvoiceId], references: [id])
+
+  // Difference tracking
+  hasDifferences          Boolean   @default(false)
+  differencesApprovedBy   String?
+  differencesApprovedByName String?
+  differencesApprovedAt   DateTime?
+
+  // Workflow timestamps
+  sentToOfficeAt       DateTime?
+  verifiedAt           DateTime?
+  verifiedBy           String?
+  verifiedByName       String?
+  transferredToStockAt DateTime?
+
   // Linii
   items GoodsReceiptItem[]
 
@@ -3014,6 +3084,8 @@ model GoodsReceipt {
   @@index([warehouseId])
   @@index([documentNumber])
   @@index([createdAt])
+  @@index([receptionReportId])
+  @@index([supplierInvoiceId])
   @@map("goods_receipts")
 }
 
@@ -3046,6 +3118,221 @@ model GoodsReceiptItem {
   @@index([receiptId])
   @@index([itemId])
   @@map("goods_receipt_items")
+}
+
+// ============================================
+// RECEPTION WORKFLOW MODELS
+// ============================================
+
+// Precomanda - initiaza fluxul de receptie
+model PurchaseOrder {
+  id             String              @id @default(cuid())
+  documentNumber String              @unique // PC-DD/MM/YYYY-NNNN
+
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+
+  status PurchaseOrderStatus @default(DRAFT)
+
+  expectedDate DateTime? // Data estimata livrare
+  notes        String?   @db.Text
+
+  // Totale calculate
+  totalItems    Int     @default(0)
+  totalQuantity Decimal @default(0) @db.Decimal(10, 3)
+  totalValue    Decimal @default(0) @db.Decimal(12, 2)
+
+  // Workflow tracking
+  approvedBy     String?
+  approvedByName String?
+  approvedAt     DateTime?
+
+  createdBy     String
+  createdByName String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  items            PurchaseOrderItem[]
+  labels           PurchaseOrderLabel[]
+  receptionReports ReceptionReport[]
+  supplierInvoices SupplierInvoice[]
+
+  @@index([status])
+  @@index([supplierId])
+  @@index([expectedDate])
+  @@map("purchase_orders")
+}
+
+// Linie precomanda
+model PurchaseOrderItem {
+  id String @id @default(cuid())
+
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+
+  quantityOrdered Decimal  @db.Decimal(10, 3)
+  unitPrice       Decimal? @db.Decimal(10, 2)
+  totalPrice      Decimal? @db.Decimal(12, 2)
+
+  notes String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([purchaseOrderId, inventoryItemId])
+  @@index([purchaseOrderId])
+  @@index([inventoryItemId])
+  @@map("purchase_order_items")
+}
+
+// Etichete pentru scanare la depozit
+model PurchaseOrderLabel {
+  id String @id @default(cuid())
+
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  labelCode String   @unique // Scannable barcode/QR value
+  printed   Boolean  @default(false)
+  printedAt DateTime?
+  printedBy String?
+
+  createdAt DateTime @default(now())
+
+  @@index([purchaseOrderId])
+  @@index([labelCode])
+  @@map("purchase_order_labels")
+}
+
+// PV Receptie - documentul de verificare
+model ReceptionReport {
+  id           String @id @default(cuid())
+  reportNumber String @unique // PV-DD/MM/YYYY-NNNN
+
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+
+  supplierInvoiceId String?
+  supplierInvoice   SupplierInvoice? @relation(fields: [supplierInvoiceId], references: [id])
+
+  status ReceptionReportStatus @default(DESCHIS)
+
+  // Gestionar
+  warehouseUserId   String
+  warehouseUserName String
+
+  // Difference tracking
+  hasDifferences Boolean @default(false)
+
+  // Finalization
+  finalizedAt        DateTime?
+  finalizedBy        String?
+  finalizedByName    String?
+  signatureConfirmed Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  items        ReceptionReportItem[]
+  photos       ReceptionPhoto[]
+  goodsReceipt GoodsReceipt? // 1:1 - NIR generated from this PV
+
+  @@index([status])
+  @@index([purchaseOrderId])
+  @@index([warehouseUserId])
+  @@map("reception_reports")
+}
+
+// Linie PV receptie
+model ReceptionReportItem {
+  id String @id @default(cuid())
+
+  receptionReportId String
+  receptionReport   ReceptionReport @relation(fields: [receptionReportId], references: [id], onDelete: Cascade)
+
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+
+  quantityExpected Decimal  @db.Decimal(10, 3)
+  quantityReceived Decimal? @db.Decimal(10, 3)
+
+  verified      Boolean  @default(false)
+  hasDifference Boolean  @default(false)
+  observations  String?  @db.Text // Required if hasDifference
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([receptionReportId, inventoryItemId])
+  @@index([receptionReportId])
+  @@index([inventoryItemId])
+  @@map("reception_report_items")
+}
+
+// Poze receptie
+model ReceptionPhoto {
+  id String @id @default(cuid())
+
+  receptionReportId String
+  receptionReport   ReceptionReport @relation(fields: [receptionReportId], references: [id], onDelete: Cascade)
+
+  category    PhotoCategory
+  filename    String // Original filename
+  storagePath String // /uploads/receptii/{poId}/{reportId}/filename
+  mimeType    String
+  size        Int // bytes
+
+  createdAt DateTime @default(now())
+
+  @@index([receptionReportId])
+  @@index([category])
+  @@map("reception_photos")
+}
+
+// Factura furnizor
+model SupplierInvoice {
+  id String @id @default(cuid())
+
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+
+  invoiceNumber String
+  invoiceSeries String?
+  invoiceDate   DateTime
+
+  totalValue   Decimal  @db.Decimal(12, 2)
+  vatValue     Decimal? @db.Decimal(12, 2)
+  totalWithVat Decimal? @db.Decimal(12, 2)
+
+  paymentStatus  PaymentStatus @default(NEPLATITA)
+  paymentDueDate DateTime?
+  paidAt         DateTime?
+
+  // Document scan
+  documentPath String? // Path to uploaded invoice scan
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  receptionReports ReceptionReport[]
+  goodsReceipts    GoodsReceipt[]
+
+  @@unique([supplierId, invoiceNumber, invoiceSeries])
+  @@index([supplierId])
+  @@index([purchaseOrderId])
+  @@index([paymentStatus])
+  @@index([invoiceDate])
+  @@map("supplier_invoices")
 }
 
 // ============================================
