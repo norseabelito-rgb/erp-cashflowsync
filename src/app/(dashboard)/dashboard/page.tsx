@@ -343,10 +343,14 @@ export default async function DashboardPage({
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-status-warning" />
-                Stoc Scăzut
+                Stoc Scazut
+                <InfoTooltip
+                  content="Articole cu stoc sub nivelul minim configurat sau la 0 (din sistemul de inventar unificat)"
+                  side="right"
+                />
               </span>
               <Link
-                href="/products?lowStock=true"
+                href="/inventory?filter=low"
                 className="text-sm font-normal text-primary hover:underline"
               >
                 Inventar →
@@ -357,7 +361,7 @@ export default async function DashboardPage({
             {stats.lowStockProducts.length === 0 ? (
               <EmptyState
                 icon={CheckCircle2}
-                title="Toate produsele au stoc suficient!"
+                title="Toate articolele au stoc suficient!"
                 size="sm"
                 className="text-status-success"
               />
@@ -370,13 +374,15 @@ export default async function DashboardPage({
                   >
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{product.name}</p>
-                      <p className="text-xs text-muted-foreground">{product.sku}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {product.sku} - min: {product.minStock} {product.unit}
+                      </p>
                     </div>
-                    <Badge 
-                      variant={product.stockQuantity <= 0 ? "destructive" : "warning"}
+                    <Badge
+                      variant={product.status === 'out_of_stock' ? "destructive" : "warning"}
                       className="ml-2"
                     >
-                      {product.stockQuantity} {product.unit}
+                      {product.currentStock} {product.unit}
                     </Badge>
                   </div>
                 ))}
