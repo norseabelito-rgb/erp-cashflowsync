@@ -25,7 +25,7 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
 - [ ] **Phase 7.6: Customers Page** - Customer management with order history and analytics (INSERTED)
 - [x] **Phase 7.7: Temu Complete Integration** - Full Temu channel with product push, order sync, invoicing, and AWB (INSERTED)
 - [x] **Phase 7.8: Stock Unification** - Unify dual stock systems (Product vs InventoryItem) for consistent inventory tracking (INSERTED)
-- [ ] **Phase 7.9: Reception Workflow** - Complete goods reception flow with PurchaseOrder, ReceptionReport, SupplierInvoice, NIR workflow, and notifications (INSERTED)
+- [x] **Phase 7.9: Reception Workflow** - Complete goods reception flow with PurchaseOrder, ReceptionReport, SupplierInvoice, NIR workflow, and notifications (INSERTED)
 - [ ] **Phase 8: Task Management Advanced** - Automation, notifications, and reporting
 - [ ] **Phase 9: Documentation** - In-app documentation for all modules
 - [ ] **Phase 10: Quality Assurance** - Final verification and test coverage for critical flows
@@ -465,18 +465,18 @@ Plans:
 - /inventory/supplier-invoices (list + detail)
 
 Plans:
-- [ ] 07.9-01-PLAN.md — Prisma models: PurchaseOrder, ReceptionReport, SupplierInvoice, Notification, GoodsReceipt extensions (Wave 1)
-- [ ] 07.9-02-PLAN.md — Purchase Orders CRUD API + labels generation (Wave 2)
-- [ ] 07.9-03-PLAN.md — Reception Reports API + photo upload (Wave 2)
-- [ ] 07.9-04-PLAN.md — Supplier Invoices CRUD API (Wave 2)
-- [ ] 07.9-05-PLAN.md — NIR Workflow APIs: send-to-office, verify, approve, reject, transfer-stock (Wave 2)
-- [ ] 07.9-06-PLAN.md — Purchase Orders UI: list, create/edit, labels page (Wave 3)
-- [ ] 07.9-07-PLAN.md — Reception UI: warehouse dashboard, PV completion, photos (Wave 3)
-- [ ] 07.9-08-PLAN.md — Office Dashboard + Pending Approval page (Wave 3)
-- [ ] 07.9-09-PLAN.md — Supplier Invoices UI: list and detail pages (Wave 3)
-- [ ] 07.9-10-PLAN.md — In-app Notifications: Notification model API + bell icon UI (Wave 4)
-- [ ] 07.9-11-PLAN.md — Low stock alerts migration: dashboard-stats.ts → InventoryItem.currentStock (Wave 4)
-- [ ] 07.9-12-PLAN.md — Stock sync verification: Temu + Trendyol use InventoryItem correctly (Wave 4)
+- [x] 07.9-01-PLAN.md — Prisma models: PurchaseOrder, ReceptionReport, SupplierInvoice, Notification, GoodsReceipt extensions (Wave 1)
+- [x] 07.9-02-PLAN.md — Purchase Orders CRUD API + labels generation (Wave 2)
+- [x] 07.9-03-PLAN.md — Reception Reports API + photo upload (Wave 2)
+- [x] 07.9-04-PLAN.md — Supplier Invoices CRUD API (Wave 2)
+- [x] 07.9-05-PLAN.md — NIR Workflow APIs: send-to-office, verify, approve, reject, transfer-stock (Wave 2)
+- [x] 07.9-06-PLAN.md — Purchase Orders UI: list, create/edit, labels page (Wave 3)
+- [x] 07.9-07-PLAN.md — Reception UI: warehouse dashboard, PV completion, photos (Wave 3)
+- [x] 07.9-08-PLAN.md — Office Dashboard + Pending Approval page (Wave 3)
+- [x] 07.9-09-PLAN.md — Supplier Invoices UI: list and detail pages (Wave 3)
+- [x] 07.9-10-PLAN.md — In-app Notifications: Notification model API + bell icon UI (Wave 4)
+- [x] 07.9-11-PLAN.md — Low stock alerts migration: dashboard-stats.ts → InventoryItem.currentStock (Wave 4)
+- [x] 07.9-12-PLAN.md — Stock sync verification: Temu + Trendyol use InventoryItem correctly (Wave 4)
 
 ### Phase 8: Task Management Advanced
 **Goal**: Automated task creation, notifications, and activity reporting
