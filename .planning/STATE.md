@@ -67,6 +67,9 @@ Recent decisions affecting current work:
 - **07.9-12:** MasterProduct.stock fallback in Trendyol sync has DEPRECATED warning
 - **07.9-12:** Temu stock sync created fresh with InventoryItem.currentStock only
 - **07.9-11:** Reuse getLowStockAlerts() from inventory-stock.ts for dashboard (no query duplication)
+- **07.9-10:** Permission-based user targeting for notifications via role/group membership
+- **07.9-10:** Fire-and-forget notification pattern (.catch() error handling, non-blocking)
+- **07.9-10:** NotificationBell 30-second polling interval with 10-second stale time
 - **07.9-11:** Add status field ('out_of_stock' | 'low_stock') for cleaner UI variant selection
 - **07.9-11:** Dashboard low stock link changed from /products to /inventory?filter=low
 - **07.9-09:** backHref prop for PageHeader navigation instead of JSX in title
