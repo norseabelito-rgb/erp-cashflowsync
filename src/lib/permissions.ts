@@ -81,6 +81,12 @@ export const PERMISSIONS: PermissionDefinition[] = [
   { code: "inventory.view", name: "Vizualizare inventar", description: "Poate vedea stocurile", category: "inventory", sortOrder: 600 },
   { code: "inventory.adjust", name: "Ajustare stoc", description: "Poate face ajustări manuale de stoc", category: "inventory", sortOrder: 601 },
   { code: "inventory.sync", name: "Sincronizare stoc", description: "Poate sincroniza stocul cu sisteme externe", category: "inventory", sortOrder: 602 },
+  { code: "inventory.edit", name: "Editare inventar", description: "Poate modifica articole din inventar", category: "inventory", sortOrder: 603 },
+
+  // ==================== RECEPTIE ====================
+  { code: "reception.view", name: "Vizualizare receptie", description: "Poate vedea NIR-uri si rapoarte receptie", category: "reception", sortOrder: 610 },
+  { code: "reception.verify", name: "Verificare NIR", description: "Poate verifica si aproba NIR-uri (Office)", category: "reception", sortOrder: 611 },
+  { code: "reception.approve_differences", name: "Aprobare diferente", description: "Poate aproba sau respinge NIR-uri cu diferente (George)", category: "reception", sortOrder: 612 },
 
   // ==================== DEPOZITE ====================
   { code: "warehouses.view", name: "Vizualizare depozite", description: "Poate vedea lista depozitelor și stocurile per depozit", category: "warehouses", sortOrder: 620 },
@@ -163,6 +169,7 @@ export const PERMISSION_CATEGORIES = [
   { code: "handover", name: "Predare Curier", icon: "PackageCheck" },
   { code: "processing", name: "Procesare", icon: "RefreshCw" },
   { code: "inventory", name: "Inventar", icon: "Warehouse" },
+  { code: "reception", name: "Receptie", icon: "ClipboardCheck" },
   { code: "warehouses", name: "Depozite", icon: "Building2" },
   { code: "transfers", name: "Transferuri", icon: "ArrowLeftRight" },
   { code: "marketplace", name: "Marketplace", icon: "Globe" },
