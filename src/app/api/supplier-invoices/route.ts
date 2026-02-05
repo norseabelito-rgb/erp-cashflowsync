@@ -67,7 +67,17 @@ export async function GET(request: NextRequest) {
     }
 
     if (paymentStatus) {
-      where.paymentStatus = paymentStatus;
+      // Handle comma-separated status values
+      if (paymentStatus.includes(",")) {
+        const statuses = paymentStatus.split(",").filter(s =>
+          Object.values(PaymentStatus).includes(s as PaymentStatus)
+        );
+        if (statuses.length > 0) {
+          where.paymentStatus = { in: statuses };
+        }
+      } else {
+        where.paymentStatus = paymentStatus;
+      }
     }
 
     if (dateFrom || dateTo) {

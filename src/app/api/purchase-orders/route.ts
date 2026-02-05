@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 import { generateDocumentNumber } from "@/lib/document-numbering";
+import { PurchaseOrderStatus } from "@prisma/client";
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +40,17 @@ export async function GET(request: NextRequest) {
     }
 
     if (status) {
-      where.status = status;
+      // Handle comma-separated status values
+      if (status.includes(",")) {
+        const statuses = status.split(",").filter(s =>
+          Object.values(PurchaseOrderStatus).includes(s as PurchaseOrderStatus)
+        );
+        if (statuses.length > 0) {
+          where.status = { in: statuses };
+        }
+      } else {
+        where.status = status;
+      }
     }
 
     if (supplierId) {
