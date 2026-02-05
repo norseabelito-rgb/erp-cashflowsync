@@ -21,7 +21,7 @@ import {
 } from "./oblio";
 import { getNextInvoiceNumber, getInvoiceSeriesForCompany } from "./invoice-series";
 import { getInvoiceErrorMessage } from "./invoice-errors";
-import { processStockForOrder } from "./stock";
+import { processInventoryStockForOrderFromPrimary } from "./inventory-stock";
 
 // Tip pentru transaction client
 type PrismaTransactionClient = Prisma.TransactionClient;
@@ -722,15 +722,18 @@ export async function issueInvoiceForOrder(
 
     if (savedInvoice) {
       try {
-        const stockResult = await processStockForOrder(order.id, savedInvoice.id);
+        const stockResult = await processInventoryStockForOrderFromPrimary(order.id, savedInvoice.id);
         if (stockResult.success) {
-          console.log(`[Invoice] Stoc descărcat: ${stockResult.processed} mișcări`);
+          console.log(`[Invoice] Stoc descarcat (InventoryItem): ${stockResult.processed} articole, ${stockResult.skipped} sarite`);
+          if (stockResult.warehouseName) {
+            console.log(`[Invoice] Depozit: ${stockResult.warehouseName}`);
+          }
         } else {
-          console.warn(`[Invoice] Erori la descărcarea stocului: ${stockResult.errors.join(", ")}`);
+          console.warn(`[Invoice] Erori la descarcarea stocului: ${stockResult.errors.join(", ")}`);
         }
       } catch (stockError) {
-        // Non-blocking - factura a fost emisă cu succes, stocul poate fi corectat manual
-        console.error("[Invoice] Eroare la descărcarea stocului:", stockError);
+        // Non-blocking - factura a fost emisa cu succes, stocul poate fi corectat manual
+        console.error("[Invoice] Eroare la descarcarea stocului:", stockError);
       }
     }
 
