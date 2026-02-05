@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 7.7 - Temu Complete Integration
+**Current focus:** Phase 7.8 - Stock Unification
 
 ## Current Position
 
-Phase: 7.7 of 10 (Temu Complete Integration)
-Plan: 6 of 6
-Status: COMPLETE
-Last activity: 2026-02-05 - Completed 07.7-06 (UI Integration)
+Phase: 7.8 of 10 (Stock Unification)
+Plan: 2 of 5
+Status: In progress
+Last activity: 2026-02-05 - Completed 07.8-02-PLAN.md (Invoice Stock Migration)
 
 Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7)
 
@@ -267,6 +267,22 @@ Recent decisions affecting current work:
   - Stock management: decrease on invoice, increase on return
   - API: EU endpoint with MD5 signature authentication
 
+- Phase 7.8 inserted after Phase 7.7 - 2026-02-05 (CRITICAL)
+  - Reason: Dual stock systems causing inventory desync
+  - Problem: OLD (Product + StockMovement) vs NEW (InventoryItem + InventoryStockMovement)
+  - Invoice/returns use OLD, NIR uses NEW - they don't sync
+  - Solution: Migrate all flows to use InventoryItem.currentStock
+  - Conservative: additive changes only, no deletion, backward compatible
+  - Migration scripts provided separately for Railway CLI
+
+- Phase 7.9 inserted after Phase 7.8 - 2026-02-05
+  - Reason: Complete goods reception workflow as per requirements document
+  - Features: PurchaseOrder, ReceptionReport, SupplierInvoice, NIR workflow
+  - Workflow: Precomanda → Etichete → Recepție PV → Factură → NIR → Office → Aprobare → Stoc
+  - In-app notifications for Office and George (diferențe)
+  - Also includes: low stock alerts migration, stock sync verification
+  - 12 plans in 4 waves
+
 ## Phase 7.1 Progress
 
 | Plan | Wave | Status | Summary |
@@ -322,21 +338,19 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-05
-Stopped at: Completed 07.7-06 (UI Integration) - Phase 7.7 COMPLETE
+Stopped at: Completed 07.8-02-PLAN.md (Invoice Stock Migration)
 Resume context:
-- **Phase 7.7 COMPLETE** - All 6 plans executed
-- Temu dashboard at /temu with stats and quick actions
-- Temu orders page at /temu/orders with full functionality
-- Sidebar Temu section with Dashboard and Comenzi links
+- **Phase 7.8 IN PROGRESS** - 2/5 plans complete (Wave 1 done)
+- 07.8-01: addInventoryStockForReturn() and addInventoryStockFromWarehouse() created
+- 07.8-02: invoice-service.ts migrated to processInventoryStockForOrderFromPrimary
+- Next: 07.8-03 (returns migration) and 07.8-04 (picking migration)
 
 **NEXT STEPS:**
-1. Apply database migration: prisma/migrations/manual/add_temu_tables.sql
-2. Regenerate Prisma client: npx prisma generate
-3. Configure TemuStore in Settings with API credentials
-4. Complete Phase 7.6-03 (Customer detail page)
-5. Start Phase 8: Notifications and Automation
+1. Execute 07.8-03: Migrate returns to addInventoryStockForReturn
+2. Execute 07.8-04: Migrate picking to InventoryItem
+3. Execute 07.8-05: MasterProduct mapping script + deprecation
 
-Resume file: None (phase complete)
+Resume file: .planning/phases/07.8-stock-unification/07.8-03-PLAN.md
 
 ## Phase 7 Features
 
@@ -458,8 +472,95 @@ Task Management Core components:
 - [x] 07.7-05: Orders UI - GET/POST endpoints for temu/orders and temu/sync, TemuOrdersList component
 - [x] 07.7-06: Temu dashboard, dedicated orders page, sidebar navigation
 
+## Phase 7.8 Progress (Stock Unification)
+
+| Plan | Wave | Status | Summary |
+|------|------|--------|---------|
+| 07.8-01 | 1 | Complete | Create addInventoryStockForReturn() function |
+| 07.8-02 | 1 | Complete | Migrate invoice-service.ts to processInventoryStockForOrderFromPrimary |
+| 07.8-03 | 2 | Pending | Migrate returns/reprocess-stock to addInventoryStockForReturn |
+| 07.8-04 | 2 | Pending | Migrate picking to use InventoryItem.currentStock |
+| 07.8-05 | 3 | Pending | MasterProduct→InventoryItem mapping script + deprecation markers |
+
+## Phase 7.8 Context (Stock Unification)
+
+**Problem identified:**
+- Dual stock systems: OLD (Product/MasterProduct.stock + StockMovement) vs NEW (InventoryItem.currentStock + InventoryStockMovement)
+- Invoice generation uses OLD: `processStockForOrder()` in invoice-service.ts:725
+- Returns use OLD: `processStockReturnForOrder()` in returns/reprocess-stock
+- Picking uses OLD: decrements `MasterProduct.stock` in picking/[id]/route.ts
+- NIR (GoodsReceipt) uses NEW: updates `InventoryItem.currentStock`
+- Result: stock gets out of sync between systems
+
+**Solution:**
+- Use existing `processInventoryStockForOrderFromPrimary()` (inventory-stock.ts:1068-1216) - READY
+- Create new `addInventoryStockForReturn()` for returns
+- Migrate picking to use InventoryItem
+- Map all MasterProducts to InventoryItems
+
+**Conservative approach:**
+- Additive changes only (no deletion)
+- Old functions marked @deprecated but kept
+- All new DB fields nullable
+- Migration scripts separate (for Railway CLI)
+
+## Phase 7.9 Progress (Reception Workflow)
+
+| Plan | Wave | Status | Summary |
+|------|------|--------|---------|
+| 07.9-01 | 1 | Pending | Prisma models: PurchaseOrder, ReceptionReport, SupplierInvoice, Notification, GoodsReceipt extensions |
+| 07.9-02 | 2 | Pending | Purchase Orders CRUD API + labels generation |
+| 07.9-03 | 2 | Pending | Reception Reports API + photo upload |
+| 07.9-04 | 2 | Pending | Supplier Invoices CRUD API |
+| 07.9-05 | 2 | Pending | NIR Workflow APIs: send-to-office, verify, approve, reject, transfer-stock |
+| 07.9-06 | 3 | Pending | Purchase Orders UI: list, create/edit, labels page |
+| 07.9-07 | 3 | Pending | Reception UI: warehouse dashboard, PV completion, photos |
+| 07.9-08 | 3 | Pending | Office Dashboard + Pending Approval page |
+| 07.9-09 | 3 | Pending | Supplier Invoices UI: list and detail pages |
+| 07.9-10 | 4 | Pending | In-app Notifications: Notification model API + bell icon UI |
+| 07.9-11 | 4 | Pending | Low stock alerts migration: dashboard-stats.ts → InventoryItem.currentStock |
+| 07.9-12 | 4 | Pending | Stock sync verification: Temu + Trendyol use InventoryItem correctly |
+
+## Phase 7.9 Context (Reception Workflow)
+
+**Complete workflow:**
+1. **Precomandă** (PurchaseOrder) - Office creează comandă către furnizor
+2. **Etichete** (PurchaseOrderLabel) - Generare + printare pentru depozit
+3. **Recepție** (ReceptionReport) - Gestionar verifică marfa primită vs așteptat
+4. **Poze** (ReceptionPhoto) - Documentare: overview, etichete, deteriorări, factură
+5. **Factură Furnizor** (SupplierInvoice) - Înregistrare factură primită
+6. **NIR** (GoodsReceipt) - Generat automat la finalizare recepție
+7. **Workflow NIR**: GENERAT → TRIMIS_OFFICE → VERIFICAT → APROBAT/RESPINS → IN_STOC
+8. **Notificări** - Office notificat pentru verificare, George pentru diferențe
+
+**Database models noi:**
+- PurchaseOrder + PurchaseOrderItem
+- ReceptionReport + ReceptionReportItem
+- ReceptionPhoto
+- SupplierInvoice
+- PurchaseOrderLabel
+- Notification
+- GoodsReceipt (extins +12 câmpuri)
+
+**Enums noi:**
+- PurchaseOrderStatus, ReceptionReportStatus, GoodsReceiptStatus (extins)
+- PaymentStatus, PhotoCategory
+
+**UI pages noi:**
+- /inventory/purchase-orders/*
+- /inventory/reception/*
+- /inventory/receipts/office, /inventory/receipts/pending-approval
+- /inventory/supplier-invoices/*
+
+**Zone neacoperite incluse:**
+- dashboard-stats.ts low stock alerts → InventoryItem.currentStock
+- Temu/Trendyol stock sync verification
+
 ## Recent Commits
 
+- `4526f92` feat(07.8-02): migrate invoice stock deduction to NEW inventory system
+- `5bda2a3` feat(07.8-01): add addInventoryStockForReturn function
+- `514d432` feat(07.8-01): add addInventoryStockFromWarehouse function
 - `908fcae` feat(07.7-05): replace TemuPlaceholder with TemuOrdersList
 - `3c6c9e7` feat(07.7-05): create TemuOrdersList component
 - `b932d33` feat(07.7-05): create Temu orders and sync API endpoints
@@ -509,4 +610,4 @@ Task Management Core components:
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-05 (Phase 7.7 COMPLETE - Temu Complete Integration)*
+*Last updated: 2026-02-05 (Phase 7.8 + 7.9 INSERTED - Stock Unification + Reception Workflow)*
