@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import prisma from "@/lib/db";
-import { processStockReturnForOrder } from "@/lib/stock";
+import { addInventoryStockForReturn } from "@/lib/inventory-stock";
 
 /**
  * POST /api/returns/reprocess-stock
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Returul nu este mapat la o comandă" }, { status: 400 });
       }
 
-      const stockResult = await processStockReturnForOrder(returnAwb.orderId, returnAwbId);
+      const stockResult = await addInventoryStockForReturn(returnAwb.orderId, returnAwbId);
 
       // Update status if processed
       if (stockResult.processed > 0) {
@@ -95,9 +95,12 @@ export async function POST(request: NextRequest) {
       for (const returnAwb of mappedReturns) {
         if (!returnAwb.orderId) continue;
 
-        // Check if already has stock movements
-        const existingMovement = await prisma.stockMovement.findFirst({
-          where: { reference: `RETUR-${returnAwb.id}` },
+        // Check if already has stock movements in NEW inventory system
+        const existingMovement = await prisma.inventoryStockMovement.findFirst({
+          where: {
+            type: "RETURN",
+            reason: { contains: returnAwb.id }
+          },
         });
 
         if (existingMovement) {
@@ -115,7 +118,7 @@ export async function POST(request: NextRequest) {
 
         // Process stock
         try {
-          const stockResult = await processStockReturnForOrder(returnAwb.orderId, returnAwb.id);
+          const stockResult = await addInventoryStockForReturn(returnAwb.orderId, returnAwb.id);
 
           // Update status if processed
           if (stockResult.processed > 0) {
@@ -230,8 +233,12 @@ export async function GET(request: NextRequest) {
     }> = [];
 
     for (const ret of mappedReturns) {
-      const movements = await prisma.stockMovement.findMany({
-        where: { reference: `RETUR-${ret.id}` },
+      // Check for movements in NEW inventory system
+      const movements = await prisma.inventoryStockMovement.findMany({
+        where: {
+          type: "RETURN",
+          reason: { contains: ret.id }
+        },
       });
 
       if (movements.length === 0) {
