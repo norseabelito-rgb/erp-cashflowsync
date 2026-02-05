@@ -172,6 +172,15 @@ const navigation: NavItem[] = [
     ],
   },
   {
+    name: "Temu",
+    icon: ShoppingBag,
+    permissions: ["orders.view"],
+    children: [
+      { name: "Dashboard", href: "/temu", icon: LayoutDashboard, permissions: ["orders.view"] },
+      { name: "Comenzi", href: "/temu/orders", icon: ShoppingCart, permissions: ["orders.view"] },
+    ],
+  },
+  {
     name: "Marketing",
     icon: Megaphone,
     permissions: ["ads.view"],
