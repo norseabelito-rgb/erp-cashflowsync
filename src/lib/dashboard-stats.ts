@@ -1,6 +1,7 @@
 import prisma from "@/lib/db";
 import { getCategoryFilterConditions } from "@/lib/awb-status";
 import { FANCOURIER_STATUSES } from "@/lib/fancourier-statuses";
+import { getLowStockAlerts } from "@/lib/inventory-stock";
 
 /**
  * Romania timezone constant
@@ -133,13 +134,15 @@ export interface DashboardStats {
     };
   }>;
 
-  // Low stock products (no date filter)
+  // Low stock products (no date filter) - uses InventoryItem.currentStock
   lowStockProducts: Array<{
     id: string;
     name: string;
-    sku: string | null;
-    stockQuantity: number;
+    sku: string;
+    currentStock: number;
+    minStock: number;
     unit: string;
+    status: 'out_of_stock' | 'low_stock';
   }>;
 
   // Product counts (no filter)
@@ -503,15 +506,9 @@ export async function getFilteredDashboardStats(
       include: { store: true },
     }),
 
-    // Low stock products (no date filter)
-    prisma.product.findMany({
-      where: {
-        isActive: true,
-        stockQuantity: { lte: 5 },
-      },
-      orderBy: { stockQuantity: "asc" },
-      take: 5,
-    }),
+    // Low stock products (no date filter) - uses InventoryItem.currentStock
+    // getLowStockAlerts returns items where currentStock <= minStock
+    getLowStockAlerts(),
 
     // Total product count
     prisma.product.count({
@@ -664,14 +661,20 @@ export async function getFilteredDashboardStats(
       },
     })),
 
-    // Low stock products
-    lowStockProducts: lowStockProducts.map((p) => ({
-      id: p.id,
-      name: p.name,
-      sku: p.sku,
-      stockQuantity: p.stockQuantity,
-      unit: p.unit,
-    })),
+    // Low stock products (from InventoryItem.currentStock)
+    // Take only top 5 for dashboard, sorted by currentStock (lowest first)
+    lowStockProducts: lowStockProducts
+      .sort((a, b) => a.currentStock - b.currentStock)
+      .slice(0, 5)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        sku: p.sku,
+        currentStock: p.currentStock,
+        minStock: p.minStock,
+        unit: p.unit,
+        status: p.currentStock <= 0 ? 'out_of_stock' as const : 'low_stock' as const,
+      })),
 
     // Product counts
     totalProducts: productCount,
