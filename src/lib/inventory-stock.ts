@@ -1264,6 +1264,180 @@ export async function addInventoryStockFromWarehouse(
 }
 
 /**
+ * Procesează adăugarea stocului în inventar pentru un retur
+ * Folosește maparea MasterProduct -> InventoryItem
+ * VERSIUNE: Folosește DEPOZITUL PRINCIPAL
+ * Mirror of processInventoryStockForOrderFromPrimary for returns
+ */
+export async function addInventoryStockForReturn(
+  orderId: string,
+  returnAwbId: string
+): Promise<{
+  success: boolean;
+  processed: number;
+  skipped: number;
+  errors: string[];
+  movements: Array<{
+    sku: string;
+    itemName: string;
+    quantity: number;
+    previousStock: number;
+    newStock: number;
+    warehouseId: string;
+  }>;
+  warehouseName?: string;
+  alreadyProcessed?: boolean;
+}> {
+  const result = {
+    success: true,
+    processed: 0,
+    skipped: 0,
+    errors: [] as string[],
+    movements: [] as Array<{
+      sku: string;
+      itemName: string;
+      quantity: number;
+      previousStock: number;
+      newStock: number;
+      warehouseId: string;
+    }>,
+    warehouseName: undefined as string | undefined,
+    alreadyProcessed: false,
+  };
+
+  console.log("\n" + "=".repeat(60));
+  console.log("📦 PROCESARE STOC INVENTAR PENTRU RETUR (MULTI-WAREHOUSE)");
+  console.log("=".repeat(60));
+  console.log(`🛒 Order ID: ${orderId}`);
+  console.log(`📋 Return AWB ID: ${returnAwbId}`);
+
+  try {
+    // Idempotency check: verifică dacă acest retur a fost deja procesat
+    const existingMovement = await prisma.inventoryStockMovement.findFirst({
+      where: {
+        orderId,
+        type: "RETURN",
+        reason: {
+          contains: returnAwbId,
+        },
+      },
+    });
+
+    if (existingMovement) {
+      console.log(`⚠️ Returul cu AWB ${returnAwbId} a fost deja procesat - skip`);
+      result.alreadyProcessed = true;
+      return result;
+    }
+
+    // Obține depozitul principal
+    const primaryWarehouse = await getPrimaryWarehouse();
+
+    if (!primaryWarehouse) {
+      result.success = false;
+      result.errors.push("Nu există depozit principal configurat");
+      console.log("❌ Nu există depozit principal configurat");
+      return result;
+    }
+
+    result.warehouseName = primaryWarehouse.name;
+    console.log(`🏭 Depozit principal: ${primaryWarehouse.name} (${primaryWarehouse.code})`);
+
+    // Obține produsele din comandă
+    const lineItems = await prisma.lineItem.findMany({
+      where: { orderId },
+    });
+
+    console.log(`📋 Produse în comandă: ${lineItems.length}`);
+
+    for (const lineItem of lineItems) {
+      if (!lineItem.sku) {
+        console.log(`  ⚠️ Produs "${lineItem.title}" nu are SKU - skip`);
+        result.skipped++;
+        continue;
+      }
+
+      // Găsește MasterProduct și verifică dacă are inventoryItemId
+      const masterProduct = await prisma.masterProduct.findUnique({
+        where: { sku: lineItem.sku },
+        select: {
+          id: true,
+          sku: true,
+          title: true,
+          inventoryItemId: true,
+          inventoryItem: {
+            include: {
+              recipeComponents: {
+                include: {
+                  componentItem: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!masterProduct) {
+        console.log(`  ⚠️ SKU "${lineItem.sku}" nu există în MasterProduct - skip`);
+        result.skipped++;
+        continue;
+      }
+
+      if (!masterProduct.inventoryItemId || !masterProduct.inventoryItem) {
+        console.log(`  ⚠️ SKU "${lineItem.sku}" nu este mapat la inventar - skip`);
+        result.skipped++;
+        continue;
+      }
+
+      const invItem = masterProduct.inventoryItem;
+      console.log(`\n  📦 Procesez: ${invItem.name} (${invItem.sku})`);
+      console.log(`     Cantitate retur: ${lineItem.quantity}`);
+      console.log(`     Este compus: ${invItem.isComposite ? "DA" : "NU"}`);
+
+      // Adăugăm stocul în depozitul principal
+      const addResult = await addInventoryStockFromWarehouse(
+        invItem.id,
+        primaryWarehouse.id,
+        lineItem.quantity,
+        {
+          orderId,
+          reason: `Retur - AWB ${returnAwbId}, Produs: ${lineItem.title}`,
+        }
+      );
+
+      if (!addResult.success) {
+        result.errors.push(`Eroare la ${invItem.sku}: ${addResult.error}`);
+        console.log(`     ❌ ${addResult.error}`);
+      } else {
+        for (const mov of addResult.movements) {
+          result.movements.push({
+            sku: mov.sku,
+            itemName: mov.sku,
+            quantity: mov.quantity,
+            previousStock: mov.previousStock,
+            newStock: mov.newStock,
+            warehouseId: mov.warehouseId,
+          });
+          console.log(`     ✅ ${mov.sku}: ${mov.previousStock} → ${mov.newStock}`);
+        }
+        result.processed++;
+      }
+    }
+
+    console.log("\n" + "-".repeat(60));
+    console.log(`📊 REZULTAT: ${result.processed} articole procesate, ${result.skipped} sărite, ${result.errors.length} erori`);
+    console.log("=".repeat(60) + "\n");
+
+    result.success = result.errors.length === 0;
+  } catch (error: any) {
+    console.error("❌ Eroare la procesarea stocului retur:", error.message);
+    result.success = false;
+    result.errors.push(error.message);
+  }
+
+  return result;
+}
+
+/**
  * Sincronizează stocul total al unui articol cu suma din depozite
  */
 export async function syncItemTotalStock(itemId: string): Promise<number> {
