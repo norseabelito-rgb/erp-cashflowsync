@@ -201,28 +201,6 @@ export default function InvoiceSeriesPage() {
     },
   });
 
-  // Update store series mutation
-  const updateStoreMutation = useMutation({
-    mutationFn: async ({ storeId, seriesId }: { storeId: string; seriesId: string | null }) => {
-      const res = await fetch("/api/invoice-series", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storeId, seriesId }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invoice-series"] });
-      queryClient.invalidateQueries({ queryKey: ["stores-with-series"] });
-      toast({ title: "Store actualizat" });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Eroare", description: error.message, variant: "destructive" });
-    },
-  });
-
   // Update Trendyol series mutation
   const updateTrendyolMutation = useMutation({
     mutationFn: async (trendyolSeries: string | null) => {
@@ -531,67 +509,6 @@ export default function InvoiceSeriesPage() {
           </Card>
         )}
 
-        {/* Store Associations */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Store className="h-5 w-5" />
-              Magazine Shopify
-            </CardTitle>
-            <CardDescription>
-              Asociază o serie de facturare fiecărui magazin
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {stores.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">
-                Nu ai magazine configurate
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {stores.map((store) => (
-                  <div
-                    key={store.id}
-                    className="flex items-center justify-between p-3 rounded-lg border"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-status-info/10">
-                        <Store className="h-5 w-5 text-status-info" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{store.name}</p>
-                        <p className="text-sm text-muted-foreground">{store.shopifyDomain}</p>
-                      </div>
-                    </div>
-                    <Select
-                      value={store.invoiceSeriesId || "none"}
-                      onValueChange={(v) =>
-                        updateStoreMutation.mutate({
-                          storeId: store.id,
-                          seriesId: v === "none" ? null : v,
-                        })
-                      }
-                    >
-                      <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Selectează seria" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Fără serie (folosește default)</SelectItem>
-                        {series.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.prefix} - {s.name}
-                            {s.isDefault && " ⭐"}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
         {/* Oblio Series Mapping - IMPORTANT */}
         <Card className="border-primary">
           <CardHeader>
@@ -751,11 +668,11 @@ export default function InvoiceSeriesPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Store className="h-5 w-5" />
-              Sumar mapari
+              <CheckCircle className="h-5 w-5" />
+              Status Configurare
             </CardTitle>
             <CardDescription>
-              Configuratia curenta per magazin - verifica ca fiecare magazin are serie configurata
+              Verifica ca fiecare magazin are firma si serie Oblio configurata
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -769,17 +686,15 @@ export default function InvoiceSeriesPage() {
                   <TableRow>
                     <TableHead>Magazin</TableHead>
                     <TableHead>Firma</TableHead>
-                    <TableHead>Serie</TableHead>
+                    <TableHead>Serie Oblio</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {stores.map((store) => {
-                    // Determine effective series (store-specific or company default)
-                    const effectiveSeries = store.invoiceSeries
-                      || series.find((s) => s.companyId === store.companyId && s.isDefault);
-                    const hasValidMapping = !!effectiveSeries;
-                    const isStoreSpecific = !!store.invoiceSeries;
+                    // Check Oblio series (this is what's actually used for invoicing)
+                    const hasOblioSeries = !!store.oblioSeriesName;
+                    const hasCompany = !!store.company;
 
                     return (
                       <TableRow key={store.id}>
@@ -790,23 +705,22 @@ export default function InvoiceSeriesPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          {effectiveSeries ? (
-                            <span className="flex items-center gap-2">
-                              {effectiveSeries.prefix} - {effectiveSeries.name}
-                              {!isStoreSpecific && (
-                                <Badge variant="outline" className="text-xs">Default firma</Badge>
-                              )}
-                            </span>
+                          {hasOblioSeries ? (
+                            <Badge variant="outline" className="text-emerald-600 border-emerald-600">
+                              {store.oblioSeriesName}
+                            </Badge>
                           ) : (
                             <Badge variant="destructive">Lipsa</Badge>
                           )}
                         </TableCell>
                         <TableCell>
-                          {hasValidMapping ? (
+                          {hasOblioSeries && hasCompany ? (
                             <Badge className="bg-green-500">
                               <CheckCircle className="h-3 w-3 mr-1" />
                               OK
                             </Badge>
+                          ) : !hasCompany ? (
+                            <Badge variant="destructive">Asociaza firma</Badge>
                           ) : (
                             <Badge variant="destructive">Configureaza</Badge>
                           )}
