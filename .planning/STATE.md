@@ -55,6 +55,10 @@ Progress: [██████████████████░░] ~99% (7
 
 Recent decisions affecting current work:
 
+- **07.7-05:** TemuOrdersList uses useQuery (consistent with existing patterns)
+- **07.7-05:** Purple badge color for Temu (bg-purple-100 text-purple-700)
+- **07.7-05:** Temu store filter shown only when multiple stores exist
+- **07.7-05:** Self-contained component manages own state vs using global filters
 - **07.7-06:** Temu section uses orders.view permission (consistent with main orders)
 - **07.7-06:** Temu dashboard follows Trendyol page pattern for UI consistency
 - **07.7-06:** Stats endpoint queries Order table where source='temu'
@@ -441,7 +445,7 @@ Task Management Core components:
 | 07.7-02 | 1 | Complete | TemuStore CRUD API + TemuStoresTab Settings UI |
 | 07.7-03 | 2 | Complete | Order Sync Service + Invoice Series Resolution |
 | 07.7-04 | 2 | Complete | AWB tracking service |
-| 07.7-05 | 3 | Complete | Stock sync (parallel execution) |
+| 07.7-05 | 3 | Complete | Orders UI - API endpoints + TemuOrdersList component |
 | 07.7-06 | 4 | Complete | UI integration - dashboard, orders page, sidebar |
 
 ## Phase 7.7 Features (Temu Complete Integration)
@@ -450,11 +454,14 @@ Task Management Core components:
 - [x] 07.7-02: TemuStore CRUD API, TemuStoresTab Settings UI, Temu tab in Settings
 - [x] 07.7-03: Order Sync Service with TemuStore credential mapping, invoice series resolution
 - [x] 07.7-04: AWB tracking send to Temu (sendTrackingToTemu + AWB service integration)
-- [x] 07.7-05: Stock sync on invoice/return (TemuOrdersList component)
+- [x] 07.7-05: Orders UI - GET/POST endpoints for temu/orders and temu/sync, TemuOrdersList component
 - [x] 07.7-06: Temu dashboard, dedicated orders page, sidebar navigation
 
 ## Recent Commits
 
+- `908fcae` feat(07.7-05): replace TemuPlaceholder with TemuOrdersList
+- `3c6c9e7` feat(07.7-05): create TemuOrdersList component
+- `b932d33` feat(07.7-05): create Temu orders and sync API endpoints
 - `86c8537` feat(07.7-06): add Temu section to sidebar navigation
 - `1e12f2f` feat(07.7-06): create Temu orders page
 - `8b9feb1` feat(07.7-06): create Temu dashboard page with stats
