@@ -464,6 +464,7 @@ model Order {
   lineItems             LineItem[]
   processingErrors      ProcessingError[]
   trendyolOrder         TrendyolOrder?
+  temuOrder             TemuOrder?
   intercompanyLink      IntercompanyOrderLink?
   failedInvoiceAttempts FailedInvoiceAttempt[]
   tasks                 Task[]
@@ -1291,6 +1292,9 @@ model MasterProduct {
   trendyolProductMappings  TrendyolProductMapping[]
   trendyolProducts         TrendyolProduct[]
   trendyolCampaignProducts TrendyolCampaignProduct[]
+
+  // Temu relations
+  temuOrderItems TemuOrderItem[]
 
   // Tasks linked to this product
   tasks Task[]
@@ -2544,6 +2548,109 @@ model TrendyolProductMapping {
   @@map("trendyol_product_mappings")
 }
 
+// ============ TEMU INTEGRATION ============
+
+// Magazin Temu (multi-store support)
+model TemuStore {
+  id                String   @id @default(cuid())
+  name              String // "Temu EU", "Temu DE"
+  appKey            String   @unique @map("app_key")
+  appSecret         String   @map("app_secret")
+  accessToken       String   @map("access_token")
+  accessTokenExpiry DateTime @map("access_token_expiry") // 3-month expiration
+  webhookSecret     String?  @map("webhook_secret")
+  region            String   @default("EU") // EU, US, GLOBAL
+  currencyRate      Decimal? @map("currency_rate") @db.Decimal(10, 4)
+  invoiceSeriesName String?  @map("invoice_series_name") // Oblio series
+
+  // Company association
+  companyId String  @map("company_id")
+  company   Company @relation(fields: [companyId], references: [id])
+
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  orders TemuOrder[]
+
+  @@index([companyId])
+  @@map("temu_stores")
+}
+
+// Comenzi Temu
+model TemuOrder {
+  id              String   @id @default(cuid())
+  temuOrderId     String   @unique @map("temu_order_id")
+  temuOrderNumber String   @map("temu_order_number")
+  orderDate       DateTime @map("order_date")
+  status          String // Temu order statuses
+
+  // Customer info
+  customerName    String  @map("customer_name")
+  customerEmail   String? @map("customer_email")
+  customerPhone   String? @map("customer_phone")
+  customerAddress String  @map("customer_address") @db.Text
+
+  // Financials
+  totalPrice Decimal @map("total_price") @db.Decimal(10, 2)
+  currency   String  @default("EUR")
+
+  // Link to main Order (after sync)
+  orderId String? @unique @map("order_id")
+  order   Order?  @relation(fields: [orderId], references: [id])
+
+  // Link to TemuStore
+  temuStoreId String?    @map("temu_store_id")
+  temuStore   TemuStore? @relation(fields: [temuStoreId], references: [id])
+
+  // Invoice tracking - for sending invoice link back to Temu
+  invoiceSentToTemu Boolean   @default(false) @map("invoice_sent_to_temu")
+  invoiceSentAt     DateTime? @map("invoice_sent_at")
+  invoiceSendError  String?   @map("invoice_send_error")
+
+  // AWB tracking - for sending tracking number back to Temu
+  trackingSentToTemu Boolean   @default(false) @map("tracking_sent_to_temu")
+  trackingSentAt     DateTime? @map("tracking_sent_at")
+  trackingSendError  String?   @map("tracking_send_error")
+
+  // Line items
+  lineItems TemuOrderItem[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([orderId])
+  @@index([temuStoreId])
+  @@index([status])
+  @@index([orderDate])
+  @@map("temu_orders")
+}
+
+// Line items pentru comenzi Temu
+model TemuOrderItem {
+  id          String    @id @default(cuid())
+  temuOrderId String    @map("temu_order_id")
+  temuOrder   TemuOrder @relation(fields: [temuOrderId], references: [id], onDelete: Cascade)
+
+  goodsId  String  @map("goods_id")
+  skuId    String  @map("sku_id")
+  title    String
+  quantity Int
+  price    Decimal @db.Decimal(10, 2)
+
+  // Mapping to local products
+  localSku        String?        @map("local_sku")
+  masterProductId String?        @map("master_product_id")
+  masterProduct   MasterProduct? @relation(fields: [masterProductId], references: [id])
+  isMapped        Boolean        @default(false) @map("is_mapped")
+
+  @@index([temuOrderId])
+  @@index([goodsId])
+  @@index([skuId])
+  @@map("temu_order_items")
+}
+
 // Produse în Trendyol (sincronizate)
 model TrendyolProduct {
   id String @id @default(cuid())
@@ -3215,6 +3322,7 @@ model Company {
   intercompanyInvoicesIssued   IntercompanyInvoice[] @relation("IssuedBy")
   intercompanyInvoicesReceived IntercompanyInvoice[] @relation("ReceivedBy")
   trendyolStores               TrendyolStore[]
+  temuStores                   TemuStore[]
 
   @@index([cif])
   @@index([isPrimary])
