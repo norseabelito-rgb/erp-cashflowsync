@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { hasPermission } from "@/lib/permissions";
+import { deductInventoryStockFromWarehouse, getPrimaryWarehouse, addInventoryStockFromWarehouse } from "@/lib/inventory-stock";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
