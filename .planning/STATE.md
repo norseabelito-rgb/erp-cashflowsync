@@ -63,6 +63,10 @@ Recent decisions affecting current work:
 - **07.7-06:** Temu section uses orders.view permission (consistent with main orders)
 - **07.7-06:** Temu dashboard follows Trendyol page pattern for UI consistency
 - **07.7-06:** Stats endpoint queries Order table where source='temu'
+- **07.9-09:** backHref prop for PageHeader navigation instead of JSX in title
+- **07.9-09:** Payment status quick update via separate dialog (simpler than inline dropdown)
+- **07.9-09:** Delete button hidden when linked documents exist (soft block vs error)
+- **07.9-09:** Document upload flow: deferred for new invoices, immediate for existing
 - **07.9-07:** Local state for item edits before batch save (prevents many small API calls)
 - **07.9-07:** Photo categories displayed as 2x2 grid on desktop, single column on mobile
 - **07.9-07:** Validation checklist shows all 9 requirements at once with live updates
@@ -360,19 +364,20 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-06
-Stopped at: Completed 07.9-07-PLAN.md (Reception UI)
+Stopped at: Completed 07.9-09-PLAN.md (Supplier Invoices UI)
 Resume context:
-- **Phase 7.9 IN PROGRESS** - 7/12 plans complete
-- Reception dashboard at /inventory/reception showing pending/active/completed
-- ReceptionItemsTable for editable quantities with difference detection
-- ReceptionPhotoUpload with 4 categories (OVERVIEW, ETICHETE, FACTURA, DETERIORARI)
-- 9-point validation checklist before NIR generation
+- **Phase 7.9 IN PROGRESS** - 9/12 plans complete
+- Supplier invoices list page at /inventory/supplier-invoices with stats, filters, table
+- Supplier invoice detail page with info cards, document upload, linked documents
+- SupplierInvoiceForm component reusable for create/edit dialogs
+- Payment status quick update functionality
 
 **NEXT STEPS:**
-1. Continue with 07.9-06: Purchase Orders UI (pending)
-2. Then 07.9-08: Office Dashboard
+1. Continue with 07.9-10: In-app Notifications
+2. Then 07.9-11: Low stock alerts migration
+3. Then 07.9-12: Stock sync verification
 
-Resume file: .planning/phases/07.9-reception-workflow/07.9-08-PLAN.md
+Resume file: .planning/phases/07.9-reception-workflow/07.9-10-PLAN.md
 
 ## Phase 7 Features
 
@@ -650,4 +655,4 @@ Task Management Core components:
 
 ---
 *State initialized: 2026-01-23*
-*Last updated: 2026-02-06 (07.9-07 Complete - Reception UI)*
+*Last updated: 2026-02-06 (07.9-09 Complete - Supplier Invoices UI)*
