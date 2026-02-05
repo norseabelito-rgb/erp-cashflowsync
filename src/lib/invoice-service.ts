@@ -58,7 +58,7 @@ export interface IssueInvoiceResult {
   invoiceKey?: string; // Cheia Oblio pentru referință (serie + număr)
   companyId?: string;
   companyName?: string;
-  seriesSource?: "oblio_direct" | "store" | "company_default" | "trendyol_store"; // Indicates which series source was used
+  seriesSource?: "oblio_direct" | "store" | "company_default" | "trendyol_store" | "temu_store"; // Indicates which series source was used
   error?: string;
   errorCode?: string;
 }
@@ -404,13 +404,31 @@ export async function issueInvoiceForOrder(
 
     let oblioSeriesName: string;
     let invoiceSeries: any = null;
-    let seriesSource: "oblio_direct" | "store" | "company_default" | "trendyol_store" = "company_default";
+    let seriesSource: "oblio_direct" | "store" | "company_default" | "trendyol_store" | "temu_store" = "company_default";
     let useOblioNumbering = false; // Dacă e true, Oblio generează numărul
 
     // Variable to store TrendyolOrder for logging
     let trendyolOrder: { trendyolStore: { invoiceSeriesName: string | null; name: string } | null } | null = null;
 
-    // Priority 0: TrendyolStore invoice series (for Trendyol orders)
+    // Variable to store TemuOrder for logging
+    let temuOrder: { temuStore: { invoiceSeriesName: string | null; name: string } | null } | null = null;
+
+    // Priority 0a: TemuStore invoice series (for Temu orders)
+    if (order.source === "temu") {
+      temuOrder = await prisma.temuOrder.findFirst({
+        where: { orderId: order.id },
+        include: { temuStore: true },
+      });
+
+      if (temuOrder?.temuStore?.invoiceSeriesName) {
+        oblioSeriesName = temuOrder.temuStore.invoiceSeriesName;
+        seriesSource = "temu_store";
+        useOblioNumbering = true;
+        console.log(`[Invoice] Folosesc seria TemuStore: ${oblioSeriesName} (${temuOrder.temuStore.name})`);
+      }
+    }
+
+    // Priority 0b: TrendyolStore invoice series (for Trendyol orders)
     if (order.source === "trendyol") {
       trendyolOrder = await prisma.trendyolOrder.findFirst({
         where: { orderId: order.id },
@@ -505,7 +523,10 @@ export async function issueInvoiceForOrder(
       console.log(`Serie Oblio: ${oblioSeriesName}`);
       console.log(`Factura: ${formattedInvoice}`);
     }
-    console.log(`Sursa serie: ${seriesSource}${seriesSource === "trendyol_store" && trendyolOrder?.trendyolStore?.name ? ` (${trendyolOrder.trendyolStore.name})` : ""}`);
+    console.log(`Sursa serie: ${seriesSource}${
+      seriesSource === "trendyol_store" && trendyolOrder?.trendyolStore?.name ? ` (${trendyolOrder.trendyolStore.name})` :
+      seriesSource === "temu_store" && temuOrder?.temuStore?.name ? ` (${temuOrder.temuStore.name})` : ""
+    }`);
     console.log("=".repeat(60));
 
     // 8. Creăm clientul Oblio
