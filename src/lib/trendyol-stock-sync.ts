@@ -5,6 +5,19 @@
  * with an approved trendyolBarcode.
  *
  * Supports multiple TrendyolStores per company.
+ *
+ * IMPORTANT: Stock Source of Truth
+ * ================================
+ * This service uses InventoryItem.currentStock as the primary source for stock levels.
+ * DO NOT use Product.stockQuantity - it is deprecated and will be removed.
+ * DO NOT use MasterProduct.stock for new code - it's only used as a legacy fallback.
+ *
+ * After Phase 7.8 Stock Unification, all stock changes (from NIR, transfers, adjustments)
+ * flow through InventoryItem.currentStock via the transfer-stock API.
+ *
+ * @see Phase 7.8 Stock Unification
+ * @see .planning/phases/07.8-stock-unification/
+ * @verified 2026-02-06 - Uses InventoryItem.currentStock correctly
  */
 
 import { TrendyolClient, createTrendyolClientFromStore } from "./trendyol";
@@ -119,13 +132,21 @@ export async function syncAllProductsToTrendyolStore(
   console.log(`[Trendyol Sync] Using currency rate: ${currencyRate}`);
 
   const items: StockSyncItem[] = products.map((product) => {
-    // Get stock from linked InventoryItem if available
+    // PRIMARY: Get stock from linked InventoryItem (source of truth after Phase 7.8)
     const inventoryStock = product.inventoryItem
       ? Number(product.inventoryItem.currentStock)
       : 0;
 
-    // Fall back to MasterProduct.stock if no inventory item linked
-    const finalStock = inventoryStock > 0 ? inventoryStock : Math.max(0, product.stock);
+    // DEPRECATED FALLBACK: MasterProduct.stock is legacy - remove after all products have InventoryItem
+    // TODO: After migration complete, remove this fallback and require InventoryItem for all synced products
+    let finalStock = inventoryStock;
+    if (inventoryStock === 0 && product.stock > 0) {
+      console.warn(
+        `[Trendyol Sync] DEPRECATED: Product ${product.sku || product.id} has no InventoryItem stock, ` +
+        `falling back to MasterProduct.stock (${product.stock}). Link InventoryItem to fix.`
+      );
+      finalStock = Math.max(0, product.stock);
+    }
 
     // Convert prices from RON to target currency
     const priceRon = parseFloat(product.price?.toString() || "0");
@@ -235,11 +256,20 @@ export async function syncSingleProductToTrendyolStore(
     };
   }
 
-  // Calculate stock
+  // PRIMARY: Get stock from linked InventoryItem (source of truth after Phase 7.8)
   const inventoryStock = product.inventoryItem
     ? Number(product.inventoryItem.currentStock)
     : 0;
-  const finalStock = inventoryStock > 0 ? inventoryStock : Math.max(0, product.stock);
+
+  // DEPRECATED FALLBACK: MasterProduct.stock is legacy - remove after all products have InventoryItem
+  let finalStock = inventoryStock;
+  if (inventoryStock === 0 && product.stock > 0) {
+    console.warn(
+      `[Trendyol Sync] DEPRECATED: Product ${product.sku || productId} has no InventoryItem stock, ` +
+      `falling back to MasterProduct.stock (${product.stock}). Link InventoryItem to fix.`
+    );
+    finalStock = Math.max(0, product.stock);
+  }
 
   // Convert price
   const currencyRate = store.currencyRate
