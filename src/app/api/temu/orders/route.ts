@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
+import { syncTemuOrdersForStore } from "@/lib/temu-order-sync";
 
 export const dynamic = "force-dynamic";
 
@@ -178,6 +179,114 @@ export async function GET(request: NextRequest) {
     console.error("[Temu Orders] Error fetching orders:", message);
     return NextResponse.json(
       { success: false, error: "Eroare la incarcarea comenzilor Temu" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST /api/temu/orders - Sync orders from Temu API
+ *
+ * Body:
+ * - action: "sync"
+ * - storeId: (optional) specific store ID to sync
+ * - startDate: (optional) start date for sync
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    // Permission check
+    const canEdit = await hasPermission(session.user.id, "orders.edit");
+    if (!canEdit) {
+      return NextResponse.json(
+        { error: "Nu ai permisiunea de a sincroniza comenzile" },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const { action, storeId, startDate } = body;
+
+    if (action !== "sync") {
+      return NextResponse.json(
+        { error: "Actiune invalida. Foloseste 'sync'" },
+        { status: 400 }
+      );
+    }
+
+    // Get store(s) to sync
+    const stores = storeId
+      ? await prisma.temuStore.findMany({
+          where: { id: storeId },
+          include: {
+            company: { select: { id: true, name: true } },
+          },
+        })
+      : await prisma.temuStore.findMany({
+          where: { isActive: true },
+          include: {
+            company: { select: { id: true, name: true } },
+          },
+        });
+
+    if (stores.length === 0) {
+      return NextResponse.json(
+        { error: "Nu exista magazine Temu configurate" },
+        { status: 400 }
+      );
+    }
+
+    const totalResult = {
+      success: true,
+      synced: 0,
+      created: 0,
+      updated: 0,
+      errors: [] as string[],
+    };
+
+    // Sync each store
+    for (const store of stores) {
+      try {
+        const result = await syncTemuOrdersForStore(
+          {
+            id: store.id,
+            name: store.name,
+            appKey: store.appKey,
+            appSecret: store.appSecret,
+            accessToken: store.accessToken,
+            companyId: store.companyId,
+            region: store.region,
+            company: store.company,
+          },
+          {
+            startTime: startDate ? new Date(startDate) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+          }
+        );
+
+        totalResult.synced += result.synced;
+        totalResult.created += result.created;
+        totalResult.updated += result.updated;
+        totalResult.errors.push(...result.errors);
+      } catch (storeError: unknown) {
+        const msg = storeError instanceof Error ? storeError.message : "Unknown error";
+        totalResult.errors.push(`${store.name}: ${msg}`);
+      }
+    }
+
+    if (totalResult.errors.length > 0 && totalResult.synced === 0) {
+      totalResult.success = false;
+    }
+
+    return NextResponse.json(totalResult);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("[Temu Orders] Error syncing orders:", message);
+    return NextResponse.json(
+      { success: false, error: "Eroare la sincronizarea comenzilor Temu" },
       { status: 500 }
     );
   }
