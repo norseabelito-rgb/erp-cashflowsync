@@ -9,6 +9,7 @@ import prisma from "./db";
 import { FanCourierAPI } from "./fancourier";
 import { logWarningOverride, logAWBCreated } from "./activity-log";
 import { sendTrackingToTrendyol } from "./trendyol-awb";
+import { sendTrackingToTemu } from "./temu-awb";
 
 export interface AWBWarning {
   type: "AWB_MISMATCH";
@@ -406,6 +407,15 @@ export async function createAWBForOrder(
     if (order.source === "trendyol") {
       sendTrackingToTrendyol(order.id, result.awb, "fancourier").catch((err) => {
         console.error("[Trendyol] Failed to send tracking:", err);
+        // Don't throw - AWB was created successfully
+      });
+    }
+
+    // If this is a Temu order, send tracking number to Temu
+    // This is non-blocking - AWB was created successfully regardless
+    if (order.source === "temu") {
+      sendTrackingToTemu(order.id, result.awb, "fancourier").catch((err) => {
+        console.error("[Temu] Failed to send tracking:", err);
         // Don't throw - AWB was created successfully
       });
     }
