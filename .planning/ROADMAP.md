@@ -26,6 +26,7 @@ This roadmap guides the stabilization and enhancement of an existing ERP system 
 - [x] **Phase 7.7: Temu Complete Integration** - Full Temu channel with product push, order sync, invoicing, and AWB (INSERTED)
 - [x] **Phase 7.8: Stock Unification** - Unify dual stock systems (Product vs InventoryItem) for consistent inventory tracking (INSERTED)
 - [x] **Phase 7.9: Reception Workflow** - Complete goods reception flow with PurchaseOrder, ReceptionReport, SupplierInvoice, NIR workflow, and notifications (INSERTED)
+- [ ] **Phase 7.10: Courier Manifest & Invoice Reconciliation** - Automated courier manifest processing, bulk invoice cancellation for returns, payment marking, stuck shipments report (INSERTED)
 - [ ] **Phase 8: Task Management Advanced** - Automation, notifications, and reporting
 - [ ] **Phase 9: Documentation** - In-app documentation for all modules
 - [ ] **Phase 10: Quality Assurance** - Final verification and test coverage for critical flows
@@ -478,6 +479,37 @@ Plans:
 - [x] 07.9-11-PLAN.md — Low stock alerts migration: dashboard-stats.ts → InventoryItem.currentStock (Wave 4)
 - [x] 07.9-12-PLAN.md — Stock sync verification: Temu + Trendyol use InventoryItem correctly (Wave 4)
 
+### Phase 7.10: Courier Manifest & Invoice Reconciliation (INSERTED)
+**Goal**: Automated courier manifest processing with bulk invoice cancellation for returns, automatic payment marking for delivered shipments, and stuck shipments reporting
+**Depends on**: Phase 7.9 (notification system required), Phase 7.5 (AWB tracking infrastructure)
+**Requirements**: BORD-01 through BORD-10
+**Plans**: 10 plans in 4 waves
+**Success Criteria** (what must be TRUE):
+  1. Return AWBs scanned at warehouse generate return manifest report (AWB retur + AWB tur columns)
+  2. Office can verify return manifest against courier report and confirm with single action
+  3. Confirmation of return manifest triggers bulk invoice cancellation (stornare) in Oblio
+  4. Courier delivery manifest is fetched automatically via FanCourier API (or manual upload as fallback)
+  5. Processing delivery manifest automatically marks associated invoices as "incasate" (paid)
+  6. Dedicated /reports/stuck-shipments page shows AWBs >3 days old without resolution
+  7. Stuck shipments report contains: order number, AWB, invoice series, customer phone
+  8. Manual invoice cancellation blocked unless item exists in return manifest (or PIN approval)
+  9. Manual payment marking blocked unless item exists in delivery manifest (or PIN approval)
+  10. PIN approval (6-digit) required for any exception to manifest-based operations
+  11. All manifest operations logged in audit trail for compliance
+  12. Returns page /returns pagination bug fixed (currently shows only 100 items)
+
+Plans:
+- [ ] 07.10-01-PLAN.md — Database models: CourierManifest, ManifestItem, PINApprovalRequest, enums (Wave 1)
+- [ ] 07.10-02-PLAN.md — PIN security system: hash storage, verification, settings page (Wave 1)
+- [ ] 07.10-03-PLAN.md — Returns page pagination fix (Wave 1)
+- [ ] 07.10-04-PLAN.md — Return manifest generation + Oblio collectInvoice method (Wave 2)
+- [ ] 07.10-05-PLAN.md — Delivery manifest fetch from FanCourier + CSV upload fallback (Wave 2)
+- [ ] 07.10-06-PLAN.md — Office verification UI and bulk stornare via Oblio (Wave 3)
+- [ ] 07.10-07-PLAN.md — Automatic payment marking from delivery manifest (Wave 3)
+- [ ] 07.10-08-PLAN.md — Stuck shipments report page (Wave 3)
+- [ ] 07.10-09-PLAN.md — Manual operation blocking + PIN approval flow (Wave 4)
+- [ ] 07.10-10-PLAN.md — Navigation integration + returns page manifest button (Wave 4)
+
 ### Phase 8: Task Management Advanced
 **Goal**: Automated task creation, notifications, and activity reporting
 **Depends on**: Phase 7 (core task system must exist)
@@ -537,7 +569,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7.4 > 7.5 > 7.6 > 7.7 > 7.8 > 7.9 > 8 > 9 > 10
+Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7.4 > 7.5 > 7.6 > 7.7 > 7.8 > 7.9 > 7.10 > 8 > 9 > 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -556,7 +588,8 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7
 | 7.6. Customers Page | 0/3 | Planned | - |
 | 7.7. Temu Complete Integration | 6/6 | ✓ Complete | 2026-02-05 |
 | 7.8. Stock Unification | 5/5 | ✓ Complete | 2026-02-06 |
-| 7.9. Reception Workflow | 0/12 | Planned | - |
+| 7.9. Reception Workflow | 12/12 | ✓ Complete | 2026-02-06 |
+| 7.10. Courier Manifest & Reconciliation | 0/10 | Planned | - |
 | 8. Task Management Advanced | 0/5 | Not started | - |
 | 9. Documentation | 0/4 | Not started | - |
 | 10. Quality Assurance | 0/4 | Not started | - |
@@ -589,4 +622,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6 > 7 > 7.1 > 7.2 > 7.3 > 7
 *Phase 7.8 completed: 2026-02-06*
 *Phase 7.9 inserted: 2026-02-05 (Reception Workflow - PurchaseOrder, ReceptionReport, SupplierInvoice, NIR workflow, notifications)*
 *Phase 7.9 planned: 2026-02-05 (12 plans in 4 waves)*
-*Depth: comprehensive (19 phases including insertions)*
+*Phase 7.9 completed: 2026-02-06*
+*Phase 7.10 inserted: 2026-02-07 (URGENT: Courier manifest processing - return stornare, delivery payment marking, stuck shipments)*
+*Phase 7.10 planned: 2026-02-07 (10 plans in 4 waves)*
+*Depth: comprehensive (20 phases including insertions)*
