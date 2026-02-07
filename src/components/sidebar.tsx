@@ -158,6 +158,9 @@ const navigation: NavItem[] = [
       { name: "Picking Lists", href: "/picking", icon: ClipboardList, permissions: ["picking.view"] },
       { name: "Predare Curier", href: "/handover", icon: PackageCheck, permissions: ["handover.view"] },
       { name: "Scanare Retururi", href: "/returns", icon: PackageX, permissions: ["handover.scan"] },
+      { name: "Manifest Retururi", href: "/returns/manifest", icon: FileText, permissions: ["handover.scan"] },
+      { name: "Borderou Livrari", href: "/reports/delivery-manifest", icon: FileText, permissions: ["invoices.view"] },
+      { name: "Colete Blocate", href: "/reports/stuck-shipments", icon: AlertTriangle, permissions: ["awb.view"] },
     ],
   },
 
@@ -229,6 +232,7 @@ const navigation: NavItem[] = [
       { name: "Depozite", href: "/settings/warehouses", icon: Warehouse, permissions: ["warehouses.view"] },
       { name: "Serii Facturi", href: "/settings/invoice-series", icon: FileText, permissions: ["invoices.series"] },
       { name: "Imprimante", href: "/settings/printers", icon: Printer, permissions: ["printers.view"] },
+      { name: "Securitate", href: "/settings/security", icon: Key, permissions: ["settings.view"] },
       // Acces
       { name: "Utilizatori", href: "/settings/users", icon: Users, permissions: ["users.view"] },
       { name: "Roluri", href: "/settings/roles", icon: Shield, permissions: ["admin.roles"] },
