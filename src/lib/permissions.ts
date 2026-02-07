@@ -71,6 +71,7 @@ export const PERMISSIONS: PermissionDefinition[] = [
   { code: "handover.finalize", name: "Finalizare predare", description: "Poate finaliza și redeschide manual predarea zilei", category: "handover", sortOrder: 522 },
   { code: "handover.report", name: "Rapoarte predare", description: "Poate genera și exporta rapoarte de predare (PDF/Excel)", category: "handover", sortOrder: 523 },
   { code: "settings.handover", name: "Setări predare", description: "Poate modifica ora de finalizare automată a predării", category: "settings", sortOrder: 904 },
+  { code: "settings.security", name: "Gestiune securitate", description: "Poate seta și modifica PIN pentru aprobari exceptii", category: "settings", sortOrder: 905 },
 
   // ==================== ERORI PROCESARE ====================
   { code: "processing.errors.view", name: "Vizualizare erori procesare", description: "Poate vedea erorile de procesare comenzi", category: "processing", sortOrder: 550 },
