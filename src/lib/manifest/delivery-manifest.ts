@@ -69,18 +69,49 @@ export async function fetchDeliveryManifest(
       };
     }
 
+    // Log first AWB structure for debugging (if any AWBs returned)
+    if (response.data.length > 0) {
+      console.log("[DeliveryManifest] Sample AWB structure:", JSON.stringify(response.data[0], null, 2).substring(0, 500));
+    }
+    console.log(`[DeliveryManifest] Fetched ${response.data.length} total AWBs for ${date}`);
+
     // Filter for delivered AWBs (S2 status)
+    // FanCourier API returns data in nested structure: awb.info.lastEventId contains status code
     const deliveredAwbs = response.data.filter(awb => {
-      const statusCode = awb.status_code || awb.statusCode || awb.status;
-      return DELIVERED_STATUS_CODES.some(code =>
+      // Check multiple possible field paths for status code
+      // 1. Nested under info (FanCourier v2 API structure)
+      // 2. Top level (legacy or alternative structure)
+      const statusCode =
+        awb.info?.lastEventId ||      // FanCourier v2: info.lastEventId = "S2"
+        awb.info?.status ||           // Alternative: info.status
+        awb.info?.lastStatus ||       // Alternative: info.lastStatus
+        awb.lastEventId ||            // Top level variant
+        awb.status_code ||            // Legacy: status_code
+        awb.statusCode ||             // Legacy: statusCode
+        awb.status ||                 // Legacy: status
+        "";
+
+      const isDelivered = DELIVERED_STATUS_CODES.some(code =>
         String(statusCode).toLowerCase().includes(code.toLowerCase())
       );
+
+      return isDelivered;
     });
 
+    console.log(`[DeliveryManifest] Found ${deliveredAwbs.length} delivered AWBs (status S2)`);
+
     if (deliveredAwbs.length === 0) {
+      // Provide more diagnostic info in the error
+      const sampleStatuses = response.data.slice(0, 5).map(awb => ({
+        awb: awb.info?.awbNumber || awb.awbNumber || "unknown",
+        lastEventId: awb.info?.lastEventId,
+        status: awb.info?.status || awb.status,
+      }));
+      console.log("[DeliveryManifest] Sample statuses from response:", JSON.stringify(sampleStatuses, null, 2));
+
       return {
         success: false,
-        error: `No delivered AWBs found for ${date}`
+        error: `No delivered AWBs found for ${date}. Total AWBs: ${response.data.length}. Check server logs for API response structure.`
       };
     }
 
@@ -146,13 +177,20 @@ export async function parseDeliveryManifestCSV(
 
 /**
  * Internal: Create manifest from AWB list
+ * Handles both FanCourier API structure (awb.info.awbNumber) and flat structure (awb.awbNumber)
  */
 async function createDeliveryManifestFromAwbs(
-  awbList: Array<{ awbNumber?: string; awb?: string; [key: string]: unknown }>,
+  awbList: Array<{ awbNumber?: string; awb?: string; info?: { awbNumber?: string; barcodes?: string[] }; [key: string]: unknown }>,
   date: string
 ): Promise<DeliveryManifestResult> {
-  // Extract AWB numbers
-  const awbNumbers = awbList.map(a => String(a.awbNumber || a.awb || "")).filter(Boolean);
+  // Extract AWB numbers - handle both nested (info.awbNumber/barcodes[0]) and flat structure
+  const awbNumbers = awbList.map(a => {
+    // FanCourier API v2: use barcodes[0] or info.awbNumber
+    const nestedAwb = a.info?.barcodes?.[0] || a.info?.awbNumber;
+    // Flat structure fallback
+    const flatAwb = a.awbNumber || a.awb;
+    return String(nestedAwb || flatAwb || "");
+  }).filter(Boolean);
 
   // Find existing AWBs in database to link to orders and invoices
   const existingAwbs = await prisma.aWB.findMany({
