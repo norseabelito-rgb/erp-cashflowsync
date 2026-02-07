@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.10 of 10 (Courier Manifest & Invoice Reconciliation)
-Plan: 3 of 10
+Plan: 3 of 10 (01, 02, 03 complete)
 Status: In progress
-Last activity: 2026-02-07 - Completed 07.10-03-PLAN.md (Returns Pagination Fix)
+Last activity: 2026-02-07 - Completed 07.10-01-PLAN.md (Database Models)
 
 Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7 + 5/5 of 7.8 + 12/12 of 7.9 + 3/10 of 7.10)
 
@@ -56,6 +56,9 @@ Progress: [██████████████████░░] ~99% (7
 
 Recent decisions affecting current work:
 
+- **07.10-01:** PIN hash stored in Settings singleton (single PIN for all exception approvals)
+- **07.10-01:** ManifestItem links to both Invoice and Order (flexibility for processing)
+- **07.10-01:** Named relations for manifest-invoice links (cancellation vs payment)
 - **07.10-03:** Returns API pagination: default limit 50, max 100 to prevent large queries
 - **07.10-03:** Use offset/skip pattern (not cursor-based) for simplicity
 - **07.10-03:** API pagination response pattern: { total, limit, offset, hasMore }
