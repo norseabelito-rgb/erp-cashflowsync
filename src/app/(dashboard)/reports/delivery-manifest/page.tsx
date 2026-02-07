@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -80,7 +79,6 @@ interface ManifestListItem {
 }
 
 function DeliveryManifestContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const manifestId = searchParams.get("id");
 
@@ -169,7 +167,7 @@ function DeliveryManifestContent() {
 
       if (data.success) {
         toast({ title: `Manifest creat cu ${data.itemCount} AWB-uri livrate` });
-        router.push(`/reports/delivery-manifest?id=${data.manifestId}`);
+        window.location.href = `/reports/delivery-manifest?id=${data.manifestId}`;
       } else {
         toast({ title: data.error || "Eroare la incarcarea manifestului", variant: "destructive" });
       }
@@ -506,12 +504,15 @@ function DeliveryManifestContent() {
                       ) : "-"}
                     </TableCell>
                     <TableCell>
-                      <Link
-                        href={`/reports/delivery-manifest?id=${m.id}`}
-                        className={buttonVariants({ variant: "ghost", size: "sm" })}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          window.location.href = `/reports/delivery-manifest?id=${m.id}`;
+                        }}
                       >
                         Deschide
-                      </Link>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

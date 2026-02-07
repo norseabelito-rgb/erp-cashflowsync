@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -68,7 +67,6 @@ interface ManifestListItem {
 }
 
 function ReturnManifestContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const manifestId = searchParams.get("id");
 
@@ -128,7 +126,7 @@ function ReturnManifestContent() {
 
       if (data.success) {
         toast({ title: `Manifest generat cu ${data.itemCount} AWB-uri` });
-        router.push(`/returns/manifest?id=${data.manifestId}`);
+        window.location.href = `/returns/manifest?id=${data.manifestId}`;
       } else {
         toast({ title: data.error || "Eroare la generarea manifestului", variant: "destructive" });
       }
@@ -375,12 +373,15 @@ function ReturnManifestContent() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Link
-                        href={`/returns/manifest?id=${m.id}`}
-                        className={buttonVariants({ variant: "ghost", size: "sm" })}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          window.location.href = `/returns/manifest?id=${m.id}`;
+                        }}
                       >
                         Deschide
-                      </Link>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
