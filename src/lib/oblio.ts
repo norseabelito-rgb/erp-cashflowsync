@@ -478,6 +478,44 @@ export class OblioAPI {
   }
 
   /**
+   * Marchează o factură ca încasată (collect/payment marking)
+   * Uses the Oblio PUT /docs/invoice/collect endpoint
+   *
+   * @param seriesName - Serie factura
+   * @param number - Numar factura
+   * @param collectType - Tip încasare: "Ramburs", "Ordin de plata", "Cash", "Card", etc.
+   * @param collectDate - Data încasării (optional, defaults to today)
+   */
+  async collectInvoice(
+    seriesName: string,
+    number: string,
+    collectType: string = "Ramburs",
+    collectDate?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Format date as YYYY-MM-DD if not provided
+      const issueDate = collectDate || new Date().toISOString().split("T")[0];
+
+      await this.request<any>("PUT", "/docs/invoice/collect", {
+        cif: this.credentials.cif,
+        seriesName,
+        number,
+        collect: {
+          type: collectType,
+          issueDate,
+        },
+      });
+
+      return { success: true };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
    * Trimite factura la e-Factura SPV
    */
   async sendToEInvoice(
