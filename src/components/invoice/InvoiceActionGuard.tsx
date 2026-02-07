@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { PINDialog } from "@/components/pin/PINDialog";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 interface InvoiceActionGuardProps {
   invoiceId: string;
@@ -71,15 +71,15 @@ export function InvoiceActionGuard({
       }
 
       if (!data.success) {
-        toast.error(data.error || `Eroare la ${actionTitle.toLowerCase()}`);
+        toast({ title: data.error || `Eroare la ${actionTitle.toLowerCase()}`, variant: "destructive" });
         return;
       }
 
-      toast.success(`${actionTitle} realizata cu succes`);
+      toast({ title: `${actionTitle} realizata cu succes` });
       onSuccess?.();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Eroare necunoscuta";
-      toast.error(message);
+      toast({ title: message, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +104,7 @@ export function InvoiceActionGuard({
         return;
       }
 
-      toast.success(`${actionTitle} realizata cu succes (aprobare PIN)`);
+      toast({ title: `${actionTitle} realizata cu succes (aprobare PIN)` });
       setShowPINDialog(false);
       onSuccess?.();
     } catch (err) {

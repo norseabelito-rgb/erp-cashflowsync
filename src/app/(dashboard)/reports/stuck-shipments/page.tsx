@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import {
   AlertTriangle,
   Download,
@@ -53,7 +53,7 @@ export default function StuckShipmentsPage() {
       }
     } catch (err) {
       console.error(err);
-      toast.error("Eroare la incarcarea raportului");
+      toast({ title: "Eroare la incarcarea raportului", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -74,10 +74,10 @@ export default function StuckShipmentsPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
 
-      toast.success("CSV descarcat");
+      toast({ title: "CSV descarcat" });
     } catch (err) {
       console.error(err);
-      toast.error("Eroare la descarcare");
+      toast({ title: "Eroare la descarcare", variant: "destructive" });
     }
   }
 

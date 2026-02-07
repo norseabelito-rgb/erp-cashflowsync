@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Shield, Check, AlertTriangle, Eye, EyeOff } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 export default function SecuritySettingsPage() {
   const { data: session } = useSession();
@@ -78,7 +78,7 @@ export default function SecuritySettingsPage() {
         return;
       }
 
-      toast.success(isConfigured ? "PIN schimbat cu succes" : "PIN setat cu succes");
+      toast({ title: isConfigured ? "PIN schimbat cu succes" : "PIN setat cu succes" });
 
       // Reset form
       setCurrentPin("");

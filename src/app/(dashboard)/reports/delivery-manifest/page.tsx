@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import {
   Truck,
   Download,
@@ -150,7 +150,7 @@ export default function DeliveryManifestPage() {
 
   async function fetchFromFanCourier() {
     if (!selectedCompany || !fetchDate) {
-      toast.error("Selecteaza firma si data");
+      toast({ title: "Selecteaza firma si data", variant: "destructive" });
       return;
     }
 
@@ -167,14 +167,14 @@ export default function DeliveryManifestPage() {
       const data = await res.json();
 
       if (data.success) {
-        toast.success(`Manifest creat cu ${data.itemCount} AWB-uri livrate`);
+        toast({ title: `Manifest creat cu ${data.itemCount} AWB-uri livrate` });
         router.push(`/reports/delivery-manifest?id=${data.manifestId}`);
       } else {
-        toast.error(data.error || "Eroare la incarcarea manifestului");
+        toast({ title: data.error || "Eroare la incarcarea manifestului", variant: "destructive" });
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      toast.error(errorMessage);
+      toast({ title: errorMessage, variant: "destructive" });
     } finally {
       setIsFetching(false);
     }
@@ -192,14 +192,14 @@ export default function DeliveryManifestPage() {
       const data = await res.json();
 
       if (data.success) {
-        toast.success("Manifest confirmat");
+        toast({ title: "Manifest confirmat" });
         loadManifest(manifest.id);
       } else {
-        toast.error(data.error);
+        toast({ title: data.error, variant: "destructive" });
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      toast.error(errorMessage);
+      toast({ title: errorMessage, variant: "destructive" });
     }
   }
 
@@ -216,16 +216,16 @@ export default function DeliveryManifestPage() {
       const data = await res.json();
 
       if (data.success || data.successCount > 0) {
-        toast.success(
-          `Procesare completa: ${data.successCount} incasate, ${data.errorCount} erori, ${data.skippedCount} omise`
-        );
+        toast({
+          title: `Procesare completa: ${data.successCount} incasate, ${data.errorCount} erori, ${data.skippedCount} omise`
+        });
         loadManifest(manifest.id);
       } else {
-        toast.error(data.error || "Eroare la procesare");
+        toast({ title: data.error || "Eroare la procesare", variant: "destructive" });
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      toast.error(errorMessage);
+      toast({ title: errorMessage, variant: "destructive" });
     } finally {
       setIsProcessing(false);
     }

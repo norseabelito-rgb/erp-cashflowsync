@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ReturnManifestTable } from "@/components/manifest/ReturnManifestTable";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import {
   FileText,
   CheckCircle,
@@ -126,13 +126,13 @@ export default function ReturnManifestPage() {
       const data = await res.json();
 
       if (data.success) {
-        toast.success(`Manifest generat cu ${data.itemCount} AWB-uri`);
+        toast({ title: `Manifest generat cu ${data.itemCount} AWB-uri` });
         router.push(`/returns/manifest?id=${data.manifestId}`);
       } else {
-        toast.error(data.error || "Eroare la generarea manifestului");
+        toast({ title: data.error || "Eroare la generarea manifestului", variant: "destructive" });
       }
     } catch (err: any) {
-      toast.error(err.message);
+      toast({ title: err.message, variant: "destructive" });
     } finally {
       setIsGenerating(false);
     }
@@ -150,13 +150,13 @@ export default function ReturnManifestPage() {
       const data = await res.json();
 
       if (data.success) {
-        toast.success("Manifest confirmat");
+        toast({ title: "Manifest confirmat" });
         loadManifest(manifest.id);
       } else {
-        toast.error(data.error);
+        toast({ title: data.error, variant: "destructive" });
       }
     } catch (err: any) {
-      toast.error(err.message);
+      toast({ title: err.message, variant: "destructive" });
     }
   }
 
@@ -171,15 +171,15 @@ export default function ReturnManifestPage() {
       const data = await res.json();
 
       if (data.success || data.successCount > 0) {
-        toast.success(
-          `Procesare completa: ${data.successCount} stornate, ${data.errorCount} erori, ${data.skippedCount} omise`
-        );
+        toast({
+          title: `Procesare completa: ${data.successCount} stornate, ${data.errorCount} erori, ${data.skippedCount} omise`
+        });
         loadManifest(manifest.id);
       } else {
-        toast.error(data.error || "Eroare la procesare");
+        toast({ title: data.error || "Eroare la procesare", variant: "destructive" });
       }
     } catch (err: any) {
-      toast.error(err.message);
+      toast({ title: err.message, variant: "destructive" });
     } finally {
       setIsProcessing(false);
     }
