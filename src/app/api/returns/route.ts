@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
-import { getScannedReturns, getPendingReturns } from "@/lib/returns";
+import { getScannedReturns, getPendingReturns, getTotalScannedReturnsCount } from "@/lib/returns";
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,13 +23,21 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get("status") || undefined;
     const unmappedOnly = searchParams.get("unmappedOnly") === "true";
-    const limit = searchParams.get("limit")
-      ? parseInt(searchParams.get("limit")!)
-      : 100;
 
-    const [scannedReturns, pendingReturns] = await Promise.all([
-      getScannedReturns({ status, unmappedOnly, limit }),
+    // Pagination parameters with validation
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "50"),
+      100 // Max 100 per page
+    );
+    const offset = Math.max(
+      parseInt(searchParams.get("offset") || "0"),
+      0 // Min 0
+    );
+
+    const [scannedReturns, pendingReturns, totalCount] = await Promise.all([
+      getScannedReturns({ status, unmappedOnly, limit, offset }),
       getPendingReturns(),
+      getTotalScannedReturnsCount({ status, unmappedOnly }),
     ]);
 
     // Calculate stats
@@ -50,6 +58,12 @@ export async function GET(request: NextRequest) {
           totalScannedToday: todayScans.length,
           totalUnmapped: unmappedCount,
           totalPendingReturns: pendingReturns.length,
+        },
+        pagination: {
+          total: totalCount,
+          limit,
+          offset,
+          hasMore: offset + scannedReturns.length < totalCount,
         },
       },
     });
