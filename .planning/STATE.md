@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.10 of 10 (Courier Manifest & Invoice Reconciliation)
-Plan: 7 of 10 (01, 02, 03, 04, 05, 06, 07 complete)
+Plan: 8 of 10 (01, 02, 03, 04, 05, 06, 07, 08 complete)
 Status: In progress
-Last activity: 2026-02-07 - Completed 07.10-07-PLAN.md (Automatic Payment Marking)
+Last activity: 2026-02-07 - Completed 07.10-08-PLAN.md (Stuck Shipments Report)
 
-Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7 + 5/5 of 7.8 + 12/12 of 7.9 + 7/10 of 7.10)
+Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7 + 5/5 of 7.8 + 12/12 of 7.9 + 8/10 of 7.10)
 
 ## Phase 7 Progress
 
@@ -68,6 +68,9 @@ Recent decisions affecting current work:
 - **07.10-07:** Manifest date used as collectDate for Oblio payment marking
 - **07.10-07:** Skip already paid invoices as PROCESSED (idempotent processing)
 - **07.10-07:** AlertDialog confirmation before bulk payment marking
+- **07.10-08:** Use fanCourierStatusCode for resolved status detection (more reliable than string)
+- **07.10-08:** Resolved status codes: S2 (delivered), S6/S7/S15/S16/S33/S43 (returned)
+- **07.10-08:** Reports API format=csv parameter for CSV download
 - **07.7-05:** TemuOrdersList uses useQuery (consistent with existing patterns)
 - **07.7-05:** Purple badge color for Temu (bg-purple-100 text-purple-700)
 - **07.7-05:** Temu store filter shown only when multiple stores exist
@@ -397,19 +400,18 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-07
-Stopped at: Completed 07.10-07-PLAN.md (Automatic Payment Marking)
+Stopped at: Completed 07.10-08-PLAN.md (Stuck Shipments Report)
 Resume context:
-- **Phase 7.10 IN PROGRESS** - 7/10 plans complete
-- Completed: Database models, PIN security, pagination fix, return manifest, delivery manifest, bulk stornare, bulk payment
-- Remaining: Stuck shipments report (08), PIN approval flow (09), TBD (10)
-- Wave 3 in progress, Wave 4 remaining
+- **Phase 7.10 IN PROGRESS** - 8/10 plans complete
+- Completed: Database models, PIN security, pagination fix, return manifest, delivery manifest, bulk stornare, bulk payment, stuck shipments
+- Remaining: PIN approval flow (09), TBD (10)
+- Wave 3 complete, Wave 4 remaining
 
 **NEXT STEPS:**
-1. Execute 07.10-08: Stuck shipments report page
-2. Execute 07.10-09: Manual operation blocking + PIN approval flow
-3. Complete Phase 7.10
+1. Execute 07.10-09: Manual operation blocking + PIN approval flow
+2. Complete Phase 7.10
 
-Resume file: .planning/phases/07.10-borderou-curier-stornare/07.10-08-PLAN.md
+Resume file: .planning/phases/07.10-borderou-curier-stornare/07.10-09-PLAN.md
 
 ## Phase 7 Features
 
@@ -589,9 +591,9 @@ Task Management Core components:
 | 07.10-03 | 1 | Complete | Returns page pagination fix |
 | 07.10-04 | 2 | Complete | Return manifest generation from scanned AWBs |
 | 07.10-05 | 2 | Complete | Delivery manifest service and API endpoints |
-| 07.10-06 | 2 | Complete | FanCourier delivery manifest fetch (API or upload fallback) |
+| 07.10-06 | 2 | Complete | Return manifest verification UI & bulk stornare |
 | 07.10-07 | 3 | Complete | Automatic payment marking from delivery manifest |
-| 07.10-08 | 3 | Pending | Stuck shipments report page |
+| 07.10-08 | 3 | Complete | Stuck shipments report page |
 | 07.10-09 | 4 | Pending | Manual operation blocking + PIN approval flow |
 | 07.10-10 | 1 | Pending | Returns page pagination fix |
 
