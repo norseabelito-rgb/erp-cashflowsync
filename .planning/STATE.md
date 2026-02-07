@@ -64,6 +64,10 @@ Recent decisions affecting current work:
 - **07.10-03:** API pagination response pattern: { total, limit, offset, hasMore }
 - **07.10-05:** Delivered status codes: S2, 2, livrat, delivered (FanCourier variations)
 - **07.10-05:** Skip AWBs already in non-processed manifests to prevent duplicates
+- **07.10-06:** Each invoice cancelled independently - no batch transaction rollback
+- **07.10-06:** Manifest status PROCESSED even if some items failed (track per-item)
+- **07.10-06:** AlertDialog confirmation for bulk stornare (irreversible)
+- **07.10-06:** BulkStornareResult type: success, totalProcessed, successCount, errorCount, skippedCount, errors[]
 - **07.10-07:** Each invoice processed independently - failures don't stop batch
 - **07.10-07:** Manifest date used as collectDate for Oblio payment marking
 - **07.10-07:** Skip already paid invoices as PROCESSED (idempotent processing)
