@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.10 of 10 (Courier Manifest & Invoice Reconciliation)
-Plan: 5 of 10 (01, 02, 03, 04, 05 complete)
+Plan: 7 of 10 (01, 02, 03, 04, 05, 06, 07 complete)
 Status: In progress
-Last activity: 2026-02-07 - Completed 07.10-05-PLAN.md (Delivery Manifest Service)
+Last activity: 2026-02-07 - Completed 07.10-07-PLAN.md (Automatic Payment Marking)
 
-Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7 + 5/5 of 7.8 + 12/12 of 7.9 + 5/10 of 7.10)
+Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7 + 5/5 of 7.8 + 12/12 of 7.9 + 7/10 of 7.10)
 
 ## Phase 7 Progress
 
@@ -64,6 +64,10 @@ Recent decisions affecting current work:
 - **07.10-03:** API pagination response pattern: { total, limit, offset, hasMore }
 - **07.10-05:** Delivered status codes: S2, 2, livrat, delivered (FanCourier variations)
 - **07.10-05:** Skip AWBs already in non-processed manifests to prevent duplicates
+- **07.10-07:** Each invoice processed independently - failures don't stop batch
+- **07.10-07:** Manifest date used as collectDate for Oblio payment marking
+- **07.10-07:** Skip already paid invoices as PROCESSED (idempotent processing)
+- **07.10-07:** AlertDialog confirmation before bulk payment marking
 - **07.7-05:** TemuOrdersList uses useQuery (consistent with existing patterns)
 - **07.7-05:** Purple badge color for Temu (bg-purple-100 text-purple-700)
 - **07.7-05:** Temu store filter shown only when multiple stores exist
@@ -393,20 +397,19 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-07
-Stopped at: Inserted Phase 7.10 (Courier Manifest & Invoice Reconciliation)
+Stopped at: Completed 07.10-07-PLAN.md (Automatic Payment Marking)
 Resume context:
-- **Phase 7.9 COMPLETE** - 12/12 plans complete
-- **Phase 7.10 INSERTED** - Courier manifest processing (URGENT)
-- Three main flows: Returns stornare, Delivery payment, Stuck shipments report
-- PIN 6-digit security for manual exceptions
-- Research needed: FanCourier API + Oblio stornare API
+- **Phase 7.10 IN PROGRESS** - 7/10 plans complete
+- Completed: Database models, PIN security, pagination fix, return manifest, delivery manifest, bulk stornare, bulk payment
+- Remaining: Stuck shipments report (08), PIN approval flow (09), TBD (10)
+- Wave 3 in progress, Wave 4 remaining
 
 **NEXT STEPS:**
-1. Run `/gsd:plan-phase 7.10` to create detailed execution plans
-2. Research Wave 0: FanCourier manifest API + Oblio stornare verification
-3. Then proceed with implementation waves 1-4
+1. Execute 07.10-08: Stuck shipments report page
+2. Execute 07.10-09: Manual operation blocking + PIN approval flow
+3. Complete Phase 7.10
 
-Resume file: None (phase not yet planned)
+Resume file: .planning/phases/07.10-borderou-curier-stornare/07.10-08-PLAN.md
 
 ## Phase 7 Features
 
@@ -586,8 +589,8 @@ Task Management Core components:
 | 07.10-03 | 1 | Complete | Returns page pagination fix |
 | 07.10-04 | 2 | Complete | Return manifest generation from scanned AWBs |
 | 07.10-05 | 2 | Complete | Delivery manifest service and API endpoints |
-| 07.10-06 | 2 | Pending | FanCourier delivery manifest fetch (API or upload fallback) |
-| 07.10-07 | 3 | Pending | Automatic payment marking from delivery manifest |
+| 07.10-06 | 2 | Complete | FanCourier delivery manifest fetch (API or upload fallback) |
+| 07.10-07 | 3 | Complete | Automatic payment marking from delivery manifest |
 | 07.10-08 | 3 | Pending | Stuck shipments report page |
 | 07.10-09 | 4 | Pending | Manual operation blocking + PIN approval flow |
 | 07.10-10 | 1 | Pending | Returns page pagination fix |
@@ -649,6 +652,9 @@ Task Management Core components:
 
 ## Recent Commits
 
+- `d515f20` feat(7.10-07): create delivery manifest processing UI
+- `7990441` feat(7.10-07): create process endpoint for delivery manifest
+- `6c518d4` feat(7.10-07): create bulk payment marking service
 - `154b9bf` feat(07.9-12): create Temu stock sync service using InventoryItem.currentStock
 - `9f19408` docs(07.9-12): audit Trendyol stock sync - uses InventoryItem.currentStock
 - `a866743` feat(07.9-09): create Supplier Invoice detail page with payment update
