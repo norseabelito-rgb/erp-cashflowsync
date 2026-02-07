@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -66,7 +67,7 @@ interface ManifestListItem {
   errorCount: number;
 }
 
-export default function ReturnManifestPage() {
+function ReturnManifestContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const manifestId = searchParams.get("id");
@@ -374,13 +375,12 @@ export default function ReturnManifestPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => router.push(`/returns/manifest?id=${m.id}`)}
+                      <Link
+                        href={`/returns/manifest?id=${m.id}`}
+                        className={buttonVariants({ variant: "ghost", size: "sm" })}
                       >
                         Deschide
-                      </Button>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -390,5 +390,27 @@ export default function ReturnManifestPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function ReturnManifestPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto py-6 space-y-6">
+        <PageHeader
+          title="Manifest Retururi"
+          description="Se incarca..."
+        />
+        <Card>
+          <CardContent className="py-8">
+            <div className="flex items-center justify-center">
+              <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <ReturnManifestContent />
+    </Suspense>
   );
 }

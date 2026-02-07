@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,7 +79,7 @@ interface ManifestListItem {
   errorCount: number;
 }
 
-export default function DeliveryManifestPage() {
+function DeliveryManifestContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const manifestId = searchParams.get("id");
@@ -505,13 +506,12 @@ export default function DeliveryManifestPage() {
                       ) : "-"}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => router.push(`/reports/delivery-manifest?id=${m.id}`)}
+                      <Link
+                        href={`/reports/delivery-manifest?id=${m.id}`}
+                        className={buttonVariants({ variant: "ghost", size: "sm" })}
                       >
                         Deschide
-                      </Button>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -521,5 +521,27 @@ export default function DeliveryManifestPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function DeliveryManifestPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto py-6 space-y-6">
+        <PageHeader
+          title="Borderou Livrari"
+          description="Se incarca..."
+        />
+        <Card>
+          <CardContent className="py-8">
+            <div className="flex items-center justify-center">
+              <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <DeliveryManifestContent />
+    </Suspense>
   );
 }
