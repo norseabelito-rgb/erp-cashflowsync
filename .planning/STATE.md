@@ -581,11 +581,11 @@ Task Management Core components:
 
 | Plan | Wave | Status | Summary |
 |------|------|--------|---------|
-| 07.10-01 | 0 | Pending | Research: FanCourier API manifest endpoints + Oblio stornare API |
+| 07.10-01 | 0 | Complete | Database models for CourierManifest, ManifestItem, PINApprovalRequest |
 | 07.10-02 | 1 | Complete | PIN security system: hash storage, verification, settings UI |
-| 07.10-03 | 1 | Pending | PIN security system: hash storage, approval workflow, alert banner |
-| 07.10-04 | 2 | Pending | Return manifest generation from scanned AWBs |
-| 07.10-05 | 2 | Pending | Office verification UI and bulk stornare via Oblio |
+| 07.10-03 | 1 | Complete | Returns page pagination fix |
+| 07.10-04 | 2 | Complete | Return manifest generation from scanned AWBs |
+| 07.10-05 | 2 | Complete | Delivery manifest service and API endpoints |
 | 07.10-06 | 2 | Pending | FanCourier delivery manifest fetch (API or upload fallback) |
 | 07.10-07 | 3 | Pending | Automatic payment marking from delivery manifest |
 | 07.10-08 | 3 | Pending | Stuck shipments report page |
