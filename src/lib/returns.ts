@@ -245,20 +245,31 @@ export async function scanReturnAWB(
 }
 
 /**
- * Get list of scanned returns
+ * Options for querying scanned returns
  */
-export async function getScannedReturns(options?: {
+interface GetScannedReturnsOptions {
   status?: string;
-  limit?: number;
   unmappedOnly?: boolean;
-}) {
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Get list of scanned returns with pagination support
+ */
+export async function getScannedReturns({
+  status,
+  unmappedOnly = false,
+  limit = 50,
+  offset = 0,
+}: GetScannedReturnsOptions = {}) {
   const whereClause: Record<string, unknown> = {};
 
-  if (options?.status) {
-    whereClause.status = options.status;
+  if (status) {
+    whereClause.status = status;
   }
 
-  if (options?.unmappedOnly) {
+  if (unmappedOnly) {
     whereClause.orderId = null;
   }
 
@@ -291,8 +302,32 @@ export async function getScannedReturns(options?: {
     orderBy: {
       scannedAt: "desc",
     },
-    take: options?.limit || 100,
+    take: limit,
+    skip: offset,
   });
+}
+
+/**
+ * Get total count of scanned returns for pagination
+ */
+export async function getTotalScannedReturnsCount({
+  status,
+  unmappedOnly = false,
+}: {
+  status?: string;
+  unmappedOnly?: boolean;
+} = {}): Promise<number> {
+  const whereClause: Record<string, unknown> = {};
+
+  if (status) {
+    whereClause.status = status;
+  }
+
+  if (unmappedOnly) {
+    whereClause.orderId = null;
+  }
+
+  return prisma.returnAWB.count({ where: whereClause });
 }
 
 /**
