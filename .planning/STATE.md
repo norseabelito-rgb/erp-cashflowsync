@@ -75,6 +75,11 @@ Recent decisions affecting current work:
 - **07.10-08:** Use fanCourierStatusCode for resolved status detection (more reliable than string)
 - **07.10-08:** Resolved status codes: S2 (delivered), S6/S7/S15/S16/S33/S43 (returned)
 - **07.10-08:** Reports API format=csv parameter for CSV download
+- **07.10-09:** canCancelInvoice checks CONFIRMED or PROCESSED return manifest presence
+- **07.10-09:** canMarkInvoicePaid checks CONFIRMED or PROCESSED delivery manifest presence
+- **07.10-09:** API returns 403 with blocked:true when operation requires PIN
+- **07.10-09:** PIN verification creates PINApprovalRequest with APPROVED status
+- **07.10-09:** InvoiceActionGuard uses render prop pattern for action buttons
 - **07.7-05:** TemuOrdersList uses useQuery (consistent with existing patterns)
 - **07.7-05:** Purple badge color for Temu (bg-purple-100 text-purple-700)
 - **07.7-05:** Temu store filter shown only when multiple stores exist
