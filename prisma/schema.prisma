@@ -56,6 +56,11 @@ model User {
   tasksCompleted  Task[]           @relation("TaskCompleter")
   taskAttachments TaskAttachment[]
 
+  // Courier Manifest relations
+  manifestsConfirmed   CourierManifest[]    @relation("ManifestConfirmedBy")
+  pinRequestsSubmitted PINApprovalRequest[] @relation("PINRequestedBy")
+  pinRequestsResolved  PINApprovalRequest[] @relation("PINResolvedBy")
+
   @@map("users")
 }
 
@@ -469,6 +474,7 @@ model Order {
   failedInvoiceAttempts FailedInvoiceAttempt[]
   tasks                 Task[]
   returnAwbs            ReturnAWB[]
+  manifestItems         ManifestItem[]
 
   // Internal workflow status (separate from OrderStatus enum)
   internalStatusId String?
@@ -569,7 +575,7 @@ model Invoice {
   // Source tracking for cancellations (manifest or PIN approval)
   cancellationSource      CancellationSource?
   cancelledFromManifestId String?
-  cancelledFromManifest   CourierManifest?     @relation("CancelledFromManifest", fields: [cancelledFromManifestId], references: [id])
+  cancelledFromManifest   CourierManifest?    @relation("CancelledFromManifest", fields: [cancelledFromManifestId], references: [id])
 
   // Source tracking for payments (manifest or PIN approval)
   paymentSource      PaymentSource?
@@ -577,8 +583,8 @@ model Invoice {
   paidFromManifest   CourierManifest? @relation("PaidFromManifest", fields: [paidFromManifestId], references: [id])
 
   // Relations for manifest processing
-  manifestItems  ManifestItem[]
-  pinApprovals   PINApprovalRequest[]
+  manifestItems ManifestItem[]
+  pinApprovals  PINApprovalRequest[]
 
   @@index([companyId])
   @@index([invoiceSeriesId])
@@ -816,7 +822,7 @@ model Settings {
   trendyolInvoiceSeries String? @map("trendyol_invoice_series") // Serie facturare Trendyol
 
   // PIN Security for Exception Approvals
-  pinHash      String?   // Bcrypt hash of 6-digit PIN
+  pinHash      String? // Bcrypt hash of 6-digit PIN
   pinChangedAt DateTime? // Last time PIN was changed
 
   createdAt DateTime @default(now())
@@ -4010,23 +4016,23 @@ model InternalOrderStatus {
 
 // Manifest types
 enum ManifestType {
-  RETURN   // Borderou retururi
+  RETURN // Borderou retururi
   DELIVERY // Borderou livrari
 }
 
 // Manifest lifecycle status
 enum ManifestStatus {
-  DRAFT                // Just created
+  DRAFT // Just created
   PENDING_VERIFICATION // Sent to Office
-  CONFIRMED            // Office verified
-  PROCESSED            // All invoices updated
+  CONFIRMED // Office verified
+  PROCESSED // All invoices updated
 }
 
 // Status of individual items in a manifest
 enum ManifestItemStatus {
-  PENDING   // Not yet processed
+  PENDING // Not yet processed
   PROCESSED // Successfully processed
-  ERROR     // Failed to process
+  ERROR // Failed to process
 }
 
 // Types of PIN approval requests
@@ -4058,10 +4064,10 @@ enum PaymentSource {
 // Courier manifest (borderou)
 model CourierManifest {
   id            String         @id @default(cuid())
-  type          ManifestType   // RETURN or DELIVERY
+  type          ManifestType // RETURN or DELIVERY
   status        ManifestStatus @default(DRAFT)
-  documentDate  DateTime       // Date of the manifest/borderou
-  courierRef    String?        // Reference from FanCourier (optional)
+  documentDate  DateTime // Date of the manifest/borderou
+  courierRef    String? // Reference from FanCourier (optional)
   createdAt     DateTime       @default(now())
   confirmedAt   DateTime?
   confirmedById String?
@@ -4080,17 +4086,17 @@ model CourierManifest {
 
 // Individual items in a manifest
 model ManifestItem {
-  id          String             @id @default(cuid())
-  manifestId  String
-  manifest    CourierManifest    @relation(fields: [manifestId], references: [id], onDelete: Cascade)
-  awbNumber   String             // AWB number from manifest
-  originalAwb String?            // For returns: original outbound AWB
-  invoiceId   String?            // Linked invoice
-  invoice     Invoice?           @relation(fields: [invoiceId], references: [id])
-  orderId     String?            // Direct link to order
-  order       Order?             @relation(fields: [orderId], references: [id])
-  processedAt DateTime?
-  status      ManifestItemStatus @default(PENDING)
+  id           String             @id @default(cuid())
+  manifestId   String
+  manifest     CourierManifest    @relation(fields: [manifestId], references: [id], onDelete: Cascade)
+  awbNumber    String // AWB number from manifest
+  originalAwb  String? // For returns: original outbound AWB
+  invoiceId    String? // Linked invoice
+  invoice      Invoice?           @relation(fields: [invoiceId], references: [id])
+  orderId      String? // Direct link to order
+  order        Order?             @relation(fields: [orderId], references: [id])
+  processedAt  DateTime?
+  status       ManifestItemStatus @default(PENDING)
   errorMessage String?
 
   @@index([manifestId])
@@ -4102,15 +4108,15 @@ model ManifestItem {
 // PIN approval request for exception operations
 model PINApprovalRequest {
   id            String            @id @default(cuid())
-  type          PINApprovalType   // STORNARE or INCASARE
+  type          PINApprovalType // STORNARE or INCASARE
   status        PINApprovalStatus @default(PENDING)
   invoiceId     String
   invoice       Invoice           @relation(fields: [invoiceId], references: [id])
   requestedById String
   requestedBy   User              @relation("PINRequestedBy", fields: [requestedById], references: [id])
-  reason        String?           // Why manual operation is needed
+  reason        String? // Why manual operation is needed
   createdAt     DateTime          @default(now())
-  expiresAt     DateTime          // 5 min from creation
+  expiresAt     DateTime // 5 min from creation
   resolvedAt    DateTime?
   resolvedById  String?
   resolvedBy    User?             @relation("PINResolvedBy", fields: [resolvedById], references: [id])
