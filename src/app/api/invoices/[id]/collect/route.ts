@@ -2,17 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
-import { canCancelInvoice, executeWithPINApproval } from "@/lib/manifest/operation-guard";
+import { canMarkInvoicePaid, executeWithPINApproval } from "@/lib/manifest/operation-guard";
 import { createOblioClient } from "@/lib/oblio";
 import prisma from "@/lib/db";
-import { CancellationSource, PINApprovalType } from "@prisma/client";
-import { logInvoiceCancelled } from "@/lib/activity-log";
+import { PaymentSource, PINApprovalType } from "@prisma/client";
+import { logPaymentReceived } from "@/lib/activity-log";
 
 /**
- * POST /api/invoices/[id]/cancel
- * Cancel an invoice (stornare) with manifest/PIN guard
+ * POST /api/invoices/[id]/collect
+ * Mark an invoice as paid with manifest/PIN guard
  *
- * Body: { pin?: string, reason?: string }
+ * Body: { pin?: string, reason?: string, collectType?: string }
  * If invoice not in manifest, requires PIN approval
  */
 export async function POST(
@@ -25,19 +25,19 @@ export async function POST(
       return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
     }
 
-    const canCancel = await hasPermission(session.user.id, "invoices.cancel");
-    if (!canCancel) {
+    const canEdit = await hasPermission(session.user.id, "invoices.edit");
+    if (!canEdit) {
       return NextResponse.json(
-        { error: "Nu ai permisiunea de a storna facturi" },
+        { error: "Nu ai permisiunea de a modifica facturi" },
         { status: 403 }
       );
     }
 
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
-    const { pin, reason } = body;
+    const { pin, reason, collectType = "Ramburs" } = body;
 
-    // Get invoice with company
+    // Get invoice with company and order
     const invoice = await prisma.invoice.findUnique({
       where: { id },
       include: {
@@ -61,15 +61,22 @@ export async function POST(
       );
     }
 
-    if (invoice.status === "cancelled" || invoice.cancelledAt) {
+    if (invoice.paymentStatus === "paid" || invoice.paidAt) {
       return NextResponse.json(
-        { error: "Factura este deja stornata" },
+        { error: "Factura este deja incasata" },
+        { status: 400 }
+      );
+    }
+
+    if (invoice.status === "cancelled") {
+      return NextResponse.json(
+        { error: "Nu se poate incasa o factura stornata" },
         { status: 400 }
       );
     }
 
     // Check if operation is allowed
-    const check = await canCancelInvoice(id);
+    const check = await canMarkInvoicePaid(id);
 
     if (!check.allowed && check.requiresPIN) {
       // Not in manifest - require PIN
@@ -88,10 +95,10 @@ export async function POST(
       // Verify PIN
       const pinResult = await executeWithPINApproval(
         id,
-        PINApprovalType.STORNARE,
+        PINApprovalType.INCASARE,
         pin,
         session.user.id,
-        reason || "Stornare manuala fara manifest"
+        reason || "Incasare manuala fara manifest"
       );
 
       if (!pinResult.success) {
@@ -122,14 +129,15 @@ export async function POST(
 
     // Only call Oblio if we have valid invoice number
     if (invoice.invoiceSeriesName && invoice.invoiceNumber) {
-      const cancelResult = await oblioClient.cancelInvoice(
+      const collectResult = await oblioClient.collectInvoice(
         invoice.invoiceSeriesName,
-        invoice.invoiceNumber
+        invoice.invoiceNumber,
+        collectType
       );
 
-      if (!cancelResult.success) {
+      if (!collectResult.success) {
         return NextResponse.json(
-          { success: false, error: cancelResult.error },
+          { success: false, error: collectResult.error },
           { status: 400 }
         );
       }
@@ -137,42 +145,37 @@ export async function POST(
 
     // Update invoice
     const source = check.allowed
-      ? CancellationSource.MANIFEST_RETURN
-      : CancellationSource.PIN_APPROVAL;
+      ? PaymentSource.MANIFEST_DELIVERY
+      : PaymentSource.PIN_APPROVAL;
+
+    const paidAmount = invoice.order?.totalPrice || 0;
 
     await prisma.invoice.update({
       where: { id },
       data: {
-        status: "cancelled",
-        cancelledAt: new Date(),
-        cancelReason: reason || (check.allowed ? "Return manifest" : "PIN approval"),
-        cancellationSource: source,
-        cancelledFromManifestId: check.manifestId || null
+        paymentStatus: "paid",
+        paidAt: new Date(),
+        paidAmount,
+        paymentSource: source,
+        paidFromManifestId: check.manifestId || null
       }
     });
 
-    // Update order status
-    if (invoice.orderId) {
-      await prisma.order.update({
-        where: { id: invoice.orderId },
-        data: { status: "INVOICE_PENDING" }
-      });
-    }
-
     // Log the activity
-    await logInvoiceCancelled({
+    await logPaymentReceived({
       orderId: invoice.orderId,
       orderNumber: invoice.order?.shopifyOrderNumber || "",
       invoiceNumber: invoice.invoiceNumber || "",
       invoiceSeries: invoice.invoiceSeriesName || "",
-      reason: reason || ""
+      amount: Number(paidAmount),
+      method: collectType
     });
 
     // Audit log
     await prisma.auditLog.create({
       data: {
         userId: session.user.id,
-        action: "invoice.cancelled",
+        action: "invoice.paid",
         entityType: "Invoice",
         entityId: id,
         metadata: {
@@ -180,6 +183,7 @@ export async function POST(
           invoiceSeries: invoice.invoiceSeriesName,
           source,
           reason,
+          collectType,
           manifestId: check.manifestId || null
         }
       }
@@ -187,7 +191,7 @@ export async function POST(
 
     return NextResponse.json({ success: true, source });
   } catch (error: unknown) {
-    console.error("Error in POST /api/invoices/[id]/cancel:", error);
+    console.error("Error in POST /api/invoices/[id]/collect:", error);
     const message = error instanceof Error ? error.message : "Eroare necunoscuta";
     return NextResponse.json(
       { success: false, error: message },
