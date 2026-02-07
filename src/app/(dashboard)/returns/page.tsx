@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import {
   PackageX,
   Scan,
@@ -16,6 +17,9 @@ import {
   MapPin,
   Download,
   Calendar,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,6 +105,7 @@ interface ScanResult {
 
 export default function ReturnsPage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [scanInput, setScanInput] = useState("");
   const [lastScanResult, setLastScanResult] = useState<ScanResult | null>(null);
   const [scanFeedback, setScanFeedback] = useState<"idle" | "success" | "error" | "warning">("idle");
@@ -116,8 +121,48 @@ export default function ReturnsPage() {
     new Date().toISOString().split("T")[0]
   );
   const [isExporting, setIsExporting] = useState(false);
+  const [isGeneratingManifest, setIsGeneratingManifest] = useState(false);
+  // Pagination state
+  const [offset, setOffset] = useState(0);
+  const [total, setTotal] = useState(0);
+  const limit = 50;
   const scanInputRef = useRef<HTMLInputElement>(null);
   const scanTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Generate manifest handler
+  const generateManifest = async () => {
+    setIsGeneratingManifest(true);
+    try {
+      const res = await fetch("/api/manifests/returns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        toast({
+          title: "Manifest generat",
+          description: `Manifest generat cu ${data.itemCount} AWB-uri`,
+        });
+        router.push(`/returns/manifest?id=${data.manifestId}`);
+      } else {
+        toast({
+          title: "Eroare",
+          description: data.error || "Eroare la generarea manifestului",
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Eroare",
+        description: err.message || "Eroare la generarea manifestului",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingManifest(false);
+    }
+  };
 
   // Export handler
   const handleExport = async () => {
@@ -147,15 +192,24 @@ export default function ReturnsPage() {
     }
   };
 
-  // Fetch returns data
+  // Fetch returns data with pagination
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["returns"],
+    queryKey: ["returns", offset, limit],
     queryFn: async () => {
-      const res = await fetch("/api/returns");
-      return res.json();
+      const res = await fetch(`/api/returns?limit=${limit}&offset=${offset}`);
+      const json = await res.json();
+      if (json.success && json.data?.pagination) {
+        setTotal(json.data.pagination.total || 0);
+      }
+      return json;
     },
     refetchInterval: 30000,
   });
+
+  // Refetch when offset changes
+  useEffect(() => {
+    refetch();
+  }, [offset, refetch]);
 
   const scannedReturns: ScannedReturn[] = data?.data?.scannedReturns || [];
   const pendingReturns: PendingReturn[] = data?.data?.pendingReturns || [];
@@ -313,6 +367,22 @@ export default function ReturnsPage() {
               <p className="text-muted-foreground text-sm md:text-base">{todayStr}</p>
             </div>
             <div className="flex gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={generateManifest}
+                disabled={isGeneratingManifest}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                {isGeneratingManifest ? "Se genereaza..." : "Genereaza Manifest"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push("/returns/manifest")}
+              >
+                Vezi Manifeste
+              </Button>
               <Button variant="outline" size="sm" onClick={() => setExportDialog(true)}>
                 <Download className="h-4 w-4 mr-2" />
                 Export
@@ -573,6 +643,35 @@ export default function ReturnsPage() {
                   </ScrollArea>
                 </CardContent>
               </Card>
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {total > limit && (
+            <div className="flex items-center justify-between px-4 py-2 border rounded-lg bg-muted/30">
+              <p className="text-sm text-muted-foreground">
+                Afisare {offset + 1} - {Math.min(offset + limit, total)} din {total}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setOffset(Math.max(0, offset - limit))}
+                  disabled={offset === 0}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Inapoi
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setOffset(offset + limit)}
+                  disabled={offset + limit >= total}
+                >
+                  Inainte
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
             </div>
           )}
 
