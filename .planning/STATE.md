@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Facturare corecta si AWB-uri emise fara erori pentru fiecare comanda, cu trasabilitate completa
-**Current focus:** Phase 7.9 - Reception Workflow (Phase 7.8 complete, 7.6 partial)
+**Current focus:** Phase 7.10 - Courier Manifest & Invoice Reconciliation (Phase 7.9 complete, 7.6 partial)
 
 ## Current Position
 
-Phase: 7.9 of 10 (Reception Workflow)
-Plan: 12 of 12
-Status: PHASE COMPLETE
-Last activity: 2026-02-06 - Completed 07.9-12-PLAN.md (Marketplace Stock Sync Verification)
+Phase: 7.10 of 10 (Courier Manifest & Invoice Reconciliation)
+Plan: 3 of 10
+Status: In progress
+Last activity: 2026-02-07 - Completed 07.10-03-PLAN.md (Returns Pagination Fix)
 
-Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7 + 5/5 of 7.8 + 12/12 of 7.9)
+Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7 + 5/5 of 7.8 + 12/12 of 7.9 + 3/10 of 7.10)
 
 ## Phase 7 Progress
 
@@ -56,6 +56,9 @@ Progress: [██████████████████░░] ~99% (7
 
 Recent decisions affecting current work:
 
+- **07.10-03:** Returns API pagination: default limit 50, max 100 to prevent large queries
+- **07.10-03:** Use offset/skip pattern (not cursor-based) for simplicity
+- **07.10-03:** API pagination response pattern: { total, limit, offset, hasMore }
 - **07.7-05:** TemuOrdersList uses useQuery (consistent with existing patterns)
 - **07.7-05:** Purple badge color for Temu (bg-purple-100 text-purple-700)
 - **07.7-05:** Temu store filter shown only when multiple stores exist
@@ -317,6 +320,18 @@ Recent decisions affecting current work:
   - In-app notifications for Office and George (diferențe)
   - Also includes: low stock alerts migration, stock sync verification
   - 12 plans in 4 waves
+  - Status: COMPLETE (2026-02-06)
+
+- Phase 7.10 inserted after Phase 7.9 - 2026-02-07 (URGENT)
+  - Reason: Courier manifest processing for returns and deliveries
+  - Flow 1 (Returns): Scan AWB → Generate manifest → Office verifies → Bulk stornare in Oblio
+  - Flow 2 (Deliveries): FanCourier API fetch → Auto-process → Mark invoices as paid
+  - Flow 3 (Stuck): Report page for AWBs >3 days without resolution
+  - Security: PIN 6-digit approval for manual exceptions (no manifest)
+  - Restrictions: No manual stornare/incasare without manifest OR PIN approval
+  - Also fixes: Returns page pagination bug (only 100 items shown)
+  - Research needed: FanCourier manifest API endpoints, Oblio stornare API
+  - 10 plans in 4 waves (Wave 0 is API research)
 
 ## Phase 7.1 Progress
 
@@ -372,20 +387,21 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-06
-Stopped at: Completed 07.9-12-PLAN.md (Marketplace Stock Sync Verification)
+Last session: 2026-02-07
+Stopped at: Inserted Phase 7.10 (Courier Manifest & Invoice Reconciliation)
 Resume context:
 - **Phase 7.9 COMPLETE** - 12/12 plans complete
-- Trendyol stock sync verified: uses InventoryItem.currentStock with deprecation warnings
-- Temu stock sync created: new service using InventoryItem.currentStock only
-- All marketplace integrations now use unified stock system
+- **Phase 7.10 INSERTED** - Courier manifest processing (URGENT)
+- Three main flows: Returns stornare, Delivery payment, Stuck shipments report
+- PIN 6-digit security for manual exceptions
+- Research needed: FanCourier API + Oblio stornare API
 
 **NEXT STEPS:**
-1. Phase 7.9 Reception Workflow is COMPLETE
-2. Consider Phase 8: Notifications and Automation
-3. Or cleanup: Remove old Trendyol Settings integration (product pull)
+1. Run `/gsd:plan-phase 7.10` to create detailed execution plans
+2. Research Wave 0: FanCourier manifest API + Oblio stornare verification
+3. Then proceed with implementation waves 1-4
 
-Resume file: None (phase complete)
+Resume file: None (phase not yet planned)
 
 ## Phase 7 Features
 
@@ -555,6 +571,41 @@ Task Management Core components:
 | 07.9-10 | 4 | Complete | In-app Notifications: Notification model API + bell icon UI |
 | 07.9-11 | 4 | Complete | Low stock alerts migration: dashboard-stats.ts → InventoryItem.currentStock |
 | 07.9-12 | 4 | Complete | Stock sync verification: Temu + Trendyol use InventoryItem correctly |
+
+## Phase 7.10 Progress (Courier Manifest & Invoice Reconciliation)
+
+| Plan | Wave | Status | Summary |
+|------|------|--------|---------|
+| 07.10-01 | 0 | Pending | Research: FanCourier API manifest endpoints + Oblio stornare API |
+| 07.10-02 | 1 | Pending | Database models: CourierManifest, ManifestItem, PINApprovalRequest |
+| 07.10-03 | 1 | Pending | PIN security system: hash storage, approval workflow, alert banner |
+| 07.10-04 | 2 | Pending | Return manifest generation from scanned AWBs |
+| 07.10-05 | 2 | Pending | Office verification UI and bulk stornare via Oblio |
+| 07.10-06 | 2 | Pending | FanCourier delivery manifest fetch (API or upload fallback) |
+| 07.10-07 | 3 | Pending | Automatic payment marking from delivery manifest |
+| 07.10-08 | 3 | Pending | Stuck shipments report page |
+| 07.10-09 | 4 | Pending | Manual operation blocking + PIN approval flow |
+| 07.10-10 | 1 | Pending | Returns page pagination fix |
+
+## Phase 7.10 Context (Courier Manifest & Invoice Reconciliation)
+
+**Three daily workflows:**
+1. **Retururi**: Scanare AWB → Generare manifest → Verificare Office → Stornare bulk Oblio
+2. **Livrari**: FanCourier API fetch → Procesare automata → Marcare facturi incasate
+3. **Stuck**: Raport colete >3 zile fara rezolutie
+
+**Security restrictions:**
+- PIN 6-digit (stored hashed) for manual exceptions
+- Alert banner for pending approval requests
+- Audit trail for all exceptions
+
+**Research needed (Wave 0):**
+- FanCourier API: endpoint for delivery manifest (borderou livrari)
+- FanCourier API: endpoint for return manifest (borderou retururi)
+- Oblio API: stornare/credit note endpoint
+
+**Known bugs to fix:**
+- /returns page shows only 100 items (pagination broken)
 
 ## Phase 7.9 Context (Reception Workflow)
 
