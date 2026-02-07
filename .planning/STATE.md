@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 7.10 of 10 (Courier Manifest & Invoice Reconciliation)
-Plan: 3 of 10 (01, 02, 03 complete)
+Plan: 5 of 10 (01, 02, 03, 04, 05 complete)
 Status: In progress
-Last activity: 2026-02-07 - Completed 07.10-01-PLAN.md (Database Models)
+Last activity: 2026-02-07 - Completed 07.10-05-PLAN.md (Delivery Manifest Service)
 
-Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7 + 5/5 of 7.8 + 12/12 of 7.9 + 3/10 of 7.10)
+Progress: [██████████████████░░] ~99% (7/10 integer phases + 6/6 of 7.1 + 6/6 of 7.2 + 6/6 of 7.3 + 5/5 of 7.4 + 4/4 of 7.5 + 2/3 of 7.6 + 6/6 of 7.7 + 5/5 of 7.8 + 12/12 of 7.9 + 5/10 of 7.10)
 
 ## Phase 7 Progress
 
@@ -62,6 +62,8 @@ Recent decisions affecting current work:
 - **07.10-03:** Returns API pagination: default limit 50, max 100 to prevent large queries
 - **07.10-03:** Use offset/skip pattern (not cursor-based) for simplicity
 - **07.10-03:** API pagination response pattern: { total, limit, offset, hasMore }
+- **07.10-05:** Delivered status codes: S2, 2, livrat, delivered (FanCourier variations)
+- **07.10-05:** Skip AWBs already in non-processed manifests to prevent duplicates
 - **07.7-05:** TemuOrdersList uses useQuery (consistent with existing patterns)
 - **07.7-05:** Purple badge color for Temu (bg-purple-100 text-purple-700)
 - **07.7-05:** Temu store filter shown only when multiple stores exist
