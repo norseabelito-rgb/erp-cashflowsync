@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     if (!result.success) {
       return NextResponse.json(
-        { success: false, error: result.error, skippedCount: result.skippedCount },
+        { success: false, error: result.error, skippedCount: result.skippedCount, debug: result.debug },
         { status: 400 }
       );
     }

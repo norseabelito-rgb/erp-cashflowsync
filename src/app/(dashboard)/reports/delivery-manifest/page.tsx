@@ -169,6 +169,10 @@ function DeliveryManifestContent() {
         toast({ title: `Manifest creat cu ${data.itemCount} AWB-uri livrate` });
         window.location.href = `/reports/delivery-manifest?id=${data.manifestId}`;
       } else {
+        if (data.debug) {
+          console.log("[DeliveryManifest] DEBUG - Sample AWB from FanCourier:", JSON.stringify(data.debug.sampleAwb, null, 2));
+          console.log("[DeliveryManifest] DEBUG - Top level keys:", data.debug.topLevelKeys);
+        }
         toast({ title: data.error || "Eroare la incarcarea manifestului", variant: "destructive" });
       }
     } catch (err) {

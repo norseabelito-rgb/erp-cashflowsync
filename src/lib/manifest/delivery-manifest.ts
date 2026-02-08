@@ -20,6 +20,7 @@ export interface DeliveryManifestResult {
   itemCount?: number;
   skippedCount?: number;
   error?: string;
+  debug?: unknown;
 }
 
 /**
@@ -101,17 +102,18 @@ export async function fetchDeliveryManifest(
     console.log(`[DeliveryManifest] Found ${deliveredAwbs.length} delivered AWBs (status S2)`);
 
     if (deliveredAwbs.length === 0) {
-      // Provide more diagnostic info in the error
-      const sampleStatuses = response.data.slice(0, 5).map(awb => ({
-        awb: awb.info?.awbNumber || awb.awbNumber || "unknown",
-        lastEventId: awb.info?.lastEventId,
-        status: awb.info?.status || awb.status,
-      }));
-      console.log("[DeliveryManifest] Sample statuses from response:", JSON.stringify(sampleStatuses, null, 2));
+      // Include sample AWB structure in response for debugging
+      const sampleAwb = response.data[0] || null;
+      const sampleKeys = sampleAwb ? Object.keys(sampleAwb) : [];
 
       return {
         success: false,
-        error: `No delivered AWBs found for ${date}. Total AWBs: ${response.data.length}. Check server logs for API response structure.`
+        error: `No delivered AWBs found for ${date}. Total AWBs: ${response.data.length}.`,
+        debug: {
+          sampleAwb: sampleAwb ? JSON.parse(JSON.stringify(sampleAwb)) : null,
+          topLevelKeys: sampleKeys,
+          totalFetched: response.data.length
+        }
       };
     }
 
