@@ -52,7 +52,7 @@ interface ManifestItem {
     paidAt: string | null;
   } | null;
   order: {
-    orderNumber: string | null;
+    shopifyOrderNumber: string | null;
     totalPrice: number | null;
   } | null;
 }
@@ -169,10 +169,6 @@ function DeliveryManifestContent() {
         toast({ title: `Manifest creat cu ${data.itemCount} AWB-uri livrate` });
         window.location.href = `/reports/delivery-manifest?id=${data.manifestId}`;
       } else {
-        if (data.debug) {
-          console.log("[DeliveryManifest] DEBUG - Sample AWB from FanCourier:", JSON.stringify(data.debug.sampleAwb, null, 2));
-          console.log("[DeliveryManifest] DEBUG - Top level keys:", data.debug.topLevelKeys);
-        }
         toast({ title: data.error || "Eroare la incarcarea manifestului", variant: "destructive" });
       }
     } catch (err) {
@@ -370,7 +366,7 @@ function DeliveryManifestContent() {
                   <TableRow key={item.id}>
                     <TableCell>{getStatusIcon(item.status)}</TableCell>
                     <TableCell className="font-mono text-sm">{item.awbNumber}</TableCell>
-                    <TableCell>{item.order?.orderNumber || "-"}</TableCell>
+                    <TableCell>{item.order?.shopifyOrderNumber || "-"}</TableCell>
                     <TableCell>
                       {item.invoice ? (
                         <span className="font-mono text-sm">
