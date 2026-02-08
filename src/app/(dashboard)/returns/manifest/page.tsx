@@ -51,7 +51,6 @@ interface Manifest {
       paymentStatus: string;
     } | null;
     order: {
-      orderNumber: string | null;
       shopifyOrderNumber: string | null;
     } | null;
   }>;

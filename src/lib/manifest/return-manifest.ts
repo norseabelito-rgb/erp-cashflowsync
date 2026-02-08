@@ -160,9 +160,7 @@ export async function getReturnManifest(manifestId: string) {
           order: {
             select: {
               id: true,
-              orderNumber: true,
-              shopifyOrderNumber: true,
-              billingAddress: true
+              shopifyOrderNumber: true
             }
           }
         },
