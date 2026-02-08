@@ -8,6 +8,10 @@ import {
 } from "@/lib/manifest/delivery-manifest";
 import { ManifestStatus } from "@prisma/client";
 
+// Disable caching for this route
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 /**
  * GET /api/manifests/deliveries
  * List delivery manifests

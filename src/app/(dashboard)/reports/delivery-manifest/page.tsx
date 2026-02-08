@@ -120,7 +120,7 @@ function DeliveryManifestContent() {
   async function loadManifest(id: string) {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/manifests/deliveries/${id}`);
+      const res = await fetch(`/api/manifests/deliveries/${id}`, { cache: "no-store" });
       const data = await res.json();
       if (data.success) {
         setManifest(data.data);
@@ -135,7 +135,7 @@ function DeliveryManifestContent() {
   async function loadManifestList() {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/manifests/deliveries");
+      const res = await fetch("/api/manifests/deliveries", { cache: "no-store" });
       const data = await res.json();
       if (data.success) {
         setManifests(data.data.manifests);

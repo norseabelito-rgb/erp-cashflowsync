@@ -6,6 +6,10 @@ import { getDeliveryManifest } from "@/lib/manifest/delivery-manifest";
 import prisma from "@/lib/db";
 import { ManifestStatus, ManifestType } from "@prisma/client";
 
+// Disable caching for this route
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 /**
  * GET /api/manifests/deliveries/[id]
  * Get specific delivery manifest

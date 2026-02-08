@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { parseDeliveryManifestCSV } from "@/lib/manifest/delivery-manifest";
 
+// Disable caching for this route
+export const dynamic = "force-dynamic";
+
 /**
  * POST /api/manifests/deliveries/upload
  * Upload CSV for manual delivery manifest creation

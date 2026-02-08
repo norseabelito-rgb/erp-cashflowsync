@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { processDeliveryManifestPayment } from "@/lib/manifest/bulk-payment";
 
+// Disable caching for this route
+export const dynamic = "force-dynamic";
+
 /**
  * POST /api/manifests/deliveries/[id]/process
  * Process a confirmed delivery manifest - mark all invoices as paid

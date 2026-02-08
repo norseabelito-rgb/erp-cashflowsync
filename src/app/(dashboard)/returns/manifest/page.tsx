@@ -87,7 +87,7 @@ function ReturnManifestContent() {
   async function loadManifest(id: string) {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/manifests/returns/${id}`);
+      const res = await fetch(`/api/manifests/returns/${id}`, { cache: "no-store" });
       const data = await res.json();
       if (data.success) {
         setManifest(data.data);
@@ -102,7 +102,7 @@ function ReturnManifestContent() {
   async function loadManifestList() {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/manifests/returns");
+      const res = await fetch("/api/manifests/returns", { cache: "no-store" });
       const data = await res.json();
       if (data.success) {
         setManifests(data.data.manifests);

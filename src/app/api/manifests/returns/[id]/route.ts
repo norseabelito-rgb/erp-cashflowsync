@@ -5,6 +5,10 @@ import { hasPermission } from "@/lib/permissions";
 import { getReturnManifest, updateManifestStatus } from "@/lib/manifest/return-manifest";
 import { ManifestStatus } from "@prisma/client";
 
+// Disable caching for this route
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 /**
  * GET /api/manifests/returns/[id]
  * Get a specific return manifest with all items

@@ -8,6 +8,10 @@ import {
 } from "@/lib/manifest/return-manifest";
 import { ManifestStatus } from "@prisma/client";
 
+// Disable caching for this route
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 /**
  * GET /api/manifests/returns
  * List return manifests with optional status filter

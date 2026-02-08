@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { processReturnManifestStornare } from "@/lib/manifest/bulk-stornare";
 
+// Disable caching for this route
+export const dynamic = "force-dynamic";
+
 /**
  * POST /api/manifests/returns/[id]/process
  * Process a confirmed return manifest - cancel all invoices in Oblio
