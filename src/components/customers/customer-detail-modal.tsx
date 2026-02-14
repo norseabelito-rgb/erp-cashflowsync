@@ -38,6 +38,7 @@ interface CustomerDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   storeId?: string;
+  embedToken?: string;
 }
 
 // Status badge mapping (from Orders page)
@@ -69,6 +70,7 @@ export function CustomerDetailModal({
   open,
   onOpenChange,
   storeId,
+  embedToken,
 }: CustomerDetailModalProps) {
   const queryClient = useQueryClient();
   const [noteText, setNoteText] = useState("");
@@ -81,7 +83,10 @@ export function CustomerDetailModal({
       const params = new URLSearchParams();
       if (storeId && storeId !== "all") params.set("storeId", storeId);
       const res = await fetch(
-        `/api/customers/${encodeURIComponent(customer!.email)}?${params}`
+        `/api/customers/${encodeURIComponent(customer!.email)}?${params}`,
+        {
+          headers: embedToken ? { Authorization: `Bearer ${embedToken}` } : {},
+        }
       );
       if (!res.ok) throw new Error("Failed to fetch customer details");
       return res.json();
@@ -100,11 +105,13 @@ export function CustomerDetailModal({
   // Save note mutation
   const saveNoteMutation = useMutation({
     mutationFn: async (note: string) => {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (embedToken) headers["Authorization"] = `Bearer ${embedToken}`;
       const res = await fetch(
         `/api/customers/${encodeURIComponent(customer!.email)}/note`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({ note }),
         }
       );

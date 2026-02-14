@@ -37,6 +37,9 @@ function CustomersEmbedContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  // Read embed token from URL
+  const embedToken = searchParams.get("token") || "";
+
   // URL-based state for store filter
   const storeFilter = searchParams.get("tab") || "all";
 
@@ -62,7 +65,9 @@ function CustomersEmbedContent() {
       if (debouncedSearch) params.set("search", debouncedSearch);
       params.set("page", String(page));
       params.set("limit", "50");
-      const res = await fetch(`/api/customers?${params}`);
+      const res = await fetch(`/api/customers?${params}`, {
+        headers: embedToken ? { Authorization: `Bearer ${embedToken}` } : {},
+      });
       if (!res.ok) throw new Error("Failed to fetch customers");
       return res.json();
     },
@@ -279,6 +284,7 @@ function CustomersEmbedContent() {
         open={detailOpen}
         onOpenChange={setDetailOpen}
         storeId={storeFilter}
+        embedToken={embedToken || undefined}
       />
     </div>
   );

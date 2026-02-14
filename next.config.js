@@ -63,7 +63,7 @@ const nextConfig = {
           },
           {
             key: "Access-Control-Allow-Headers",
-            value: "Content-Type",
+            value: "Content-Type, Authorization",
           },
         ],
       },

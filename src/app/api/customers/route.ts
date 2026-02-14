@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
+import { validateEmbedToken } from "@/lib/embed-auth";
 import { Prisma } from "@prisma/client";
 
 interface CustomerRow {
@@ -18,10 +19,8 @@ interface CustomerRow {
 
 export async function GET(request: NextRequest) {
   try {
-    // Check if this is an embed request (skip auth for whitelisted domains)
-    const origin = request.headers.get("origin") || "";
-    const allowedDomains = process.env.EMBED_ALLOWED_DOMAINS?.split(",").map(d => d.trim()) || [];
-    const isEmbedRequest = allowedDomains.some(domain => origin.startsWith(domain));
+    // Check if this is an embed request (token-based auth for iframe access)
+    const isEmbedRequest = validateEmbedToken(request);
 
     if (!isEmbedRequest) {
       // Verificam autentificarea

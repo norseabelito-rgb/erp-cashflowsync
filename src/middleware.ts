@@ -1,56 +1,11 @@
 import { withAuth } from "next-auth/middleware";
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import type { NextRequestWithAuth } from "next-auth/middleware";
 
-// Embed routes middleware - handles iframe domain verification
-function handleEmbedRequest(req: NextRequest) {
-  const allowedDomains = process.env.EMBED_ALLOWED_DOMAINS?.split(",").map(d => d.trim()) || [];
-
-  // Check Origin or Referer header
-  const origin = req.headers.get("origin") || "";
-  const referer = req.headers.get("referer") || "";
-
-  // For direct navigation (no origin), check referer
-  const requestOrigin = origin || (referer ? new URL(referer).origin : "");
-
-  // Allow if from whitelisted domain OR if no domain configured (testing) OR direct access
-  const isAllowed =
-    allowedDomains.length === 0 || // No whitelist = allow all (for testing)
-    !requestOrigin || // Direct browser access
-    allowedDomains.some(domain => requestOrigin.startsWith(domain));
-
-  if (!isAllowed) {
-    return new NextResponse("Access denied: Domain not whitelisted", { status: 403 });
-  }
-
-  // Set headers for iframe embedding
-  const response = NextResponse.next();
-
-  // Build frame-ancestors CSP
-  const frameAncestors = allowedDomains.length > 0
-    ? `frame-ancestors 'self' ${allowedDomains.join(" ")}`
-    : "frame-ancestors *"; // Allow all if no whitelist (testing)
-
-  response.headers.set("Content-Security-Policy", frameAncestors);
-  // X-Frame-Options is deprecated but set for older browsers
-  response.headers.delete("X-Frame-Options");
-
-  return response;
-}
-
-// Check if request is for embed functionality
-function isEmbedRoute(pathname: string) {
-  return pathname.startsWith("/customers/embed");
-}
-
 // Main middleware export
+// Note: /customers/embed is NOT in the matcher — it uses token-based auth via API routes
 export default withAuth(
   function middleware(req: NextRequestWithAuth) {
-    // Handle embed routes (this shouldn't match due to config, but as fallback)
-    if (isEmbedRoute(req.nextUrl.pathname)) {
-      return handleEmbedRequest(req);
-    }
-
     const token = req.nextauth.token;
 
     // Dacă nu există token, redirect la login cu parametru expired

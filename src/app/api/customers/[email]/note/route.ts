@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
+import { validateEmbedToken } from "@/lib/embed-auth";
 
 // POST /api/customers/[email]/note - Save or update customer note
 export async function POST(
@@ -10,10 +11,8 @@ export async function POST(
   { params }: { params: Promise<{ email: string }> }
 ) {
   try {
-    // Check if this is an embed request (skip auth for whitelisted domains)
-    const origin = request.headers.get("origin") || "";
-    const allowedDomains = process.env.EMBED_ALLOWED_DOMAINS?.split(",").map(d => d.trim()) || [];
-    const isEmbedRequest = allowedDomains.some(domain => origin.startsWith(domain));
+    // Check if this is an embed request (token-based auth for iframe access)
+    const isEmbedRequest = validateEmbedToken(request);
 
     let userId: string | null = null;
 
@@ -70,10 +69,8 @@ export async function GET(
   { params }: { params: Promise<{ email: string }> }
 ) {
   try {
-    // Check if this is an embed request
-    const origin = request.headers.get("origin") || "";
-    const allowedDomains = process.env.EMBED_ALLOWED_DOMAINS?.split(",").map(d => d.trim()) || [];
-    const isEmbedRequest = allowedDomains.some(domain => origin.startsWith(domain));
+    // Check if this is an embed request (token-based auth for iframe access)
+    const isEmbedRequest = validateEmbedToken(request);
 
     if (!isEmbedRequest) {
       // Normal auth check
