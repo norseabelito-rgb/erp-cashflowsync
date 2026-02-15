@@ -94,6 +94,7 @@ import { SkeletonTableRow } from "@/components/ui/skeleton";
 import { useErrorModal } from "@/hooks/use-error-modal";
 import { ActionTooltip } from "@/components/ui/action-tooltip";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
+import { InvoiceActionGuard } from "@/components/invoice/InvoiceActionGuard";
 
 interface Order {
   id: string;
@@ -2241,7 +2242,31 @@ export default function OrdersPage() {
                   <h4 className="font-semibold mb-2">Factură</h4>
                   {viewOrder.invoice ? (
                     viewOrder.invoice.status === "issued" ? (
-                      <Badge variant="success">{viewOrder.invoice.invoiceSeriesName}{viewOrder.invoice.invoiceNumber}</Badge>
+                      <div className="space-y-2">
+                        <Badge variant="success">{viewOrder.invoice.invoiceSeriesName}{viewOrder.invoice.invoiceNumber}</Badge>
+                        <RequirePermission permission="invoices.cancel">
+                          <InvoiceActionGuard
+                            invoiceId={viewOrder.invoice.id}
+                            action="cancel"
+                            onSuccess={() => {
+                              queryClient.invalidateQueries({ queryKey: ["orders"] });
+                              setViewModalOpen(false);
+                            }}
+                          >
+                            {({ execute, isLoading }) => (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={execute}
+                                disabled={isLoading}
+                              >
+                                <Ban className="h-3 w-3 mr-1" />
+                                {isLoading ? "Se storneaza..." : "Storneaza factura"}
+                              </Button>
+                            )}
+                          </InvoiceActionGuard>
+                        </RequirePermission>
+                      </div>
                     ) : viewOrder.invoice.status === "deleted" ? (
                       <div className="space-y-2">
                         <Badge variant="neutral">🗑️ Ștearsă</Badge>
