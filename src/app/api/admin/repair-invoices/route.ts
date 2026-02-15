@@ -5,11 +5,12 @@ import { createOblioClient } from "@/lib/oblio";
 import prisma from "@/lib/db";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300; // 5 min - paginarea prin Oblio poate dura
 
 /**
  * GET /api/admin/repair-invoices
- * Interogheaza Oblio pentru a gasi facturile emise gresit (client = firma emitenta).
- * Cauta facturile unde CIF-ul clientului == CIF-ul firmei emitente.
+ * Paginam prin TOATE facturile din Oblio si le filtram pe cele unde
+ * numele clientului == numele firmei emitente (auto-facturare).
  */
 export async function GET() {
   try {
@@ -53,22 +54,24 @@ export async function GET() {
     }> = [];
 
     for (const company of companies) {
-      const cif = company.oblioCif || company.cif;
-      if (!cif) continue;
-
       const oblioClient = createOblioClient(company);
       if (!oblioClient) continue;
 
-      // Interogam Oblio: facturile unde clientul are CIF-ul firmei
-      // Paginam prin toate rezultatele
+      // Variante ale numelui firmei pentru matching (case-insensitive)
+      const companyNames = new Set(
+        [company.name, company.cif, company.oblioCif]
+          .filter(Boolean)
+          .map((n) => n!.toLowerCase().trim())
+      );
+
+      // Paginam prin TOATE facturile necancelate din Oblio
       let offset = 0;
       const limit = 100;
       let hasMore = true;
 
       while (hasMore) {
         const listResult = await oblioClient.listInvoices({
-          client: cif,
-          canceled: 0, // doar cele necancelate
+          canceled: 0,
           limitPerPage: limit,
           offset,
         });
@@ -79,9 +82,29 @@ export async function GET() {
         }
 
         for (const oblioInv of listResult.data) {
+          // Extragem numele clientului de pe factura
+          const clientName = (
+            oblioInv.client?.name ||
+            oblioInv.clientName ||
+            oblioInv.client ||
+            ""
+          ).toString().toLowerCase().trim();
+
+          const clientCif = (
+            oblioInv.client?.cif ||
+            oblioInv.clientCif ||
+            ""
+          ).toString().toLowerCase().trim();
+
+          // Verificam daca clientul e firma emitenta
+          const isAutoInvoice =
+            companyNames.has(clientName) ||
+            (clientCif && companyNames.has(clientCif));
+
+          if (!isAutoInvoice) continue;
+
           const seriesName = oblioInv.seriesName;
           const number = oblioInv.number?.toString();
-
           if (!seriesName || !number) continue;
 
           // Gaseste factura in DB
@@ -110,7 +133,7 @@ export async function GET() {
             invoiceSeriesName: seriesName,
             orderId: dbInvoice?.orderId || null,
             orderNumber,
-            oblioClient: oblioInv.client?.name || oblioInv.clientName || "N/A",
+            oblioClient: oblioInv.client?.name || oblioInv.clientName || oblioInv.client || "N/A",
             correctCustomer,
             total: oblioInv.total ? Number(oblioInv.total) : 0,
             currency: oblioInv.currency || "RON",
