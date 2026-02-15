@@ -114,21 +114,36 @@ export async function GET(request: NextRequest) {
     );
     const total = Number(countResult[0]?.count || 0);
 
-    // Get aggregated customer data, grouped by composite customer key
+    // Get aggregated customer data, grouped by composite customer key.
+    // Uses a CTE with ROW_NUMBER() to identify each customer's most recent order,
+    // so name/email/phone come from that single order (not independent MAX() calls
+    // which could combine firstName from one order with lastName from another).
     const customersQuery = `
+      WITH ranked AS (
+        SELECT
+          o.*,
+          ${CUSTOMER_KEY_EXPR} as "customerKey",
+          ROW_NUMBER() OVER (
+            PARTITION BY ${CUSTOMER_KEY_EXPR}
+            ORDER BY o."createdAt" DESC
+          ) as rn
+        FROM orders o
+        WHERE ${whereClause}
+      )
       SELECT
-        ${CUSTOMER_KEY_EXPR} as "customerKey",
-        MAX(LOWER(NULLIF(TRIM(o."customerEmail"), ''))) as email,
-        MAX(NULLIF(TRIM(o."customerPhone"), '')) as phone,
-        MAX(NULLIF(TRIM(o."customerFirstName"), '')) as "firstName",
-        MAX(NULLIF(TRIM(o."customerLastName"), '')) as "lastName",
+        r."customerKey",
+        LOWER(NULLIF(TRIM(latest."customerEmail"), '')) as email,
+        NULLIF(TRIM(latest."customerPhone"), '') as phone,
+        NULLIF(TRIM(latest."customerFirstName"), '') as "firstName",
+        NULLIF(TRIM(latest."customerLastName"), '') as "lastName",
         COUNT(*)::int as "orderCount",
-        COALESCE(SUM(o."totalPrice"::numeric), 0) as "totalSpent",
-        MAX(o."createdAt") as "lastOrderDate",
-        MIN(o."createdAt") as "firstOrderDate"
-      FROM orders o
-      WHERE ${whereClause}
-      GROUP BY ${CUSTOMER_KEY_EXPR}
+        COALESCE(SUM(r."totalPrice"::numeric), 0) as "totalSpent",
+        MAX(r."createdAt") as "lastOrderDate",
+        MIN(r."createdAt") as "firstOrderDate"
+      FROM ranked r
+      JOIN ranked latest ON latest."customerKey" = r."customerKey" AND latest.rn = 1
+      GROUP BY r."customerKey", latest."customerEmail", latest."customerPhone",
+               latest."customerFirstName", latest."customerLastName"
       ORDER BY "totalSpent" DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
