@@ -687,11 +687,11 @@ export async function issueInvoiceForOrder(
       }, tx);
 
       // Actualizăm statusul comenzii
+      // Nu mai suprascriem billingCompanyId - e setat doar pentru B2B real din sync
       await tx.order.update({
         where: { id: order.id },
         data: {
           status: "INVOICED",
-          billingCompanyId: company.id,
         },
       });
 

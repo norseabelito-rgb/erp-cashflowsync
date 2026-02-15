@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { createOblioClient } from "@/lib/oblio";
 import prisma from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 /**
  * GET /api/admin/repair-invoices
- * Returneaza facturile emise gresit (client = firma emitenta) din comenzile Shopify.
- * Bug: billingCompanyId pe Order era setat la companyId-ul store-ului,
- * ceea ce facea ca factura sa fie emisa de la Aquaterra catre Aquaterra.
+ * Interogheaza Oblio pentru a gasi facturile emise gresit (client = firma emitenta).
+ * Cauta facturile unde CIF-ul clientului == CIF-ul firmei emitente.
  */
 export async function GET() {
   try {
@@ -30,63 +30,110 @@ export async function GET() {
       );
     }
 
-    // Gaseste facturile emise unde billingCompanyId == store.companyId (auto-facturare)
-    const invoices = await prisma.invoice.findMany({
+    // Gaseste toate companiile cu credentiale Oblio
+    const companies = await prisma.company.findMany({
       where: {
-        status: "issued",
-        order: {
-          source: "shopify",
-          billingCompanyId: { not: null },
-        },
+        oblioEmail: { not: null },
+        oblioSecretToken: { not: null },
       },
-      include: {
-        order: {
-          include: {
-            store: {
-              include: {
-                company: true,
-              },
+    });
+
+    const allAffected: Array<{
+      id: string;
+      invoiceNumber: string;
+      invoiceSeriesName: string;
+      orderId: string | null;
+      orderNumber: string;
+      oblioClient: string;
+      correctCustomer: string;
+      total: number;
+      currency: string;
+      issuedAt: string;
+      companyName: string;
+    }> = [];
+
+    for (const company of companies) {
+      const cif = company.oblioCif || company.cif;
+      if (!cif) continue;
+
+      const oblioClient = createOblioClient(company);
+      if (!oblioClient) continue;
+
+      // Interogam Oblio: facturile unde clientul are CIF-ul firmei
+      // Paginam prin toate rezultatele
+      let offset = 0;
+      const limit = 100;
+      let hasMore = true;
+
+      while (hasMore) {
+        const listResult = await oblioClient.listInvoices({
+          client: cif,
+          canceled: 0, // doar cele necancelate
+          limitPerPage: limit,
+          offset,
+        });
+
+        if (!listResult.success || !listResult.data || listResult.data.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        for (const oblioInv of listResult.data) {
+          const seriesName = oblioInv.seriesName;
+          const number = oblioInv.number?.toString();
+
+          if (!seriesName || !number) continue;
+
+          // Gaseste factura in DB
+          const dbInvoice = await prisma.invoice.findFirst({
+            where: {
+              invoiceSeriesName: seriesName,
+              invoiceNumber: number,
+              companyId: company.id,
+              status: "issued",
             },
-            billingCompany: true,
-          },
-        },
-        company: true,
-      },
-      orderBy: { createdAt: "desc" },
-    });
+            include: {
+              order: true,
+            },
+          });
 
-    // Filtram doar facturile unde billingCompanyId == store.companyId
-    const affectedInvoices = invoices.filter((inv) => {
-      const order = inv.order;
-      if (!order || !order.billingCompanyId || !order.store?.companyId) return false;
-      return order.billingCompanyId === order.store.companyId;
-    });
+          const orderNumber = dbInvoice?.order?.shopifyOrderNumber || oblioInv.mentions || "-";
+          const correctCustomer = dbInvoice?.order
+            ? [dbInvoice.order.customerFirstName, dbInvoice.order.customerLastName]
+                .filter(Boolean)
+                .join(" ") || "Client"
+            : "N/A (fara comanda in DB)";
 
-    const result = affectedInvoices.map((inv) => {
-      const order = inv.order!;
-      const realCustomerName = [order.customerFirstName, order.customerLastName]
-        .filter(Boolean)
-        .join(" ") || "Client";
+          allAffected.push({
+            id: dbInvoice?.id || `oblio-${seriesName}-${number}`,
+            invoiceNumber: number,
+            invoiceSeriesName: seriesName,
+            orderId: dbInvoice?.orderId || null,
+            orderNumber,
+            oblioClient: oblioInv.client?.name || oblioInv.clientName || "N/A",
+            correctCustomer,
+            total: oblioInv.total ? Number(oblioInv.total) : 0,
+            currency: oblioInv.currency || "RON",
+            issuedAt: oblioInv.issueDate || "",
+            companyName: company.name,
+          });
+        }
 
-      return {
-        id: inv.id,
-        invoiceNumber: inv.invoiceNumber,
-        invoiceSeriesName: inv.invoiceSeriesName,
-        orderId: order.id,
-        orderNumber: order.shopifyOrderNumber,
-        wrongCustomer: inv.company?.name || order.billingCompany?.name || "N/A",
-        correctCustomer: realCustomerName,
-        total: Number(order.totalPrice),
-        currency: order.currency,
-        issuedAt: inv.createdAt,
-        companyName: inv.company?.name || "N/A",
-      };
-    });
+        if (listResult.data.length < limit) {
+          hasMore = false;
+        } else {
+          offset += limit;
+        }
+
+        // Pauza intre paginile Oblio
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      total: result.length,
-      invoices: result,
+      total: allAffected.length,
+      invoices: allAffected,
     });
   } catch (error: unknown) {
     console.error("Error in GET /api/admin/repair-invoices:", error);

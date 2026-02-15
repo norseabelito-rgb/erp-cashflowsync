@@ -529,6 +529,45 @@ export class OblioAPI {
   }
 
   /**
+   * Listează facturile din Oblio cu filtrare opțională.
+   * GET /docs/invoice/list
+   */
+  async listInvoices(options?: {
+    seriesName?: string;
+    client?: string;
+    issuedAfter?: string;
+    issuedBefore?: string;
+    canceled?: number;
+    limitPerPage?: number;
+    offset?: number;
+  }): Promise<{ success: boolean; data?: any[]; total?: number; error?: string }> {
+    try {
+      const params = new URLSearchParams();
+      params.set("cif", this.credentials.cif);
+      if (options?.seriesName) params.set("seriesName", options.seriesName);
+      if (options?.client) params.set("client", options.client);
+      if (options?.issuedAfter) params.set("issuedAfter", options.issuedAfter);
+      if (options?.issuedBefore) params.set("issuedBefore", options.issuedBefore);
+      if (options?.canceled !== undefined) params.set("canceled", String(options.canceled));
+      if (options?.limitPerPage) params.set("limitPerPage", String(options.limitPerPage));
+      if (options?.offset !== undefined) params.set("offset", String(options.offset));
+
+      const response = await this.request<any>("GET", `/docs/invoice/list?${params.toString()}`);
+
+      return {
+        success: true,
+        data: response.data || [],
+        total: response.total || 0,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
    * Marchează o factură ca încasată (collect/payment marking)
    * Uses the Oblio PUT /docs/invoice/collect endpoint
    *

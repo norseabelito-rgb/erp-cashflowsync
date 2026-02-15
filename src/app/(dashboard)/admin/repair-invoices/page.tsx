@@ -20,9 +20,9 @@ interface AffectedInvoice {
   id: string;
   invoiceNumber: string | null;
   invoiceSeriesName: string | null;
-  orderId: string;
+  orderId: string | null;
   orderNumber: string;
-  wrongCustomer: string;
+  oblioClient: string;
   correctCustomer: string;
   total: number;
   currency: string;
@@ -283,7 +283,7 @@ export default function RepairInvoicesPage() {
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">
               <RefreshCw className="h-8 w-8 mx-auto mb-4 animate-spin" />
-              <p>Se incarca facturile...</p>
+              <p>Se interogheaza Oblio... Acest proces poate dura cateva minute.</p>
             </div>
           ) : invoices.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
@@ -297,7 +297,7 @@ export default function RepairInvoicesPage() {
                   <TableHead className="w-12"></TableHead>
                   <TableHead>Serie + Numar</TableHead>
                   <TableHead>Comanda</TableHead>
-                  <TableHead>Client gresit</TableHead>
+                  <TableHead>Client Oblio</TableHead>
                   <TableHead>Client corect</TableHead>
                   <TableHead>Total</TableHead>
                   <TableHead>Data</TableHead>
@@ -329,7 +329,7 @@ export default function RepairInvoicesPage() {
                     </TableCell>
                     <TableCell>{inv.orderNumber}</TableCell>
                     <TableCell className="text-red-600 dark:text-red-400 max-w-[150px] truncate">
-                      {inv.wrongCustomer}
+                      {inv.oblioClient}
                     </TableCell>
                     <TableCell className="text-green-600 dark:text-green-400 max-w-[150px] truncate">
                       {inv.correctCustomer}

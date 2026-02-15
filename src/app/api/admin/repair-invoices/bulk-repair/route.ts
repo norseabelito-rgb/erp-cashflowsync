@@ -86,8 +86,8 @@ export async function POST(request: NextRequest) {
         }
 
         const order = invoice.order;
-        if (!order || !order.billingCompanyId || order.billingCompanyId !== order.store?.companyId) {
-          results.push({ invoiceId, success: false, error: "Nu e afectata de bug" });
+        if (!order) {
+          results.push({ invoiceId, success: false, error: "Comanda negasita" });
           continue;
         }
 
@@ -130,11 +130,12 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        // Reseteaza billingCompanyId
+        // Reseteaza billingCompanyId (doar daca e egal cu store.companyId)
+        const resetBilling = order.billingCompanyId && order.billingCompanyId === order.store?.companyId;
         await prisma.order.update({
           where: { id: order.id },
           data: {
-            billingCompanyId: null,
+            ...(resetBilling ? { billingCompanyId: null } : {}),
             status: "INVOICE_PENDING",
           },
         });

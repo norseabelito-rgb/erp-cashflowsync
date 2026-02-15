@@ -70,14 +70,6 @@ export async function POST(
       return NextResponse.json({ error: "Comanda nu a fost gasita" }, { status: 400 });
     }
 
-    // Verifica ca e o factura afectata de bug
-    if (!order.billingCompanyId || order.billingCompanyId !== order.store?.companyId) {
-      return NextResponse.json(
-        { error: "Aceasta factura nu este afectata de bug-ul de auto-facturare" },
-        { status: 400 }
-      );
-    }
-
     // 1. Storneaza in Oblio
     const company = invoice.company || order.store?.company;
     if (!company) {
@@ -116,11 +108,12 @@ export async function POST(
       },
     });
 
-    // 3. Reseteaza billingCompanyId pe order
+    // 3. Reseteaza billingCompanyId pe order (doar daca e egal cu store.companyId - nu e B2B real)
+    const resetBilling = order.billingCompanyId && order.billingCompanyId === order.store?.companyId;
     await prisma.order.update({
       where: { id: order.id },
       data: {
-        billingCompanyId: null,
+        ...(resetBilling ? { billingCompanyId: null } : {}),
         status: "INVOICE_PENDING",
       },
     });
