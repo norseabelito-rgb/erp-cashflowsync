@@ -120,16 +120,16 @@ export async function POST(
       );
     }
 
-    // Only call Oblio if we have valid invoice number
+    // Stornare în Oblio (emite factură inversă)
     if (invoice.invoiceSeriesName && invoice.invoiceNumber) {
-      const cancelResult = await oblioClient.cancelInvoice(
+      const stornoResult = await oblioClient.stornoInvoice(
         invoice.invoiceSeriesName,
         invoice.invoiceNumber
       );
 
-      if (!cancelResult.success) {
+      if (!stornoResult.success) {
         return NextResponse.json(
-          { success: false, error: cancelResult.error },
+          { success: false, error: stornoResult.error },
           { status: 400 }
         );
       }

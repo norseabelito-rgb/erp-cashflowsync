@@ -455,7 +455,8 @@ export class OblioAPI {
   }
 
   /**
-   * Anulează o factură (stornare)
+   * Anulează o factură (PUT cancel - marchează ca anulată, fără document invers)
+   * Atenție: Folosește stornoInvoice() pentru stornare reală cu factură inversă.
    */
   async cancelInvoice(
     seriesName: string,
@@ -473,6 +474,56 @@ export class OblioAPI {
       return {
         success: false,
         error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Stornare factură - emite o factură inversă (credit note) care anulează contabil factura originală.
+   * Folosește POST /docs/invoice cu referenceDocument.refund = 1.
+   * Șterge automat și încasarea asociată facturii stornate.
+   */
+  async stornoInvoice(
+    seriesName: string,
+    number: string
+  ): Promise<OblioInvoiceResponse> {
+    try {
+      console.log(`[Oblio] Stornare factură ${seriesName} ${number}`);
+
+      const response = await this.request<any>("POST", "/docs/invoice", {
+        cif: this.credentials.cif,
+        seriesName,
+        referenceDocument: {
+          type: "Factura",
+          refund: 1,
+          seriesName,
+          number: Number(number),
+        },
+      });
+
+      console.log("[Oblio] Răspuns storno:", JSON.stringify(response));
+
+      if (response.data) {
+        return {
+          success: true,
+          invoiceId: response.data.seriesName + response.data.number,
+          invoiceNumber: response.data.number?.toString(),
+          invoiceSeries: response.data.seriesName,
+          link: response.data.link,
+        };
+      }
+
+      return {
+        success: false,
+        error: response.statusMessage || "Eroare la stornarea facturii",
+        errorCode: response.status,
+      };
+    } catch (error: any) {
+      console.error("[Oblio] Eroare la stornare:", error);
+      return {
+        success: false,
+        error: error.message,
+        errorCode: error.code,
       };
     }
   }

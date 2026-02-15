@@ -1012,13 +1012,13 @@ export async function cancelInvoice(orderId: string, reason?: string): Promise<{
       return { success: false, error: "Factura este deja anulată" };
     }
 
-    // Anulăm în Oblio dacă avem cheie
+    // Stornare în Oblio (emite factură inversă)
     if (invoice.oblioId && invoice.company && invoice.invoiceSeriesName && invoice.invoiceNumber) {
       const oblio = createOblioClient(invoice.company);
       if (oblio) {
-        const cancelResult = await oblio.cancelInvoice(invoice.invoiceSeriesName, invoice.invoiceNumber);
-        if (!cancelResult.success) {
-          console.warn("[Invoice] Nu s-a putut anula în Oblio:", cancelResult.error);
+        const stornoResult = await oblio.stornoInvoice(invoice.invoiceSeriesName, invoice.invoiceNumber);
+        if (!stornoResult.success) {
+          console.warn("[Invoice] Nu s-a putut storna în Oblio:", stornoResult.error);
           // Continuăm cu anularea locală
         }
       }

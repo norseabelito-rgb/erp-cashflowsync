@@ -105,16 +105,16 @@ export async function POST(request: NextRequest) {
         }
 
         if (invoice.invoiceSeriesName && invoice.invoiceNumber) {
-          const cancelResult = await oblioClient.cancelInvoice(
+          const stornoResult = await oblioClient.stornoInvoice(
             invoice.invoiceSeriesName,
             invoice.invoiceNumber
           );
 
-          if (!cancelResult.success) {
+          if (!stornoResult.success) {
             results.push({
               invoiceId,
               success: false,
-              error: `Stornare Oblio: ${cancelResult.error}`,
+              error: `Stornare Oblio: ${stornoResult.error}`,
             });
             continue;
           }

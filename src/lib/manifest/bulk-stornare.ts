@@ -163,14 +163,14 @@ export async function processReturnManifestStornare(
       continue;
     }
 
-    // Cancel invoice in Oblio
+    // Stornare invoice in Oblio (emite factură inversă)
     try {
-      const cancelResult = await oblioClient.cancelInvoice(
+      const stornoResult = await oblioClient.stornoInvoice(
         invoice.invoiceSeriesName || "",
         invoice.invoiceNumber || ""
       );
 
-      if (cancelResult.success) {
+      if (stornoResult.success) {
         result.successCount++;
 
         // Update invoice and manifest item
@@ -216,14 +216,14 @@ export async function processReturnManifestStornare(
           itemId: item.id,
           awbNumber: item.awbNumber,
           invoiceNumber: invoice.invoiceNumber,
-          error: cancelResult.error || "Oblio cancellation failed"
+          error: stornoResult.error || "Oblio stornare failed"
         });
 
         await prisma.manifestItem.update({
           where: { id: item.id },
           data: {
             status: ManifestItemStatus.ERROR,
-            errorMessage: cancelResult.error || "Oblio cancellation failed"
+            errorMessage: stornoResult.error || "Oblio stornare failed"
           }
         });
       }
