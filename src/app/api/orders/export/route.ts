@@ -58,7 +58,6 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { createdAt: "desc" },
-      take: 10000, // Limit to 10k rows for safety
     });
 
     if (format === "json") {
