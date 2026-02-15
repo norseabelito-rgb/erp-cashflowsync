@@ -1158,6 +1158,7 @@ export default function OrdersPage() {
       if (startDate) params.set("startDate", startDate);
       if (endDate) params.set("endDate", endDate);
 
+      params.set("format", "xlsx");
       const res = await fetch(`/api/orders/export?${params}`);
       if (!res.ok) throw new Error("Export failed");
 
@@ -1165,13 +1166,13 @@ export default function OrdersPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `comenzi_${new Date().toISOString().split("T")[0]}.csv`;
+      a.download = `comenzi_${new Date().toISOString().split("T")[0]}.xlsx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      toast({ title: "Export finalizat", description: "Fișierul CSV a fost descărcat" });
+      toast({ title: "Export finalizat", description: "Fișierul Excel a fost descărcat" });
     } catch (error: any) {
       toast({ title: "Eroare", description: error.message, variant: "destructive" });
     } finally {
@@ -1208,11 +1209,11 @@ export default function OrdersPage() {
                   ) : (
                     <Download className="h-4 w-4 md:mr-2" />
                   )}
-                  <span className="hidden md:inline">Export CSV</span>
+                  <span className="hidden md:inline">Export Excel</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs">
-                <p>Exportă comenzile filtrate într-un fișier CSV. Respectă filtrele active (status, magazin, dată).</p>
+                <p>Exportă comenzile filtrate într-un fișier Excel. Respectă filtrele active (status, magazin, dată).</p>
               </TooltipContent>
             </Tooltip>
             <ActionTooltip

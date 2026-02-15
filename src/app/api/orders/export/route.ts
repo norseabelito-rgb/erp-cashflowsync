@@ -4,8 +4,9 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 import { OrderStatus } from "@/types/prisma-enums";
+import ExcelJS from "exceljs";
 
-// GET /api/orders/export - Export orders to CSV
+// GET /api/orders/export - Export orders to CSV or Excel
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const format = searchParams.get("format") || "csv";
+    const format = searchParams.get("format") || "xlsx";
     const storeId = searchParams.get("storeId");
     const status = searchParams.get("status") as OrderStatus | null;
     const startDate = searchParams.get("startDate");
@@ -64,7 +65,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ orders });
     }
 
-    // Generate CSV
     const headers = [
       "Nr_Comanda",
       "Data",
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
       "Produse",
     ];
 
-    const rows = orders.map((o) => {
+    const buildRow = (o: (typeof orders)[0]) => {
       const productsStr = o.lineItems
         .map((li) => `${li.sku || "-"}: ${li.title} x${li.quantity}`)
         .join("; ");
@@ -104,34 +104,93 @@ export async function GET(request: NextRequest) {
         : "";
 
       return [
-        escapeCsvField(o.shopifyOrderNumber),
+        o.shopifyOrderNumber,
         formatDate(o.createdAt),
-        escapeCsvField(o.store.name),
+        o.store.name,
         getStatusLabel(o.status),
-        escapeCsvField(o.customerEmail || ""),
-        escapeCsvField(o.customerPhone || ""),
-        escapeCsvField(o.customerLastName || ""),
-        escapeCsvField(o.customerFirstName || ""),
-        escapeCsvField([o.shippingAddress1, o.shippingAddress2].filter(Boolean).join(", ")),
-        escapeCsvField(o.shippingCity || ""),
-        escapeCsvField(o.shippingProvince || ""),
-        escapeCsvField(o.shippingCountry || ""),
-        escapeCsvField(o.shippingZip || ""),
+        o.customerEmail || "",
+        o.customerPhone || "",
+        o.customerLastName || "",
+        o.customerFirstName || "",
+        [o.shippingAddress1, o.shippingAddress2].filter(Boolean).join(", "),
+        o.shippingCity || "",
+        o.shippingProvince || "",
+        o.shippingCountry || "",
+        o.shippingZip || "",
         o.totalPrice?.toString() || "0",
         o.subtotalPrice?.toString() || "0",
         o.totalShipping?.toString() || "0",
         o.totalTax?.toString() || "0",
         o.currency,
-        escapeCsvField(o.financialStatus || ""),
-        escapeCsvField(o.fulfillmentStatus || ""),
-        escapeCsvField(invoiceNumber),
-        escapeCsvField(o.invoice?.status || ""),
-        escapeCsvField(o.awb?.awbNumber || ""),
-        escapeCsvField(o.awb?.serviceType || ""),
-        escapeCsvField(o.awb?.currentStatus || ""),
-        escapeCsvField(productsStr),
+        o.financialStatus || "",
+        o.fulfillmentStatus || "",
+        invoiceNumber,
+        o.invoice?.status || "",
+        o.awb?.awbNumber || "",
+        o.awb?.serviceType || "",
+        o.awb?.currentStatus || "",
+        productsStr,
       ];
-    });
+    };
+
+    const dateStr = new Date().toISOString().split("T")[0];
+
+    // Excel format
+    if (format === "xlsx") {
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "ERP CashFlow";
+      workbook.created = new Date();
+
+      const sheet = workbook.addWorksheet("Comenzi");
+
+      // Header row with styling
+      const headerRow = sheet.addRow(headers);
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF4472C4" },
+        };
+        cell.alignment = { horizontal: "center" };
+      });
+
+      // Data rows
+      for (const o of orders) {
+        sheet.addRow(buildRow(o));
+      }
+
+      // Auto-fit column widths
+      sheet.columns.forEach((column) => {
+        let maxLength = 0;
+        column.eachCell?.({ includeEmpty: false }, (cell) => {
+          const len = cell.value?.toString().length || 0;
+          if (len > maxLength) maxLength = len;
+        });
+        column.width = Math.min(Math.max(maxLength + 2, 10), 50);
+      });
+
+      // Freeze header row
+      sheet.views = [{ state: "frozen", ySplit: 1 }];
+
+      // Auto-filter
+      sheet.autoFilter = {
+        from: { row: 1, column: 1 },
+        to: { row: 1, column: headers.length },
+      };
+
+      const buffer = await workbook.xlsx.writeBuffer();
+
+      return new NextResponse(buffer, {
+        headers: {
+          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "Content-Disposition": `attachment; filename="comenzi_${dateStr}.xlsx"`,
+        },
+      });
+    }
+
+    // CSV format
+    const rows = orders.map((o) => buildRow(o).map(escapeCsvField));
 
     const csvContent = [
       headers.join(","),
@@ -145,7 +204,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(csvWithBom, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="comenzi_${new Date().toISOString().split("T")[0]}.csv"`,
+        "Content-Disposition": `attachment; filename="comenzi_${dateStr}.csv"`,
       },
     });
   } catch (error: any) {
@@ -156,7 +215,6 @@ export async function GET(request: NextRequest) {
 
 function escapeCsvField(field: string): string {
   if (!field) return "";
-  // If field contains comma, newline, or quote, wrap in quotes and escape internal quotes
   if (field.includes(",") || field.includes("\n") || field.includes('"')) {
     return `"${field.replace(/"/g, '""')}"`;
   }
