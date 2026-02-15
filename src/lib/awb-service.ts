@@ -323,7 +323,7 @@ export async function createAWBForOrder(
       declaredValue: Math.round(Number(order.totalPrice) * 100) / 100,
       observation: observations,
       costCenter: order.store?.name || company.name,
-      options: ["X"], // ePOD - permite etichetă A6 pregătită de expeditor
+      options: ["X", "A"], // ePOD + verificare colet
     });
 
     if (!result.success || !result.awb) {

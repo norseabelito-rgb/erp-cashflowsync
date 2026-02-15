@@ -33,6 +33,7 @@ import {
   ShoppingBag,
   Plus,
   Tag,
+  Printer,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -345,6 +346,9 @@ export default function OrdersPage() {
   const [viewOrder, setViewOrder] = useState<Order | null>(null);
   const [deleteAwbDialogOpen, setDeleteAwbDialogOpen] = useState(false);
   const [awbToDelete, setAwbToDelete] = useState<{ id: string; awbNumber: string } | null>(null);
+  const [awbPreviewOpen, setAwbPreviewOpen] = useState(false);
+  const [awbPreviewData, setAwbPreviewData] = useState<{ pdf: string; awbNumber: string } | null>(null);
+  const [awbPreviewLoading, setAwbPreviewLoading] = useState(false);
   const [awbSettings, setAwbSettings] = useState({
     useDefaults: true,
     serviceType: "Standard",
@@ -1095,6 +1099,27 @@ export default function OrdersPage() {
     setTransferWarnings([]);
   };
 
+  const handlePreviewAWB = async (awbId: string, awbNumber: string) => {
+    setAwbPreviewLoading(true);
+    setAwbPreviewData(null);
+    setAwbPreviewOpen(true);
+    try {
+      const res = await fetch(`/api/awb/${awbId}/label`);
+      const data = await res.json();
+      if (data.success) {
+        setAwbPreviewData({ pdf: data.pdf, awbNumber });
+      } else {
+        toast({ title: "Eroare", description: data.error || "Nu s-a putut încărca eticheta", variant: "destructive" });
+        setAwbPreviewOpen(false);
+      }
+    } catch {
+      toast({ title: "Eroare", description: "Nu s-a putut încărca eticheta AWB", variant: "destructive" });
+      setAwbPreviewOpen(false);
+    } finally {
+      setAwbPreviewLoading(false);
+    }
+  };
+
   const handleOpenAwbModal = (orderId?: string) => {
     if (orderId) {
       setAwbOrderId(orderId);
@@ -1670,14 +1695,19 @@ export default function OrdersPage() {
                             const Icon = awbInfo.icon;
                             return (
                               <div className="flex flex-col gap-1">
-                                <Badge 
-                                  variant={awbInfo.variant as any}
-                                  title={order.awb.currentStatus || "AWB creat"}
-                                  className={cn("cursor-help gap-1", awbInfo.className)}
+                                <button
+                                  onClick={() => handlePreviewAWB(order.awb!.id, order.awb!.awbNumber!)}
+                                  title="Click pentru a vizualiza eticheta AWB"
                                 >
-                                  <Icon className="h-3 w-3" />
-                                  {awbInfo.label}
-                                </Badge>
+                                  <Badge
+                                    variant={awbInfo.variant as any}
+                                    className={cn("cursor-pointer gap-1 hover:opacity-80 transition-opacity", awbInfo.className)}
+                                  >
+                                    <Icon className="h-3 w-3" />
+                                    {awbInfo.label}
+                                    <Eye className="h-3 w-3 ml-0.5 opacity-60" />
+                                  </Badge>
+                                </button>
                                 {order.awb.currentStatus && (
                                   <span className={cn(
                                     "text-xs",
@@ -2288,13 +2318,19 @@ export default function OrdersPage() {
                       const Icon = awbInfo.icon;
                       return (
                         <div className="space-y-2">
-                          <Badge 
-                            variant={awbInfo.variant as any}
-                            className={cn("gap-1", awbInfo.className)}
+                          <button
+                            onClick={() => handlePreviewAWB(viewOrder.awb!.id, viewOrder.awb!.awbNumber!)}
+                            title="Click pentru a vizualiza eticheta AWB"
                           >
-                            <Icon className="h-3 w-3" />
-                            {viewOrder.awb.awbNumber}
-                          </Badge>
+                            <Badge
+                              variant={awbInfo.variant as any}
+                              className={cn("gap-1 cursor-pointer hover:opacity-80 transition-opacity", awbInfo.className)}
+                            >
+                              <Icon className="h-3 w-3" />
+                              {viewOrder.awb.awbNumber}
+                              <Eye className="h-3 w-3 ml-1 opacity-60" />
+                            </Badge>
+                          </button>
                           
                           {viewOrder.awb.currentStatus && (
                             <div className={cn(
@@ -2814,6 +2850,67 @@ export default function OrdersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* AWB Preview/Print Modal */}
+      <Dialog open={awbPreviewOpen} onOpenChange={(open) => {
+        setAwbPreviewOpen(open);
+        if (!open) setAwbPreviewData(null);
+      }}>
+        <DialogContent className="max-w-3xl h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Etichetă AWB {awbPreviewData?.awbNumber || ""}
+            </DialogTitle>
+            <DialogDescription>
+              Preview etichetă A6 - click pe butoane pentru a printa sau descărca
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {awbPreviewLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-muted-foreground">Se încarcă eticheta...</span>
+              </div>
+            ) : awbPreviewData?.pdf ? (
+              <iframe
+                id="awb-preview-iframe"
+                src={`data:application/pdf;base64,${awbPreviewData.pdf}`}
+                className="w-full h-full rounded-lg border"
+                title={`AWB ${awbPreviewData.awbNumber}`}
+              />
+            ) : null}
+          </div>
+          <DialogFooter className="flex-row gap-2 sm:justify-between">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (!awbPreviewData?.pdf) return;
+                const link = document.createElement("a");
+                link.href = `data:application/pdf;base64,${awbPreviewData.pdf}`;
+                link.download = `AWB-${awbPreviewData.awbNumber}.pdf`;
+                link.click();
+              }}
+              disabled={!awbPreviewData?.pdf}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Descarcă
+            </Button>
+            <Button
+              onClick={() => {
+                const iframe = document.getElementById("awb-preview-iframe") as HTMLIFrameElement;
+                if (iframe?.contentWindow) {
+                  iframe.contentWindow.print();
+                }
+              }}
+              disabled={!awbPreviewData?.pdf}
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Printează
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Transfer Warning Modal */}
       <TransferWarningModal
