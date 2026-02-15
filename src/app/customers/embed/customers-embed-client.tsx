@@ -255,9 +255,16 @@ function CustomersEmbedContent() {
       {data?.pagination && data.pagination.totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Afisez {data.customers.length} din {data.pagination.total} clienti
+            Afisez{" "}
+            {(data.pagination.page - 1) * data.pagination.limit + 1}-
+            {Math.min(
+              data.pagination.page * data.pagination.limit,
+              data.pagination.total
+            )}{" "}
+            din {data.pagination.total} clienti (Pagina {data.pagination.page}{" "}
+            din {data.pagination.totalPages})
           </p>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -266,6 +273,9 @@ function CustomersEmbedContent() {
             >
               Inapoi
             </Button>
+            <span className="text-sm font-medium min-w-[3ch] text-center">
+              {data.pagination.page}
+            </span>
             <Button
               variant="outline"
               size="sm"
