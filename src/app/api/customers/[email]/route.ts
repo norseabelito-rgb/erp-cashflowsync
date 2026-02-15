@@ -4,11 +4,76 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 import { validateEmbedToken } from "@/lib/embed-auth";
+import { Prisma } from "@prisma/client";
 
 interface TopProduct {
   title: string;
   sku: string | null;
   quantity: number;
+}
+
+/**
+ * Parse a customerKey to determine the lookup type.
+ * Customer keys have these formats:
+ *   - "user@example.com" -> email-based lookup
+ *   - "name:First Last" -> name-based lookup
+ *   - "unknown:orderId" -> single order lookup
+ *   - anything else (e.g. phone number) -> phone-based lookup
+ */
+function parseCustomerKey(key: string): Prisma.OrderWhereInput {
+  if (key.startsWith("name:")) {
+    const fullName = key.substring(5).trim();
+    const spaceIndex = fullName.indexOf(" ");
+    if (spaceIndex > 0) {
+      const firstName = fullName.substring(0, spaceIndex);
+      const lastName = fullName.substring(spaceIndex + 1);
+      return {
+        customerFirstName: { equals: firstName, mode: "insensitive" },
+        customerLastName: { equals: lastName, mode: "insensitive" },
+        // Ensure these customers don't have email/phone (otherwise they'd be grouped under those)
+        OR: [
+          { customerEmail: null },
+          { customerEmail: "" },
+        ],
+        AND: [
+          { OR: [{ customerPhone: null }, { customerPhone: "" }] },
+        ],
+      };
+    }
+    // Single name (no space) - treat as firstName
+    return {
+      customerFirstName: { equals: fullName, mode: "insensitive" },
+      OR: [
+        { customerEmail: null },
+        { customerEmail: "" },
+      ],
+      AND: [
+        { OR: [{ customerPhone: null }, { customerPhone: "" }] },
+      ],
+    };
+  }
+
+  if (key.startsWith("unknown:")) {
+    const orderId = key.substring(8);
+    return { id: orderId };
+  }
+
+  // Check if it looks like an email (contains @)
+  if (key.includes("@")) {
+    return {
+      customerEmail: { equals: key, mode: "insensitive" },
+    };
+  }
+
+  // Otherwise treat as phone number
+  return {
+    customerPhone: key,
+    // Ensure no email (otherwise they'd be grouped under email)
+    OR: [
+      { customerEmail: null },
+      { customerEmail: "" },
+    ],
+  };
 }
 
 export async function GET(
@@ -39,18 +104,20 @@ export async function GET(
       }
     }
 
-    const { email: encodedEmail } = await params;
+    const { email: encodedKey } = await params;
     const searchParams = request.nextUrl.searchParams;
     const storeId = searchParams.get("storeId");
 
-    // Decode and normalize email
-    const decodedEmail = decodeURIComponent(encodedEmail);
-    const normalizedEmail = decodedEmail.toLowerCase();
+    // Decode the customer key
+    const customerKey = decodeURIComponent(encodedKey);
+
+    // Build the where clause based on customer key type
+    const customerWhere = parseCustomerKey(customerKey);
 
     // Fetch all orders for this customer
     const orders = await prisma.order.findMany({
       where: {
-        customerEmail: { equals: normalizedEmail, mode: "insensitive" },
+        ...customerWhere,
         ...(storeId && storeId !== "all" && { storeId }),
       },
       include: {
@@ -68,7 +135,7 @@ export async function GET(
       orderBy: { createdAt: "desc" },
     });
 
-    // Return 404 if no orders found for this email
+    // Return 404 if no orders found for this customer
     if (orders.length === 0) {
       return NextResponse.json(
         { error: "Clientul nu a fost gasit" },
@@ -148,13 +215,15 @@ export async function GET(
         : null,
     }));
 
-    // Fetch customer note
+    // Fetch customer note (use email if available, otherwise use the customerKey)
+    const noteKey = customerKey.includes("@") ? customerKey.toLowerCase() : customerKey;
     const customerNote = await prisma.customerNote.findUnique({
-      where: { email: normalizedEmail },
+      where: { email: noteKey },
     });
 
     return NextResponse.json({
       customer,
+      customerKey,
       analytics,
       topProducts,
       orders: formattedOrders,

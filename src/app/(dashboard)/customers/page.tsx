@@ -27,7 +27,8 @@ import { SkeletonTableRow } from "@/components/ui/skeleton";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 interface Customer {
-  email: string;
+  customerKey: string;
+  email: string | null;
   phone: string | null;
   firstName: string | null;
   lastName: string | null;
@@ -211,7 +212,7 @@ export default function CustomersPage() {
                 <tbody className="divide-y">
                   {data.customers.map((customer) => (
                     <tr
-                      key={customer.email}
+                      key={customer.customerKey}
                       className="hover:bg-muted/50 cursor-pointer"
                       onClick={() => handleViewCustomer(customer)}
                     >
@@ -219,10 +220,12 @@ export default function CustomersPage() {
                         <div className="font-medium">
                           {formatCustomerName(customer)}
                         </div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          {customer.email}
-                        </div>
+                        {customer.email && (
+                          <div className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            {customer.email}
+                          </div>
+                        )}
                       </td>
                       <td className="p-4">
                         {customer.phone ? (

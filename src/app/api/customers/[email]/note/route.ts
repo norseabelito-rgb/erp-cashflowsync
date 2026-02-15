@@ -6,6 +6,7 @@ import { hasPermission } from "@/lib/permissions";
 import { validateEmbedToken } from "@/lib/embed-auth";
 
 // POST /api/customers/[email]/note - Save or update customer note
+// Note: The [email] param is now a customerKey (email, phone, or name:First Last)
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ email: string }> }
@@ -30,8 +31,9 @@ export async function POST(
       userId = session.user.id;
     }
 
-    const { email: encodedEmail } = await params;
-    const email = decodeURIComponent(encodedEmail).toLowerCase();
+    const { email: encodedKey } = await params;
+    // Use customerKey as the note identifier (email for email-based, full key for others)
+    const customerKey = decodeURIComponent(encodedKey).toLowerCase();
     const body = await request.json();
     const { note } = body;
 
@@ -39,15 +41,15 @@ export async function POST(
       return NextResponse.json({ error: "Note must be a string" }, { status: 400 });
     }
 
-    // Upsert the note
+    // Upsert the note using customerKey as the unique identifier
     const customerNote = await prisma.customerNote.upsert({
-      where: { email },
+      where: { email: customerKey },
       update: {
         note,
         updatedBy: userId,
       },
       create: {
-        email,
+        email: customerKey,
         note,
         updatedBy: userId,
       },
@@ -64,6 +66,7 @@ export async function POST(
 }
 
 // GET /api/customers/[email]/note - Get customer note
+// Note: The [email] param is now a customerKey (email, phone, or name:First Last)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ email: string }> }
@@ -85,11 +88,11 @@ export async function GET(
       }
     }
 
-    const { email: encodedEmail } = await params;
-    const email = decodeURIComponent(encodedEmail).toLowerCase();
+    const { email: encodedKey } = await params;
+    const customerKey = decodeURIComponent(encodedKey).toLowerCase();
 
     const customerNote = await prisma.customerNote.findUnique({
-      where: { email },
+      where: { email: customerKey },
     });
 
     return NextResponse.json({ note: customerNote?.note || "" });

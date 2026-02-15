@@ -20,7 +20,8 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { CustomerDetailModal } from "@/components/customers/customer-detail-modal";
 
 interface Customer {
-  email: string;
+  customerKey: string;
+  email: string | null;
   phone: string | null;
   firstName: string | null;
   lastName: string | null;
@@ -189,7 +190,7 @@ function CustomersEmbedContent() {
               <tbody className="divide-y">
                 {data.customers.map((customer: Customer) => (
                   <tr
-                    key={customer.email}
+                    key={customer.customerKey}
                     className="hover:bg-muted/50 cursor-pointer"
                     onClick={() => handleViewCustomer(customer)}
                   >
@@ -199,10 +200,12 @@ function CustomersEmbedContent() {
                           ? `${customer.firstName || ""} ${customer.lastName || ""}`.trim()
                           : "(Fara nume)"}
                       </div>
-                      <div className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
-                        {customer.email}
-                      </div>
+                      {customer.email && (
+                        <div className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {customer.email}
+                        </div>
+                      )}
                     </td>
                     <td className="p-4">
                       {customer.phone ? (

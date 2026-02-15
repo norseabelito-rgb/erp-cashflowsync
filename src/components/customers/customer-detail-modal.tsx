@@ -31,7 +31,8 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 
 interface CustomerDetailModalProps {
   customer: {
-    email: string;
+    customerKey: string;
+    email: string | null;
     firstName: string | null;
     lastName: string | null;
   } | null;
@@ -78,12 +79,12 @@ export function CustomerDetailModal({
 
   // Fetch full details only when modal is open
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["customer-detail", customer?.email, storeId],
+    queryKey: ["customer-detail", customer?.customerKey, storeId],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (storeId && storeId !== "all") params.set("storeId", storeId);
       const res = await fetch(
-        `/api/customers/${encodeURIComponent(customer!.email)}?${params}`,
+        `/api/customers/${encodeURIComponent(customer!.customerKey)}?${params}`,
         {
           headers: embedToken ? { Authorization: `Bearer ${embedToken}` } : {},
         }
@@ -91,7 +92,7 @@ export function CustomerDetailModal({
       if (!res.ok) throw new Error("Failed to fetch customer details");
       return res.json();
     },
-    enabled: open && !!customer?.email,
+    enabled: open && !!customer?.customerKey,
   });
 
   // Update note text when data loads
@@ -108,7 +109,7 @@ export function CustomerDetailModal({
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (embedToken) headers["Authorization"] = `Bearer ${embedToken}`;
       const res = await fetch(
-        `/api/customers/${encodeURIComponent(customer!.email)}/note`,
+        `/api/customers/${encodeURIComponent(customer!.customerKey)}/note`,
         {
           method: "POST",
           headers,
@@ -121,7 +122,7 @@ export function CustomerDetailModal({
     onSuccess: () => {
       setHasChanges(false);
       queryClient.invalidateQueries({
-        queryKey: ["customer-detail", customer?.email],
+        queryKey: ["customer-detail", customer?.customerKey],
       });
     },
   });
@@ -137,7 +138,8 @@ export function CustomerDetailModal({
 
   const customerName = customer
     ? `${customer.firstName || ""} ${customer.lastName || ""}`.trim() ||
-      customer.email
+      customer.email ||
+      customer.customerKey
     : "";
 
   return (

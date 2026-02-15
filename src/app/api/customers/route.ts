@@ -4,10 +4,26 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 import { validateEmbedToken } from "@/lib/embed-auth";
-import { Prisma } from "@prisma/client";
+
+/**
+ * Customer key: a composite identifier that uniquely identifies a customer.
+ * Priority: email (lowercased) > phone > "name:FirstName LastName"
+ * This ensures ALL customers are visible, not just those with emails.
+ */
+const CUSTOMER_KEY_EXPR = `COALESCE(
+  NULLIF(LOWER(TRIM(o."customerEmail")), ''),
+  NULLIF(TRIM(o."customerPhone"), ''),
+  CASE
+    WHEN TRIM(COALESCE(o."customerFirstName", '') || ' ' || COALESCE(o."customerLastName", '')) != ''
+    THEN 'name:' || TRIM(COALESCE(o."customerFirstName", '') || ' ' || COALESCE(o."customerLastName", ''))
+    ELSE NULL
+  END,
+  'unknown:' || o.id
+)`;
 
 interface CustomerRow {
-  email: string;
+  customerKey: string;
+  email: string | null;
   phone: string | null;
   firstName: string | null;
   lastName: string | null;
@@ -50,7 +66,15 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Build base WHERE conditions
-    const conditions: string[] = [`o."customerEmail" IS NOT NULL`];
+    // Include ALL orders - at least one customer identifier must exist
+    const conditions: string[] = [
+      `(
+        (o."customerEmail" IS NOT NULL AND TRIM(o."customerEmail") != '')
+        OR (o."customerPhone" IS NOT NULL AND TRIM(o."customerPhone") != '')
+        OR (o."customerFirstName" IS NOT NULL AND TRIM(o."customerFirstName") != '')
+        OR (o."customerLastName" IS NOT NULL AND TRIM(o."customerLastName") != '')
+      )`
+    ];
     const params: (string | number)[] = [];
     let paramIndex = 1;
 
@@ -77,9 +101,9 @@ export async function GET(request: NextRequest) {
 
     const whereClause = conditions.join(" AND ");
 
-    // Get total count for pagination (count unique emails)
+    // Get total count for pagination (count unique customer keys)
     const countQuery = `
-      SELECT COUNT(DISTINCT LOWER(o."customerEmail")) as count
+      SELECT COUNT(DISTINCT ${CUSTOMER_KEY_EXPR}) as count
       FROM orders o
       WHERE ${whereClause}
     `;
@@ -90,20 +114,21 @@ export async function GET(request: NextRequest) {
     );
     const total = Number(countResult[0]?.count || 0);
 
-    // Get aggregated customer data
+    // Get aggregated customer data, grouped by composite customer key
     const customersQuery = `
       SELECT
-        LOWER(o."customerEmail") as email,
-        MAX(o."customerPhone") as phone,
-        MAX(o."customerFirstName") as "firstName",
-        MAX(o."customerLastName") as "lastName",
+        ${CUSTOMER_KEY_EXPR} as "customerKey",
+        MAX(LOWER(NULLIF(TRIM(o."customerEmail"), ''))) as email,
+        MAX(NULLIF(TRIM(o."customerPhone"), '')) as phone,
+        MAX(NULLIF(TRIM(o."customerFirstName"), '')) as "firstName",
+        MAX(NULLIF(TRIM(o."customerLastName"), '')) as "lastName",
         COUNT(*)::int as "orderCount",
         COALESCE(SUM(o."totalPrice"::numeric), 0) as "totalSpent",
         MAX(o."createdAt") as "lastOrderDate",
         MIN(o."createdAt") as "firstOrderDate"
       FROM orders o
       WHERE ${whereClause}
-      GROUP BY LOWER(o."customerEmail")
+      GROUP BY ${CUSTOMER_KEY_EXPR}
       ORDER BY "totalSpent" DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
@@ -117,10 +142,11 @@ export async function GET(request: NextRequest) {
 
     // Format the response - convert Decimal to number
     const formattedCustomers = customers.map((c) => ({
-      email: c.email,
-      phone: c.phone,
-      firstName: c.firstName,
-      lastName: c.lastName,
+      customerKey: c.customerKey,
+      email: c.email || null,
+      phone: c.phone || null,
+      firstName: c.firstName || null,
+      lastName: c.lastName || null,
       orderCount: c.orderCount,
       totalSpent: Number(c.totalSpent),
       lastOrderDate: c.lastOrderDate,
