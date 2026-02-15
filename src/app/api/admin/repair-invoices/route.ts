@@ -107,31 +107,47 @@ export async function GET() {
           const number = oblioInv.number?.toString();
           if (!seriesName || !number) continue;
 
-          // Gaseste factura in DB
-          const dbInvoice = await prisma.invoice.findFirst({
+          // Gaseste factura in DB - incearca mai multe strategii
+          let dbInvoice = await prisma.invoice.findFirst({
             where: {
               invoiceSeriesName: seriesName,
               invoiceNumber: number,
               companyId: company.id,
               status: "issued",
             },
-            include: {
-              order: true,
-            },
+            include: { order: true },
           });
 
-          const orderNumber = dbInvoice?.order?.shopifyOrderNumber || oblioInv.mentions || "-";
-          const correctCustomer = dbInvoice?.order
-            ? [dbInvoice.order.customerFirstName, dbInvoice.order.customerLastName]
+          // Fallback: extrage numarul comenzii din mentions ("Comanda online: #58537")
+          let orderFromMentions = null;
+          const mentions = oblioInv.mentions || oblioInv.observations || "";
+          const orderMatch = mentions.match(/#(\d+)/);
+          if (!dbInvoice && orderMatch) {
+            const shopifyNum = `#${orderMatch[1]}`;
+            const order = await prisma.order.findFirst({
+              where: { shopifyOrderNumber: shopifyNum },
+              include: { invoice: true },
+            });
+            if (order?.invoice && order.invoice.status === "issued") {
+              dbInvoice = { ...order.invoice, order } as any;
+            } else if (order) {
+              orderFromMentions = order;
+            }
+          }
+
+          const order = dbInvoice?.order || orderFromMentions;
+          const orderNumber = order?.shopifyOrderNumber || (orderMatch ? `#${orderMatch[1]}` : mentions || "-");
+          const correctCustomer = order
+            ? [order.customerFirstName, order.customerLastName]
                 .filter(Boolean)
                 .join(" ") || "Client"
-            : "N/A (fara comanda in DB)";
+            : "N/A";
 
           allAffected.push({
             id: dbInvoice?.id || `oblio-${seriesName}-${number}`,
             invoiceNumber: number,
             invoiceSeriesName: seriesName,
-            orderId: dbInvoice?.orderId || null,
+            orderId: order?.id || null,
             orderNumber,
             oblioClient: oblioInv.client?.name || oblioInv.clientName || oblioInv.client || "N/A",
             correctCustomer,
