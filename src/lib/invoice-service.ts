@@ -545,8 +545,11 @@ export async function issueInvoiceForOrder(
     }
 
     // 9. Construim datele facturii
-    const customerName = order.billingCompany
-      ? order.billingCompany.name
+    // billingCompany e B2B real DOAR daca e diferit de company-ul emitent (store's company)
+    const isRealB2B = !!order.billingCompany && order.billingCompany.id !== order.store?.companyId;
+
+    const customerName = isRealB2B
+      ? order.billingCompany!.name
       : [order.customerFirstName, order.customerLastName].filter(Boolean).join(" ") || "Client";
 
     const customerAddress = [order.shippingAddress1, order.shippingAddress2]
@@ -556,7 +559,7 @@ export async function issueInvoiceForOrder(
     const vatRate = Number(company.defaultVatRate) || 19;
 
     // Determinăm dacă e persoană juridică (din billingCompany)
-    const isCompany = !!order.billingCompany;
+    const isCompany = isRealB2B;
     const billingCompanyName = order.billingCompany?.name || null;
     const billingVatNumber = order.billingCompany?.cif || null;
     const billingRegNumber = order.billingCompany?.regCom || null;
