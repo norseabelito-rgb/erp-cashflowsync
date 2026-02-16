@@ -325,7 +325,10 @@ export async function createAWBForOrder(
       costCenter: order.store?.name || company.name,
       options: [
         "X", // ePOD
-        ...(order.lineItems?.some((item) => item.title.toUpperCase().includes("VERIFICARE COLET")) ? ["A"] : []),
+        ...(order.lineItems?.some((item) => {
+          const title = item.title.toUpperCase();
+          return title.includes("VERIFICARE COLET") || title.includes("LIVRARE CU VERIFICARE");
+        }) ? ["A"] : []),
       ],
     });
 
