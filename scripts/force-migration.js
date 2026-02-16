@@ -41,7 +41,7 @@ async function runMigration() {
     console.log('✅ Conectat!');
 
     // Găsește toate fișierele SQL din folderul manual
-    const manualDir = path.join(__dirname, '../prisma/migrations/manual');
+    const manualDir = path.join(__dirname, '../prisma/manual-migrations');
 
     if (!fs.existsSync(manualDir)) {
       console.log('⚠️  Folderul de migrații manual nu există, skip...');
