@@ -255,12 +255,40 @@ export async function GET(request: NextRequest) {
       temu: 0, // Placeholder - no Temu orders yet
     };
 
-    // API compat: map invoices[0] → invoice for frontend
-    const ordersWithCompat = orders.map((o: any) => ({
-      ...o,
-      invoice: o.invoices?.[0] || null,
-      invoices: undefined,
-    }));
+    // Count total orders per customer (across all stores) for "Comenzi multiple" tag
+    // Collect unique customer identifiers (email or phone)
+    const customerKeys = new Set<string>();
+    for (const o of orders as any[]) {
+      const key = o.customerEmail?.trim().toLowerCase() || o.customerPhone?.trim();
+      if (key) customerKeys.add(key);
+    }
+
+    let customerOrderCounts: Record<string, number> = {};
+    if (customerKeys.size > 0) {
+      const countRows = await prisma.$queryRawUnsafe<Array<{ key: string; cnt: bigint }>>(
+        `SELECT
+          COALESCE(NULLIF(LOWER(TRIM("customerEmail")), ''), NULLIF(TRIM("customerPhone"), '')) as key,
+          COUNT(*) as cnt
+        FROM orders
+        WHERE COALESCE(NULLIF(LOWER(TRIM("customerEmail")), ''), NULLIF(TRIM("customerPhone"), '')) = ANY($1)
+        GROUP BY key`,
+        Array.from(customerKeys)
+      );
+      for (const row of countRows) {
+        customerOrderCounts[row.key] = Number(row.cnt);
+      }
+    }
+
+    // API compat: map invoices[0] → invoice for frontend + add customerOrderCount
+    const ordersWithCompat = orders.map((o: any) => {
+      const key = o.customerEmail?.trim().toLowerCase() || o.customerPhone?.trim();
+      return {
+        ...o,
+        invoice: o.invoices?.[0] || null,
+        invoices: undefined,
+        customerOrderCount: key ? (customerOrderCounts[key] || 1) : 1,
+      };
+    });
 
     return NextResponse.json({
       orders: ordersWithCompat,

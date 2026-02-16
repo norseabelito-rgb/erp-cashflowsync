@@ -153,6 +153,7 @@ interface Order {
     name: string;
     color: string;
   } | null;
+  customerOrderCount?: number;
 }
 
 interface Store {
@@ -1665,7 +1666,14 @@ export default function OrdersPage() {
                         <p className="text-xs text-muted-foreground mt-1">{formatDate(order.createdAt)}</p>
                       </td>
                       <td className="p-4">
-                        <p className="font-medium">{order.customerFirstName} {order.customerLastName}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{order.customerFirstName} {order.customerLastName}</p>
+                          {(order.customerOrderCount || 0) > 1 && (
+                            <Badge variant="info" className="text-[10px] px-1.5 py-0">
+                              {order.customerOrderCount} comenzi
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-sm text-muted-foreground">{order.customerEmail}</p>
                         <p className="text-sm text-muted-foreground">{order.shippingCity}, {order.shippingProvince}</p>
                       </td>
