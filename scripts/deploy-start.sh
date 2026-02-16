@@ -1,8 +1,9 @@
 #!/bin/bash
+set -e
 
-# 1. Run Prisma migrations (ignore errors for baseline case)
+# 1. Run Prisma migrations (MUST succeed or app won't start)
 echo "Running Prisma migrations..."
-npx prisma migrate deploy || echo "Migration skipped - may need baseline"
+npx prisma migrate deploy
 
 # 2. Run custom manual migrations
 echo "Running custom migrations..."

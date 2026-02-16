@@ -520,7 +520,7 @@ export default function OrdersPage() {
             if (orderData.order) {
               setViewOrder(orderData.order);
             }
-          });
+          }).catch(() => {});
         }
       } else {
         toast({ title: "Eroare facturare", description: data.error || "Verifica setarile Oblio", variant: "destructive" });
@@ -530,7 +530,7 @@ export default function OrdersPage() {
             if (orderData.order) {
               setViewOrder(orderData.order);
             }
-          });
+          }).catch(() => {});
         }
       }
       setSelectedOrders([]);
@@ -574,7 +574,7 @@ export default function OrdersPage() {
           if (orderData.order) {
             setViewOrder(orderData.order);
           }
-        });
+        }).catch(() => {});
       }
       setSelectedOrders([]);
       setAwbModalOpen(false);
@@ -602,7 +602,7 @@ export default function OrdersPage() {
             if (orderData.order) {
               setViewOrder(orderData.order);
             }
-          });
+          }).catch(() => {});
         }
       } else {
         toast({ title: "Eroare", description: data.error, variant: "destructive" });
@@ -2622,7 +2622,7 @@ export default function OrdersPage() {
                                         // Refresh order data
                                         fetch(`/api/orders/${viewOrder.id}`).then(res => res.json()).then(orderData => {
                                           if (orderData.order) setViewOrder(orderData.order);
-                                        });
+                                        }).catch(() => {});
                                       } else {
                                         toast({ title: "Eroare", description: data.error || "Nu s-a putut trimite AWB", variant: "destructive" });
                                       }
