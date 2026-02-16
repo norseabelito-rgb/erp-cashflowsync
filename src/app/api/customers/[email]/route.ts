@@ -124,7 +124,9 @@ export async function GET(
         store: {
           select: { id: true, name: true },
         },
-        invoice: {
+        invoices: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
           select: { id: true, invoiceNumber: true, status: true },
         },
         awb: {
@@ -201,10 +203,10 @@ export async function GET(
       status: o.status,
       createdAt: o.createdAt,
       store: o.store,
-      invoice: o.invoice
+      invoice: o.invoices?.[0]
         ? {
-            invoiceNumber: o.invoice.invoiceNumber,
-            status: o.invoice.status,
+            invoiceNumber: o.invoices[0].invoiceNumber,
+            status: o.invoices[0].status,
           }
         : null,
       awb: o.awb

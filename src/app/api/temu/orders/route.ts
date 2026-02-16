@@ -101,7 +101,9 @@ export async function GET(request: NextRequest) {
               },
             },
           },
-          invoice: {
+          invoices: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
             select: {
               id: true,
               invoiceNumber: true,
@@ -163,9 +165,16 @@ export async function GET(request: NextRequest) {
       orderBy: { name: "asc" },
     });
 
+    // API compat: map invoices[0] → invoice for frontend
+    const ordersWithCompat = orders.map((o: any) => ({
+      ...o,
+      invoice: o.invoices?.[0] || null,
+      invoices: undefined,
+    }));
+
     return NextResponse.json({
       success: true,
-      orders,
+      orders: ordersWithCompat,
       temuStores,
       pagination: {
         page,

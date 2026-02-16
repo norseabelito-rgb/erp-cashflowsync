@@ -39,7 +39,7 @@ export async function GET() {
       prisma.order.count({
         where: {
           source: "temu",
-          invoice: null,
+          invoices: { none: {} },
           status: { in: ["VALIDATED", "PENDING"] },
         },
       }),
@@ -49,7 +49,7 @@ export async function GET() {
         where: {
           source: "temu",
           awb: null,
-          invoice: { isNot: null },
+          invoices: { some: {} },
         },
       }),
 

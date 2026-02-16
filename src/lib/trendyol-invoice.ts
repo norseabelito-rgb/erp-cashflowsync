@@ -169,7 +169,7 @@ export async function retryFailedInvoiceSends(): Promise<{
     },
     include: {
       order: {
-        include: { invoice: true },
+        include: { invoices: { where: { status: "issued" }, orderBy: { createdAt: "desc" }, take: 1 } },
       },
     },
   });
@@ -228,8 +228,10 @@ export async function getPendingInvoiceSends(): Promise<{
       invoiceSentToTrendyol: false,
       orderId: { not: null },
       order: {
-        invoice: {
-          status: "issued",
+        invoices: {
+          some: {
+            status: "issued",
+          },
         },
       },
     },

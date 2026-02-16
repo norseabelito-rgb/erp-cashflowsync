@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
       include: {
         order: {
           include: {
-            invoice: true,
+            invoices: { orderBy: { createdAt: "desc" }, take: 1 },
             awb: true,
           },
         },
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
     try {
       if (error.type === "INVOICE") {
         // Retry emitere factură
-        if (error.order.invoice) {
+        if (error.order.invoices?.[0]) {
           retryResult = { success: true, data: { message: "Factura există deja" } };
         } else {
           const invoiceResult = await issueInvoiceForOrder(error.orderId);

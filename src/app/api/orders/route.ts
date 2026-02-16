@@ -194,7 +194,9 @@ export async function GET(request: NextRequest) {
             shopifyDomain: true,
           },
         },
-        invoice: {
+        invoices: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
           select: {
             id: true,
             invoiceNumber: true,
@@ -253,8 +255,15 @@ export async function GET(request: NextRequest) {
       temu: 0, // Placeholder - no Temu orders yet
     };
 
+    // API compat: map invoices[0] → invoice for frontend
+    const ordersWithCompat = orders.map((o: any) => ({
+      ...o,
+      invoice: o.invoices?.[0] || null,
+      invoices: undefined,
+    }));
+
     return NextResponse.json({
-      orders,
+      orders: ordersWithCompat,
       pagination: {
         page,
         limit,

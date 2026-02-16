@@ -182,7 +182,9 @@ export async function processReturnManifestStornare(
               cancelledAt: new Date(),
               cancelReason: `Return manifest ${manifestId}`,
               cancellationSource: CancellationSource.MANIFEST_RETURN,
-              cancelledFromManifestId: manifestId
+              cancelledFromManifestId: manifestId,
+              stornoNumber: stornoResult.invoiceNumber || null,
+              stornoSeries: stornoResult.invoiceSeries || null,
             }
           }),
           prisma.manifestItem.update({

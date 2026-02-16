@@ -34,7 +34,7 @@ export async function GET(
       where: { id: params.id },
       include: {
         store: true,
-        invoice: true,
+        invoices: { orderBy: { createdAt: "desc" }, take: 1 },
         awb: true,
         lineItems: true,
       },
@@ -47,7 +47,8 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ order });
+    // API compat: map invoices[0] → invoice for frontend
+    return NextResponse.json({ order: { ...order, invoice: order.invoices?.[0] || null, invoices: undefined } });
   } catch (error: any) {
     console.error("Error fetching order:", error);
     return NextResponse.json(
@@ -104,7 +105,7 @@ export async function PUT(
       where: { id: params.id },
       include: {
         store: true,
-        invoice: true,
+        invoices: { where: { status: "issued" }, orderBy: { createdAt: "desc" }, take: 1 },
         awb: true,
       },
     });
@@ -117,7 +118,7 @@ export async function PUT(
     }
 
     // Verificăm dacă există documente emise
-    const hasInvoice = order.invoice && order.invoice.status === "issued";
+    const hasInvoice = order.invoices?.[0] && order.invoices[0].status === "issued";
     const hasAwb = order.awb && order.awb.awbNumber;
     const hasDocuments = hasInvoice || hasAwb;
 
@@ -127,7 +128,7 @@ export async function PUT(
           error: "Comanda are documente emise",
           hasInvoice,
           hasAwb,
-          invoiceNumber: hasInvoice ? `${order.invoice!.invoiceSeriesName || ''}${order.invoice!.invoiceNumber || ''}` : null,
+          invoiceNumber: hasInvoice ? `${order.invoices[0]!.invoiceSeriesName || ''}${order.invoices[0]!.invoiceNumber || ''}` : null,
           awbNumber: hasAwb ? order.awb!.awbNumber : null,
           requiresAcknowledgement: true,
         },
@@ -209,16 +210,18 @@ export async function PUT(
     if (shippingProvince !== undefined) updateData.shippingProvince = shippingProvince;
     if (shippingZip !== undefined) updateData.shippingZip = shippingZip;
 
-    const updatedOrder = await prisma.order.update({
+    const updatedOrderRaw = await prisma.order.update({
       where: { id: params.id },
       data: updateData,
       include: {
         store: true,
-        invoice: true,
+        invoices: { orderBy: { createdAt: "desc" }, take: 1 },
         awb: true,
         lineItems: true,
       },
     });
+    // API compat: map invoices[0] → invoice for frontend
+    const updatedOrder = { ...updatedOrderRaw, invoice: updatedOrderRaw.invoices?.[0] || null, invoices: undefined };
 
     // Sincronizăm în Shopify
     let shopifySynced = false;

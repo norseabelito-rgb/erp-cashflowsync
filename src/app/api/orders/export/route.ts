@@ -37,8 +37,8 @@ export async function GET(request: NextRequest) {
       if (startDate) where.createdAt.gte = new Date(startDate);
       if (endDate) where.createdAt.lte = new Date(endDate + "T23:59:59.999Z");
     }
-    if (hasInvoice === "true") where.invoice = { isNot: null };
-    if (hasInvoice === "false") where.invoice = null;
+    if (hasInvoice === "true") where.invoices = { some: {} };
+    if (hasInvoice === "false") where.invoices = { none: {} };
     if (hasAwb === "true") where.awb = { isNot: null };
     if (hasAwb === "false") where.awb = null;
 
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         store: { select: { name: true } },
-        invoice: { select: { invoiceNumber: true, invoiceSeriesName: true, status: true } },
+        invoices: { orderBy: { createdAt: "desc" }, take: 1, select: { invoiceNumber: true, invoiceSeriesName: true, status: true } },
         awb: { select: { awbNumber: true, currentStatus: true, serviceType: true } },
         lineItems: {
           select: {
@@ -99,8 +99,9 @@ export async function GET(request: NextRequest) {
         .map((li) => `${li.sku || "-"}: ${li.title} x${li.quantity}`)
         .join("; ");
 
-      const invoiceNumber = o.invoice?.invoiceNumber
-        ? `${o.invoice.invoiceSeriesName || ""}${o.invoice.invoiceNumber}`
+      const inv = o.invoices?.[0];
+      const invoiceNumber = inv?.invoiceNumber
+        ? `${inv.invoiceSeriesName || ""}${inv.invoiceNumber}`
         : "";
 
       return [
@@ -125,7 +126,7 @@ export async function GET(request: NextRequest) {
         o.financialStatus || "",
         o.fulfillmentStatus || "",
         invoiceNumber,
-        o.invoice?.status || "",
+        inv?.status || "",
         o.awb?.awbNumber || "",
         o.awb?.serviceType || "",
         o.awb?.currentStatus || "",

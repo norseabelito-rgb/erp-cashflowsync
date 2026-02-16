@@ -51,7 +51,7 @@ export async function fetchDeliveryManifest(
       include: {
         order: {
           include: {
-            invoice: true
+            invoices: { where: { status: "issued" }, orderBy: { createdAt: "desc" }, take: 1 }
           }
         }
       }
@@ -101,7 +101,7 @@ export async function fetchDeliveryManifest(
       manifestItems.push({
         awbNumber: awb.awbNumber!,
         orderId: awb.order?.id || null,
-        invoiceId: awb.order?.invoice?.id || null,
+        invoiceId: awb.order?.invoices?.[0]?.id || null,
         status: ManifestItemStatus.PENDING
       });
     }
@@ -185,7 +185,7 @@ export async function parseDeliveryManifestCSV(
     // Find AWBs in database
     const existingAwbs = await prisma.aWB.findMany({
       where: { awbNumber: { in: awbNumbers } },
-      include: { order: { include: { invoice: true } } }
+      include: { order: { include: { invoices: { where: { status: "issued" }, orderBy: { createdAt: "desc" }, take: 1 } } } }
     });
 
     const awbMap = new Map(existingAwbs.map(a => [a.awbNumber, a]));

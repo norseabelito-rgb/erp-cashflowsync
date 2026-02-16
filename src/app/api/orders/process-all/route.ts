@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       where: { id: { in: orderIds } },
       include: {
         store: true,
-        invoice: true,
+        invoices: { where: { status: { not: "cancelled" } }, orderBy: { createdAt: "desc" }, take: 1 },
         awb: true,
         lineItems: true,
         trendyolOrder: true,
@@ -112,10 +112,10 @@ export async function POST(request: NextRequest) {
       };
 
       // PASUL 1: Emite factura (dacă nu există deja una validă)
-      const needsInvoice = !order.invoice || 
-                          order.invoice.status === "error" || 
-                          order.invoice.status === "deleted" ||
-                          order.invoice.status === "cancelled";
+      const activeInvoice = order.invoices?.[0];
+      const needsInvoice = !activeInvoice ||
+                          activeInvoice.status === "error" ||
+                          activeInvoice.status === "deleted";
 
       if (needsInvoice) {
         try {
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
       } else {
         // Factura există deja și e validă
         result.invoiceSuccess = true;
-        result.invoiceNumber = `${order.invoice!.invoiceSeriesName || ''}${order.invoice!.invoiceNumber || ''}`;
+        result.invoiceNumber = `${activeInvoice!.invoiceSeriesName || ''}${activeInvoice!.invoiceNumber || ''}`;
         console.log(`ℹ️ Factură existentă: ${result.invoiceNumber}`);
       }
 

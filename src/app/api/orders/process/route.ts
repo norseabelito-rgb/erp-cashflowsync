@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       where: { id: { in: orderIds } },
       include: {
         store: true,
-        invoice: true,
+        invoices: { where: { status: { not: "cancelled" } }, orderBy: { createdAt: "desc" }, take: 1 },
         awb: true,
         lineItems: true,
       },
@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
       };
 
       // PASUL 1: Emitere factură (dacă nu există deja)
-      if (!order.invoice) {
+      const activeInvoice = order.invoices?.[0];
+      if (!activeInvoice) {
         try {
           const invoiceResult = await issueInvoiceForOrder(order.id);
           if (invoiceResult.success) {
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
       } else {
         // Factura există deja
         result.invoiceSuccess = true;
-        result.invoiceNumber = order.invoice.invoiceNumber || undefined;
+        result.invoiceNumber = activeInvoice.invoiceNumber || undefined;
       }
 
       // PASUL 2: Emitere AWB (doar dacă factura a reușit și nu există AWB)

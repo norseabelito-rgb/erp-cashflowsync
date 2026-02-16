@@ -126,10 +126,10 @@ export async function GET() {
             const shopifyNum = `#${orderMatch[1]}`;
             const order = await prisma.order.findFirst({
               where: { shopifyOrderNumber: shopifyNum },
-              include: { invoice: true },
+              include: { invoices: { where: { status: "issued" }, orderBy: { createdAt: "desc" }, take: 1 } },
             });
-            if (order?.invoice && order.invoice.status === "issued") {
-              dbInvoice = { ...order.invoice, order } as any;
+            if (order?.invoices?.[0] && order.invoices[0].status === "issued") {
+              dbInvoice = { ...order.invoices[0], order } as any;
             } else if (order) {
               orderFromMentions = order;
             }

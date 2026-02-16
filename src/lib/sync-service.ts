@@ -140,7 +140,7 @@ export async function runFullSync(type: SyncType = "MANUAL") {
       where: {
         OR: [
           { awb: { isNot: null } },
-          { invoice: { isNot: null } },
+          { invoices: { some: {} } },
         ],
         // Exclude comenzile finalizate (livrate/returnate/anulate) mai vechi de 30 zile
         NOT: {
@@ -152,21 +152,21 @@ export async function runFullSync(type: SyncType = "MANUAL") {
       },
       include: {
         awb: true,
-        invoice: true,
+        invoices: { orderBy: { createdAt: "desc" }, take: 1 },
       },
       orderBy: { createdAt: "desc" },
     });
-    
+
     await addLogEntry(syncLogId, {
       level: "INFO",
       action: "ORDERS_FETCHED",
       message: `📋 Găsite ${orders.length} comenzi pentru sincronizare`,
       details: { totalOrders: orders.length },
     });
-    
+
     // Inițializează FanCourier
     const settings = await prisma.settings.findUnique({ where: { id: "default" } });
-    
+
     if (!settings?.fancourierClientId || !settings?.fancourierUsername || !settings?.fancourierPassword) {
       await addLogEntry(syncLogId, {
         level: "ERROR",
@@ -174,17 +174,17 @@ export async function runFullSync(type: SyncType = "MANUAL") {
         message: "❌ Configurare FanCourier lipsă - nu pot sincroniza AWB-uri",
       });
     }
-    
+
     const fancourier = settings?.fancourierClientId ? new FanCourierClient({
       clientId: settings.fancourierClientId,
       username: settings.fancourierUsername!,
       password: settings.fancourierPassword!,
     }) : null;
-    
+
     // 2. Procesează fiecare comandă
     for (const order of orders) {
       stats.ordersProcessed++;
-      
+
       await addLogEntry(syncLogId, {
         level: "INFO",
         action: "ORDER_PROCESSING_START",
@@ -192,7 +192,7 @@ export async function runFullSync(type: SyncType = "MANUAL") {
         orderId: order.id,
         orderNumber: order.shopifyOrderNumber,
       });
-      
+
       // 2a. Sincronizează AWB
       if (order.awb?.awbNumber && fancourier) {
         try {
@@ -218,10 +218,11 @@ export async function runFullSync(type: SyncType = "MANUAL") {
           orderNumber: order.shopifyOrderNumber,
         });
       }
-      
+
       // 2b. Verifică status factură
-      if (order.invoice) {
-        await syncInvoiceStatus(syncLogId, order, stats);
+      const invoice = order.invoices?.[0];
+      if (invoice) {
+        await syncInvoiceStatus(syncLogId, { ...order, invoice }, stats);
       }
     }
     
@@ -765,13 +766,13 @@ export async function syncSingleOrder(orderId: string) {
   try {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { awb: true, invoice: true },
+      include: { awb: true, invoices: { orderBy: { createdAt: "desc" }, take: 1 } },
     });
-    
+
     if (!order) {
       throw new Error(`Comanda cu ID ${orderId} nu a fost găsită`);
     }
-    
+
     await addLogEntry(syncLogId, {
       level: "INFO",
       action: "SINGLE_ORDER_SYNC",
@@ -779,27 +780,28 @@ export async function syncSingleOrder(orderId: string) {
       orderId: order.id,
       orderNumber: order.shopifyOrderNumber,
     });
-    
+
     stats.ordersProcessed = 1;
-    
+
     // Sincronizează AWB
     if (order.awb?.awbNumber) {
       const settings = await prisma.settings.findUnique({ where: { id: "default" } });
-      
+
       if (settings?.fancourierClientId) {
         const fancourier = new FanCourierClient({
           clientId: settings.fancourierClientId,
           username: settings.fancourierUsername!,
           password: settings.fancourierPassword!,
         });
-        
+
         await syncAWBStatus(syncLogId, order, fancourier, stats);
       }
     }
-    
+
     // Verifică factură
-    if (order.invoice) {
-      await syncInvoiceStatus(syncLogId, order, stats);
+    const invoice = order.invoices?.[0];
+    if (invoice) {
+      await syncInvoiceStatus(syncLogId, { ...order, invoice }, stats);
     }
     
     await completeSyncSession(syncLogId, stats);

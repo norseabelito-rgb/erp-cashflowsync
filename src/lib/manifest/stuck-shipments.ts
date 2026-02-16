@@ -73,18 +73,23 @@ export async function getStuckShipments({
       awbNumber: { not: null },
       // Invoice not cancelled
       order: {
-        invoice: {
-          OR: [
-            { status: { not: "cancelled" } },
-            { status: null }
-          ]
+        invoices: {
+          some: {
+            OR: [
+              { status: { not: "cancelled" } },
+              { status: null }
+            ]
+          }
         }
       }
     },
     include: {
       order: {
         include: {
-          invoice: {
+          invoices: {
+            where: { status: { not: "cancelled" } },
+            orderBy: { createdAt: "desc" },
+            take: 1,
             select: {
               invoiceSeriesName: true,
               invoiceNumber: true,
@@ -131,8 +136,8 @@ export async function getStuckShipments({
       awbNumber: awb.awbNumber || "",
       orderNumber: order?.shopifyOrderId || null,
       shopifyOrderNumber: order?.shopifyOrderNumber || null,
-      invoiceSeries: order?.invoice?.invoiceSeriesName || null,
-      invoiceNumber: order?.invoice?.invoiceNumber || null,
+      invoiceSeries: order?.invoices?.[0]?.invoiceSeriesName || null,
+      invoiceNumber: order?.invoices?.[0]?.invoiceNumber || null,
       customerPhone: phone,
       customerName: name,
       createdAt: awb.createdAt,

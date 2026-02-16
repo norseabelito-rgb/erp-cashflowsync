@@ -168,8 +168,11 @@ export async function getEligibleOrdersForSettlement(
       ],
       ...(Object.keys(dateFilter).length > 0
         ? {
-            invoice: {
-              issuedAt: dateFilter,
+            invoices: {
+              some: {
+                issuedAt: dateFilter,
+                status: "issued",
+              },
             },
           }
         : {}),
@@ -188,7 +191,10 @@ export async function getEligibleOrdersForSettlement(
           isCollected: true,
         },
       },
-      invoice: {
+      invoices: {
+        where: { status: "issued" },
+        orderBy: { createdAt: "desc" },
+        take: 1,
         select: {
           issuedAt: true,
         },
@@ -201,7 +207,7 @@ export async function getEligibleOrdersForSettlement(
     id: order.id,
     orderNumber: order.shopifyOrderNumber || order.id,
     totalPrice: order.totalPrice,
-    processedAt: order.invoice?.issuedAt || order.createdAt,
+    processedAt: order.invoices?.[0]?.issuedAt || order.createdAt,
     paymentType: order.awb?.isCollected === true ? "cod" : "online",
     lineItems: order.lineItems,
   }));
@@ -251,7 +257,10 @@ export async function calculateSettlementFromOrders(
       awb: {
         select: { isCollected: true },
       },
-      invoice: {
+      invoices: {
+        where: { status: "issued" },
+        orderBy: { createdAt: "desc" },
+        take: 1,
         select: { issuedAt: true },
       },
     },
@@ -319,7 +328,7 @@ export async function calculateSettlementFromOrders(
       orderNumber: order.shopifyOrderNumber || order.id,
       totalPrice: Number(order.totalPrice),
       costTotal: Math.round(orderCostTotal * 100) / 100,
-      processedAt: order.invoice?.issuedAt || order.createdAt,
+      processedAt: order.invoices?.[0]?.issuedAt || order.createdAt,
       productCount: order.lineItems.reduce((sum, li) => sum + li.quantity, 0),
       paymentType: order.awb?.isCollected === true ? "cod" : "online",
       selected: true,

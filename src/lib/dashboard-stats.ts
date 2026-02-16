@@ -378,7 +378,7 @@ export async function getFilteredDashboardStats(
       where: {
         ...baseWhere,
         status: "PENDING",
-        invoice: null, // No invoice created yet
+        invoices: { none: {} }, // No invoice created yet
       },
     }),
 
@@ -387,7 +387,7 @@ export async function getFilteredDashboardStats(
       where: {
         ...baseWhere,
         status: "VALIDATED",
-        invoice: null, // No invoice created yet
+        invoices: { none: {} }, // No invoice created yet
       },
     }),
 

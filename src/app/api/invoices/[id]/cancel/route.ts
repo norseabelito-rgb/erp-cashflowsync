@@ -121,6 +121,9 @@ export async function POST(
     }
 
     // Stornare în Oblio (emite factură inversă)
+    let stornoNumber: string | null = null;
+    let stornoSeries: string | null = null;
+
     if (invoice.invoiceSeriesName && invoice.invoiceNumber) {
       const stornoResult = await oblioClient.stornoInvoice(
         invoice.invoiceSeriesName,
@@ -133,6 +136,9 @@ export async function POST(
           { status: 400 }
         );
       }
+
+      stornoNumber = stornoResult.invoiceNumber || null;
+      stornoSeries = stornoResult.invoiceSeries || null;
     }
 
     // Update invoice
@@ -147,7 +153,9 @@ export async function POST(
         cancelledAt: new Date(),
         cancelReason: reason || (check.allowed ? "Return manifest" : "PIN approval"),
         cancellationSource: source,
-        cancelledFromManifestId: check.manifestId || null
+        cancelledFromManifestId: check.manifestId || null,
+        stornoNumber,
+        stornoSeries,
       }
     });
 

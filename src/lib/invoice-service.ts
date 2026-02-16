@@ -22,6 +22,7 @@ import {
 import { getNextInvoiceNumber, getInvoiceSeriesForCompany } from "./invoice-series";
 import { getInvoiceErrorMessage } from "./invoice-errors";
 import { processInventoryStockForOrderFromPrimary } from "./inventory-stock";
+import { hasIssuedInvoice, getActiveInvoice } from "./invoice-helpers";
 
 // Tip pentru transaction client
 type PrismaTransactionClient = Prisma.TransactionClient;
@@ -126,41 +127,46 @@ async function saveInvoiceToDatabase(
   const db = tx || prisma;
   const paymentStatus = params.isPaid ? "paid" : "unpaid";
 
-  await db.invoice.upsert({
-    where: { orderId: params.orderId },
-    create: {
+  const invoiceData = {
+    companyId: params.companyId,
+    invoiceSeriesId: params.invoiceSeriesId,
+    invoiceProvider: "oblio",
+    invoiceNumber: params.invoiceNumber.toString(),
+    invoiceSeriesName: params.invoiceSeries,
+    oblioId: params.oblioKey,
+    status: "issued",
+    pdfUrl: params.pdfUrl || null,
+    pdfData: params.pdfData || null,
+    paymentStatus: paymentStatus,
+    paidAmount: params.isPaid ? params.totalPrice : 0,
+    paidAt: params.isPaid ? new Date() : null,
+    issuedAt: new Date(),
+    errorMessage: null,
+  };
+
+  // Find existing non-cancelled invoice for this order (pending/error state from previous attempt)
+  const existing = await db.invoice.findFirst({
+    where: {
       orderId: params.orderId,
-      companyId: params.companyId,
-      invoiceSeriesId: params.invoiceSeriesId,
-      invoiceProvider: "oblio",
-      invoiceNumber: params.invoiceNumber.toString(),
-      invoiceSeriesName: params.invoiceSeries,
-      oblioId: params.oblioKey,
-      status: "issued",
-      pdfUrl: params.pdfUrl || null,
-      pdfData: params.pdfData || null,
-      paymentStatus: paymentStatus,
-      paidAmount: params.isPaid ? params.totalPrice : 0,
-      paidAt: params.isPaid ? new Date() : null,
-      issuedAt: new Date(),
-    },
-    update: {
-      companyId: params.companyId,
-      invoiceSeriesId: params.invoiceSeriesId,
-      invoiceProvider: "oblio",
-      invoiceNumber: params.invoiceNumber.toString(),
-      invoiceSeriesName: params.invoiceSeries,
-      oblioId: params.oblioKey,
-      status: "issued",
-      pdfUrl: params.pdfUrl || null,
-      pdfData: params.pdfData || null,
-      paymentStatus: paymentStatus,
-      paidAmount: params.isPaid ? params.totalPrice : 0,
-      paidAt: params.isPaid ? new Date() : null,
-      issuedAt: new Date(),
-      errorMessage: null,
+      status: { not: "cancelled" },
     },
   });
+
+  if (existing) {
+    // Update existing pending/error invoice to issued
+    await db.invoice.update({
+      where: { id: existing.id },
+      data: invoiceData,
+    });
+  } else {
+    // Create new invoice (preserves cancelled invoice history)
+    await db.invoice.create({
+      data: {
+        orderId: params.orderId,
+        ...invoiceData,
+      },
+    });
+  }
 }
 
 /**
@@ -273,7 +279,7 @@ export async function issueInvoiceForOrder(
           },
           // Include oblioSeriesName direct
         },
-        invoice: true,
+        invoices: true,
         billingCompany: true,
         requiredTransfer: true,
       },
@@ -287,10 +293,11 @@ export async function issueInvoiceForOrder(
     }
 
     // 2. Verifică dacă factura a fost deja emisă
-    if (order.invoice?.status === "issued") {
-      const existingNumber = order.invoice.invoiceSeriesName && order.invoice.invoiceNumber
-        ? `${order.invoice.invoiceSeriesName}${order.invoice.invoiceNumber}`
-        : order.invoice.oblioId || "necunoscut";
+    if (hasIssuedInvoice(order.invoices)) {
+      const activeInv = getActiveInvoice(order.invoices);
+      const existingNumber = activeInv?.invoiceSeriesName && activeInv?.invoiceNumber
+        ? `${activeInv.invoiceSeriesName}${activeInv.invoiceNumber}`
+        : activeInv?.oblioId || "necunoscut";
       return {
         success: false,
         error: getInvoiceErrorMessage("ALREADY_ISSUED", `Factura a fost deja emisa: ${existingNumber}`),
@@ -718,8 +725,8 @@ export async function issueInvoiceForOrder(
 
     // 14. Descărcăm stocul pentru comandă (outside transaction - non-blocking)
     // Obținem invoice ID pentru a-l lega de mișcările de stoc
-    const savedInvoice = await prisma.invoice.findUnique({
-      where: { orderId: order.id },
+    const savedInvoice = await prisma.invoice.findFirst({
+      where: { orderId: order.id, status: "issued" },
       select: { id: true },
     });
 
@@ -814,7 +821,7 @@ export async function canIssueInvoice(orderId: string): Promise<InvoiceCanIssueR
       store: {
         include: { company: true },
       },
-      invoice: true,
+      invoices: true,
       billingCompany: true,
       requiredTransfer: true,
       lineItems: true,
@@ -825,7 +832,7 @@ export async function canIssueInvoice(orderId: string): Promise<InvoiceCanIssueR
     return { canIssue: false, reason: "Comanda nu a fost găsită" };
   }
 
-  if (order.invoice?.status === "issued") {
+  if (hasIssuedInvoice(order.invoices)) {
     return { canIssue: false, reason: "Factura a fost deja emisă" };
   }
 
@@ -929,8 +936,9 @@ export async function getInvoicePDF(orderId: string): Promise<{
   error?: string;
 }> {
   try {
-    const invoice = await prisma.invoice.findUnique({
-      where: { orderId },
+    const invoice = await prisma.invoice.findFirst({
+      where: { orderId, status: { not: "cancelled" } },
+      orderBy: { createdAt: "desc" },
       include: {
         company: true,
       },
@@ -997,8 +1005,8 @@ export async function cancelInvoice(orderId: string, reason?: string): Promise<{
   error?: string;
 }> {
   try {
-    const invoice = await prisma.invoice.findUnique({
-      where: { orderId },
+    const invoice = await prisma.invoice.findFirst({
+      where: { orderId, status: "issued" },
       include: {
         company: true,
       },
@@ -1008,11 +1016,10 @@ export async function cancelInvoice(orderId: string, reason?: string): Promise<{
       return { success: false, error: "Factura nu a fost găsită" };
     }
 
-    if (invoice.status === "cancelled") {
-      return { success: false, error: "Factura este deja anulată" };
-    }
-
     // Stornare în Oblio (emite factură inversă)
+    let stornoNumber: string | null = null;
+    let stornoSeries: string | null = null;
+
     if (invoice.oblioId && invoice.company && invoice.invoiceSeriesName && invoice.invoiceNumber) {
       const oblio = createOblioClient(invoice.company);
       if (oblio) {
@@ -1020,6 +1027,9 @@ export async function cancelInvoice(orderId: string, reason?: string): Promise<{
         if (!stornoResult.success) {
           console.warn("[Invoice] Nu s-a putut storna în Oblio:", stornoResult.error);
           // Continuăm cu anularea locală
+        } else {
+          stornoNumber = stornoResult.invoiceNumber || null;
+          stornoSeries = stornoResult.invoiceSeries || null;
         }
       }
     }
@@ -1031,6 +1041,8 @@ export async function cancelInvoice(orderId: string, reason?: string): Promise<{
         status: "cancelled",
         cancelledAt: new Date(),
         cancelReason: reason || "Anulată manual",
+        stornoNumber,
+        stornoSeries,
       },
     });
 

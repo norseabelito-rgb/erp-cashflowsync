@@ -71,14 +71,14 @@ export async function generateReturnManifest(
           include: {
             order: {
               include: {
-                invoice: true
+                invoices: { where: { status: "issued" }, orderBy: { createdAt: "desc" }, take: 1 }
               }
             }
           }
         },
         order: {
           include: {
-            invoice: true
+            invoices: { where: { status: "issued" }, orderBy: { createdAt: "desc" }, take: 1 }
           }
         }
       },
@@ -107,7 +107,7 @@ export async function generateReturnManifest(
           create: newReturns.map(returnAwb => {
             // Prefer order from direct link, fallback to originalAwb.order
             const order = returnAwb.order || returnAwb.originalAwb?.order;
-            const invoice = order?.invoice;
+            const invoice = order?.invoices?.[0];
 
             return {
               awbNumber: returnAwb.returnAwbNumber,

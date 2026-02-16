@@ -819,7 +819,7 @@ export async function POST(request: NextRequest) {
         where: { orderId },
         include: {
           order: {
-            include: { invoice: true }
+            include: { invoices: { where: { status: "issued" }, orderBy: { createdAt: "desc" }, take: 1 } }
           }
         }
       });

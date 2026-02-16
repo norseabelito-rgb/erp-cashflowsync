@@ -89,8 +89,11 @@ export async function GET(request: NextRequest) {
         ],
         ...(Object.keys(dateFilter).length > 0
           ? {
-              invoice: {
-                issuedAt: dateFilter,
+              invoices: {
+                some: {
+                  issuedAt: dateFilter,
+                  status: "issued",
+                },
               },
             }
           : {}),
@@ -110,7 +113,10 @@ export async function GET(request: NextRequest) {
         awb: {
           select: { isCollected: true },
         },
-        invoice: {
+        invoices: {
+          where: { status: "issued" },
+          orderBy: { createdAt: "desc" },
+          take: 1,
           select: { issuedAt: true },
         },
       },
@@ -187,7 +193,7 @@ export async function GET(request: NextRequest) {
       return {
         id: order.id,
         orderNumber: order.shopifyOrderNumber || order.id,
-        date: order.invoice?.issuedAt || order.shopifyCreatedAt || order.createdAt,
+        date: order.invoices?.[0]?.issuedAt || order.shopifyCreatedAt || order.createdAt,
         client: customerName,
         totalPrice: Number(order.totalPrice),
         productCount: order.lineItems.reduce((sum, li) => sum + li.quantity, 0),
