@@ -464,7 +464,7 @@ model Order {
   intercompanyStatus String? // null (N/A), "pending", "settled"
 
   // Relații
-  invoice               Invoice?
+  invoices              Invoice[]
   awb                   AWB?
   lineItems             LineItem[]
   processingErrors      ProcessingError[]
@@ -475,6 +475,9 @@ model Order {
   tasks                 Task[]
   returnAwbs            ReturnAWB[]
   manifestItems         ManifestItem[]
+
+  // Notițe interne per comandă
+  notes String? @db.Text
 
   // Internal workflow status (separate from OrderStatus enum)
   internalStatusId String?
@@ -524,7 +527,7 @@ model LineItem {
 // Facturile emise (prin Facturis)
 model Invoice {
   id      String @id @default(cuid())
-  orderId String @unique
+  orderId String
   order   Order  @relation(fields: [orderId], references: [id])
 
   // Firma care a emis factura
@@ -586,6 +589,7 @@ model Invoice {
   manifestItems ManifestItem[]
   pinApprovals  PINApprovalRequest[]
 
+  @@index([orderId])
   @@index([companyId])
   @@index([invoiceSeriesId])
   @@index([invoiceProvider])

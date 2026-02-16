@@ -240,10 +240,15 @@ export default function CustomersPage() {
                         )}
                       </td>
                       <td className="p-4 text-right">
-                        <Badge variant="secondary">
-                          {customer.orderCount}{" "}
-                          {customer.orderCount === 1 ? "comanda" : "comenzi"}
-                        </Badge>
+                        <div className="flex items-center justify-end gap-2">
+                          {customer.orderCount > 1 && (
+                            <Badge variant="info">Comenzi multiple</Badge>
+                          )}
+                          <Badge variant="secondary">
+                            {customer.orderCount}{" "}
+                            {customer.orderCount === 1 ? "comanda" : "comenzi"}
+                          </Badge>
+                        </div>
                       </td>
                       <td className="p-4 text-right font-medium">
                         {formatCurrency(customer.totalSpent)}

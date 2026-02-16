@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -34,12 +34,15 @@ import {
   Plus,
   Tag,
   Printer,
+  StickyNote,
+  Save,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -345,6 +348,8 @@ export default function OrdersPage() {
   const [awbOrderId, setAwbOrderId] = useState<string | null>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewOrder, setViewOrder] = useState<Order | null>(null);
+  const [orderNoteText, setOrderNoteText] = useState("");
+  const [orderNoteOriginal, setOrderNoteOriginal] = useState("");
   const [deleteAwbDialogOpen, setDeleteAwbDialogOpen] = useState(false);
   const [awbToDelete, setAwbToDelete] = useState<{ id: string; awbNumber: string } | null>(null);
   const [awbPreviewOpen, setAwbPreviewOpen] = useState(false);
@@ -825,6 +830,47 @@ export default function OrdersPage() {
     },
   });
 
+  // Query pentru notițele comenzii deschise
+  const { data: orderNotesData } = useQuery({
+    queryKey: ["order-notes", viewOrder?.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/orders/${viewOrder!.id}/notes`);
+      if (!res.ok) throw new Error("Failed to fetch notes");
+      return res.json();
+    },
+    enabled: !!viewOrder?.id && viewModalOpen,
+  });
+
+  // Sincronizează starea locală a notelor cu datele din server
+  const orderNoteHasChanges = orderNoteText !== orderNoteOriginal;
+
+  useEffect(() => {
+    if (orderNotesData && orderNotesData.notes !== undefined) {
+      setOrderNoteOriginal(orderNotesData.notes);
+      setOrderNoteText(orderNotesData.notes);
+    }
+  }, [orderNotesData]);
+
+  // Mutație pentru salvare notițe comandă
+  const saveOrderNoteMutation = useMutation({
+    mutationFn: async ({ orderId, notes }: { orderId: string; notes: string }) => {
+      const res = await fetch(`/api/orders/${orderId}/notes`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes }),
+      });
+      if (!res.ok) throw new Error("Failed to save notes");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setOrderNoteOriginal(data.notes);
+      toast({ title: "Notița a fost salvată" });
+    },
+    onError: () => {
+      toast({ title: "Eroare la salvarea notiței", variant: "destructive" });
+    },
+  });
+
   // Mutație pentru actualizare date comandă
   const updateOrderMutation = useMutation({
     mutationFn: async (data: {
@@ -1029,6 +1075,8 @@ export default function OrdersPage() {
 
   const handleViewOrder = (order: Order) => {
     setViewOrder(order);
+    setOrderNoteText("");
+    setOrderNoteOriginal("");
     setViewModalOpen(true);
   };
 
@@ -2173,7 +2221,7 @@ export default function OrdersPage() {
 
       {/* Modal Vizualizare Comandă */}
       <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Comandă {viewOrder?.shopifyOrderNumber}</DialogTitle>
             <DialogDescription>Din magazinul {viewOrder?.store.name}</DialogDescription>
@@ -2720,6 +2768,47 @@ export default function OrdersPage() {
               <div>
                 <h4 className="font-semibold mb-2">Data comenzii</h4>
                 <p className="text-sm text-muted-foreground">{formatDate(viewOrder.createdAt)}</p>
+              </div>
+
+              {/* Notițe */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-semibold flex items-center gap-2">
+                    <StickyNote className="h-4 w-4" />
+                    Notițe
+                  </h4>
+                  {orderNoteHasChanges && (
+                    <Button
+                      size="sm"
+                      onClick={() => saveOrderNoteMutation.mutate({ orderId: viewOrder.id, notes: orderNoteText })}
+                      disabled={saveOrderNoteMutation.isPending}
+                    >
+                      {saveOrderNoteMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-1" />
+                      )}
+                      Salvează
+                    </Button>
+                  )}
+                </div>
+                <Textarea
+                  placeholder="Adaugă notițe despre această comandă..."
+                  value={orderNoteText}
+                  onChange={(e) => setOrderNoteText(e.target.value)}
+                  rows={3}
+                  className="resize-none"
+                />
+                {saveOrderNoteMutation.isError && (
+                  <p className="text-sm text-destructive mt-2">
+                    Eroare la salvarea notiței. Încearcă din nou.
+                  </p>
+                )}
+                {saveOrderNoteMutation.isSuccess && !orderNoteHasChanges && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Notița salvată.
+                  </p>
+                )}
               </div>
             </div>
           )}
