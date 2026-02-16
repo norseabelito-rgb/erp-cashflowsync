@@ -323,7 +323,10 @@ export async function createAWBForOrder(
       declaredValue: Math.round(Number(order.totalPrice) * 100) / 100,
       observation: observations,
       costCenter: order.store?.name || company.name,
-      options: ["X", "A"], // ePOD + verificare colet
+      options: [
+        "X", // ePOD
+        ...(order.lineItems?.some((item) => item.title.toUpperCase().includes("VERIFICARE COLET")) ? ["A"] : []),
+      ],
     });
 
     if (!result.success || !result.awb) {
