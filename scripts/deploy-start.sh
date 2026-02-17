@@ -1,7 +1,11 @@
 #!/bin/bash
 set -e
 
-# 1. Run Prisma migrations (MUST succeed or app won't start)
+# 1. Resolve any failed migrations (e.g. manually applied SQL)
+echo "Resolving failed migrations..."
+npx prisma migrate resolve --applied 20260217_add_repair_invoices 2>/dev/null || true
+
+# 2. Run Prisma migrations (MUST succeed or app won't start)
 echo "Running Prisma migrations..."
 npx prisma migrate deploy
 
