@@ -127,39 +127,46 @@ export async function syncContactToDaktela(
     return;
   }
 
-  const params = new URLSearchParams();
-  params.set("accessToken", accessToken);
-  params.set("database", "default");
-  params.set("title", data.title);
-  if (data.email) params.set("customFields[email]", data.email);
-  if (data.phone) params.set("customFields[phone]", data.phone);
-  if (data.addressStreet) params.set("customFields[address_street]", data.addressStreet);
-  if (data.addressCity) params.set("customFields[address_city]", data.addressCity);
-  if (data.addressProvince) params.set("customFields[address_province]", data.addressProvince);
-  if (data.addressZip) params.set("customFields[address_zip]", data.addressZip);
-  if (data.addressCountry) params.set("customFields[address_country]", data.addressCountry);
-  params.set("customFields[order_count]", String(data.orderCount));
-  params.set("customFields[total_spent]", String(data.totalSpent));
-  if (data.firstOrderDate) params.set("customFields[first_order_date]", data.firstOrderDate);
-  if (data.lastOrderDate) params.set("customFields[last_order_date]", data.lastOrderDate);
-  params.set("customFields[customer_source]", data.customerSource);
-  if (data.orderHistory) params.set("customFields[order_history]", data.orderHistory);
-  if (data.customerNotes) params.set("customFields[customer_notes]", data.customerNotes);
+  const url = `${DAKTELA_BASE_URL}?accessToken=${encodeURIComponent(accessToken)}`;
 
-  const url = `${DAKTELA_BASE_URL}?${params.toString()}`;
+  const body = {
+    database: "default",
+    title: data.title,
+    customFields: {
+      email: data.email || "",
+      phone: data.phone || "",
+      address_street: data.addressStreet || "",
+      address_city: data.addressCity || "",
+      address_province: data.addressProvince || "",
+      address_zip: data.addressZip || "",
+      address_country: data.addressCountry || "",
+      order_count: String(data.orderCount),
+      total_spent: String(data.totalSpent),
+      first_order_date: data.firstOrderDate || "",
+      last_order_date: data.lastOrderDate || "",
+      customer_source: data.customerSource,
+      order_history: data.orderHistory || "",
+      customer_notes: data.customerNotes || "",
+    },
+  };
 
   try {
-    const response = await fetch(url, { method: "GET" });
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    const responseBody = await response.text();
 
     if (!response.ok) {
-      const body = await response.text();
       console.error(
-        `[Daktela] Eroare HTTP ${response.status} pentru ${data.title}: ${body}`
+        `[Daktela] Eroare HTTP ${response.status} pentru ${data.title}: ${responseBody}`
       );
       return;
     }
 
-    console.log(`[Daktela] Contact sincronizat: ${data.title} (${data.email || data.phone})`);
+    console.log(`[Daktela] Contact creat: ${data.title} (${data.email || data.phone})`);
   } catch (error) {
     console.error(`[Daktela] Eroare la sincronizarea contactului ${data.title}:`, error);
   }
