@@ -13,6 +13,7 @@
 import prisma from "@/lib/db";
 import { Order, TrendyolOrder, Store, Prisma } from "@prisma/client";
 import { mapTrendyolToInternalStatus } from "@/lib/trendyol-status";
+import { buildDaktelaContactFromOrder, syncContactToDaktela } from "@/lib/daktela";
 
 // Type for TrendyolStore data needed for sync
 export type TrendyolStoreForSync = {
@@ -270,6 +271,13 @@ export async function syncTrendyolOrderToMainOrder(
   console.log(
     `[Trendyol Sync] Created Order ${order.id} for Trendyol order ${trendyolOrder.trendyolOrderNumber} (Store: ${trendyolStore.name}, Company: ${trendyolStore.companyId})`
   );
+
+  // Sync contact la Daktela (fire-and-forget) - la comanda nouă
+  buildDaktelaContactFromOrder(order.id)
+    .then((data) => syncContactToDaktela(data))
+    .catch((err) => {
+      console.error(`[Daktela] Eroare sync contact la import Trendyol ${trendyolOrder.trendyolOrderNumber}:`, err);
+    });
 
   return order;
 }

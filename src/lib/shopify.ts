@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import prisma from "./db";
+import { buildDaktelaContactFromOrder, syncContactToDaktela } from "./daktela";
 
 interface ShopifyOrder {
   id: number;
@@ -954,7 +955,7 @@ export async function syncSingleOrder(
     });
   } else {
     // CREATE: Creăm comanda nouă cu LineItems
-    await prisma.order.create({
+    const newOrder = await prisma.order.create({
       data: {
         shopifyOrderId: String(shopifyOrder.id),
         shopifyOrderNumber: shopifyOrder.name,
@@ -995,6 +996,13 @@ export async function syncSingleOrder(
         },
       },
     });
+
+    // Sync contact la Daktela (fire-and-forget) - la comanda nouă
+    buildDaktelaContactFromOrder(newOrder.id)
+      .then((data) => syncContactToDaktela(data))
+      .catch((err) => {
+        console.error(`[Daktela] Eroare sync contact la import Shopify ${shopifyOrder.name}:`, err);
+      });
   }
 
   // După sync, încercăm să completăm codul poștal din nomenclatorul FanCourier

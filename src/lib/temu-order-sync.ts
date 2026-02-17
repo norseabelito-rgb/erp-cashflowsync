@@ -12,6 +12,7 @@
 import prisma from "@/lib/db";
 import { Order, TemuOrder, Store, Prisma } from "@prisma/client";
 import { mapTemuToInternalStatus } from "@/lib/temu-status";
+import { buildDaktelaContactFromOrder, syncContactToDaktela } from "@/lib/daktela";
 
 // Type for TemuStore data needed for sync
 export type TemuStoreForSync = {
@@ -313,6 +314,13 @@ export async function syncTemuOrderToMainOrder(
   console.log(
     `[Temu Sync] Created Order ${order.id} for Temu order ${temuOrder.temuOrderNumber} (Store: ${temuStore.name}, Company: ${temuStore.companyId})`
   );
+
+  // Sync contact la Daktela (fire-and-forget) - la comanda nouă
+  buildDaktelaContactFromOrder(order.id)
+    .then((data) => syncContactToDaktela(data))
+    .catch((err) => {
+      console.error(`[Daktela] Eroare sync contact la import Temu ${temuOrder.temuOrderNumber}:`, err);
+    });
 
   return order;
 }
