@@ -43,7 +43,7 @@ export async function buildDaktelaContactFromOrder(
       shippingProvince: true,
       shippingZip: true,
       shippingCountry: true,
-      source: true,
+      store: { select: { name: true } },
     },
   });
 
@@ -74,6 +74,14 @@ export async function buildDaktelaContactFromOrder(
     orderBy: { shopifyCreatedAt: "desc" },
     take: 5,
   });
+
+  // Get all distinct store names for this customer
+  const customerStores = await prisma.order.findMany({
+    where: { OR: whereConditions },
+    select: { store: { select: { name: true } } },
+    distinct: ["storeId"],
+  });
+  const storeNames = [...new Set(customerStores.map((o) => o.store.name).filter(Boolean))];
 
   // Get customer notes
   let customerNotes: string | undefined;
@@ -110,7 +118,7 @@ export async function buildDaktelaContactFromOrder(
     lastOrderDate: aggregation._max.shopifyCreatedAt
       ? formatDate(aggregation._max.shopifyCreatedAt)
       : "",
-    customerSource: order.source || "shopify",
+    customerSource: storeNames.join(", ") || order.store.name || "Necunoscut",
     orderHistory: recentOrders.map((o) => o.shopifyOrderNumber).join(", "),
     customerNotes,
   };
