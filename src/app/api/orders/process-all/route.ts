@@ -7,6 +7,7 @@ import { createAWBForOrder } from "@/lib/awb-service";
 import { logActivity } from "@/lib/activity-log";
 import { v4 as uuidv4 } from "uuid";
 import { hasPermission } from "@/lib/permissions";
+import { buildDaktelaContactFromOrder, syncContactToDaktela } from "@/lib/daktela";
 
 interface ProcessResult {
   orderId: string;
@@ -269,6 +270,15 @@ export async function POST(request: NextRequest) {
       }
 
       results.push(result);
+
+      // Sync contact la Daktela (fire-and-forget)
+      if (result.success) {
+        buildDaktelaContactFromOrder(order.id)
+          .then((data) => syncContactToDaktela(data))
+          .catch((err) => {
+            console.error(`[Daktela] Eroare sync contact pentru comanda ${order.shopifyOrderNumber}:`, err);
+          });
+      }
 
       // Loghează activitatea
       await logActivity({

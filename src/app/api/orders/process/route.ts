@@ -6,6 +6,7 @@ import { hasPermission } from "@/lib/permissions";
 import { issueInvoiceForOrder } from "@/lib/invoice-service";
 import { createAWBForOrder } from "@/lib/fancourier";
 import { v4 as uuidv4 } from "uuid";
+import { buildDaktelaContactFromOrder, syncContactToDaktela } from "@/lib/daktela";
 
 interface ProcessingResult {
   orderId: string;
@@ -157,6 +158,15 @@ export async function POST(request: NextRequest) {
       }
 
       results.push(result);
+
+      // Sync contact la Daktela (fire-and-forget)
+      if (result.invoiceSuccess && result.awbSuccess) {
+        buildDaktelaContactFromOrder(order.id)
+          .then((data) => syncContactToDaktela(data))
+          .catch((err) => {
+            console.error(`[Daktela] Eroare sync contact pentru comanda ${order.shopifyOrderNumber}:`, err);
+          });
+      }
     }
 
     // PASUL 3: Creăm picking list pentru AWB-urile procesate cu succes
