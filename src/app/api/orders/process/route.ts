@@ -160,9 +160,13 @@ export async function POST(request: NextRequest) {
       results.push(result);
 
       // Sync contact la Daktela (fire-and-forget)
+      console.log(`[Daktela] Comanda ${order.shopifyOrderNumber}: invoiceSuccess=${result.invoiceSuccess}, awbSuccess=${result.awbSuccess}`);
       if (result.invoiceSuccess && result.awbSuccess) {
         buildDaktelaContactFromOrder(order.id)
-          .then((data) => syncContactToDaktela(data))
+          .then((data) => {
+            console.log(`[Daktela] Date construite pentru ${order.shopifyOrderNumber}:`, data ? data.title : "null");
+            return syncContactToDaktela(data);
+          })
           .catch((err) => {
             console.error(`[Daktela] Eroare sync contact pentru comanda ${order.shopifyOrderNumber}:`, err);
           });
