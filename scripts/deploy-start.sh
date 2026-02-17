@@ -15,4 +15,4 @@ LIMIT=5 npm run backfill:postal-codes || echo "Backfill skipped"
 
 # 4. Start the app
 echo "Starting application..."
-npm run start
+NODE_OPTIONS="--max-old-space-size=4096" npm run start
