@@ -3763,19 +3763,12 @@ export default function DocsPage() {
     m.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handlePrint = () => {
-    window.print();
+  const handleDownloadPDF = () => {
+    window.open("/api/docs/download?format=pdf", "_blank");
   };
 
   const handleDownloadMD = () => {
-    const markdown = `# ERP CashFlowSync - Documentatie\n\nVersiune ${DOC_VERSION} • ${LAST_UPDATED}\n\n> Aceasta documentatie acopera toate modulele platformei ERP CashFlowSync.\n> Pentru versiunea completa interactiva, accesati pagina /docs din aplicatie.\n\n## Module Documentate\n\n${modules.map(m => `- **${m.name}** (${m.category})`).join('\n')}\n\n---\n\n*Documentatie generata automat din ERP CashFlowSync v${DOC_VERSION}*`;
-    const blob = new Blob([markdown], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ERP-CashFlowSync-Docs-v${DOC_VERSION}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
+    window.open("/api/docs/download?format=md", "_blank");
   };
 
   const renderContent = () => {
@@ -3905,7 +3898,7 @@ export default function DocsPage() {
           </ScrollArea>
 
           <div className="p-4 border-t space-y-2">
-            <Button onClick={handlePrint} className="w-full" variant="outline">
+            <Button onClick={handleDownloadPDF} className="w-full" variant="outline">
               <Download className="h-4 w-4 mr-2" />
               Download PDF
             </Button>
