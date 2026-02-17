@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAWBForOrder } from "@/lib/awb-service";
 import { hasPermission } from "@/lib/permissions";
+import { buildDaktelaContactFromOrder, syncContactToDaktela } from "@/lib/daktela";
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,6 +55,16 @@ export async function POST(request: NextRequest) {
         if (awb) {
           results.awbIds.push(awb.id);
         }
+
+        // Sync contact la Daktela (fire-and-forget)
+        buildDaktelaContactFromOrder(orderId)
+          .then((data) => {
+            console.log(`[Daktela] Date construite pentru orderId ${orderId}:`, data ? data.title : "null");
+            return syncContactToDaktela(data);
+          })
+          .catch((err) => {
+            console.error(`[Daktela] Eroare sync contact pentru orderId ${orderId}:`, err);
+          });
       } else {
         results.errors.push(`${orderId}: ${result.error}`);
       }
