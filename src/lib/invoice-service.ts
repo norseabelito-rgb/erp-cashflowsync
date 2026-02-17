@@ -144,22 +144,26 @@ async function saveInvoiceToDatabase(
     errorMessage: null,
   };
 
-  // Find existing non-cancelled invoice for this order (pending/error state from previous attempt)
+  // Find existing invoice for this order (any status - reuse if exists due to unique constraint on orderId)
   const existing = await db.invoice.findFirst({
-    where: {
-      orderId: params.orderId,
-      status: { not: "cancelled" },
-    },
+    where: { orderId: params.orderId },
+    orderBy: { createdAt: "desc" },
   });
 
   if (existing) {
-    // Update existing pending/error invoice to issued
+    // Update existing invoice (pending/error/cancelled) to issued
     await db.invoice.update({
       where: { id: existing.id },
-      data: invoiceData,
+      data: {
+        ...invoiceData,
+        cancelledAt: null,
+        cancelReason: null,
+        stornoNumber: null,
+        stornoSeries: null,
+      },
     });
   } else {
-    // Create new invoice (preserves cancelled invoice history)
+    // Create new invoice
     await db.invoice.create({
       data: {
         orderId: params.orderId,

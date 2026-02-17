@@ -120,14 +120,10 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Marcheaza cancelled
-        await prisma.invoice.update({
+        // Sterge factura veche din DB (stornoul e in Oblio, audit log pastreaza istoricul)
+        // Trebuie stearsa complet pt ca exista unique constraint pe orderId
+        await prisma.invoice.delete({
           where: { id: invoiceId },
-          data: {
-            status: "cancelled",
-            cancelledAt: new Date(),
-            cancelReason: "Reparare auto-facturare bulk: client gresit",
-          },
         });
 
         // Reseteaza billingCompanyId (doar daca e egal cu store.companyId)
