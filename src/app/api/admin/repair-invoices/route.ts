@@ -9,10 +9,75 @@ export const maxDuration = 300; // 5 min - paginarea prin Oblio poate dura
 
 /**
  * GET /api/admin/repair-invoices
- * Paginam prin TOATE facturile din Oblio si le filtram pe cele unde
- * numele clientului == numele firmei emitente (auto-facturare).
+ * Citeste facturile afectate din DB (instant, fara Oblio).
  */
 export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Neautorizat" }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { isSuperAdmin: true },
+    });
+
+    if (!user?.isSuperAdmin) {
+      return NextResponse.json(
+        { error: "Doar super admin poate accesa aceasta pagina" },
+        { status: 403 }
+      );
+    }
+
+    const [pendingInvoices, repairedCount, lastScan] = await Promise.all([
+      prisma.repairInvoice.findMany({
+        where: { status: "pending" },
+        include: { company: { select: { name: true } } },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.repairInvoice.count({ where: { status: "repaired" } }),
+      prisma.repairInvoice.findFirst({
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      }),
+    ]);
+
+    const invoices = pendingInvoices.map((ri) => ({
+      id: ri.id,
+      invoiceNumber: ri.invoiceNumber,
+      invoiceSeriesName: ri.invoiceSeriesName,
+      orderId: ri.orderId,
+      orderNumber: ri.orderNumber,
+      oblioClient: ri.oblioClient,
+      correctCustomer: ri.correctCustomer,
+      total: Number(ri.total),
+      currency: ri.currency,
+      issuedAt: ri.issuedAt?.toISOString() || "",
+      companyName: ri.company.name,
+    }));
+
+    return NextResponse.json({
+      success: true,
+      total: invoices.length,
+      repairedCount,
+      lastScanAt: lastScan?.createdAt?.toISOString() || null,
+      invoices,
+    });
+  } catch (error: unknown) {
+    console.error("Error in GET /api/admin/repair-invoices:", error);
+    const message = error instanceof Error ? error.message : "Eroare necunoscuta";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
+  }
+}
+
+/**
+ * POST /api/admin/repair-invoices
+ * Scaneaza TOATE facturile din Oblio, gaseste auto-facturarile
+ * si le salveaza in DB (upsert). Proceseaza in batch-uri,
+ * fara acumulare in memorie.
+ */
+export async function POST() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -39,19 +104,8 @@ export async function GET() {
       },
     });
 
-    const allAffected: Array<{
-      id: string;
-      invoiceNumber: string;
-      invoiceSeriesName: string;
-      orderId: string | null;
-      orderNumber: string;
-      oblioClient: string;
-      correctCustomer: string;
-      total: number;
-      currency: string;
-      issuedAt: string;
-      companyName: string;
-    }> = [];
+    let totalFound = 0;
+    let totalNew = 0;
 
     for (const company of companies) {
       const oblioClient = createOblioClient(company);
@@ -81,6 +135,7 @@ export async function GET() {
           break;
         }
 
+        // Procesam batch-ul curent - upsert in DB imediat, fara acumulare
         for (const oblioInv of listResult.data) {
           // Extragem numele clientului de pe factura
           const clientName = (
@@ -107,8 +162,13 @@ export async function GET() {
           const number = oblioInv.number?.toString();
           if (!seriesName || !number) continue;
 
-          // Gaseste factura in DB - incearca mai multe strategii
-          let dbInvoice = await prisma.invoice.findFirst({
+          // Gaseste comanda legata
+          let orderId: string | null = null;
+          let orderNumber = "-";
+          let correctCustomer = "N/A";
+
+          // Incearca sa gaseasca factura in DB
+          const dbInvoice = await prisma.invoice.findFirst({
             where: {
               invoiceSeriesName: seriesName,
               invoiceNumber: number,
@@ -118,44 +178,73 @@ export async function GET() {
             include: { order: true },
           });
 
-          // Fallback: extrage numarul comenzii din mentions ("Comanda online: #58537")
-          let orderFromMentions = null;
-          const mentions = oblioInv.mentions || oblioInv.observations || "";
-          const orderMatch = mentions.match(/#(\d+)/);
-          if (!dbInvoice && orderMatch) {
-            const shopifyNum = `#${orderMatch[1]}`;
-            const order = await prisma.order.findFirst({
-              where: { shopifyOrderNumber: shopifyNum },
-              include: { invoices: { where: { status: "issued" }, orderBy: { createdAt: "desc" }, take: 1 } },
-            });
-            if (order?.invoices?.[0] && order.invoices[0].status === "issued") {
-              dbInvoice = { ...order.invoices[0], order } as any;
-            } else if (order) {
-              orderFromMentions = order;
+          if (dbInvoice?.order) {
+            orderId = dbInvoice.order.id;
+            orderNumber = dbInvoice.order.shopifyOrderNumber;
+            correctCustomer =
+              [dbInvoice.order.customerFirstName, dbInvoice.order.customerLastName]
+                .filter(Boolean)
+                .join(" ") || "Client";
+          } else {
+            // Fallback: extrage numarul comenzii din mentions
+            const mentions = oblioInv.mentions || oblioInv.observations || "";
+            const orderMatch = mentions.match(/#(\d+)/);
+            if (orderMatch) {
+              const shopifyNum = `#${orderMatch[1]}`;
+              orderNumber = shopifyNum;
+              const order = await prisma.order.findFirst({
+                where: { shopifyOrderNumber: shopifyNum },
+              });
+              if (order) {
+                orderId = order.id;
+                correctCustomer =
+                  [order.customerFirstName, order.customerLastName]
+                    .filter(Boolean)
+                    .join(" ") || "Client";
+              }
             }
           }
 
-          const order = dbInvoice?.order || orderFromMentions;
-          const orderNumber = order?.shopifyOrderNumber || (orderMatch ? `#${orderMatch[1]}` : mentions || "-");
-          const correctCustomer = order
-            ? [order.customerFirstName, order.customerLastName]
-                .filter(Boolean)
-                .join(" ") || "Client"
-            : "N/A";
+          const oblioClientName =
+            oblioInv.client?.name || oblioInv.clientName || oblioInv.client || "N/A";
+          const issuedAt = oblioInv.issueDate ? new Date(oblioInv.issueDate) : null;
 
-          allAffected.push({
-            id: dbInvoice?.id || `oblio-${seriesName}-${number}`,
-            invoiceNumber: number,
-            invoiceSeriesName: seriesName,
-            orderId: order?.id || null,
-            orderNumber,
-            oblioClient: oblioInv.client?.name || oblioInv.clientName || oblioInv.client || "N/A",
-            correctCustomer,
-            total: oblioInv.total ? Number(oblioInv.total) : 0,
-            currency: oblioInv.currency || "RON",
-            issuedAt: oblioInv.issueDate || "",
-            companyName: company.name,
+          // Upsert - nu creeaza duplicat daca ruleaza scan-ul de mai multe ori
+          const result = await prisma.repairInvoice.upsert({
+            where: {
+              invoiceSeriesName_invoiceNumber_companyId: {
+                invoiceSeriesName: seriesName,
+                invoiceNumber: number,
+                companyId: company.id,
+              },
+            },
+            create: {
+              invoiceNumber: number,
+              invoiceSeriesName: seriesName,
+              companyId: company.id,
+              orderId,
+              orderNumber,
+              oblioClient: String(oblioClientName),
+              correctCustomer,
+              total: oblioInv.total ? Number(oblioInv.total) : 0,
+              currency: oblioInv.currency || "RON",
+              issuedAt,
+            },
+            update: {
+              // Actualizeaza doar daca nu e deja reparat
+              ...(orderId ? { orderId } : {}),
+              orderNumber,
+              correctCustomer,
+            },
           });
+
+          totalFound++;
+          // Daca tocmai a fost creat (createdAt ~= updatedAt), e nou
+          if (
+            Math.abs(result.createdAt.getTime() - result.updatedAt.getTime()) < 1000
+          ) {
+            totalNew++;
+          }
         }
 
         if (listResult.data.length < limit) {
@@ -171,11 +260,12 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      total: allAffected.length,
-      invoices: allAffected,
+      totalFound,
+      totalNew,
+      message: `Scan complet. ${totalFound} facturi afectate gasite, ${totalNew} noi.`,
     });
   } catch (error: unknown) {
-    console.error("Error in GET /api/admin/repair-invoices:", error);
+    console.error("Error in POST /api/admin/repair-invoices:", error);
     const message = error instanceof Error ? error.message : "Eroare necunoscuta";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }

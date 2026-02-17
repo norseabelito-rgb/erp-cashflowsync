@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  RefreshCw, CheckCircle2, AlertCircle, Wrench, AlertTriangle, Loader2, XCircle,
+  RefreshCw, CheckCircle2, AlertTriangle, Wrench, Loader2, XCircle, Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -33,7 +33,7 @@ interface AffectedInvoice {
 type RepairStatus = "pending" | "processing" | "repaired" | "error";
 
 interface RepairResult {
-  invoiceId: string;
+  repairId: string;
   success: boolean;
   oldInvoice?: string;
   newInvoice?: string;
@@ -45,8 +45,9 @@ export default function RepairInvoicesPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [repairStatuses, setRepairStatuses] = useState<Record<string, RepairStatus>>({});
   const [repairResults, setRepairResults] = useState<RepairResult[]>([]);
+  const queryClient = useQueryClient();
 
-  // Fetch affected invoices
+  // Fetch affected invoices from DB
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["repair-invoices"],
     queryFn: async () => {
@@ -60,12 +61,42 @@ export default function RepairInvoicesPage() {
   });
 
   const invoices: AffectedInvoice[] = data?.invoices || [];
+  const repairedCount: number = data?.repairedCount || 0;
+  const lastScanAt: string | null = data?.lastScanAt || null;
+
+  // Scan Oblio mutation
+  const scanMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/repair-invoices", {
+        method: "POST",
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || "Eroare la scanare");
+      }
+      return result;
+    },
+    onSuccess: (result) => {
+      toast({
+        title: "Scanare completa",
+        description: result.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ["repair-invoices"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Eroare la scanare Oblio",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Individual repair mutation
   const repairMutation = useMutation({
-    mutationFn: async (invoiceId: string) => {
-      setRepairStatuses((prev) => ({ ...prev, [invoiceId]: "processing" }));
-      const res = await fetch(`/api/admin/repair-invoices/${invoiceId}/repair`, {
+    mutationFn: async (repairId: string) => {
+      setRepairStatuses((prev) => ({ ...prev, [repairId]: "processing" }));
+      const res = await fetch(`/api/admin/repair-invoices/${repairId}/repair`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -75,12 +106,12 @@ export default function RepairInvoicesPage() {
       }
       return result;
     },
-    onSuccess: (result, invoiceId) => {
-      setRepairStatuses((prev) => ({ ...prev, [invoiceId]: "repaired" }));
+    onSuccess: (result, repairId) => {
+      setRepairStatuses((prev) => ({ ...prev, [repairId]: "repaired" }));
       setRepairResults((prev) => [
         ...prev,
         {
-          invoiceId,
+          repairId,
           success: true,
           oldInvoice: result.oldInvoice,
           newInvoice: result.newInvoice,
@@ -92,11 +123,11 @@ export default function RepairInvoicesPage() {
         description: `${result.oldInvoice} → ${result.newInvoice}`,
       });
     },
-    onError: (error: Error, invoiceId) => {
-      setRepairStatuses((prev) => ({ ...prev, [invoiceId]: "error" }));
+    onError: (error: Error, repairId) => {
+      setRepairStatuses((prev) => ({ ...prev, [repairId]: "error" }));
       setRepairResults((prev) => [
         ...prev,
-        { invoiceId, success: false, error: error.message },
+        { repairId, success: false, error: error.message },
       ]);
       toast({
         title: "Eroare la reparare",
@@ -108,16 +139,16 @@ export default function RepairInvoicesPage() {
 
   // Bulk repair mutation
   const bulkRepairMutation = useMutation({
-    mutationFn: async (invoiceIds: string[]) => {
+    mutationFn: async (repairIds: string[]) => {
       // Mark all as processing
       const statuses: Record<string, RepairStatus> = {};
-      invoiceIds.forEach((id) => (statuses[id] = "processing"));
+      repairIds.forEach((id) => (statuses[id] = "processing"));
       setRepairStatuses((prev) => ({ ...prev, ...statuses }));
 
       const res = await fetch("/api/admin/repair-invoices/bulk-repair", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoiceIds }),
+        body: JSON.stringify({ repairIds }),
       });
       const result = await res.json();
       if (!res.ok || !result.success) {
@@ -130,7 +161,7 @@ export default function RepairInvoicesPage() {
       const newResults: RepairResult[] = [];
 
       for (const r of data.results) {
-        newStatuses[r.invoiceId] = r.success ? "repaired" : "error";
+        newStatuses[r.repairId] = r.success ? "repaired" : "error";
         newResults.push(r);
       }
 
@@ -201,7 +232,7 @@ export default function RepairInvoicesPage() {
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       <PageHeader
         title="Reparare Facturi Auto-facturare"
-        description={`Facturi emise gresit (client = firma emitenta) din cauza bug-ului billingCompanyId. Total afectate: ${data?.total ?? "..."}`}
+        description={`Facturi emise gresit (client = firma emitenta) din cauza bug-ului billingCompanyId. Pending: ${data?.total ?? "..."} | Reparate: ${repairedCount}`}
       />
 
       {/* Info Card */}
@@ -223,6 +254,11 @@ export default function RepairInvoicesPage() {
                 (1) storna factura veche in Oblio, (2) reseta billingCompanyId pe comanda,
                 (3) re-emite factura cu datele corecte ale clientului.
               </p>
+              {lastScanAt && (
+                <p className="text-sm text-muted-foreground">
+                  <strong>Ultimul scan:</strong> {formatDate(lastScanAt)}
+                </p>
+              )}
             </div>
           </div>
         </CardContent>
@@ -237,10 +273,28 @@ export default function RepairInvoicesPage() {
               Facturi afectate
             </CardTitle>
             <CardDescription>
-              {invoices.length} facturi gasite - selecteaza si apasa Repara
+              {invoices.length} facturi pending - selecteaza si apasa Repara
             </CardDescription>
           </div>
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => scanMutation.mutate()}
+              disabled={scanMutation.isPending}
+            >
+              {scanMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Se scaneaza...
+                </>
+              ) : (
+                <>
+                  <Search className="h-4 w-4 mr-2" />
+                  Scaneaza Oblio
+                </>
+              )}
+            </Button>
             <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
               Reincarca
@@ -283,12 +337,16 @@ export default function RepairInvoicesPage() {
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">
               <RefreshCw className="h-8 w-8 mx-auto mb-4 animate-spin" />
-              <p>Se interogheaza Oblio... Acest proces poate dura cateva minute.</p>
+              <p>Se incarca din baza de date...</p>
             </div>
           ) : invoices.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <CheckCircle2 className="h-8 w-8 mx-auto mb-4 opacity-50 text-green-500" />
-              <p>Nu exista facturi afectate de bug-ul de auto-facturare</p>
+              <p>
+                {lastScanAt
+                  ? "Nu exista facturi pending de reparat"
+                  : "Apasa \"Scaneaza Oblio\" pentru a detecta facturile afectate"}
+              </p>
             </div>
           ) : (
             <Table>

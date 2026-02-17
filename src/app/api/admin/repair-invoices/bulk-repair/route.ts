@@ -12,7 +12,7 @@ export const maxDuration = 300; // 5 minute max pentru bulk
  * POST /api/admin/repair-invoices/bulk-repair
  * Repara bulk facturile afectate de bug-ul de auto-facturare.
  * Proceseaza secvential cu pauza intre facturi.
- * Body: { invoiceIds: string[] }
+ * Body: { repairIds: string[] } - RepairInvoice IDs
  */
 export async function POST(request: NextRequest) {
   try {
@@ -34,16 +34,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { invoiceIds } = body as { invoiceIds: string[] };
+    const { repairIds } = body as { repairIds: string[] };
 
-    if (!invoiceIds || !Array.isArray(invoiceIds) || invoiceIds.length === 0) {
+    if (!repairIds || !Array.isArray(repairIds) || repairIds.length === 0) {
       return NextResponse.json(
-        { error: "invoiceIds este obligatoriu si trebuie sa fie un array nevid" },
+        { error: "repairIds este obligatoriu si trebuie sa fie un array nevid" },
         { status: 400 }
       );
     }
 
-    if (invoiceIds.length > 50) {
+    if (repairIds.length > 50) {
       return NextResponse.json(
         { error: "Maximum 50 de facturi per batch" },
         { status: 400 }
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     const results: Array<{
-      invoiceId: string;
+      repairId: string;
       success: boolean;
       oldInvoice?: string;
       newInvoice?: string;
@@ -59,11 +59,31 @@ export async function POST(request: NextRequest) {
       error?: string;
     }> = [];
 
-    for (const invoiceId of invoiceIds) {
+    for (const repairId of repairIds) {
       try {
-        // Gaseste factura
-        const invoice = await prisma.invoice.findUnique({
-          where: { id: invoiceId },
+        // Gaseste RepairInvoice record
+        const repairRecord = await prisma.repairInvoice.findUnique({
+          where: { id: repairId },
+        });
+
+        if (!repairRecord) {
+          results.push({ repairId, success: false, error: "Inregistrare negasita" });
+          continue;
+        }
+
+        if (repairRecord.status === "repaired") {
+          results.push({ repairId, success: false, error: "Deja reparata" });
+          continue;
+        }
+
+        // Gaseste factura in DB
+        const invoice = await prisma.invoice.findFirst({
+          where: {
+            invoiceSeriesName: repairRecord.invoiceSeriesName,
+            invoiceNumber: repairRecord.invoiceNumber,
+            companyId: repairRecord.companyId,
+            status: "issued",
+          },
           include: {
             company: true,
             order: {
@@ -76,31 +96,51 @@ export async function POST(request: NextRequest) {
         });
 
         if (!invoice) {
-          results.push({ invoiceId, success: false, error: "Factura nu exista" });
+          await prisma.repairInvoice.update({
+            where: { id: repairId },
+            data: { status: "error", errorMessage: "Factura nu exista in DB" },
+          });
+          results.push({ repairId, success: false, error: "Factura nu exista in DB" });
           continue;
         }
 
         if (invoice.status === "cancelled") {
-          results.push({ invoiceId, success: false, error: "Deja stornata" });
+          await prisma.repairInvoice.update({
+            where: { id: repairId },
+            data: { status: "error", errorMessage: "Deja stornata" },
+          });
+          results.push({ repairId, success: false, error: "Deja stornata" });
           continue;
         }
 
         const order = invoice.order;
         if (!order) {
-          results.push({ invoiceId, success: false, error: "Comanda negasita" });
+          await prisma.repairInvoice.update({
+            where: { id: repairId },
+            data: { status: "error", errorMessage: "Comanda negasita" },
+          });
+          results.push({ repairId, success: false, error: "Comanda negasita" });
           continue;
         }
 
         // Storneaza in Oblio
         const company = invoice.company || order.store?.company;
         if (!company) {
-          results.push({ invoiceId, success: false, error: "Firma negasita" });
+          await prisma.repairInvoice.update({
+            where: { id: repairId },
+            data: { status: "error", errorMessage: "Firma negasita" },
+          });
+          results.push({ repairId, success: false, error: "Firma negasita" });
           continue;
         }
 
         const oblioClient = createOblioClient(company);
         if (!oblioClient) {
-          results.push({ invoiceId, success: false, error: "Credentiale Oblio lipsa" });
+          await prisma.repairInvoice.update({
+            where: { id: repairId },
+            data: { status: "error", errorMessage: "Credentiale Oblio lipsa" },
+          });
+          results.push({ repairId, success: false, error: "Credentiale Oblio lipsa" });
           continue;
         }
 
@@ -111,8 +151,12 @@ export async function POST(request: NextRequest) {
           );
 
           if (!stornoResult.success) {
+            await prisma.repairInvoice.update({
+              where: { id: repairId },
+              data: { status: "error", errorMessage: `Stornare Oblio: ${stornoResult.error}` },
+            });
             results.push({
-              invoiceId,
+              repairId,
               success: false,
               error: `Stornare Oblio: ${stornoResult.error}`,
             });
@@ -120,10 +164,9 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Sterge factura veche din DB (stornoul e in Oblio, audit log pastreaza istoricul)
-        // Trebuie stearsa complet pt ca exista unique constraint pe orderId
+        // Sterge factura veche din DB
         await prisma.invoice.delete({
-          where: { id: invoiceId },
+          where: { id: invoice.id },
         });
 
         // Reseteaza billingCompanyId (doar daca e egal cu store.companyId)
@@ -140,8 +183,15 @@ export async function POST(request: NextRequest) {
         const reissueResult = await issueInvoiceForOrder(order.id);
 
         if (!reissueResult.success) {
+          await prisma.repairInvoice.update({
+            where: { id: repairId },
+            data: {
+              status: "error",
+              errorMessage: `Re-emitere esuata: ${reissueResult.error}`,
+            },
+          });
           results.push({
-            invoiceId,
+            repairId,
             success: false,
             oldInvoice: `${invoice.invoiceSeriesName} ${invoice.invoiceNumber}`,
             orderNumber: order.shopifyOrderNumber,
@@ -150,8 +200,20 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
+        // Actualizeaza RepairInvoice
+        await prisma.repairInvoice.update({
+          where: { id: repairId },
+          data: {
+            status: "repaired",
+            newInvoiceNumber: reissueResult.invoiceNumber,
+            newInvoiceSeries: reissueResult.invoiceSeries,
+            repairedAt: new Date(),
+            repairedBy: session.user.id,
+          },
+        });
+
         results.push({
-          invoiceId,
+          repairId,
           success: true,
           oldInvoice: `${invoice.invoiceSeriesName} ${invoice.invoiceNumber}`,
           newInvoice: `${reissueResult.invoiceSeries} ${reissueResult.invoiceNumber}`,
@@ -162,7 +224,11 @@ export async function POST(request: NextRequest) {
         await new Promise((resolve) => setTimeout(resolve, 500));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Eroare necunoscuta";
-        results.push({ invoiceId, success: false, error: msg });
+        await prisma.repairInvoice.update({
+          where: { id: repairId },
+          data: { status: "error", errorMessage: msg },
+        }).catch(() => {}); // best effort
+        results.push({ repairId, success: false, error: msg });
       }
     }
 
@@ -171,10 +237,10 @@ export async function POST(request: NextRequest) {
       data: {
         userId: session.user.id,
         action: "invoice.bulk_repaired",
-        entityType: "Invoice",
+        entityType: "RepairInvoice",
         entityId: "bulk",
         metadata: {
-          totalAttempted: invoiceIds.length,
+          totalAttempted: repairIds.length,
           totalSuccess: results.filter((r) => r.success).length,
           totalFailed: results.filter((r) => !r.success).length,
         },

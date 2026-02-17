@@ -475,6 +475,7 @@ model Order {
   tasks                 Task[]
   returnAwbs            ReturnAWB[]
   manifestItems         ManifestItem[]
+  repairInvoices        RepairInvoice[]
 
   // Notițe interne per comandă
   notes String? @db.Text
@@ -3638,6 +3639,7 @@ model Company {
   intercompanyInvoicesReceived IntercompanyInvoice[] @relation("ReceivedBy")
   trendyolStores               TrendyolStore[]
   temuStores                   TemuStore[]
+  repairInvoices               RepairInvoice[]
 
   @@index([cif])
   @@index([isPrimary])
@@ -4129,4 +4131,46 @@ model PINApprovalRequest {
   @@index([invoiceId])
   @@index([expiresAt])
   @@map("pin_approval_requests")
+}
+
+// ==========================================
+// REPARARE FACTURI AUTO-FACTURARE
+// ==========================================
+
+model RepairInvoice {
+  id String @id @default(cuid())
+
+  // Factura afectata din Oblio
+  invoiceNumber     String
+  invoiceSeriesName String
+  companyId         String
+  company           Company @relation(fields: [companyId], references: [id])
+
+  // Comanda legata (optional - nu toate au match in DB)
+  orderId     String?
+  order       Order?  @relation(fields: [orderId], references: [id])
+  orderNumber String // "#58537" - extras din mentions
+
+  // Date pentru afisare
+  oblioClient     String // Clientul gresit (firma emitenta)
+  correctCustomer String // Clientul corect
+  total           Decimal   @db.Decimal(10, 2)
+  currency        String    @default("RON")
+  issuedAt        DateTime?
+
+  // Status reparare
+  status           String    @default("pending") // pending, repaired, error
+  errorMessage     String?
+  newInvoiceNumber String?
+  newInvoiceSeries String?
+  repairedAt       DateTime?
+  repairedBy       String? // userId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([invoiceSeriesName, invoiceNumber, companyId])
+  @@index([status])
+  @@index([orderId])
+  @@map("repair_invoices")
 }
