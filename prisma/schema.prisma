@@ -4174,3 +4174,23 @@ model RepairInvoice {
   @@index([orderId])
   @@map("repair_invoices")
 }
+
+// ==========================================
+// SMS PROGRAMATE (Daktela)
+// ==========================================
+
+model ScheduledSMS {
+  id          String    @id @default(cuid())
+  phone       String
+  text        String
+  scheduledAt DateTime  // When to send (e.g. handoverAt + 14h)
+  sentAt      DateTime? // null until sent
+  error       String?
+  orderId     String?
+  awbNumber   String?
+  type        String    // e.g. "HANDED_TO_COURIER"
+  createdAt   DateTime  @default(now())
+
+  @@index([scheduledAt, sentAt])
+  @@map("scheduled_sms")
+}

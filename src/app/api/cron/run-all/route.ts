@@ -13,6 +13,7 @@ const CRON_SECRET = process.env.CRON_SECRET;
  * - GET /api/cron/run-all?job=backup         - Automatic backup (at configured time)
  * - GET /api/cron/run-all?job=sync-orders    - Sync Shopify orders (every 15 min)
  * - GET /api/cron/run-all?job=sync-awb       - Sync AWB status (every 30 min)
+ * - GET /api/cron/run-all?job=send-sms      - Send scheduled SMS (every 15 min)
  * - GET /api/cron/run-all?job=all            - Run all jobs (for testing)
  *
  * Can be called from:
@@ -152,6 +153,18 @@ export async function GET(request: NextRequest) {
         const error = err instanceof Error ? err.message : "Unknown error";
         results["sync-awb"] = { success: false, error };
         console.error(`[CRON RUN-ALL] sync-awb: FAILED -`, error);
+      }
+    }
+
+    if (job === "send-sms" || job === "all") {
+      try {
+        const data = await callEndpoint("/api/cron/send-scheduled-sms");
+        results["send-sms"] = { success: true, data };
+        console.log(`[CRON RUN-ALL] send-sms: SUCCESS`);
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : "Unknown error";
+        results["send-sms"] = { success: false, error };
+        console.error(`[CRON RUN-ALL] send-sms: FAILED -`, error);
       }
     }
 

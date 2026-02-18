@@ -1003,6 +1003,13 @@ export async function syncSingleOrder(
       .catch((err) => {
         console.error(`[Daktela] Eroare sync contact la import Shopify ${shopifyOrder.name}:`, err);
       });
+
+    // SMS: Comanda creata (fire-and-forget)
+    import("./daktela-sms").then(({ sendOrderCreatedSMS }) => {
+      sendOrderCreatedSMS(newOrder.id).catch((err) =>
+        console.error("[SMS] Error:", err)
+      );
+    });
   }
 
   // După sync, încercăm să completăm codul poștal din nomenclatorul FanCourier

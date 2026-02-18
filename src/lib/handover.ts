@@ -470,6 +470,13 @@ export async function scanAWB(
     };
   }
 
+  // SMS: Predat la curier - programat +14h (fire-and-forget)
+  import("./daktela-sms").then(({ scheduleHandoverSMS }) => {
+    scheduleHandoverSMS(awb.id).catch((err) =>
+      console.error("[SMS] Schedule Error:", err)
+    );
+  });
+
   // Obținem AWB-ul actualizat pentru răspuns
   const updatedAwb = await prisma.aWB.findUnique({
     where: { id: awb.id },

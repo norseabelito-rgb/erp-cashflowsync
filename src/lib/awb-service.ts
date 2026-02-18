@@ -408,6 +408,13 @@ export async function createAWBForOrder(
 
     console.log(`✅ AWB creat cu succes: ${result.awb}`);
 
+    // SMS: AWB emis (fire-and-forget)
+    import("./daktela-sms").then(({ sendAWBCreatedSMS }) => {
+      sendAWBCreatedSMS(order.id, result.awb).catch((err) =>
+        console.error("[SMS] Error:", err)
+      );
+    });
+
     // If this is a Trendyol order, send tracking number to Trendyol
     // This is non-blocking - AWB was created successfully regardless
     if (order.source === "trendyol") {
