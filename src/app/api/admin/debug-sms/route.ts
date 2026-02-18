@@ -35,7 +35,7 @@ export async function GET() {
              s."orderId", s.type, s.error,
              o."shopifyOrderNumber", o."customerFirstName", o."customerLastName",
              o."customerPhone"
-      FROM "ScheduledSMS" s
+      FROM scheduled_sms s
       LEFT JOIN orders o ON o.id = s."orderId"
       ORDER BY s."scheduledAt" DESC
       LIMIT 50
@@ -47,7 +47,7 @@ export async function GET() {
              s."orderId", s.type,
              o."shopifyOrderNumber", o."customerFirstName", o."customerLastName",
              o."customerPhone"
-      FROM "ScheduledSMS" s
+      FROM scheduled_sms s
       LEFT JOIN orders o ON o.id = s."orderId"
       WHERE s.phone LIKE '%${INVESTIGATE_PHONE}%'
       ORDER BY s."scheduledAt" DESC
@@ -85,7 +85,7 @@ export async function GET() {
       SELECT a."awbNumber", a."handedOverAt", a."orderId",
              o."shopifyOrderNumber", o."customerFirstName", o."customerLastName",
              o."customerPhone"
-      FROM "AWB" a
+      FROM awbs a
       JOIN orders o ON o.id = a."orderId"
       WHERE a."handedOverAt" > NOW() - INTERVAL '48 hours'
       ORDER BY a."handedOverAt" DESC
