@@ -4194,3 +4194,17 @@ model ScheduledSMS {
   @@index([scheduledAt, sentAt])
   @@map("scheduled_sms")
 }
+
+// ==========================================
+// SHORT LINKS (URL shortener propriu)
+// ==========================================
+
+model ShortLink {
+  id        String   @id @default(cuid())
+  code      String   @unique // Codul scurt (ex: "a1b2c3")
+  url       String   // URL-ul original complet
+  clicks    Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("short_links")
+}
