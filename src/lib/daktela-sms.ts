@@ -22,8 +22,6 @@ const SMS_CARD = {
     "{client_name}, comanda #{order_id} a fost predata curierului! Livrarea se face in 1-2 zile lucratoare. Urmarire colet: {tracking_link} - {store_name}",
   HANDED_TO_COURIER:
     "{client_name}, coletul dvs. #{order_id} se afla la curier si va fi livrat cat de curand! Va rugam sa raspundeti la telefon cand va suna curierul. Urmarire: {tracking_link} - {store_name}",
-  DELIVERED:
-    "{client_name}, comanda #{order_id} a fost livrata cu succes! Factura dvs.: {invoice_link} - Va multumim! - {store_name}",
 };
 
 // SMS Templates - RAMBURS (cash on delivery)
@@ -34,8 +32,6 @@ const SMS_RAMBURS = {
     "{client_name}, comanda #{order_id} a fost predata curierului! Livrarea se face in 1-2 zile lucratoare. Pregatiti suma de {total} lei (numerar exact). Urmarire colet: {tracking_link} - {store_name}",
   HANDED_TO_COURIER:
     "{client_name}, coletul dvs. #{order_id} se afla la curier si va fi livrat cat de curand! Suma de plata: {total} lei. Va rugam sa aveti suma exacta pregatita si sa raspundeti la telefon cand va suna curierul. Urmarire: {tracking_link} - {store_name}",
-  DELIVERED:
-    "{client_name}, comanda #{order_id} a fost livrata cu succes! Factura dvs.: {invoice_link} - Va multumim! - {store_name}",
 };
 
 /**
@@ -262,60 +258,6 @@ export async function scheduleHandoverSMS(awbId: string): Promise<void> {
   console.log(
     `[SMS] Scheduled HANDED_TO_COURIER for AWB ${awb.awbNumber} at ${scheduledAt.toISOString()}`
   );
-}
-
-/**
- * Send "Livrat" SMS with invoice link - called when AWB status becomes DELIVERED
- */
-export async function sendDeliveredSMS(orderId: string): Promise<void> {
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    select: {
-      shopifyOrderNumber: true,
-      customerPhone: true,
-      customerFirstName: true,
-      customerLastName: true,
-      financialStatus: true,
-      store: { select: { name: true } },
-      invoices: {
-        where: { status: "issued", pdfData: { not: null } },
-        select: { id: true },
-        take: 1,
-      },
-    },
-  });
-
-  if (!order) {
-    console.error(`[SMS] Order not found: ${orderId}`);
-    return;
-  }
-
-  if (order.invoices.length === 0) {
-    console.log(`[SMS] No invoice for order ${order.shopifyOrderNumber}, skipping delivered SMS`);
-    return;
-  }
-
-  const phone = order.customerPhone;
-  if (!phone && !TEST_MODE) {
-    console.log(`[SMS] No phone for order ${order.shopifyOrderNumber}, skipping`);
-    return;
-  }
-
-  const templates = isPaidByCard(order.financialStatus) ? SMS_CARD : SMS_RAMBURS;
-  const clientNameRaw = [order.customerFirstName, order.customerLastName].filter(Boolean).join(" ") || "Client";
-  const clientName = capitalizeName(clientNameRaw);
-
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "";
-  const invoiceLink = `${baseUrl}/api/invoice/view/${order.invoices[0].id}`;
-
-  const text = fillTemplate(templates.DELIVERED, {
-    client_name: clientName,
-    order_id: order.shopifyOrderNumber || orderId,
-    invoice_link: invoiceLink,
-    store_name: order.store?.name || "CashFlow",
-  });
-
-  await sendSMS(phone || "", text);
 }
 
 /**

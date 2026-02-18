@@ -1339,13 +1339,6 @@ export async function updateAllAWBStatuses(): Promise<{ updated: number; errors:
           if (lastEvent.id === "S2") { // Livrat
             await prisma.order.update({ where: { id: awb.orderId }, data: { status: "DELIVERED" } });
 
-            // SMS: Factura dupa livrare (fire-and-forget)
-            import("./daktela-sms").then(({ sendDeliveredSMS }) => {
-              sendDeliveredSMS(awb.orderId).catch((err) =>
-                console.error("[SMS] Error:", err)
-              );
-            });
-
             // Setăm isCollected = true pentru comenzile cu ramburs (COD)
             // Acest flag este necesar pentru decontarea intercompany
             if (awb.cashOnDelivery && Number(awb.cashOnDelivery) > 0) {
@@ -1652,15 +1645,6 @@ export async function syncAWBsFromFanCourier(): Promise<{
             data: { status: newOrderStatus },
           });
           console.log(`     📋 Status comandă: ${awb.order?.status} → ${newOrderStatus}`);
-
-          // SMS: Factura dupa livrare (fire-and-forget)
-          if (newOrderStatus === "DELIVERED") {
-            import("./daktela-sms").then(({ sendDeliveredSMS }) => {
-              sendDeliveredSMS(awb.orderId).catch((err) =>
-                console.error("[SMS] Error:", err)
-              );
-            });
-          }
         }
 
         // Verificăm dacă s-a schimbat statusul AWB-ului
