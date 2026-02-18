@@ -5,7 +5,7 @@ import prisma from "./db";
 // ==========================================
 
 const DAKTELA_BASE_URL = "https://cashflowgroup.daktela.com/api/v6";
-const DAKTELA_ACCESS_TOKEN = "ad2c15918075bfe5e05b29fcf8db98b26e314f67";
+const DAKTELA_ACCESS_TOKEN = "5b2024598f4f573d8162fa2cedd2ea7b78aef84f";
 const SMS_QUEUE = "9001";
 
 // TEST MODE - all SMS go to this number regardless of input
