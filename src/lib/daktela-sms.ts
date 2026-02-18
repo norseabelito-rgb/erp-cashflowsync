@@ -96,49 +96,6 @@ function capitalizeName(name: string): string {
 }
 
 /**
- * Generate a random short code (6 chars, alphanumeric)
- */
-function generateCode(): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  let code = "";
-  for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return code;
-}
-
-/**
- * Build the short domain for a store: link.storename.ro
- * Falls back to app URL if store name not available
- */
-function getShortDomain(storeName?: string | null): string {
-  if (storeName) {
-    // "My Store Name" -> "mystorename"
-    const clean = storeName.toLowerCase().replace(/[^a-z0-9]/g, "");
-    return `https://link.${clean}.ro`;
-  }
-  return process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "";
-}
-
-/**
- * Create a short link and return the short URL
- * Format: link.storename.ro/r/{code}
- */
-async function shortenUrl(url: string, storeName?: string | null): Promise<string> {
-  try {
-    const code = generateCode();
-    await prisma.shortLink.create({
-      data: { code, url },
-    });
-    const domain = getShortDomain(storeName);
-    return `${domain}/r/${code}`;
-  } catch (error) {
-    console.error("[SMS] Failed to shorten URL:", error);
-    return url; // Fallback to original URL
-  }
-}
-
-/**
  * Replace template variables with actual values
  */
 function fillTemplate(
@@ -229,15 +186,12 @@ export async function sendAWBCreatedSMS(
   const clientNameRaw = [order.customerFirstName, order.customerLastName].filter(Boolean).join(" ") || "Client";
   const clientName = capitalizeName(clientNameRaw);
 
-  const storeName = order.store?.name || "CashFlow";
-  const trackingLink = await shortenUrl(`${TRACKING_URL}${awbNumber}`, storeName);
-
   const text = fillTemplate(templates.AWB_CREATED, {
     client_name: clientName,
     order_id: order.shopifyOrderNumber || orderId,
     total: Number(order.totalPrice).toFixed(2),
-    tracking_link: trackingLink,
-    store_name: storeName,
+    tracking_link: `${TRACKING_URL}${awbNumber}`,
+    store_name: order.store?.name || "CashFlow",
   });
 
   await sendSMS(phone || "", text);
@@ -284,15 +238,12 @@ export async function scheduleHandoverSMS(awbId: string): Promise<void> {
   const clientNameRaw = [awb.order.customerFirstName, awb.order.customerLastName].filter(Boolean).join(" ") || "Client";
   const clientName = capitalizeName(clientNameRaw);
 
-  const storeName = awb.order.store?.name || "CashFlow";
-  const trackingLink = await shortenUrl(`${TRACKING_URL}${awb.awbNumber}`, storeName);
-
   const text = fillTemplate(templates.HANDED_TO_COURIER, {
     client_name: clientName,
     order_id: awb.order.shopifyOrderNumber || awb.order.id,
     total: Number(awb.order.totalPrice).toFixed(2),
-    tracking_link: trackingLink,
-    store_name: storeName,
+    tracking_link: `${TRACKING_URL}${awb.awbNumber}`,
+    store_name: awb.order.store?.name || "CashFlow",
   });
 
   const scheduledAt = new Date(Date.now() + 14 * 60 * 60 * 1000); // now + 14h
@@ -354,15 +305,14 @@ export async function sendDeliveredSMS(orderId: string): Promise<void> {
   const clientNameRaw = [order.customerFirstName, order.customerLastName].filter(Boolean).join(" ") || "Client";
   const clientName = capitalizeName(clientNameRaw);
 
-  const storeName = order.store?.name || "CashFlow";
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "";
-  const invoiceLink = await shortenUrl(`${baseUrl}/api/invoice/view/${order.invoices[0].id}`, storeName);
+  const invoiceLink = `${baseUrl}/api/invoice/view/${order.invoices[0].id}`;
 
   const text = fillTemplate(templates.DELIVERED, {
     client_name: clientName,
     order_id: order.shopifyOrderNumber || orderId,
     invoice_link: invoiceLink,
-    store_name: storeName,
+    store_name: order.store?.name || "CashFlow",
   });
 
   await sendSMS(phone || "", text);
