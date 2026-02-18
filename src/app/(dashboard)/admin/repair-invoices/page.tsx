@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   RefreshCw, CheckCircle2, AlertTriangle, Wrench, Loader2, XCircle, Search,
+  Square, RotateCcw, Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -28,26 +30,28 @@ interface AffectedInvoice {
   currency: string;
   issuedAt: string;
   companyName: string;
+  errorMessage?: string | null;
 }
 
 type RepairStatus = "pending" | "processing" | "repaired" | "error";
 
-interface RepairResult {
-  repairId: string;
-  success: boolean;
-  oldInvoice?: string;
-  newInvoice?: string;
-  orderNumber?: string;
-  error?: string;
+interface BulkProgress {
+  isRunning: boolean;
+  total: number;
+  completed: number;
+  succeeded: number;
+  failed: number;
+  currentLabel: string;
 }
 
 export default function RepairInvoicesPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [repairStatuses, setRepairStatuses] = useState<Record<string, RepairStatus>>({});
-  const [repairResults, setRepairResults] = useState<RepairResult[]>([]);
+  const [bulkProgress, setBulkProgress] = useState<BulkProgress | null>(null);
+  const abortRef = useRef(false);
   const queryClient = useQueryClient();
 
-  // Fetch affected invoices from DB
+  // Fetch affected invoices from DB (pending + errored + repaired count)
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["repair-invoices"],
     queryFn: async () => {
@@ -60,9 +64,11 @@ export default function RepairInvoicesPage() {
     },
   });
 
-  const invoices: AffectedInvoice[] = data?.invoices || [];
+  const pendingInvoices: AffectedInvoice[] = data?.invoices || [];
+  const errorInvoices: AffectedInvoice[] = data?.errors || [];
   const repairedCount: number = data?.repairedCount || 0;
   const lastScanAt: string | null = data?.lastScanAt || null;
+  const totalAffected = pendingInvoices.length + errorInvoices.length + repairedCount;
 
   // Scan Oblio mutation
   const scanMutation = useMutation({
@@ -92,7 +98,87 @@ export default function RepairInvoicesPage() {
     },
   });
 
-  // Individual repair mutation
+  // Sequential repair: processes invoices one by one with progress tracking
+  const processRepairs = useCallback(async (ids: string[], allInvoices: AffectedInvoice[]) => {
+    abortRef.current = false;
+    setBulkProgress({
+      isRunning: true,
+      total: ids.length,
+      completed: 0,
+      succeeded: 0,
+      failed: 0,
+      currentLabel: "",
+    });
+
+    let succeeded = 0;
+    let failed = 0;
+
+    for (let i = 0; i < ids.length; i++) {
+      if (abortRef.current) {
+        toast({
+          title: "Reparare oprita",
+          description: `Oprit la ${i}/${ids.length}. ${succeeded} reparate, ${failed} erori.`,
+        });
+        break;
+      }
+
+      const id = ids[i];
+      const inv = allInvoices.find((x) => x.id === id);
+      const label = inv
+        ? `${inv.invoiceSeriesName} ${inv.invoiceNumber} (${inv.orderNumber})`
+        : id;
+
+      setBulkProgress((prev) =>
+        prev ? { ...prev, currentLabel: label } : null
+      );
+      setRepairStatuses((prev) => ({ ...prev, [id]: "processing" }));
+
+      try {
+        const res = await fetch(`/api/admin/repair-invoices/${id}/repair`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        const result = await res.json();
+
+        if (!res.ok || !result.success) {
+          throw new Error(result.error || "Eroare necunoscuta la reparare");
+        }
+
+        setRepairStatuses((prev) => ({ ...prev, [id]: "repaired" }));
+        succeeded++;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Eroare necunoscuta";
+        setRepairStatuses((prev) => ({ ...prev, [id]: "error" }));
+        failed++;
+        // Don't toast individual errors - they're shown in the error panel
+      }
+
+      setBulkProgress((prev) =>
+        prev
+          ? { ...prev, completed: i + 1, succeeded, failed }
+          : null
+      );
+    }
+
+    setBulkProgress((prev) =>
+      prev ? { ...prev, isRunning: false } : null
+    );
+
+    // Refresh data from DB to get final persistent state
+    await refetch();
+
+    if (!abortRef.current) {
+      toast({
+        title: "Reparare completa",
+        description: `${succeeded} reparate cu succes, ${failed} erori din ${ids.length} total.`,
+        variant: failed > 0 ? "destructive" : "default",
+      });
+    }
+
+    setSelectedIds([]);
+  }, [refetch]);
+
+  // Individual repair mutation (for single "Repara" button)
   const repairMutation = useMutation({
     mutationFn: async (repairId: string) => {
       setRepairStatuses((prev) => ({ ...prev, [repairId]: "processing" }));
@@ -108,81 +194,41 @@ export default function RepairInvoicesPage() {
     },
     onSuccess: (result, repairId) => {
       setRepairStatuses((prev) => ({ ...prev, [repairId]: "repaired" }));
-      setRepairResults((prev) => [
-        ...prev,
-        {
-          repairId,
-          success: true,
-          oldInvoice: result.oldInvoice,
-          newInvoice: result.newInvoice,
-          orderNumber: result.orderNumber,
-        },
-      ]);
       toast({
         title: "Factura reparata",
         description: `${result.oldInvoice} → ${result.newInvoice}`,
       });
+      refetch();
     },
     onError: (error: Error, repairId) => {
       setRepairStatuses((prev) => ({ ...prev, [repairId]: "error" }));
-      setRepairResults((prev) => [
-        ...prev,
-        { repairId, success: false, error: error.message },
-      ]);
       toast({
         title: "Eroare la reparare",
         description: error.message,
         variant: "destructive",
       });
-    },
-  });
-
-  // Bulk repair mutation
-  const bulkRepairMutation = useMutation({
-    mutationFn: async (repairIds: string[]) => {
-      // Mark all as processing
-      const statuses: Record<string, RepairStatus> = {};
-      repairIds.forEach((id) => (statuses[id] = "processing"));
-      setRepairStatuses((prev) => ({ ...prev, ...statuses }));
-
-      const res = await fetch("/api/admin/repair-invoices/bulk-repair", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repairIds }),
-      });
-      const result = await res.json();
-      if (!res.ok || !result.success) {
-        throw new Error(result.error || "Eroare la reparare bulk");
-      }
-      return result;
-    },
-    onSuccess: (data) => {
-      const newStatuses: Record<string, RepairStatus> = {};
-      const newResults: RepairResult[] = [];
-
-      for (const r of data.results) {
-        newStatuses[r.repairId] = r.success ? "repaired" : "error";
-        newResults.push(r);
-      }
-
-      setRepairStatuses((prev) => ({ ...prev, ...newStatuses }));
-      setRepairResults((prev) => [...prev, ...newResults]);
-
-      toast({
-        title: "Reparare bulk completa",
-        description: `${data.succeeded} reparate, ${data.failed} erori din ${data.total} total`,
-      });
-
       refetch();
     },
-    onError: (error: Error) => {
-      toast({
-        title: "Eroare la reparare bulk",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
   });
+
+  const handleRepairSelected = () => {
+    const allInvoices = [...pendingInvoices, ...errorInvoices];
+    processRepairs(selectedIds, allInvoices);
+  };
+
+  const handleRepairAll = () => {
+    const ids = pendingInvoices.map((inv) => inv.id);
+    processRepairs(ids, pendingInvoices);
+  };
+
+  const handleRetryAllErrors = () => {
+    const ids = errorInvoices.map((inv) => inv.id);
+    processRepairs(ids, errorInvoices);
+  };
+
+  const handleStop = () => {
+    abortRef.current = true;
+  };
 
   const toggleInvoice = (id: string) => {
     setSelectedIds((prev) =>
@@ -191,8 +237,13 @@ export default function RepairInvoicesPage() {
   };
 
   const selectAll = () => {
-    const selectableIds = invoices
-      .filter((inv) => !repairStatuses[inv.id] || repairStatuses[inv.id] === "pending" || repairStatuses[inv.id] === "error")
+    const selectableIds = pendingInvoices
+      .filter(
+        (inv) =>
+          !repairStatuses[inv.id] ||
+          repairStatuses[inv.id] === "pending" ||
+          repairStatuses[inv.id] === "error"
+      )
       .map((inv) => inv.id);
     setSelectedIds(selectableIds);
   };
@@ -226,13 +277,16 @@ export default function RepairInvoicesPage() {
     }
   };
 
-  const isPending = repairMutation.isPending || bulkRepairMutation.isPending;
+  const isProcessing = bulkProgress?.isRunning || repairMutation.isPending;
+  const progressPercentage = bulkProgress
+    ? Math.round((bulkProgress.completed / bulkProgress.total) * 100)
+    : 0;
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       <PageHeader
         title="Reparare Facturi Auto-facturare"
-        description={`Facturi emise gresit (client = firma emitenta) din cauza bug-ului billingCompanyId. Pending: ${data?.total ?? "..."} | Reparate: ${repairedCount}`}
+        description={`Pending: ${pendingInvoices.length} | Erori: ${errorInvoices.length} | Reparate: ${repairedCount} | Total afectate: ${totalAffected}`}
       />
 
       {/* Info Card */}
@@ -264,16 +318,154 @@ export default function RepairInvoicesPage() {
         </CardContent>
       </Card>
 
-      {/* Main Card */}
+      {/* Progress Card - shown during active repair or after completion */}
+      {bulkProgress && (
+        <Card className={bulkProgress.isRunning ? "border-blue-300 dark:border-blue-700" : ""}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                {bulkProgress.isRunning ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                ) : bulkProgress.failed > 0 ? (
+                  <AlertTriangle className="h-5 w-5 text-amber-500" />
+                ) : (
+                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                )}
+                {bulkProgress.isRunning
+                  ? "Se repara facturile..."
+                  : bulkProgress.failed > 0
+                  ? "Reparare completa cu erori"
+                  : "Reparare completa"}
+              </CardTitle>
+              {bulkProgress.isRunning && (
+                <Button variant="destructive" size="sm" onClick={handleStop}>
+                  <Square className="h-4 w-4 mr-2" />
+                  Stop
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Progress value={progressPercentage} className="h-3" />
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>
+                {bulkProgress.completed} / {bulkProgress.total} procesate
+                ({progressPercentage}%)
+              </span>
+              <span className="flex gap-3">
+                <span className="text-green-600">{bulkProgress.succeeded} reparate</span>
+                {bulkProgress.failed > 0 && (
+                  <span className="text-red-600">{bulkProgress.failed} erori</span>
+                )}
+              </span>
+            </div>
+            {bulkProgress.isRunning && bulkProgress.currentLabel && (
+              <p className="text-xs text-muted-foreground">
+                Se proceseaza: <span className="font-mono">{bulkProgress.currentLabel}</span>
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Error Card - persistent, shown when there are errored invoices in DB */}
+      {errorInvoices.length > 0 && (
+        <Card className="border-red-200 dark:border-red-800">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                <XCircle className="h-5 w-5" />
+                {errorInvoices.length} facturi cu erori
+              </CardTitle>
+              <CardDescription>
+                Aceste facturi au esuat la reparare. Verifica erorile si incearca din nou.
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRetryAllErrors}
+              disabled={isProcessing}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Retry toate erorile ({errorInvoices.length})
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Firma</TableHead>
+                  <TableHead>Serie + Numar</TableHead>
+                  <TableHead>Comanda</TableHead>
+                  <TableHead>Client Oblio</TableHead>
+                  <TableHead>Client corect</TableHead>
+                  <TableHead className="min-w-[300px]">Eroare</TableHead>
+                  <TableHead>Actiuni</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {errorInvoices.map((inv) => (
+                  <TableRow key={inv.id} className="bg-red-50/50 dark:bg-red-950/10">
+                    <TableCell className="text-xs text-muted-foreground">
+                      {inv.companyName}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {inv.invoiceSeriesName} {inv.invoiceNumber}
+                    </TableCell>
+                    <TableCell>{inv.orderNumber}</TableCell>
+                    <TableCell className="text-red-600 dark:text-red-400 max-w-[150px] truncate">
+                      {inv.oblioClient}
+                    </TableCell>
+                    <TableCell className="text-green-600 dark:text-green-400 max-w-[150px] truncate">
+                      {inv.correctCustomer}
+                    </TableCell>
+                    <TableCell>
+                      <p className="text-sm text-red-700 dark:text-red-300 whitespace-pre-wrap break-words">
+                        {inv.errorMessage || "Eroare necunoscuta"}
+                      </p>
+                    </TableCell>
+                    <TableCell>
+                      {repairStatuses[inv.id] === "processing" ? (
+                        <Badge variant="outline" className="gap-1">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Se proceseaza
+                        </Badge>
+                      ) : repairStatuses[inv.id] === "repaired" ? (
+                        <Badge variant="default" className="bg-green-600 gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Reparat
+                        </Badge>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => repairMutation.mutate(inv.id)}
+                          disabled={isProcessing}
+                        >
+                          <RotateCcw className="h-4 w-4 mr-1" />
+                          Retry
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Main Card - Pending invoices */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
               <Wrench className="h-5 w-5" />
-              Facturi afectate
+              Facturi pending
             </CardTitle>
             <CardDescription>
-              {invoices.length} facturi pending - selecteaza si apasa Repara
+              {pendingInvoices.length} facturi asteapta reparare
             </CardDescription>
           </div>
           <div className="flex gap-2">
@@ -281,7 +473,7 @@ export default function RepairInvoicesPage() {
               variant="outline"
               size="sm"
               onClick={() => scanMutation.mutate()}
-              disabled={scanMutation.isPending}
+              disabled={scanMutation.isPending || isProcessing}
             >
               {scanMutation.isPending ? (
                 <>
@@ -295,7 +487,12 @@ export default function RepairInvoicesPage() {
                 </>
               )}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isLoading}
+            >
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
               Reincarca
             </Button>
@@ -308,28 +505,34 @@ export default function RepairInvoicesPage() {
               variant="outline"
               size="sm"
               onClick={selectAll}
-              disabled={invoices.length === 0 || isPending}
+              disabled={pendingInvoices.length === 0 || isProcessing}
             >
-              Selecteaza toate ({invoices.length})
+              Selecteaza toate ({pendingInvoices.length})
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setSelectedIds([])}
-              disabled={selectedIds.length === 0 || isPending}
+              disabled={selectedIds.length === 0 || isProcessing}
             >
               Sterge selectia
             </Button>
             <div className="flex-1" />
             <Button
-              variant="default"
-              onClick={() => bulkRepairMutation.mutate(selectedIds)}
-              disabled={selectedIds.length === 0 || isPending}
+              variant="outline"
+              onClick={handleRepairSelected}
+              disabled={selectedIds.length === 0 || isProcessing}
             >
               <Wrench className="h-4 w-4 mr-2" />
-              {bulkRepairMutation.isPending
-                ? "Se repara..."
-                : `Repara selectate (${selectedIds.length})`}
+              Repara selectate ({selectedIds.length})
+            </Button>
+            <Button
+              variant="default"
+              onClick={handleRepairAll}
+              disabled={pendingInvoices.length === 0 || isProcessing}
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Repara toate ({pendingInvoices.length})
             </Button>
           </div>
 
@@ -339,7 +542,7 @@ export default function RepairInvoicesPage() {
               <RefreshCw className="h-8 w-8 mx-auto mb-4 animate-spin" />
               <p>Se incarca din baza de date...</p>
             </div>
-          ) : invoices.length === 0 ? (
+          ) : pendingInvoices.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <CheckCircle2 className="h-8 w-8 mx-auto mb-4 opacity-50 text-green-500" />
               <p>
@@ -353,6 +556,7 @@ export default function RepairInvoicesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12"></TableHead>
+                  <TableHead>Firma</TableHead>
                   <TableHead>Serie + Numar</TableHead>
                   <TableHead>Comanda</TableHead>
                   <TableHead>Client Oblio</TableHead>
@@ -364,7 +568,7 @@ export default function RepairInvoicesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {invoices.map((inv) => (
+                {pendingInvoices.map((inv) => (
                   <TableRow
                     key={inv.id}
                     className={
@@ -381,6 +585,9 @@ export default function RepairInvoicesPage() {
                         onCheckedChange={() => toggleInvoice(inv.id)}
                         disabled={repairStatuses[inv.id] === "repaired" || repairStatuses[inv.id] === "processing"}
                       />
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {inv.companyName}
                     </TableCell>
                     <TableCell className="font-mono text-sm">
                       {inv.invoiceSeriesName} {inv.invoiceNumber}
@@ -407,7 +614,7 @@ export default function RepairInvoicesPage() {
                         disabled={
                           repairStatuses[inv.id] === "repaired" ||
                           repairStatuses[inv.id] === "processing" ||
-                          isPending
+                          isProcessing
                         }
                       >
                         {repairStatuses[inv.id] === "processing" ? (
@@ -424,58 +631,6 @@ export default function RepairInvoicesPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Results Card */}
-      {repairResults.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-              Rezultate reparare
-            </CardTitle>
-            <CardDescription>
-              {repairResults.filter((r) => r.success).length} reparate,{" "}
-              {repairResults.filter((r) => !r.success).length} erori
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Comanda</TableHead>
-                  <TableHead>Factura veche</TableHead>
-                  <TableHead>Factura noua</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Detalii</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {repairResults.map((result, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell>{result.orderNumber || "-"}</TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {result.oldInvoice || "-"}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {result.newInvoice || "-"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={result.success ? "default" : "destructive"}>
-                        {result.success ? "Reparat" : "Eroare"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-[300px] truncate">
-                      {result.success
-                        ? `${result.oldInvoice} → ${result.newInvoice}`
-                        : result.error}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

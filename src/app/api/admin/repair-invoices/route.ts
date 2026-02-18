@@ -30,11 +30,16 @@ export async function GET() {
       );
     }
 
-    const [pendingInvoices, repairedCount, lastScan] = await Promise.all([
+    const [pendingInvoices, erroredInvoices, repairedCount, lastScan] = await Promise.all([
       prisma.repairInvoice.findMany({
         where: { status: "pending" },
         include: { company: { select: { name: true } } },
         orderBy: { createdAt: "desc" },
+      }),
+      prisma.repairInvoice.findMany({
+        where: { status: "error" },
+        include: { company: { select: { name: true } } },
+        orderBy: { updatedAt: "desc" },
       }),
       prisma.repairInvoice.count({ where: { status: "repaired" } }),
       prisma.repairInvoice.findFirst({
@@ -43,7 +48,7 @@ export async function GET() {
       }),
     ]);
 
-    const invoices = pendingInvoices.map((ri) => ({
+    const mapInvoice = (ri: typeof pendingInvoices[0] & { errorMessage?: string | null }) => ({
       id: ri.id,
       invoiceNumber: ri.invoiceNumber,
       invoiceSeriesName: ri.invoiceSeriesName,
@@ -55,14 +60,20 @@ export async function GET() {
       currency: ri.currency,
       issuedAt: ri.issuedAt?.toISOString() || "",
       companyName: ri.company.name,
-    }));
+      errorMessage: ri.errorMessage || null,
+    });
+
+    const invoices = pendingInvoices.map(mapInvoice);
+    const errors = erroredInvoices.map(mapInvoice);
 
     return NextResponse.json({
       success: true,
       total: invoices.length,
+      errorCount: errors.length,
       repairedCount,
       lastScanAt: lastScan?.createdAt?.toISOString() || null,
       invoices,
+      errors,
     });
   } catch (error: unknown) {
     console.error("Error in GET /api/admin/repair-invoices:", error);
@@ -192,8 +203,12 @@ export async function POST() {
             if (orderMatch) {
               const shopifyNum = `#${orderMatch[1]}`;
               orderNumber = shopifyNum;
+              // Cauta comanda doar in store-urile companiei curente
               const order = await prisma.order.findFirst({
-                where: { shopifyOrderNumber: shopifyNum },
+                where: {
+                  shopifyOrderNumber: shopifyNum,
+                  store: { companyId: company.id },
+                },
               });
               if (order) {
                 orderId = order.id;
@@ -201,6 +216,18 @@ export async function POST() {
                   [order.customerFirstName, order.customerLastName]
                     .filter(Boolean)
                     .join(" ") || "Client";
+              } else {
+                // Fallback: cauta comanda in TOATE store-urile (ex: Construim Destine)
+                const orderAny = await prisma.order.findFirst({
+                  where: { shopifyOrderNumber: shopifyNum },
+                });
+                if (orderAny) {
+                  orderId = orderAny.id;
+                  correctCustomer =
+                    [orderAny.customerFirstName, orderAny.customerLastName]
+                      .filter(Boolean)
+                      .join(" ") || "Client";
+                }
               }
             }
           }

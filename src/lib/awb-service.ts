@@ -389,7 +389,6 @@ export async function createAWBForOrder(
       where: { id: order.id },
       data: {
         status: "AWB_CREATED",
-        billingCompanyId: company.id, // Setăm firma dacă nu e deja setată
       },
     });
 

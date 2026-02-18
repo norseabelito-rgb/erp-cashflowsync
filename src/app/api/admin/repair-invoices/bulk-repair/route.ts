@@ -43,12 +43,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (repairIds.length > 50) {
-      return NextResponse.json(
-        { error: "Maximum 50 de facturi per batch" },
-        { status: 400 }
-      );
-    }
 
     const results: Array<{
       repairId: string;
@@ -95,16 +89,7 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        if (!invoice) {
-          await prisma.repairInvoice.update({
-            where: { id: repairId },
-            data: { status: "error", errorMessage: "Factura nu exista in DB" },
-          });
-          results.push({ repairId, success: false, error: "Factura nu exista in DB" });
-          continue;
-        }
-
-        if (invoice.status === "cancelled") {
+        if (invoice?.status === "cancelled") {
           await prisma.repairInvoice.update({
             where: { id: repairId },
             data: { status: "error", errorMessage: "Deja stornata" },
@@ -113,7 +98,29 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        const order = invoice.order;
+        // Gaseste comanda - din factura DB sau din RepairInvoice.orderId
+        let order = invoice?.order ?? null;
+        if (!order && repairRecord.orderId) {
+          order = await prisma.order.findUnique({
+            where: { id: repairRecord.orderId },
+            include: {
+              store: { include: { company: true } },
+              billingCompany: true,
+            },
+          });
+        }
+
+        // Fallback: cauta comanda dupa orderNumber din RepairInvoice
+        if (!order && repairRecord.orderNumber && repairRecord.orderNumber !== "-") {
+          order = await prisma.order.findFirst({
+            where: { shopifyOrderNumber: repairRecord.orderNumber },
+            include: {
+              store: { include: { company: true } },
+              billingCompany: true,
+            },
+          });
+        }
+
         if (!order) {
           await prisma.repairInvoice.update({
             where: { id: repairId },
@@ -124,7 +131,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Storneaza in Oblio
-        const company = invoice.company || order.store?.company;
+        const company = invoice?.company || order.store?.company;
         if (!company) {
           await prisma.repairInvoice.update({
             where: { id: repairId },
@@ -144,10 +151,13 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        if (invoice.invoiceSeriesName && invoice.invoiceNumber) {
+        // Storneaza folosind datele din RepairInvoice (functioneaza si fara factura in DB)
+        const stornoSeries = invoice?.invoiceSeriesName || repairRecord.invoiceSeriesName;
+        const stornoNumber = invoice?.invoiceNumber || repairRecord.invoiceNumber;
+        if (stornoSeries && stornoNumber) {
           const stornoResult = await oblioClient.stornoInvoice(
-            invoice.invoiceSeriesName,
-            invoice.invoiceNumber
+            stornoSeries,
+            stornoNumber
           );
 
           if (!stornoResult.success) {
@@ -164,10 +174,12 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Sterge factura veche din DB
-        await prisma.invoice.delete({
-          where: { id: invoice.id },
-        });
+        // Sterge factura veche din DB (daca exista)
+        if (invoice) {
+          await prisma.invoice.delete({
+            where: { id: invoice.id },
+          });
+        }
 
         // Reseteaza billingCompanyId (doar daca e egal cu store.companyId)
         const resetBilling = order.billingCompanyId && order.billingCompanyId === order.store?.companyId;
@@ -190,10 +202,11 @@ export async function POST(request: NextRequest) {
               errorMessage: `Re-emitere esuata: ${reissueResult.error}`,
             },
           });
+          const oldLabel = `${stornoSeries} ${stornoNumber}`;
           results.push({
             repairId,
             success: false,
-            oldInvoice: `${invoice.invoiceSeriesName} ${invoice.invoiceNumber}`,
+            oldInvoice: oldLabel,
             orderNumber: order.shopifyOrderNumber,
             error: `Re-emitere esuata: ${reissueResult.error}`,
           });
@@ -215,7 +228,7 @@ export async function POST(request: NextRequest) {
         results.push({
           repairId,
           success: true,
-          oldInvoice: `${invoice.invoiceSeriesName} ${invoice.invoiceNumber}`,
+          oldInvoice: `${stornoSeries} ${stornoNumber}`,
           newInvoice: `${reissueResult.invoiceSeries} ${reissueResult.invoiceNumber}`,
           orderNumber: order.shopifyOrderNumber,
         });
