@@ -1645,6 +1645,15 @@ export async function syncAWBsFromFanCourier(): Promise<{
             data: { status: newOrderStatus },
           });
           console.log(`     📋 Status comandă: ${awb.order?.status} → ${newOrderStatus}`);
+
+          // SMS: Factura dupa livrare (fire-and-forget) - DOAR aici, nu si in updateAllAWBStatuses
+          if (newOrderStatus === "DELIVERED") {
+            import("./daktela-sms").then(({ sendDeliveredSMS }) => {
+              sendDeliveredSMS(awb.orderId).catch((err) =>
+                console.error("[SMS] Error:", err)
+              );
+            });
+          }
         }
 
         // Verificăm dacă s-a schimbat statusul AWB-ului
