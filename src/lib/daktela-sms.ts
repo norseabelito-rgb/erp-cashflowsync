@@ -12,14 +12,34 @@ const SMS_QUEUE = "9001";
 const TEST_MODE = true;
 const TEST_PHONE = "+40773716325";
 
-// SMS Templates
-const SMS_TEMPLATES = {
-  ORDER_CREATED: "Comanda {orderNumber} a fost inregistrata. Multumim!",
+const TRACKING_URL = "https://www.fancourier.ro/awb-tracking/?tracking=";
+
+// SMS Templates - CARD (paid online)
+const SMS_CARD = {
+  ORDER_CREATED:
+    "Buna ziua, {client_name}! Comanda dvs. #{order_id} a fost inregistrata si plata a fost confirmata. Veti primi un SMS cand coletul pleaca spre dvs. Va multumim! - {store_name}",
   AWB_CREATED:
-    "Comanda {orderNumber} - AWB {awbNumber} a fost emis. Urmariti coletul: https://www.fancourier.ro/awb-tracking/?tracking={awbNumber}",
+    "{client_name}, comanda #{order_id} a fost predata curierului! Livrarea se face in 1-2 zile lucratoare. Urmarire colet: {tracking_link} - {store_name}",
   HANDED_TO_COURIER:
-    "Comanda {orderNumber} a fost predata curierului. AWB: {awbNumber}",
+    "{client_name}, coletul dvs. #{order_id} se afla la curier si va fi livrat cat de curand! Va rugam sa raspundeti la telefon cand va suna curierul. Urmarire: {tracking_link} - {store_name}",
 };
+
+// SMS Templates - RAMBURS (cash on delivery)
+const SMS_RAMBURS = {
+  ORDER_CREATED:
+    "Buna ziua, {client_name}! Comanda dvs. #{order_id} a fost inregistrata. Valoare: {total} lei (plata la livrare). Veti primi un SMS cand coletul pleaca spre dvs. Va multumim! - {store_name}",
+  AWB_CREATED:
+    "{client_name}, comanda #{order_id} a fost predata curierului! Livrarea se face in 1-2 zile lucratoare. Pregatiti suma de {total} lei (numerar exact). Urmarire colet: {tracking_link} - {store_name}",
+  HANDED_TO_COURIER:
+    "{client_name}, coletul dvs. #{order_id} se afla la curier si va fi livrat cat de curand! Suma de plata: {total} lei. Va rugam sa aveti suma exacta pregatita si sa raspundeti la telefon cand va suna curierul. Urmarire: {tracking_link} - {store_name}",
+};
+
+/**
+ * Check if order was paid by card (vs ramburs/cash on delivery)
+ */
+function isPaidByCard(financialStatus: string | null): boolean {
+  return financialStatus === "paid";
+}
 
 /**
  * Send SMS via Daktela Activities API
@@ -39,7 +59,7 @@ export async function sendSMS(phone: string, text: string): Promise<boolean> {
       text,
     };
 
-    console.log(`[SMS] Sending to ${targetPhone}: "${text.substring(0, 50)}..."`);
+    console.log(`[SMS] Sending to ${targetPhone}: "${text.substring(0, 80)}..."`);
 
     const response = await fetch(url, {
       method: "POST",
@@ -62,7 +82,7 @@ export async function sendSMS(phone: string, text: string): Promise<boolean> {
 }
 
 /**
- * Replace template variables like {orderNumber} with actual values
+ * Replace template variables with actual values
  */
 function fillTemplate(
   template: string,
@@ -84,6 +104,11 @@ export async function sendOrderCreatedSMS(orderId: string): Promise<void> {
     select: {
       shopifyOrderNumber: true,
       customerPhone: true,
+      customerFirstName: true,
+      customerLastName: true,
+      financialStatus: true,
+      totalPrice: true,
+      store: { select: { name: true } },
     },
   });
 
@@ -98,8 +123,14 @@ export async function sendOrderCreatedSMS(orderId: string): Promise<void> {
     return;
   }
 
-  const text = fillTemplate(SMS_TEMPLATES.ORDER_CREATED, {
-    orderNumber: order.shopifyOrderNumber || orderId,
+  const templates = isPaidByCard(order.financialStatus) ? SMS_CARD : SMS_RAMBURS;
+  const clientName = [order.customerFirstName, order.customerLastName].filter(Boolean).join(" ") || "Client";
+
+  const text = fillTemplate(templates.ORDER_CREATED, {
+    client_name: clientName,
+    order_id: order.shopifyOrderNumber || orderId,
+    total: Number(order.totalPrice).toFixed(2),
+    store_name: order.store?.name || "CashFlow",
   });
 
   await sendSMS(phone || "", text);
@@ -117,6 +148,11 @@ export async function sendAWBCreatedSMS(
     select: {
       shopifyOrderNumber: true,
       customerPhone: true,
+      customerFirstName: true,
+      customerLastName: true,
+      financialStatus: true,
+      totalPrice: true,
+      store: { select: { name: true } },
     },
   });
 
@@ -131,9 +167,15 @@ export async function sendAWBCreatedSMS(
     return;
   }
 
-  const text = fillTemplate(SMS_TEMPLATES.AWB_CREATED, {
-    orderNumber: order.shopifyOrderNumber || orderId,
-    awbNumber,
+  const templates = isPaidByCard(order.financialStatus) ? SMS_CARD : SMS_RAMBURS;
+  const clientName = [order.customerFirstName, order.customerLastName].filter(Boolean).join(" ") || "Client";
+
+  const text = fillTemplate(templates.AWB_CREATED, {
+    client_name: clientName,
+    order_id: order.shopifyOrderNumber || orderId,
+    total: Number(order.totalPrice).toFixed(2),
+    tracking_link: `${TRACKING_URL}${awbNumber}`,
+    store_name: order.store?.name || "CashFlow",
   });
 
   await sendSMS(phone || "", text);
@@ -153,6 +195,11 @@ export async function scheduleHandoverSMS(awbId: string): Promise<void> {
           id: true,
           shopifyOrderNumber: true,
           customerPhone: true,
+          customerFirstName: true,
+          customerLastName: true,
+          financialStatus: true,
+          totalPrice: true,
+          store: { select: { name: true } },
         },
       },
     },
@@ -171,9 +218,15 @@ export async function scheduleHandoverSMS(awbId: string): Promise<void> {
     return;
   }
 
-  const text = fillTemplate(SMS_TEMPLATES.HANDED_TO_COURIER, {
-    orderNumber: awb.order.shopifyOrderNumber || awb.order.id,
-    awbNumber: awb.awbNumber,
+  const templates = isPaidByCard(awb.order.financialStatus) ? SMS_CARD : SMS_RAMBURS;
+  const clientName = [awb.order.customerFirstName, awb.order.customerLastName].filter(Boolean).join(" ") || "Client";
+
+  const text = fillTemplate(templates.HANDED_TO_COURIER, {
+    client_name: clientName,
+    order_id: awb.order.shopifyOrderNumber || awb.order.id,
+    total: Number(awb.order.totalPrice).toFixed(2),
+    tracking_link: `${TRACKING_URL}${awb.awbNumber}`,
+    store_name: awb.order.store?.name || "CashFlow",
   });
 
   const scheduledAt = new Date(Date.now() + 14 * 60 * 60 * 1000); // now + 14h
