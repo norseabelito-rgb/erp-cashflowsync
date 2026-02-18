@@ -18,6 +18,10 @@ export async function GET() {
 
   const INVESTIGATE_PHONE = "773716325"; // Stefan's phone (without prefix)
 
+  // BigInt serialization fix for JSON.stringify
+  const serialize = (data: any): any =>
+    JSON.parse(JSON.stringify(data, (_, v) => (typeof v === "bigint" ? Number(v) : v)));
+
   try {
     // 1. Orders with Stefan's phone number (but possibly wrong customer name)
     const ordersWithPhone = await prisma.$queryRawUnsafe<any[]>(`
@@ -92,7 +96,7 @@ export async function GET() {
       LIMIT 30
     `);
 
-    return NextResponse.json({
+    return NextResponse.json(serialize({
       _note: "TEMPORARY DEBUG - DELETE AFTER INVESTIGATION",
       _phone: `Investigating phone: *${INVESTIGATE_PHONE}`,
       ordersWithStefansPhone: {
@@ -120,7 +124,7 @@ export async function GET() {
         count: recentHandovers.length,
         data: recentHandovers,
       },
-    });
+    }));
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("[DEBUG-SMS] Error:", msg);
