@@ -9,7 +9,7 @@ const DAKTELA_ACCESS_TOKEN = "5b2024598f4f573d8162fa2cedd2ea7b78aef84f";
 const SMS_QUEUE = "9001";
 
 // TEST MODE - set to true to redirect ALL SMS to TEST_PHONE
-const TEST_MODE = true;
+const TEST_MODE = false;
 const TEST_PHONE = "+40773716325";
 
 const TRACKING_URL = "https://www.fancourier.ro/awb-tracking/?tracking=";
@@ -354,6 +354,8 @@ export async function scheduleHandoverSMS(awbId: string): Promise<void> {
  * Deduplication: checks smsDeliveredAt before sending
  */
 export async function sendDeliveredSMS(orderId: string): Promise<void> {
+  return; // Temporar dezactivat - nu trimitem SMS cu factura inca
+
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     select: {
