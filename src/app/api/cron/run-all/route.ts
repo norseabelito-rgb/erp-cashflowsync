@@ -158,7 +158,8 @@ export async function GET(request: NextRequest) {
 
     if (job === "send-sms" || job === "all") {
       try {
-        const data = await callEndpoint("/api/cron/send-scheduled-sms");
+        const { processScheduledSMS } = await import("@/lib/daktela-sms");
+        const data = await processScheduledSMS();
         results["send-sms"] = { success: true, data };
         console.log(`[CRON RUN-ALL] send-sms: SUCCESS`);
       } catch (err: unknown) {

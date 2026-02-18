@@ -82,6 +82,16 @@ export async function sendSMS(phone: string, text: string): Promise<boolean> {
 }
 
 /**
+ * Capitalize first letter of each word: "ion popescu" -> "Ion Popescu"
+ */
+function capitalizeName(name: string): string {
+  return name
+    .split(" ")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
+/**
  * Replace template variables with actual values
  */
 function fillTemplate(
@@ -124,7 +134,8 @@ export async function sendOrderCreatedSMS(orderId: string): Promise<void> {
   }
 
   const templates = isPaidByCard(order.financialStatus) ? SMS_CARD : SMS_RAMBURS;
-  const clientName = [order.customerFirstName, order.customerLastName].filter(Boolean).join(" ") || "Client";
+  const clientNameRaw = [order.customerFirstName, order.customerLastName].filter(Boolean).join(" ") || "Client";
+  const clientName = capitalizeName(clientNameRaw);
 
   const text = fillTemplate(templates.ORDER_CREATED, {
     client_name: clientName,
@@ -168,7 +179,8 @@ export async function sendAWBCreatedSMS(
   }
 
   const templates = isPaidByCard(order.financialStatus) ? SMS_CARD : SMS_RAMBURS;
-  const clientName = [order.customerFirstName, order.customerLastName].filter(Boolean).join(" ") || "Client";
+  const clientNameRaw = [order.customerFirstName, order.customerLastName].filter(Boolean).join(" ") || "Client";
+  const clientName = capitalizeName(clientNameRaw);
 
   const text = fillTemplate(templates.AWB_CREATED, {
     client_name: clientName,
@@ -219,7 +231,8 @@ export async function scheduleHandoverSMS(awbId: string): Promise<void> {
   }
 
   const templates = isPaidByCard(awb.order.financialStatus) ? SMS_CARD : SMS_RAMBURS;
-  const clientName = [awb.order.customerFirstName, awb.order.customerLastName].filter(Boolean).join(" ") || "Client";
+  const clientNameRaw = [awb.order.customerFirstName, awb.order.customerLastName].filter(Boolean).join(" ") || "Client";
+  const clientName = capitalizeName(clientNameRaw);
 
   const text = fillTemplate(templates.HANDED_TO_COURIER, {
     client_name: clientName,
