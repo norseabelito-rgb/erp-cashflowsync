@@ -152,9 +152,13 @@ export async function POST(request: NextRequest) {
         }
 
         // Storneaza folosind datele din RepairInvoice (functioneaza si fara factura in DB)
+        // Skip storno daca a fost deja facut (retry dupa eroare la re-emitere)
         const stornoSeries = invoice?.invoiceSeriesName || repairRecord.invoiceSeriesName;
         const stornoNumber = invoice?.invoiceNumber || repairRecord.invoiceNumber;
-        if (stornoSeries && stornoNumber) {
+        const stornoAlreadyDone = repairRecord.errorMessage?.startsWith("Stornarea a reusit")
+          || repairRecord.errorMessage?.startsWith("Re-emitere esuata");
+
+        if (!stornoAlreadyDone && stornoSeries && stornoNumber) {
           const stornoResult = await oblioClient.stornoInvoice(
             stornoSeries,
             stornoNumber
@@ -174,12 +178,10 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Sterge factura veche din DB (daca exista)
-        if (invoice) {
-          await prisma.invoice.delete({
-            where: { id: invoice.id },
-          });
-        }
+        // Sterge TOATE facturile "issued" ale comenzii din DB
+        await prisma.invoice.deleteMany({
+          where: { orderId: order.id, status: "issued" },
+        });
 
         // Reseteaza billingCompanyId (doar daca e egal cu store.companyId)
         const resetBilling = order.billingCompanyId && order.billingCompanyId === order.store?.companyId;

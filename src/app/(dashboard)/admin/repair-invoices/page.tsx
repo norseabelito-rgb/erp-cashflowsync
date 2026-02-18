@@ -158,6 +158,11 @@ export default function RepairInvoicesPage() {
           ? { ...prev, completed: i + 1, succeeded, failed }
           : null
       );
+
+      // Pauza 2s intre facturi pentru a evita rate limiting de la Oblio
+      if (i < ids.length - 1 && !abortRef.current) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
     }
 
     setBulkProgress((prev) =>
