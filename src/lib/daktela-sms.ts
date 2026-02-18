@@ -29,21 +29,23 @@ export async function sendSMS(phone: string, text: string): Promise<boolean> {
   const targetPhone = TEST_MODE ? TEST_PHONE : phone;
 
   try {
-    const params = new URLSearchParams({
-      text,
-      type: "SMS",
+    const url = `${DAKTELA_BASE_URL}/activities.json?accessToken=${DAKTELA_ACCESS_TOKEN}`;
+
+    const body = {
       queue: SMS_QUEUE,
+      type: "SMS",
       action: "CLOSE",
       number: targetPhone,
-      _method: "POST",
-      accessToken: DAKTELA_ACCESS_TOKEN,
-    });
-
-    const url = `${DAKTELA_BASE_URL}/activities.json?${params.toString()}`;
+      text,
+    };
 
     console.log(`[SMS] Sending to ${targetPhone}: "${text.substring(0, 50)}..."`);
 
-    const response = await fetch(url, { method: "POST" });
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
