@@ -8,8 +8,8 @@ const DAKTELA_BASE_URL = "https://cashflowgroup.daktela.com/api/v6";
 const DAKTELA_ACCESS_TOKEN = "5b2024598f4f573d8162fa2cedd2ea7b78aef84f";
 const SMS_QUEUE = "9001";
 
-// TEST MODE - all SMS go to this number regardless of input
-const TEST_MODE = true;
+// TEST MODE - set to true to redirect ALL SMS to TEST_PHONE
+const TEST_MODE = false;
 const TEST_PHONE = "+40773716325";
 
 const TRACKING_URL = "https://www.fancourier.ro/awb-tracking/?tracking=";
@@ -154,6 +154,7 @@ function fillTemplate(
 
 /**
  * Send "Comanda creata" SMS - called after new order is created in Shopify sync
+ * Deduplication: checks smsOrderCreatedAt before sending
  */
 export async function sendOrderCreatedSMS(orderId: string): Promise<void> {
   const order = await prisma.order.findUnique({
@@ -165,12 +166,19 @@ export async function sendOrderCreatedSMS(orderId: string): Promise<void> {
       customerLastName: true,
       financialStatus: true,
       totalPrice: true,
+      smsOrderCreatedAt: true,
       store: { select: { name: true } },
     },
   });
 
   if (!order) {
     console.error(`[SMS] Order not found: ${orderId}`);
+    return;
+  }
+
+  // Deduplication: skip if already sent
+  if (order.smsOrderCreatedAt) {
+    console.log(`[SMS] ORDER_CREATED already sent for ${order.shopifyOrderNumber} at ${order.smsOrderCreatedAt.toISOString()}, skipping`);
     return;
   }
 
@@ -191,11 +199,18 @@ export async function sendOrderCreatedSMS(orderId: string): Promise<void> {
     store_name: order.store?.name || "CashFlow",
   });
 
-  await sendSMS(phone || "", text);
+  const success = await sendSMS(phone || "", text);
+  if (success) {
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { smsOrderCreatedAt: new Date() },
+    });
+  }
 }
 
 /**
  * Send "AWB emis" SMS - called after AWB is successfully created
+ * Deduplication: checks smsAwbCreatedAt before sending
  */
 export async function sendAWBCreatedSMS(
   orderId: string,
@@ -210,12 +225,19 @@ export async function sendAWBCreatedSMS(
       customerLastName: true,
       financialStatus: true,
       totalPrice: true,
+      smsAwbCreatedAt: true,
       store: { select: { name: true } },
     },
   });
 
   if (!order) {
     console.error(`[SMS] Order not found: ${orderId}`);
+    return;
+  }
+
+  // Deduplication: skip if already sent
+  if (order.smsAwbCreatedAt) {
+    console.log(`[SMS] AWB_CREATED already sent for ${order.shopifyOrderNumber} at ${order.smsAwbCreatedAt.toISOString()}, skipping`);
     return;
   }
 
@@ -237,12 +259,19 @@ export async function sendAWBCreatedSMS(
     store_name: order.store?.name || "CashFlow",
   });
 
-  await sendSMS(phone || "", text);
+  const success = await sendSMS(phone || "", text);
+  if (success) {
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { smsAwbCreatedAt: new Date() },
+    });
+  }
 }
 
 /**
  * Schedule "Predat la curier" SMS for 14h after handover scan
  * Inserts a ScheduledSMS row - actual sending is done by the cron job
+ * Deduplication: checks if a HANDED_TO_COURIER SMS is already scheduled for this AWB
  */
 export async function scheduleHandoverSMS(awbId: string): Promise<void> {
   const awb = await prisma.aWB.findUnique({
@@ -266,6 +295,19 @@ export async function scheduleHandoverSMS(awbId: string): Promise<void> {
 
   if (!awb || !awb.order) {
     console.error(`[SMS] AWB not found or no order: ${awbId}`);
+    return;
+  }
+
+  // Deduplication: check if already scheduled for this AWB
+  const existing = await prisma.scheduledSMS.findFirst({
+    where: {
+      awbNumber: awb.awbNumber,
+      type: "HANDED_TO_COURIER",
+    },
+  });
+
+  if (existing) {
+    console.log(`[SMS] HANDED_TO_COURIER already scheduled for AWB ${awb.awbNumber} (id: ${existing.id}), skipping`);
     return;
   }
 
@@ -309,6 +351,7 @@ export async function scheduleHandoverSMS(awbId: string): Promise<void> {
 
 /**
  * Send "Livrat" SMS with invoice link - called when AWB status becomes DELIVERED
+ * Deduplication: checks smsDeliveredAt before sending
  */
 export async function sendDeliveredSMS(orderId: string): Promise<void> {
   const order = await prisma.order.findUnique({
@@ -319,6 +362,7 @@ export async function sendDeliveredSMS(orderId: string): Promise<void> {
       customerFirstName: true,
       customerLastName: true,
       financialStatus: true,
+      smsDeliveredAt: true,
       store: { select: { name: true } },
       invoices: {
         where: { status: "issued", pdfData: { not: null } },
@@ -330,6 +374,12 @@ export async function sendDeliveredSMS(orderId: string): Promise<void> {
 
   if (!order) {
     console.error(`[SMS] Order not found: ${orderId}`);
+    return;
+  }
+
+  // Deduplication: skip if already sent
+  if (order.smsDeliveredAt) {
+    console.log(`[SMS] DELIVERED already sent for ${order.shopifyOrderNumber} at ${order.smsDeliveredAt.toISOString()}, skipping`);
     return;
   }
 
@@ -358,11 +408,18 @@ export async function sendDeliveredSMS(orderId: string): Promise<void> {
     store_name: order.store?.name || "CashFlow",
   });
 
-  await sendSMS(phone || "", text);
+  const success = await sendSMS(phone || "", text);
+  if (success) {
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { smsDeliveredAt: new Date() },
+    });
+  }
 }
 
 /**
  * Process all due scheduled SMS messages - called by cron job
+ * Uses atomic UPDATE...RETURNING to prevent duplicate sends from concurrent runs
  */
 export async function processScheduledSMS(): Promise<{
   sent: number;
@@ -370,36 +427,41 @@ export async function processScheduledSMS(): Promise<{
   errors: string[];
 }> {
   const now = new Date();
-  const pending = await prisma.scheduledSMS.findMany({
-    where: {
-      sentAt: null,
-      scheduledAt: { lte: now },
-    },
-    orderBy: { scheduledAt: "asc" },
-    take: 50, // Process in batches
-  });
 
-  console.log(`[SMS CRON] Found ${pending.length} scheduled SMS to send`);
+  // Atomic claim: UPDATE with subquery + FOR UPDATE SKIP LOCKED
+  // This prevents two concurrent cron runs from picking up the same records
+  const claimed = await prisma.$queryRaw<
+    Array<{ id: string; phone: string; text: string; awbNumber: string | null }>
+  >`
+    UPDATE scheduled_sms
+    SET "sentAt" = ${now}
+    WHERE id IN (
+      SELECT id FROM scheduled_sms
+      WHERE "sentAt" IS NULL AND "scheduledAt" <= ${now}
+      ORDER BY "scheduledAt" ASC
+      LIMIT 50
+      FOR UPDATE SKIP LOCKED
+    )
+    RETURNING id, phone, text, "awbNumber"
+  `;
+
+  console.log(`[SMS CRON] Claimed ${claimed.length} scheduled SMS to send`);
 
   let sent = 0;
   let failed = 0;
   const errors: string[] = [];
 
-  for (const sms of pending) {
+  for (const sms of claimed) {
     const success = await sendSMS(sms.phone, sms.text);
 
     if (success) {
-      await prisma.scheduledSMS.update({
-        where: { id: sms.id },
-        data: { sentAt: new Date() },
-      });
       sent++;
     } else {
+      // Reset sentAt so it can be retried on next run
       const errorMsg = `Failed to send SMS ${sms.id} for AWB ${sms.awbNumber}`;
-      await prisma.scheduledSMS.update({
-        where: { id: sms.id },
-        data: { error: errorMsg },
-      });
+      await prisma.$executeRaw`
+        UPDATE scheduled_sms SET "sentAt" = NULL, "error" = ${errorMsg} WHERE id = ${sms.id}
+      `;
       errors.push(errorMsg);
       failed++;
     }

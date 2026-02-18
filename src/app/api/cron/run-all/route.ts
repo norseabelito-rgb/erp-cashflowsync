@@ -159,9 +159,15 @@ export async function GET(request: NextRequest) {
     if (job === "send-sms" || job === "all") {
       try {
         const { processScheduledSMS } = await import("@/lib/daktela-sms");
-        const data = await processScheduledSMS();
-        results["send-sms"] = { success: true, data };
-        console.log(`[CRON RUN-ALL] send-sms: SUCCESS`);
+        const { withCronLock } = await import("@/lib/cron-lock");
+        const lockResult = await withCronLock("send-sms", () => processScheduledSMS());
+        if (lockResult.skipped) {
+          results["send-sms"] = { success: true, data: { skipped: true, reason: lockResult.reason } };
+          console.log(`[CRON RUN-ALL] send-sms: SKIPPED (already running)`);
+        } else {
+          results["send-sms"] = { success: true, data: lockResult.result };
+          console.log(`[CRON RUN-ALL] send-sms: SUCCESS`);
+        }
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : "Unknown error";
         results["send-sms"] = { success: false, error };

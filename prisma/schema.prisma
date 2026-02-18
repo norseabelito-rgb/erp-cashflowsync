@@ -480,6 +480,11 @@ model Order {
   // Notițe interne per comandă
   notes String? @db.Text
 
+  // SMS deduplication - tracks when each SMS type was sent
+  smsOrderCreatedAt DateTime?
+  smsAwbCreatedAt   DateTime?
+  smsDeliveredAt    DateTime?
+
   // Internal workflow status (separate from OrderStatus enum)
   internalStatusId String?
   internalStatus   InternalOrderStatus? @relation(fields: [internalStatusId], references: [id])

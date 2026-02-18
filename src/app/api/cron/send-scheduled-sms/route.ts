@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processScheduledSMS } from "@/lib/daktela-sms";
+import { withCronLock } from "@/lib/cron-lock";
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
@@ -10,11 +11,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const result = await processScheduledSMS();
+    // Use cron lock to prevent concurrent SMS processing
+    const lockResult = await withCronLock("send-sms", async () => {
+      return await processScheduledSMS();
+    });
+
+    if (lockResult.skipped) {
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        reason: lockResult.reason,
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      ...result,
+      ...lockResult.result,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
