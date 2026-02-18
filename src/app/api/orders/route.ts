@@ -4,25 +4,31 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
+import { validateEmbedToken } from "@/lib/embed-auth";
 
 export async function GET(request: NextRequest) {
   try {
-    // Verificăm autentificarea
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Trebuie să fii autentificat" },
-        { status: 401 }
-      );
-    }
+    // Check if this is an embed request (token-based auth for iframe access)
+    const isEmbedRequest = validateEmbedToken(request);
 
-    // Verificăm permisiunea de vizualizare comenzi
-    const canView = await hasPermission(session.user.id, "orders.view");
-    if (!canView) {
-      return NextResponse.json(
-        { error: "Nu ai permisiunea de a vizualiza comenzi" },
-        { status: 403 }
-      );
+    if (!isEmbedRequest) {
+      // Verificăm autentificarea
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.id) {
+        return NextResponse.json(
+          { error: "Trebuie să fii autentificat" },
+          { status: 401 }
+        );
+      }
+
+      // Verificăm permisiunea de vizualizare comenzi
+      const canView = await hasPermission(session.user.id, "orders.view");
+      if (!canView) {
+        return NextResponse.json(
+          { error: "Nu ai permisiunea de a vizualiza comenzi" },
+          { status: 403 }
+        );
+      }
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -290,8 +296,16 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    // Fetch stores for dropdown (used by embed and frontend)
+    const stores = await prisma.store.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    });
+
     return NextResponse.json({
       orders: ordersWithCompat,
+      stores,
       pagination: {
         page,
         limit,

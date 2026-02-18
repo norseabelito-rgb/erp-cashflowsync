@@ -33,39 +33,51 @@ const nextConfig = {
       ? `frame-ancestors 'self' ${allowedDomains.join(" ")}`
       : "frame-ancestors *"; // Allow all if no whitelist configured
 
+    const embedHeaders = [
+      {
+        key: "Content-Security-Policy",
+        value: frameAncestors,
+      },
+      {
+        // Remove X-Frame-Options to allow iframe
+        key: "X-Frame-Options",
+        value: "ALLOWALL",
+      },
+    ];
+
+    const corsHeaders = [
+      {
+        key: "Access-Control-Allow-Origin",
+        value: allowedDomains.length > 0 ? allowedDomains[0] : "*",
+      },
+      {
+        key: "Access-Control-Allow-Methods",
+        value: "GET, POST, OPTIONS",
+      },
+      {
+        key: "Access-Control-Allow-Headers",
+        value: "Content-Type, Authorization",
+      },
+    ];
+
     return [
       {
-        // Apply to embed routes and their API calls
         source: "/customers/embed/:path*",
-        headers: [
-          {
-            key: "Content-Security-Policy",
-            value: frameAncestors,
-          },
-          {
-            // Remove X-Frame-Options to allow iframe
-            key: "X-Frame-Options",
-            value: "ALLOWALL",
-          },
-        ],
+        headers: embedHeaders,
+      },
+      {
+        source: "/orders/embed/:path*",
+        headers: embedHeaders,
       },
       {
         // API routes for customers (used by embed)
         source: "/api/customers/:path*",
-        headers: [
-          {
-            key: "Access-Control-Allow-Origin",
-            value: allowedDomains.length > 0 ? allowedDomains[0] : "*",
-          },
-          {
-            key: "Access-Control-Allow-Methods",
-            value: "GET, POST, OPTIONS",
-          },
-          {
-            key: "Access-Control-Allow-Headers",
-            value: "Content-Type, Authorization",
-          },
-        ],
+        headers: corsHeaders,
+      },
+      {
+        // API routes for orders (used by embed)
+        source: "/api/orders/:path*",
+        headers: corsHeaders,
       },
     ];
   },
