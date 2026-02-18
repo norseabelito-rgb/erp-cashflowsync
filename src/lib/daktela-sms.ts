@@ -9,7 +9,7 @@ const DAKTELA_ACCESS_TOKEN = "5b2024598f4f573d8162fa2cedd2ea7b78aef84f";
 const SMS_QUEUE = "9001";
 
 // TEST MODE - all SMS go to this number regardless of input
-const TEST_MODE = true;
+const TEST_MODE = false;
 const TEST_PHONE = "+40773716325";
 
 const TRACKING_URL = "https://www.fancourier.ro/awb-tracking/?tracking=";
