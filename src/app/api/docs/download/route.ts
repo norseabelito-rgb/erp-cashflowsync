@@ -56,6 +56,16 @@ function stripMarkdown(text: string): string {
     .replace(/^#{1,6}\s+/gm, "");
 }
 
+// pdfkit standard fonts (Helvetica/Courier) only support WinAnsi encoding
+// Romanian ș/ț/Ș/Ț are NOT in WinAnsi - replace with ASCII equivalents
+function sanitizeForPDF(text: string): string {
+  return text
+    .replace(/[șş]/g, "s")
+    .replace(/[ȘŞ]/g, "S")
+    .replace(/[țţ]/g, "t")
+    .replace(/[ȚŢ]/g, "T");
+}
+
 async function generatePDF(): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
@@ -92,12 +102,12 @@ async function generatePDF(): Promise<Buffer> {
       const sectionFiles = files.filter((f) => f.relativePath.startsWith(section.dir + "/"));
       if (sectionFiles.length === 0) continue;
 
-      doc.fontSize(14).font("Helvetica-Bold").text(section.title);
+      doc.fontSize(14).font("Helvetica-Bold").text(sanitizeForPDF(section.title));
       doc.moveDown(0.3);
 
       for (const file of sectionFiles) {
         const name = file.relativePath.replace(`${section.dir}/`, "").replace(".md", "");
-        doc.fontSize(10).font("Helvetica").text(`  - ${name}`, { indent: 20 });
+        doc.fontSize(10).font("Helvetica").text(`  - ${sanitizeForPDF(name)}`, { indent: 20 });
       }
       doc.moveDown(0.5);
     }
@@ -109,11 +119,13 @@ async function generatePDF(): Promise<Buffer> {
       const parts = file.relativePath.split("/");
       if (parts.length > 1) {
         const sectionName = SECTION_ORDER.find((s) => s.dir === parts[0])?.title || parts[0];
-        doc.fontSize(10).font("Helvetica").fillColor("#666666").text(sectionName);
+        doc.fontSize(10).font("Helvetica").fillColor("#666666").text(sanitizeForPDF(sectionName));
         doc.fillColor("#000000");
       }
 
-      const lines = file.content.split("\n");
+      // Sanitize entire content for PDF-safe characters before processing
+      const safeContent = sanitizeForPDF(file.content);
+      const lines = safeContent.split("\n");
       let inCodeBlock = false;
 
       for (const line of lines) {
