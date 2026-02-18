@@ -46,11 +46,54 @@ function isPaidByCard(financialStatus: string | null): boolean {
 }
 
 /**
+ * Normalize phone to international format: +40xxxxxxxxx
+ * Handles: 07xx, 40xx, 004xxx, +40xx, with spaces/dashes/parens
+ */
+function normalizePhone(phone: string): string | null {
+  // Remove spaces, dashes, dots, parentheses
+  let clean = phone.replace(/[\s\-\.\(\)]/g, "");
+
+  // 0040... -> +40...
+  if (clean.startsWith("0040")) {
+    clean = "+" + clean.slice(2);
+  }
+  // 07xxxxxxxx (10 digits, local Romanian)
+  else if (clean.startsWith("0") && clean.length === 10) {
+    clean = "+40" + clean.slice(1);
+  }
+  // 40xxxxxxxxx (without +)
+  else if (clean.startsWith("40") && clean.length === 11) {
+    clean = "+" + clean;
+  }
+  // Already has +
+  else if (!clean.startsWith("+")) {
+    clean = "+" + clean;
+  }
+
+  // Basic validation: must be +40 followed by 9 digits
+  if (/^\+40\d{9}$/.test(clean)) {
+    return clean;
+  }
+
+  // Accept any international format that looks valid (non-RO numbers)
+  if (/^\+\d{10,15}$/.test(clean)) {
+    return clean;
+  }
+
+  return null;
+}
+
+/**
  * Send SMS via Daktela Activities API
  * Fire-and-forget pattern - errors are logged, not thrown
  */
 export async function sendSMS(phone: string, text: string): Promise<boolean> {
-  const targetPhone = TEST_MODE ? TEST_PHONE : phone;
+  const normalized = TEST_MODE ? TEST_PHONE : normalizePhone(phone);
+  if (!normalized) {
+    console.error(`[SMS] Invalid phone number: "${phone}"`);
+    return false;
+  }
+  const targetPhone = normalized;
 
   try {
     const url = `${DAKTELA_BASE_URL}/activities.json?accessToken=${DAKTELA_ACCESS_TOKEN}`;
