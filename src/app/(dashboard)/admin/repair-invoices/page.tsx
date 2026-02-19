@@ -4,13 +4,16 @@ import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   RefreshCw, CheckCircle2, AlertTriangle, Wrench, Loader2, XCircle, Search,
-  Square, RotateCcw, Play,
+  Square, RotateCcw, Play, History, FileText, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
+import {
+  Tabs, TabsContent, TabsList, TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -42,6 +45,192 @@ interface BulkProgress {
   succeeded: number;
   failed: number;
   currentLabel: string;
+}
+
+interface HistoryEntry {
+  id: string;
+  date: string;
+  user: string;
+  orderNumber: string;
+  oldInvoice: { series: string | null; number: string | null };
+  stornoInvoice: { series: string | null; number: string | null };
+  newInvoice: { series: string | null; number: string | null };
+  reason: string | null;
+}
+
+function InvoiceLink({ series, number }: { series: string | null; number: string | null }) {
+  if (!series || !number) return <span className="text-muted-foreground">-</span>;
+
+  const handleClick = async () => {
+    try {
+      const res = await fetch(`/api/admin/repair-invoices/pdf?series=${encodeURIComponent(series)}&number=${encodeURIComponent(number)}`);
+      const data = await res.json();
+      if (data.pdfUrl) {
+        window.open(data.pdfUrl, "_blank");
+      } else {
+        toast({
+          title: "PDF indisponibil",
+          description: data.error || "Nu s-a putut obtine PDF-ul",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: "Eroare",
+        description: "Nu s-a putut obtine PDF-ul facturii",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      className="font-mono text-sm text-blue-600 dark:text-blue-400 hover:underline cursor-pointer flex items-center gap-1"
+    >
+      <FileText className="h-3 w-3" />
+      {series} {number}
+    </button>
+  );
+}
+
+function RepairHistoryTab() {
+  const [page, setPage] = useState(1);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["repair-history", page],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/repair-invoices/history?page=${page}&limit=25`);
+      if (!res.ok) throw new Error("Eroare la incarcarea istoricului");
+      return res.json();
+    },
+  });
+
+  const history: HistoryEntry[] = data?.history || [];
+  const pagination = data?.pagination;
+
+  const backfillMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/repair-invoices/backfill", { method: "POST" });
+      const result = await res.json();
+      if (!res.ok || !result.success) throw new Error(result.error || "Eroare backfill");
+      return result;
+    },
+    onSuccess: (result) => {
+      toast({
+        title: "Backfill complet",
+        description: `${result.updated} actualizate, ${result.skipped} deja complete, ${result.notFound} fara date storno`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Eroare backfill",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {pagination ? `${pagination.total} reparari in total` : "Se incarca..."}
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => backfillMutation.mutate()}
+          disabled={backfillMutation.isPending}
+        >
+          {backfillMutation.isPending ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-2" />
+          )}
+          Backfill storno info
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin" />
+              <p>Se incarca istoricul...</p>
+            </div>
+          ) : history.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <History className="h-8 w-8 mx-auto mb-4 opacity-50" />
+              <p>Nu exista reparari in istoric</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Comanda</TableHead>
+                  <TableHead>Factura Originala</TableHead>
+                  <TableHead>Factura Storno</TableHead>
+                  <TableHead>Factura Noua</TableHead>
+                  <TableHead>Utilizator</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {history.map((entry) => (
+                  <TableRow key={entry.id}>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {formatDate(entry.date)}
+                    </TableCell>
+                    <TableCell className="font-medium">{entry.orderNumber}</TableCell>
+                    <TableCell>
+                      <InvoiceLink series={entry.oldInvoice.series} number={entry.oldInvoice.number} />
+                    </TableCell>
+                    <TableCell>
+                      <InvoiceLink series={entry.stornoInvoice.series} number={entry.stornoInvoice.number} />
+                    </TableCell>
+                    <TableCell>
+                      <InvoiceLink series={entry.newInvoice.series} number={entry.newInvoice.number} />
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{entry.user}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Pagination */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Pagina {pagination.page} din {pagination.totalPages}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Inapoi
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= pagination.totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Inainte
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function RepairInvoicesPage() {
@@ -294,348 +483,367 @@ export default function RepairInvoicesPage() {
         description={`Pending: ${pendingInvoices.length} | Erori: ${errorInvoices.length} | Reparate: ${repairedCount} | Total afectate: ${totalAffected}`}
       />
 
-      {/* Info Card */}
-      <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
-        <CardContent className="pt-6">
-          <div className="flex gap-4">
-            <div className="p-3 bg-amber-100 dark:bg-amber-900/50 rounded-lg h-fit">
-              <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-semibold">Despre aceasta problema</h3>
-              <p className="text-sm text-muted-foreground">
-                Bug-ul: <code>billingCompanyId</code> pe Order era setat la companyId-ul store-ului,
-                ceea ce facea ca factura sa fie emisa de la Aquaterra catre Aquaterra (firma emitenta = client).
-                Aceasta pagina permite stornarea facturilor gresite si re-emiterea lor cu clientul corect.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                <strong>Procesul de reparare:</strong> Pentru fiecare factura selectata, sistemul va:
-                (1) storna factura veche in Oblio, (2) reseta billingCompanyId pe comanda,
-                (3) re-emite factura cu datele corecte ale clientului.
-              </p>
-              {lastScanAt && (
-                <p className="text-sm text-muted-foreground">
-                  <strong>Ultimul scan:</strong> {formatDate(lastScanAt)}
-                </p>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="repair" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="repair" className="gap-2">
+            <Wrench className="h-4 w-4" />
+            Reparare
+          </TabsTrigger>
+          <TabsTrigger value="history" className="gap-2">
+            <History className="h-4 w-4" />
+            Istoric
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Progress Card - shown during active repair or after completion */}
-      {bulkProgress && (
-        <Card className={bulkProgress.isRunning ? "border-blue-300 dark:border-blue-700" : ""}>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-base">
-                {bulkProgress.isRunning ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-                ) : bulkProgress.failed > 0 ? (
-                  <AlertTriangle className="h-5 w-5 text-amber-500" />
-                ) : (
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+        <TabsContent value="repair" className="space-y-6">
+          {/* Info Card */}
+          <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+            <CardContent className="pt-6">
+              <div className="flex gap-4">
+                <div className="p-3 bg-amber-100 dark:bg-amber-900/50 rounded-lg h-fit">
+                  <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-semibold">Despre aceasta problema</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Bug-ul: <code>billingCompanyId</code> pe Order era setat la companyId-ul store-ului,
+                    ceea ce facea ca factura sa fie emisa de la Aquaterra catre Aquaterra (firma emitenta = client).
+                    Aceasta pagina permite stornarea facturilor gresite si re-emiterea lor cu clientul corect.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Procesul de reparare:</strong> Pentru fiecare factura selectata, sistemul va:
+                    (1) storna factura veche in Oblio, (2) reseta billingCompanyId pe comanda,
+                    (3) re-emite factura cu datele corecte ale clientului.
+                  </p>
+                  {lastScanAt && (
+                    <p className="text-sm text-muted-foreground">
+                      <strong>Ultimul scan:</strong> {formatDate(lastScanAt)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Progress Card - shown during active repair or after completion */}
+          {bulkProgress && (
+            <Card className={bulkProgress.isRunning ? "border-blue-300 dark:border-blue-700" : ""}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    {bulkProgress.isRunning ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                    ) : bulkProgress.failed > 0 ? (
+                      <AlertTriangle className="h-5 w-5 text-amber-500" />
+                    ) : (
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    )}
+                    {bulkProgress.isRunning
+                      ? "Se repara facturile..."
+                      : bulkProgress.failed > 0
+                      ? "Reparare completa cu erori"
+                      : "Reparare completa"}
+                  </CardTitle>
+                  {bulkProgress.isRunning && (
+                    <Button variant="destructive" size="sm" onClick={handleStop}>
+                      <Square className="h-4 w-4 mr-2" />
+                      Stop
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Progress value={progressPercentage} className="h-3" />
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>
+                    {bulkProgress.completed} / {bulkProgress.total} procesate
+                    ({progressPercentage}%)
+                  </span>
+                  <span className="flex gap-3">
+                    <span className="text-green-600">{bulkProgress.succeeded} reparate</span>
+                    {bulkProgress.failed > 0 && (
+                      <span className="text-red-600">{bulkProgress.failed} erori</span>
+                    )}
+                  </span>
+                </div>
+                {bulkProgress.isRunning && bulkProgress.currentLabel && (
+                  <p className="text-xs text-muted-foreground">
+                    Se proceseaza: <span className="font-mono">{bulkProgress.currentLabel}</span>
+                  </p>
                 )}
-                {bulkProgress.isRunning
-                  ? "Se repara facturile..."
-                  : bulkProgress.failed > 0
-                  ? "Reparare completa cu erori"
-                  : "Reparare completa"}
-              </CardTitle>
-              {bulkProgress.isRunning && (
-                <Button variant="destructive" size="sm" onClick={handleStop}>
-                  <Square className="h-4 w-4 mr-2" />
-                  Stop
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Error Card - persistent, shown when there are errored invoices in DB */}
+          {errorInvoices.length > 0 && (
+            <Card className="border-red-200 dark:border-red-800">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                    <XCircle className="h-5 w-5" />
+                    {errorInvoices.length} facturi cu erori
+                  </CardTitle>
+                  <CardDescription>
+                    Aceste facturi au esuat la reparare. Verifica erorile si incearca din nou.
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRetryAllErrors}
+                  disabled={isProcessing}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Retry toate erorile ({errorInvoices.length})
                 </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Progress value={progressPercentage} className="h-3" />
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>
-                {bulkProgress.completed} / {bulkProgress.total} procesate
-                ({progressPercentage}%)
-              </span>
-              <span className="flex gap-3">
-                <span className="text-green-600">{bulkProgress.succeeded} reparate</span>
-                {bulkProgress.failed > 0 && (
-                  <span className="text-red-600">{bulkProgress.failed} erori</span>
-                )}
-              </span>
-            </div>
-            {bulkProgress.isRunning && bulkProgress.currentLabel && (
-              <p className="text-xs text-muted-foreground">
-                Se proceseaza: <span className="font-mono">{bulkProgress.currentLabel}</span>
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Firma</TableHead>
+                      <TableHead>Serie + Numar</TableHead>
+                      <TableHead>Comanda</TableHead>
+                      <TableHead>Client Oblio</TableHead>
+                      <TableHead>Client corect</TableHead>
+                      <TableHead className="min-w-[300px]">Eroare</TableHead>
+                      <TableHead>Actiuni</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {errorInvoices.map((inv) => (
+                      <TableRow key={inv.id} className="bg-red-50/50 dark:bg-red-950/10">
+                        <TableCell className="text-xs text-muted-foreground">
+                          {inv.companyName}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {inv.invoiceSeriesName} {inv.invoiceNumber}
+                        </TableCell>
+                        <TableCell>{inv.orderNumber}</TableCell>
+                        <TableCell className="text-red-600 dark:text-red-400 max-w-[150px] truncate">
+                          {inv.oblioClient}
+                        </TableCell>
+                        <TableCell className="text-green-600 dark:text-green-400 max-w-[150px] truncate">
+                          {inv.correctCustomer}
+                        </TableCell>
+                        <TableCell>
+                          <p className="text-sm text-red-700 dark:text-red-300 whitespace-pre-wrap break-words">
+                            {inv.errorMessage || "Eroare necunoscuta"}
+                          </p>
+                        </TableCell>
+                        <TableCell>
+                          {repairStatuses[inv.id] === "processing" ? (
+                            <Badge variant="outline" className="gap-1">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              Se proceseaza
+                            </Badge>
+                          ) : repairStatuses[inv.id] === "repaired" ? (
+                            <Badge variant="default" className="bg-green-600 gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Reparat
+                            </Badge>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => repairMutation.mutate(inv.id)}
+                              disabled={isProcessing}
+                            >
+                              <RotateCcw className="h-4 w-4 mr-1" />
+                              Retry
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
 
-      {/* Error Card - persistent, shown when there are errored invoices in DB */}
-      {errorInvoices.length > 0 && (
-        <Card className="border-red-200 dark:border-red-800">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
-                <XCircle className="h-5 w-5" />
-                {errorInvoices.length} facturi cu erori
-              </CardTitle>
-              <CardDescription>
-                Aceste facturi au esuat la reparare. Verifica erorile si incearca din nou.
-              </CardDescription>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRetryAllErrors}
-              disabled={isProcessing}
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Retry toate erorile ({errorInvoices.length})
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Firma</TableHead>
-                  <TableHead>Serie + Numar</TableHead>
-                  <TableHead>Comanda</TableHead>
-                  <TableHead>Client Oblio</TableHead>
-                  <TableHead>Client corect</TableHead>
-                  <TableHead className="min-w-[300px]">Eroare</TableHead>
-                  <TableHead>Actiuni</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {errorInvoices.map((inv) => (
-                  <TableRow key={inv.id} className="bg-red-50/50 dark:bg-red-950/10">
-                    <TableCell className="text-xs text-muted-foreground">
-                      {inv.companyName}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {inv.invoiceSeriesName} {inv.invoiceNumber}
-                    </TableCell>
-                    <TableCell>{inv.orderNumber}</TableCell>
-                    <TableCell className="text-red-600 dark:text-red-400 max-w-[150px] truncate">
-                      {inv.oblioClient}
-                    </TableCell>
-                    <TableCell className="text-green-600 dark:text-green-400 max-w-[150px] truncate">
-                      {inv.correctCustomer}
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-sm text-red-700 dark:text-red-300 whitespace-pre-wrap break-words">
-                        {inv.errorMessage || "Eroare necunoscuta"}
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      {repairStatuses[inv.id] === "processing" ? (
-                        <Badge variant="outline" className="gap-1">
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                          Se proceseaza
-                        </Badge>
-                      ) : repairStatuses[inv.id] === "repaired" ? (
-                        <Badge variant="default" className="bg-green-600 gap-1">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Reparat
-                        </Badge>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => repairMutation.mutate(inv.id)}
-                          disabled={isProcessing}
-                        >
-                          <RotateCcw className="h-4 w-4 mr-1" />
-                          Retry
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+          {/* Main Card - Pending invoices */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Wrench className="h-5 w-5" />
+                  Facturi pending
+                </CardTitle>
+                <CardDescription>
+                  {pendingInvoices.length} facturi asteapta reparare
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => scanMutation.mutate()}
+                  disabled={scanMutation.isPending || isProcessing}
+                >
+                  {scanMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Se scaneaza...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="h-4 w-4 mr-2" />
+                      Scaneaza Oblio
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetch()}
+                  disabled={isLoading}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+                  Reincarca
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Actions */}
+              <div className="flex flex-wrap gap-2 pb-4 border-b">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={selectAll}
+                  disabled={pendingInvoices.length === 0 || isProcessing}
+                >
+                  Selecteaza toate ({pendingInvoices.length})
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedIds([])}
+                  disabled={selectedIds.length === 0 || isProcessing}
+                >
+                  Sterge selectia
+                </Button>
+                <div className="flex-1" />
+                <Button
+                  variant="outline"
+                  onClick={handleRepairSelected}
+                  disabled={selectedIds.length === 0 || isProcessing}
+                >
+                  <Wrench className="h-4 w-4 mr-2" />
+                  Repara selectate ({selectedIds.length})
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={handleRepairAll}
+                  disabled={pendingInvoices.length === 0 || isProcessing}
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Repara toate ({pendingInvoices.length})
+                </Button>
+              </div>
 
-      {/* Main Card - Pending invoices */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Wrench className="h-5 w-5" />
-              Facturi pending
-            </CardTitle>
-            <CardDescription>
-              {pendingInvoices.length} facturi asteapta reparare
-            </CardDescription>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => scanMutation.mutate()}
-              disabled={scanMutation.isPending || isProcessing}
-            >
-              {scanMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Se scaneaza...
-                </>
+              {/* Table */}
+              {isLoading ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <RefreshCw className="h-8 w-8 mx-auto mb-4 animate-spin" />
+                  <p>Se incarca din baza de date...</p>
+                </div>
+              ) : pendingInvoices.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <CheckCircle2 className="h-8 w-8 mx-auto mb-4 opacity-50 text-green-500" />
+                  <p>
+                    {lastScanAt
+                      ? "Nu exista facturi pending de reparat"
+                      : "Apasa \"Scaneaza Oblio\" pentru a detecta facturile afectate"}
+                  </p>
+                </div>
               ) : (
-                <>
-                  <Search className="h-4 w-4 mr-2" />
-                  Scaneaza Oblio
-                </>
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              disabled={isLoading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-              Reincarca
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Actions */}
-          <div className="flex flex-wrap gap-2 pb-4 border-b">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={selectAll}
-              disabled={pendingInvoices.length === 0 || isProcessing}
-            >
-              Selecteaza toate ({pendingInvoices.length})
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedIds([])}
-              disabled={selectedIds.length === 0 || isProcessing}
-            >
-              Sterge selectia
-            </Button>
-            <div className="flex-1" />
-            <Button
-              variant="outline"
-              onClick={handleRepairSelected}
-              disabled={selectedIds.length === 0 || isProcessing}
-            >
-              <Wrench className="h-4 w-4 mr-2" />
-              Repara selectate ({selectedIds.length})
-            </Button>
-            <Button
-              variant="default"
-              onClick={handleRepairAll}
-              disabled={pendingInvoices.length === 0 || isProcessing}
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Repara toate ({pendingInvoices.length})
-            </Button>
-          </div>
-
-          {/* Table */}
-          {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <RefreshCw className="h-8 w-8 mx-auto mb-4 animate-spin" />
-              <p>Se incarca din baza de date...</p>
-            </div>
-          ) : pendingInvoices.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <CheckCircle2 className="h-8 w-8 mx-auto mb-4 opacity-50 text-green-500" />
-              <p>
-                {lastScanAt
-                  ? "Nu exista facturi pending de reparat"
-                  : "Apasa \"Scaneaza Oblio\" pentru a detecta facturile afectate"}
-              </p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12"></TableHead>
-                  <TableHead>Firma</TableHead>
-                  <TableHead>Serie + Numar</TableHead>
-                  <TableHead>Comanda</TableHead>
-                  <TableHead>Client Oblio</TableHead>
-                  <TableHead>Client corect</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actiuni</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pendingInvoices.map((inv) => (
-                  <TableRow
-                    key={inv.id}
-                    className={
-                      repairStatuses[inv.id] === "repaired"
-                        ? "opacity-50"
-                        : repairStatuses[inv.id] === "error"
-                        ? "bg-red-50 dark:bg-red-950/10"
-                        : ""
-                    }
-                  >
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedIds.includes(inv.id)}
-                        onCheckedChange={() => toggleInvoice(inv.id)}
-                        disabled={repairStatuses[inv.id] === "repaired" || repairStatuses[inv.id] === "processing"}
-                      />
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {inv.companyName}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {inv.invoiceSeriesName} {inv.invoiceNumber}
-                    </TableCell>
-                    <TableCell>{inv.orderNumber}</TableCell>
-                    <TableCell className="text-red-600 dark:text-red-400 max-w-[150px] truncate">
-                      {inv.oblioClient}
-                    </TableCell>
-                    <TableCell className="text-green-600 dark:text-green-400 max-w-[150px] truncate">
-                      {inv.correctCustomer}
-                    </TableCell>
-                    <TableCell>
-                      {inv.total.toFixed(2)} {inv.currency}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {formatDate(inv.issuedAt)}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(inv.id)}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => repairMutation.mutate(inv.id)}
-                        disabled={
-                          repairStatuses[inv.id] === "repaired" ||
-                          repairStatuses[inv.id] === "processing" ||
-                          isProcessing
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12"></TableHead>
+                      <TableHead>Firma</TableHead>
+                      <TableHead>Serie + Numar</TableHead>
+                      <TableHead>Comanda</TableHead>
+                      <TableHead>Client Oblio</TableHead>
+                      <TableHead>Client corect</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actiuni</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingInvoices.map((inv) => (
+                      <TableRow
+                        key={inv.id}
+                        className={
+                          repairStatuses[inv.id] === "repaired"
+                            ? "opacity-50"
+                            : repairStatuses[inv.id] === "error"
+                            ? "bg-red-50 dark:bg-red-950/10"
+                            : ""
                         }
                       >
-                        {repairStatuses[inv.id] === "processing" ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          "Repara"
-                        )}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedIds.includes(inv.id)}
+                            onCheckedChange={() => toggleInvoice(inv.id)}
+                            disabled={repairStatuses[inv.id] === "repaired" || repairStatuses[inv.id] === "processing"}
+                          />
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {inv.companyName}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {inv.invoiceSeriesName} {inv.invoiceNumber}
+                        </TableCell>
+                        <TableCell>{inv.orderNumber}</TableCell>
+                        <TableCell className="text-red-600 dark:text-red-400 max-w-[150px] truncate">
+                          {inv.oblioClient}
+                        </TableCell>
+                        <TableCell className="text-green-600 dark:text-green-400 max-w-[150px] truncate">
+                          {inv.correctCustomer}
+                        </TableCell>
+                        <TableCell>
+                          {inv.total.toFixed(2)} {inv.currency}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {formatDate(inv.issuedAt)}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(inv.id)}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => repairMutation.mutate(inv.id)}
+                            disabled={
+                              repairStatuses[inv.id] === "repaired" ||
+                              repairStatuses[inv.id] === "processing" ||
+                              isProcessing
+                            }
+                          >
+                            {repairStatuses[inv.id] === "processing" ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              "Repara"
+                            )}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history">
+          <RepairHistoryTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -85,6 +85,7 @@ interface Order {
     price: string;
   }>;
   customerOrderCount?: number;
+  paymentMethod?: "card" | "cod" | "unknown";
 }
 
 const statusConfig: Record<
@@ -399,6 +400,12 @@ function OrdersEmbedContent() {
                         <span className="font-semibold">
                           {formatCurrency(parseFloat(order.totalPrice), order.currency)}
                         </span>
+                        {order.paymentMethod === "card" && (
+                          <Badge variant="info" className="text-[10px] px-1.5 py-0 mt-1 block w-fit ml-auto">Card</Badge>
+                        )}
+                        {order.paymentMethod === "cod" && (
+                          <Badge variant="warning" className="text-[10px] px-1.5 py-0 mt-1 block w-fit ml-auto">Ramburs</Badge>
+                        )}
                       </td>
                       <td className="p-4">
                         <Badge variant={statusConfig[order.status]?.variant || "default"}>
@@ -523,6 +530,12 @@ function OrdersEmbedContent() {
                   <p className="text-xl font-bold">
                     {formatCurrency(parseFloat(selectedOrder.totalPrice), selectedOrder.currency)}
                   </p>
+                  {selectedOrder.paymentMethod === "card" && (
+                    <Badge variant="info" className="text-[10px] px-1.5 py-0 mt-1 block w-fit">Card</Badge>
+                  )}
+                  {selectedOrder.paymentMethod === "cod" && (
+                    <Badge variant="warning" className="text-[10px] px-1.5 py-0 mt-1 block w-fit">Ramburs</Badge>
+                  )}
                 </div>
               </div>
 

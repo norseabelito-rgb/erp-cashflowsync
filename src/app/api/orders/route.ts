@@ -285,14 +285,34 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // API compat: map invoices[0] → invoice for frontend + add customerOrderCount
+    // Detect payment method from rawData or source
+    function detectPaymentMethod(order: any): "card" | "cod" | "unknown" {
+      // Trendyol and Temu are always card-paid
+      if (order.source === "trendyol" || order.source === "temu") {
+        return "card";
+      }
+
+      // Shopify: check payment_gateway_names in rawData
+      const gateways: string[] = order.rawData?.payment_gateway_names || [];
+      for (const gw of gateways) {
+        if (gw === "Cash on Delivery (COD)") return "cod";
+        if (gw === "shopify_payments" || gw.toLowerCase().includes("payment")) return "card";
+      }
+
+      return "unknown";
+    }
+
+    // API compat: map invoices[0] → invoice for frontend + add customerOrderCount + paymentMethod
     const ordersWithCompat = orders.map((o: any) => {
       const key = o.customerEmail?.trim().toLowerCase() || o.customerPhone?.trim();
+      const paymentMethod = detectPaymentMethod(o);
       return {
         ...o,
+        rawData: undefined, // strip rawData from response to reduce payload
         invoice: o.invoices?.[0] || null,
         invoices: undefined,
         customerOrderCount: key ? (customerOrderCounts[key] || 1) : 1,
+        paymentMethod,
       };
     });
 

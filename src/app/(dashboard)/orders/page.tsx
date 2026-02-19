@@ -154,6 +154,7 @@ interface Order {
     color: string;
   } | null;
   customerOrderCount?: number;
+  paymentMethod?: "card" | "cod" | "unknown";
 }
 
 interface Store {
@@ -1683,7 +1684,15 @@ export default function OrdersPage() {
                           <div className="flex items-center gap-2" title={order.addressValidationMsg || ""}><MapPin className="h-3 w-3 text-muted-foreground" />{getValidationIcon(order.addressValidation)}</div>
                         </div>
                       </td>
-                      <td className="p-4"><span className="font-semibold">{formatCurrency(parseFloat(order.totalPrice), order.currency)}</span></td>
+                      <td className="p-4">
+                        <span className="font-semibold">{formatCurrency(parseFloat(order.totalPrice), order.currency)}</span>
+                        {order.paymentMethod === "card" && (
+                          <Badge variant="info" className="text-[10px] px-1.5 py-0 mt-1 block w-fit">Card</Badge>
+                        )}
+                        {order.paymentMethod === "cod" && (
+                          <Badge variant="warning" className="text-[10px] px-1.5 py-0 mt-1 block w-fit">Ramburs</Badge>
+                        )}
+                      </td>
                       <td className="p-4">
                         <div className="relative inline-flex items-center">
                           <Badge variant={statusConfig[order.status]?.variant || "default"}>{statusConfig[order.status]?.label || order.status}</Badge>
@@ -2264,6 +2273,12 @@ export default function OrdersPage() {
                 <div>
                   <h4 className="font-semibold mb-2">Valoare</h4>
                   <p className="text-xl font-bold">{formatCurrency(parseFloat(viewOrder.totalPrice), viewOrder.currency)}</p>
+                  {viewOrder.paymentMethod === "card" && (
+                    <Badge variant="info" className="text-[10px] px-1.5 py-0 mt-1 block w-fit">Card</Badge>
+                  )}
+                  {viewOrder.paymentMethod === "cod" && (
+                    <Badge variant="warning" className="text-[10px] px-1.5 py-0 mt-1 block w-fit">Ramburs</Badge>
+                  )}
                 </div>
               </div>
 
